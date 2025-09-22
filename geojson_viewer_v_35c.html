@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Offline GeoJSON/KML Viewer — Unified (WGS84)</title>
+  <!-- Leaflet CSS (เบา/เสถียร) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    /* ========== Theme tokens ========== */
+    :root{
+      --bg:#0b1220; --bg-2:#0f172a; --text:#e2e8f0; --muted:#94a3b8; --border:#1f2937;
+      --chip:#111827; --btn:#111827; --btn-hover:#0b1220;
+      --sidebar-w:360px; --sidebar-w-md:320px;
+    }
+    *{box-sizing:border-box}
+    html,body,#app{height:100%;margin:0}
+    body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial}
+
+    /* App chrome */
+    #topbar{position:absolute;top:0;left:0;right:0;height:48px;display:flex;align-items:center;gap:8px;
+      padding:0 10px;border-bottom:1px solid var(--border);background:rgba(15,23,42,.85);backdrop-filter:blur(6px);z-index:1200}
+    #menuBtn{display:none}
+    .top-title{font-weight:700; display:flex; flex-direction:column; line-height:1.1;}
+    .top-title .top-subtitle{ font-size:.85rem; opacity:.8; }
+    .top-spacer{flex:1}
+    .top-actions{display:flex;gap:6px}
+    .chip{background:var(--chip);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--muted)}
+
+    #sidebar{position:absolute;top:48px;left:0;width:var(--sidebar-w);bottom:0;overflow:auto;background:var(--bg-2);color:var(--text);padding:12px;z-index:1100;border-right:1px solid var(--border)}
+    #map{position:absolute;top:48px;bottom:0;right:0;left:var(--sidebar-w)}
+
+    h3{margin:10px 0 8px}
+    .hint{font-size:12px;color:var(--muted)}
+    .layerlist{margin-top:10px;max-height:280px;overflow:auto}
+    .layeritem{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px}
+    .left{display:flex;align-items:center;gap:8px}
+    .colorchip{width:12px;height:12px;border-radius:3px;border:1px solid #0005;display:inline-block}
+
+    .toolbar{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+      grid-auto-rows:min-content;gap:6px;margin-top:8px;padding-bottom:8px;background:linear-gradient(180deg, rgba(15,23,42,1), rgba(15,23,42,.85));backdrop-filter:blur(4px)}
+    .btn{cursor:pointer;border:1px solid var(--border);background:var(--btn);color:var(--text);padding:8px 12px;border-radius:10px;font-size:12.5px}
+    .btn:hover{background:var(--btn-hover)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .filebox{border:1px dashed #334155;border-radius:12px;padding:12px;background:var(--bg)}
+    .filebox.drag{border-color:#60a5fa;background:#0b122055}
+    .filebox input[type=file]{width:100%;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#0b1220;color:var(--text)}
+    .feat-label{background:#111827cc;color:#e2e8f0;border:1px solid #1f2937;border-radius:4px;padding:0 4px}
+    .error{color:#fca5a5;font-size:12px;margin-top:6px;white-space:pre-wrap}
+
+    #searchBox{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e2e8f0;margin-top:10px;font-size:13px}
+
+    .map-coords{position:absolute;left:12px;bottom:12px;z-index:1200;background:rgba(17,24,39,.9);color:#e2e8f0;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;pointer-events:none}
+    .measure-hud{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:1200;background:rgba(17,24,39,.95);color:#e2e8f0;border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.3);display:none;pointer-events:none}
+
+    /* Mobile */
+    @media (max-width:1024px){
+      :root{--sidebar-w:var(--sidebar-w-md)}
+      #menuBtn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--btn);color:var(--text);border-radius:10px;padding:6px 10px}
+      #sidebar{left:-100%;transition:left .25s}
+      #sidebar.open{left:0}
+      #map{left:0}
+      .fabbar{position:absolute;right:12px;bottom:12px;z-index:1300;display:flex;flex-direction:column;gap:8px}
+      .fab{min-width:44px;min-height:44px;border-radius:12px}
+    }
+
+    .labels-off .leaflet-tooltip { display:none !important; }
+
+    /* put measure buttons on 2nd row */
+    #btnMeasureToggle, #btnMeasureClear { grid-row: 2; }
+    #btnMeasureToggle { grid-column: 1; }
+    #btnMeasureClear { grid-column: 2; }
+
+    /* Hover halo tooltip */
+    .hover-label { background: rgba(0,0,0,0.92); color: #fffef0; border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 6px; padding: 2px 6px; font-size: 12.5px; font-weight: 700; line-height: 1.2;
+      text-shadow: 0 0 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6); white-space: nowrap;
+      box-shadow: 0 1px 6px rgba(0,0,0,.35); pointer-events: none; }
+
+    /* Measurement HUD high-contrast */
+    .measure-label, .measure-node, .measure-total { background: rgba(0,0,0,0.90) !important; color: #fffef0 !important;
+      border: 1px solid rgba(255,255,255,0.9) !important; border-radius: 6px !important; padding: 3px 7px !important;
+      font-size: 11px !important; font-weight: 700 !important; line-height: 1.2 !important;
+      text-shadow: 0 0 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6) !important; box-shadow: 0 1px 6px rgba(0,0,0,.35) !important; }
+    .measure-hud { background: rgba(0,0,0,0.90) !important; color: #fffef0 !important; border: 1px solid rgba(255,255,255,0.9) !important;
+      font-weight: 700 !important; text-shadow: 0 0 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6) !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Topbar -->
+  <div id="topbar">
+    <button id="menuBtn" title="Menu">☰</button>
+    <div class="top-title">GeoJSON / KML Viewer<div class="top-subtitle">Developed by RattawitW.</div></div>
+    <div class="top-spacer"></div>
+    <div class="top-actions">
+      <button class="chip" id="chipSearch" type="button">Ctrl+K Search</button>
+      <button class="chip" id="chipBase" type="button">B Toggle Base</button>
+      <button class="chip" id="chipMeasure" type="button">M Measure</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <h3>Import GeoJSON / KML</h3>
+    <div id="drop" class="filebox">
+      <input id="fileInput" type="file" accept=".json,.geojson,.kml" multiple>
+      <div class="hint">Drag & drop .geojson or .kml files, or click to select (multiple files supported)</div>
+      <div id="progress" class="hint"></div>
+      <div id="errors" class="error"></div>
+    </div>
+    <input id="searchBox" type="text" placeholder="🔍 Search features... (Ctrl+K)" />
+    <div class="toolbar">
+      <button id="fitBtn" class="btn" disabled>Zoom to Data</button>
+      <button id="clearBtn" class="btn" disabled>Remove All Layers</button>
+      <button id="baseBtn" class="btn">Toggle Base</button>
+      <button id="btnMeasureToggle" class="btn">Measure Mode</button>
+      <button id="btnLabels" class="btn" title="Toggle all labels">Labels</button>
+      <button id="btnMeasureClear" class="btn">Clear Measure</button>
+    </div>
+    <h3>Layers</h3>
+    <div id="layerList" class="layerlist"></div>
+
+    <!-- Loaded files status (pulls from UnifiedCache) -->
+    <div id="fileStatusSidebar" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--text)">
+      <b style="color:#93c5fd">Loaded GeoJSON files</b>
+      <ul id="fileStatusList" style="margin:6px 0 0 16px;padding:0;max-height:140px;overflow:auto"><li>—</li></ul>
+      <div class="tools" style="margin-top:6px;display:flex;gap:8px">
+        <button id="fileStatusClear" class="btn" style="padding:6px 10px;font-size:11px">Clear file list</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Mobile quick actions -->
+  <div class="fabbar" id="fabbar" hidden>
+    <button class="btn fab" id="fabFit" title="Zoom to Data">🔍</button>
+    <button class="btn fab" id="fabMeasure" title="Measurement">📏</button>
+    <button class="btn fab" id="fabBase" title="Base Map">🗺️</button>
+    <button class="btn fab" id="fabCenter" title="Go to center">🎯</button>
+  </div>
+
+  <div id="mapCoords" class="map-coords">Lat: — , Lon: — | Zoom: —</div>
+  <div id="measureHud" class="measure-hud">Total: — | Δ: —</div>
+</div>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+/* ----------------------------- Utilities ----------------------------- */
+// Degrees -> Degrees+Minutes text
+function toDM(v){
+  const sign = v<0? -1: 1; const abs = Math.abs(v);
+  const d = Math.floor(abs); const m = (abs - d) * 60;
+  return (sign<0?'-':'') + d + '° ' + m.toFixed(3) + "'";
+}
+// requestIdle polyfill
+window.requestIdleCallback = window.requestIdleCallback || function(cb){ return setTimeout(()=>cb({didTimeout:false,timeRemaining:()=>0}), 1); };
+window.cancelIdleCallback = window.cancelIdleCallback || function(id){ clearTimeout(id); };
+// Safe HTML escaper
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+const isMobile = matchMedia('(max-width:1024px)').matches;
+console.log('[Init] isMobile =', isMobile);
+
+/* ----------------------------- Map boot ------------------------------ */
+// NOTE: bind to window to avoid shadowing by #map DOM element in some browsers.
+const map = window.map = L.map('map',{ preferCanvas:true });
+console.log('[Map] created');
+
+L.control.attribution({ prefix:false }).addTo(map);
+map.setView([10,101],6);
+map.setMinZoom(1); map.setMaxZoom(20);
+console.log('[Map] setView+limits');
+
+// tiny brand credit
+(function(){
+  const credit = L.control({ position:'bottomleft' });
+  credit.onAdd = function(){
+    const d = L.DomUtil.create('div','leaflet-control dev-credit');
+    d.style.cssText = 'padding:4px 8px;font-size:11px;opacity:.95;background:rgba(0,0,0,0);pointer-events:none;color:#cbd5e1;text-shadow:0 1px 2px rgba(0,0,0,.8);font-weight:500';
+    d.innerHTML = 'Developed by RattawitW.'; return d;
+  };
+  credit.addTo(map);
+})();
+
+// persist map view (independent of UnifiedCache view)
+(function(){
+  function saveMapView(){
+    try{ localStorage.setItem('geojson_mapview', JSON.stringify({center: map.getCenter(), zoom: map.getZoom()})); }catch(_){}
+  }
+  function loadMapView(){
+    try{
+      const s = localStorage.getItem('geojson_mapview'); if(!s) return;
+      const v = JSON.parse(s); if(v && v.center && Number.isFinite(v.zoom)){ map.setView([v.center.lat, v.center.lng], v.zoom); }
+    }catch(_){}
+  }
+  map.on('moveend', saveMapView); map.on('zoomend', saveMapView); setTimeout(loadMapView, 0);
+})();
+
+/* ----------------------------- Base layer ---------------------------- */
+const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'});
+let baseOn = false;
+const baseBtn = document.getElementById('baseBtn');
+function refreshBaseBtn(){ try{ baseBtn.textContent = baseOn ? 'ปิดแผนที่ฐาน' : 'Toggle Base'; baseBtn.classList.toggle('active', baseOn);}catch(_){ } }
+function toggleBase(){
+  try{
+    if(baseOn){ map.removeLayer(baseLayer); baseOn=false; }
+    else { baseLayer.addTo(map); if(baseLayer.bringToBack) baseLayer.bringToBack(); baseOn=true; }
+    refreshBaseBtn();
+  }catch(e){ console.warn('toggleBase failed', e); }
+}
+baseBtn.addEventListener('click', toggleBase); refreshBaseBtn();
+
+/* ------------------------- Sidebar / top chips ----------------------- */
+const sidebar = document.getElementById('sidebar'); const menuBtn = document.getElementById('menuBtn');
+(function(){
+  const KEY='sidebar_open_v34';
+  function setOpen(open){ if(isMobile){ sidebar.classList.toggle('open', open); document.getElementById('fabbar').hidden = !open ? false : true; } }
+  let open = localStorage.getItem(KEY);
+  if(isMobile){ setOpen(open ? open==='1' : false); document.getElementById('fabbar').hidden=false; }
+  menuBtn && menuBtn.addEventListener('click', ()=>{ const now=!sidebar.classList.contains('open'); setOpen(now); try{ localStorage.setItem(KEY, now?'1':'0'); }catch(_){ } });
+})();
+(function(){
+  const q = document.getElementById('searchBox');
+  const cSearch = document.getElementById('chipSearch');
+  const cBase = document.getElementById('chipBase');
+  const cMeasure = document.getElementById('chipMeasure');
+  if (cSearch && q) cSearch.addEventListener('click', ()=>{ q.focus(); q.select && q.select(); });
+  if (cBase) cBase.addEventListener('click', ()=>{ try{ const b=document.getElementById('fabBase'); b && b.click(); }catch(_){ } });
+  if (cMeasure) cMeasure.addEventListener('click', ()=>{ try{ document.getElementById('btnMeasureToggle')?.click(); }catch(_){ } });
+})();
+L.control.scale().addTo(map);
+(function(){
+  const box=document.getElementById('mapCoords');
+  const n=(v)=>toDM(Number(v));
+  map.on('mousemove', e=>{ box.textContent = `Lat: ${n(e.latlng.lat)}, Lon: ${n(e.latlng.lng)} | Zoom: ${map.getZoom()}`; });
+  map.on('zoomend', ()=>{ const c=map.getCenter(); box.textContent=`Lat: ${n(c.lat)}, Lon: ${n(c.lng)} | Zoom: ${map.getZoom()}`; });
+})();
+
+/* --------------------------- Layer manager --------------------------- */
+// NOTE: publish to window so other blocks (cache/worker) can access safely.
+const groups = window.groups = new Map(); // name -> {fg,color,visible,showLabels,count}
+const LABEL_KEYS=['name','Name','NAME','label','Label','LABEL','title','Title','TITLE','_name','PointName','POINTNAME','POINT_NAME'];
+
+function getLabel(p){ if(!p) return null; for(const k of LABEL_KEYS){ if(p[k]!=null && String(p[k]).trim()!=='') return String(p[k]); } return null; }
+function randomColor(seed){ let h=0; for(const c of seed) h=(h*31+c.charCodeAt(0))>>>0; return `hsl(${h%360} 70% 50%)`; }
+function featureStyleFactory(color){ return { color, weight:2, opacity:.95, fillColor:color, fillOpacity:.15 }; }
+function hashCode(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return h; }
+const SHAPES=['circle','square','triangle','diamond','cross','x'];
+function shapeForLayer(layerName){ const idx=Math.abs(hashCode(layerName))%SHAPES.length; return SHAPES[idx]; }
+function svgIcon(shape,color){
+  const size=18; let svg='';
+  if(shape==='circle'){ svg=`<svg width='18' height='18' viewBox='0 0 16 16'><circle cx='8' cy='8' r='5' fill='${color}' stroke='#111'/></svg>`; }
+  else if(shape==='square'){ svg=`<svg width='18' height='18' viewBox='0 0 16 16'><rect x='3' y='3' width='10' height='10' fill='${color}' stroke='#111'/></svg>`; }
+  else if(shape==='triangle'){ svg=`<svg width='18' height='18' viewBox='0 0 16 16'><polygon points='8,3 13,13 3,13' fill='${color}' stroke='#111'/></svg>`; }
+  else if(shape==='diamond'){ svg=`<svg width='18' height='18' viewBox='0 0 16 16'><polygon points='8,2 14,8 8,14 2,8' fill='${color}' stroke='#111'/></svg>`; }
+  else if(shape==='cross'){ svg=`<svg width='18' height='18' viewBox='0 0 16 16'><path d='M7 3h2v4h4v2H9v4H7V9H3V7h4z' fill='${color}' stroke='#111'/></svg>`; }
+  else { svg=`<svg width='18' height='18' viewBox='0 0 16 16'><path d='M4 4l8 8M12 4l-8 8' stroke='#111' stroke-width='3'/><path d='M4 4l8 8M12 4l-8 8' stroke='${color}' stroke-width='1'/></svg>`; }
+  return L.divIcon({className:'', html:svg, iconSize:[size,size], iconAnchor:[9,9]});
+}
+function ensureGroup(name){
+  if(!groups.has(name)){
+    const color=randomColor(name); const fg=L.featureGroup().addTo(map);
+    groups.set(name,{fg,color,visible:true,showLabels:true,count:0});
+    console.log('[Group] created', name);
+    refreshLayerList();
+  }
+  return groups.get(name);
+}
+// Path label binder for lines/polys
+function bindPathLabel(path, text, visible){
+  path._labelText = text; if (!text) return;
+  if (visible) { if(!path.getTooltip()) path.bindTooltip(text, {sticky:true, direction:'top', className:'feat-label'}); }
+  else { if (path.getTooltip && path.getTooltip()) path.unbindTooltip(); }
+}
+// Add Feature into group
+function addFeatureToGroup(name,f){
+  const g=ensureGroup(name); const color=g.color; const geom=f.geometry; const props=f.properties||{}; const label=getLabel(props); if(!geom) return;
+  if(geom.type==='Point'){
+    const [lon,lat]=geom.coordinates||[]; if(!Number.isFinite(lon)||!Number.isFinite(lat)) return;
+    const m=L.marker([lat,lon],{icon:svgIcon(shapeForLayer(name),color)}); m.feature=f;
+    if(label){ m.bindTooltip(escapeHtml(label),{permanent:true,direction:'right',className:'feat-label',offset:[8,0]}); m.on('add',()=>{ const tt=m.getTooltip&&m.getTooltip(); if(tt){ const el=tt.getElement(); if(el) el.style.display=g.showLabels?'':'none'; } }); }
+    m.addTo(g.fg); g.count++;
+  } else if(geom.type==='MultiPoint'){
+    for(const p of geom.coordinates){ const lon=Number(p[0]), lat=Number(p[1]); if(!Number.isFinite(lon)||!Number.isFinite(lat)) continue; const m=L.marker([lat,lon],{icon:svgIcon(shapeForLayer(name),color)}); m.feature=f; if(label){ m.bindTooltip(escapeHtml(label),{permanent:true,direction:'right',className:'feat-label',offset:[8,0]}); m.on('add',()=>{ const tt=m.getTooltip&&m.getTooltip(); if(tt){ const el=tt.getElement(); if(el) el.style.display=g.showLabels?'':'none'; } }); } m.addTo(g.fg); g.count++; }
+  } else if(geom.type==='LineString'){
+    const coords=geom.coordinates.map(([x,y])=>[y,x]); const line=L.polyline(coords,featureStyleFactory(color)); line.feature=f; bindPathLabel(line, escapeHtml(label||''), g.showLabels); line.addTo(g.fg); g.count++;
+  } else if(geom.type==='MultiLineString'){
+    const coords=geom.coordinates.map(line=>line.map(([x,y])=>[y,x])); const ml=L.polyline(coords,featureStyleFactory(color)); ml.feature=f; bindPathLabel(ml, escapeHtml(label||''), g.showLabels); ml.addTo(g.fg); g.count++;
+  } else if(geom.type==='Polygon'){
+    const coords=geom.coordinates.map(r=>r.map(([x,y])=>[y,x])); const poly=L.polygon(coords,featureStyleFactory(color)); poly.feature=f; bindPathLabel(poly, escapeHtml(label||''), g.showLabels); poly.addTo(g.fg); g.count++;
+  } else if(geom.type==='MultiPolygon'){
+    const coords=geom.coordinates.map(poly=>poly.map(r=>r.map(([x,y])=>[y,x]))); const mp=L.polygon(coords,featureStyleFactory(color)); mp.feature=f; bindPathLabel(mp, escapeHtml(label||''), g.showLabels); mp.addTo(g.fg); g.count++;
+  }
+}
+// Layer list UI
+function refreshLayerList(){
+  const el=document.getElementById('layerList'); el.innerHTML='';
+  for(const [name,info] of groups){
+    const row=document.createElement('div'); row.className='layeritem';
+    const left=document.createElement('div'); left.className='left';
+    left.innerHTML=`<span class='colorchip' style='background:${info.color}'></span><span>${escapeHtml(name)} <span class='hint'>(${info.count})</span></span>`;
+    const right=document.createElement('div'); right.style.display='flex'; right.style.gap='6px';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=info.visible; cb.title='แสดง/ซ่อน'; cb.onchange=()=>{ info.visible=cb.checked; if(info.visible) map.addLayer(info.fg); else map.removeLayer(info.fg); };
+    const lbl=document.createElement('input'); lbl.type='checkbox'; lbl.checked=info.showLabels; lbl.title='เปิด/ปิด Label'; lbl.onchange=()=>{
+      info.showLabels=lbl.checked; info.fg.eachLayer(l=>{
+        if(l instanceof L.Marker){
+          if(l.getTooltip && l.getTooltip()){ const el=l.getTooltip().getElement(); if(el) el.style.display = lbl.checked ? '' : 'none'; }
+        }else if(l instanceof L.Path){
+          if(lbl.checked){ if(!l.getTooltip() && l._labelText){ l.bindTooltip(l._labelText, {sticky:true, direction:'top', className:'feat-label'}); } }
+          else { if(l.getTooltip()){ l.unbindTooltip(); } }
+        }
+      });
+    };
+    const zoom=document.createElement('button'); zoom.className='btn'; zoom.textContent='ซูม'; zoom.onclick=()=>{ if(info.fg.getLayers().length) map.fitBounds(info.fg.getBounds(),{padding:[20,20]}); };
+    const del=document.createElement('button'); del.className='btn'; del.textContent='✕'; del.onclick=()=>{ map.removeLayer(info.fg); groups.delete(name); refreshLayerList(); };
+    right.append(cb,lbl,zoom,del); row.append(left,right); el.appendChild(row);
+  }
+  document.getElementById('fitBtn').disabled=!groups.size; document.getElementById('clearBtn').disabled=!groups.size;
+}
+
+/* --------------------------- File ingestion -------------------------- */
+function normalizeToFeatureCollection(obj){
+  if(!obj) return {type:'FeatureCollection',features:[]};
+  if(obj.type==='FeatureCollection') return obj;
+  if(obj.type==='Feature') return {type:'FeatureCollection',features:[obj]};
+  if(Array.isArray(obj)) return {type:'FeatureCollection',features:obj.filter(o=>o&&o.type)};
+  if(obj.type && obj.coordinates) return {type:'FeatureCollection',features:[{type:'Feature',geometry:obj,properties:{}}]};
+  return {type:'FeatureCollection',features:[]};
+}
+function handleGeoJSON(gj){
+  const fc=normalizeToFeatureCollection(gj); const feats=fc.features||[]; const progress=document.getElementById('progress');
+  let i=0; const chunk=2000;
+  console.log('[Ingest] GeoJSON features =', feats.length);
+  function addChunk(){
+    const end=Math.min(i+chunk,feats.length);
+    for(;i<end;i++){ const f=feats[i]; const lname=f.properties && f.properties._layer ? String(f.properties._layer) : 'default'; addFeatureToGroup(lname,f); }
+    progress.textContent=`โหลด ${i}/${feats.length} features`;
+    if(i<feats.length){ requestIdleCallback(addChunk); }
+    else {
+      progress.textContent='';
+      refreshLayerList();
+      const g=L.featureGroup([...groups.values()].map(o=>o.fg));
+      if(g.getLayers().length) map.fitBounds(g.getBounds(),{padding:[20,20]});
+    }
+  }
+  addChunk();
+}
+// UI wire
+const fileInput=document.getElementById('fileInput');
+fileInput.addEventListener('change',e=>handleFiles(e.target.files));
+const drop=document.getElementById('drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dataTransfer.files)});
+document.getElementById('fitBtn').onclick=()=>{ const g=L.featureGroup([...groups.values()].map(o=>o.fg)); if(g.getLayers().length) map.fitBounds(g.getBounds(),{padding:[20,20]}); };
+document.getElementById('clearBtn').onclick=()=>{ for(const [,info] of groups){ map.removeLayer(info.fg); } groups.clear(); refreshLayerList(); };
+// Mobile quick bar
+(function(){
+  const bar=document.getElementById('fabbar'); if(!isMobile||!bar) return;
+  const fit=document.getElementById('fabFit'); const meas=document.getElementById('fabMeasure'); const base=document.getElementById('fabBase'); const center=document.getElementById('fabCenter');
+  fit.onclick=()=>document.getElementById('fitBtn').click();
+  base.onclick=()=>toggleBase();
+  center.onclick=()=>{ const c=map.getCenter(); map.panTo(c); };
+  meas.onclick=()=>document.getElementById('btnMeasureToggle').click();
+})();
+async function handleFiles(files){
+  const errors=document.getElementById('errors'); const prog=document.getElementById('progress'); errors.textContent='';
+  for(const f of files){
+    try{
+      let text=await f.text(); if(text.charCodeAt(0)===0xFEFF){ text=text.slice(1); }
+      const low=f.name.toLowerCase();
+      if(!(low.endsWith('.geojson')||low.endsWith('.json')||low.endsWith('.kml'))){ throw new Error('รองรับเฉพาะไฟล์ GeoJSON (.geojson/.json) หรือ KML (.kml)'); }
+      if(low.endsWith('.kml')){ await handleKMLFile(f); continue; }
+      const obj=JSON.parse(text); handleGeoJSON(obj);
+    }catch(e){
+      const msg=`อ่านไฟล์ไม่ได้: ${f.name}\n${e && e.message ? e.message : e}`; console.error(msg, e);
+      errors.textContent += (errors.textContent ? '\n' : '') + msg;
+    } finally { prog.textContent=''; }
+  }
+}
+</script>
+
+<!-- Measurement tools -->
+<script>
+// Enhanced Measurement Tool — total shown inside last vertex label + dbl-click guard
+(function(){
+  if(!map.getPane('measurePane')){
+    map.createPane('measurePane');
+    map.getPane('measurePane').style.zIndex = 650;
+  }
+
+  // ---------- sizing (adjust here) ----------
+  const NODE_W = 80;        // vertex label width (px)
+  const NODE_H = 52;        // vertex label height (px) for normal nodes
+  const NODE_H_LAST = 72;   // height (px) when the label includes the "Total" line
+
+  // ---------- helpers ----------
+  const hud = document.getElementById('measureHud');
+  const fmtN = v => toDM(Number(v));
+  const toRad = d => d * Math.PI / 180;
+  const haversine = (a, b) => {
+    const R = 6371008.8;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const s = Math.pow(Math.sin(dLat/2), 2) +
+              Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) *
+              Math.pow(Math.sin(dLng/2), 2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+  const totalDist = (arr) => {
+    let t = 0;
+    for (let i = 1; i < arr.length; i++) t += haversine(arr[i-1], arr[i]);
+    return t;
+  };
+  const fmtLen = (m) => !isFinite(m) ? '—' :
+    (m >= 1000 ? (m/1000).toFixed(3) + ' km' : m.toFixed(1) + ' m');
+  const showHud = (tot, seg) => {
+    hud.style.display = 'block';
+    hud.textContent = `Total: ${fmtLen(tot)} | Δ: ${fmtLen(seg)}`;
+  };
+  const hideHud = () => { hud.style.display = 'none'; };
+
+  // Build HTML for a node label, optionally including the Total line
+  function buildNodeHTML(index, ll, totalMeters = null){
+    const totalLine = totalMeters == null ? "" :
+      `<div class="measure-total-inline">Total: ${fmtLen(totalMeters)}</div>`;
+    return `
+      <div class="measure-node">
+        ${index + 1}<br>${fmtN(ll.lat)}<br>${fmtN(ll.lng)}
+        ${totalLine}
+      </div>`;
+  }
+
+  // Create a DivIcon for a node (taller if it includes Total)
+  function nodeIconFor(index, ll, withTotal){
+    const above = index % 2 === 0;         // alternate above/below
+    const H = withTotal ? NODE_H_LAST : NODE_H;
+    return L.divIcon({
+      className: '',
+      html: buildNodeHTML(index, ll, withTotal ? totalDist(vertices) : null),
+      iconSize: [NODE_W, H],
+      // IMPORTANT: above -> anchor bottom (H), below -> anchor top (0)
+      iconAnchor: [NODE_W / 2, above ? H : 0]
+    });
+  }
+
+  // ---------- state ----------
+  let measuring = false;
+  const group = L.featureGroup({pane: 'measurePane'}).addTo(map);
+  let building = null;
+  let vertices = [];
+  let preview = null;
+  let nodeLabels = [];
+  let segmentLabels = [];
+
+  // dbl-click suppression
+  let lastClickTS = 0;
+  let lastClickLL = null;
+  const DBL_MS = 350; // ms between clicks to consider dbl-click
+  const DBL_M  = 2;   // meters distance threshold for "same spot"
+
+  function clearBuilding(){
+    if(building){ group.removeLayer(building); building = null; }
+    if(preview){ group.removeLayer(preview); preview = null; }
+    for(const mk of nodeLabels) group.removeLayer(mk);
+    for(const mk of segmentLabels) group.removeLayer(mk);
+    nodeLabels = [];
+    segmentLabels = [];
+    vertices = [];
+    hideHud();
+  }
+
+  function addNodeLabel(ll, index){
+    const marker = L.marker(ll, {
+      pane: 'measurePane',
+      interactive: false,
+      icon: nodeIconFor(index, ll, false)
+    }).addTo(group);
+    nodeLabels.push(marker);
+  }
+
+  function addSegmentLabel(start, end, distance, index){
+    const midLat = (start.lat + end.lat) / 2;
+    const midLng = (start.lng + end.lng) / 2;
+    const bearing = Math.atan2(end.lng - start.lng, end.lat - start.lat);
+    const perpBearing = bearing + Math.PI / 2;
+    const offsetDistance = 0.0005;
+    const sign = index % 2 === 0 ? 1 : -1;
+    const offsetLat = midLat + Math.cos(perpBearing) * offsetDistance * sign;
+    const offsetLng = midLng + Math.sin(perpBearing) * offsetDistance * sign;
+    const html = `<div class="measure-label">${fmtLen(distance)}</div>`;
+    const marker = L.marker([offsetLat, offsetLng], {
+      pane: 'measurePane',
+      interactive: false,
+      icon: L.divIcon({
+        className: '',
+        html,
+        iconSize: [80, 25],
+        iconAnchor: [40, 12]
+      })
+    }).addTo(group);
+    segmentLabels.push(marker);
+  }
+
+  function updateLabels(){
+    // Clear segment labels
+    for(const mk of segmentLabels) group.removeLayer(mk);
+    segmentLabels = [];
+
+    if(vertices.length < 1) return;
+
+    // Rebuild segment labels
+    if(vertices.length >= 2){
+      for(let i = 1; i < vertices.length; i++){
+        const start = vertices[i-1];
+        const end = vertices[i];
+        const segDistance = haversine(start, end);
+        addSegmentLabel(start, end, segDistance, i-1);
+      }
+    }
+
+    // Reset all node icons to "normal"
+    for(let i = 0; i < nodeLabels.length; i++){
+      nodeLabels[i].setIcon(nodeIconFor(i, vertices[i], false));
+    }
+
+    // Make the LAST node include the Total line
+    if(vertices.length >= 2){
+      const lastIdx = nodeLabels.length - 1;
+      nodeLabels[lastIdx].setIcon(nodeIconFor(lastIdx, vertices[lastIdx], true));
+    }
+  }
+
+  function finishLine(){
+    if(vertices.length >= 2){
+      L.polyline(vertices, {
+        color: '#38bdf8',
+        weight: 3,
+        opacity: 0.95,
+        pane: 'measurePane'
+      }).addTo(group);
+
+      // ensure last node shows final total
+      updateLabels();
+
+      const tot = totalDist(vertices);
+      showHud(tot, 0);
+      setTimeout(hideHud, 3000);
+    }
+    if(building){ group.removeLayer(building); building = null; }
+    if(preview){ group.removeLayer(preview); preview = null; }
+    vertices = [];
+  }
+
+  const btnToggle = document.getElementById('btnMeasureToggle');
+  const btnClear  = document.getElementById('btnMeasureClear');
+
+  btnToggle && btnToggle.addEventListener('click', () => {
+    measuring = !measuring;
+    try { map.doubleClickZoom[measuring ? 'disable' : 'enable'](); } catch(_){}
+    btnToggle.classList.toggle('active', measuring);
+    if(!measuring) clearBuilding();
+  });
+
+  btnClear && btnClear.addEventListener('click', () => {
+    clearBuilding();
+    group.clearLayers();
+  });
+
+  // CLICK with dbl-click suppression
+  map.on('click', e => {
+    if(!measuring) return;
+    const ll = e.latlng;
+
+    const now = performance.now();
+    const isDblSecond = lastClickLL &&
+      (now - lastClickTS < DBL_MS) &&
+      (haversine({lat:lastClickLL.lat, lng:lastClickLL.lng}, ll) < DBL_M);
+
+    lastClickTS = now;
+    lastClickLL = ll;
+    if (isDblSecond) return;
+
+    vertices.push(ll);
+    addNodeLabel(ll, vertices.length - 1);
+
+    if(!building){
+      building = L.polyline([ll], {
+        color: '#60a5fa',
+        weight: 3,
+        opacity: 0.95,
+        pane: 'measurePane'
+      }).addTo(group);
+    } else {
+      building.addLatLng(ll);
+      updateLabels(); // updates segments + makes last node show Total
+    }
+  });
+
+  map.on('mousemove', e => {
+    if(!measuring || vertices.length === 0) return;
+    const last = vertices[vertices.length - 1];
+    const seg  = haversine(last, e.latlng);
+    const tot  = totalDist([...vertices, e.latlng]);
+
+    if(!preview){
+      preview = L.polyline([last, e.latlng], {
+        color: '#93c5fd',
+        weight: 2,
+        dashArray: '4,4',
+        pane: 'measurePane'
+      }).addTo(group);
+    } else {
+      preview.setLatLngs([last, e.latlng]);
+    }
+    showHud(tot, seg);
+  });
+
+  // DBLCLICK — remove accidental duplicate last vertex, then finish
+  map.on('dblclick', (e) => {
+    if(!measuring) return;
+
+    if(vertices.length >= 2){
+      const a = vertices[vertices.length - 1];
+      const b = vertices[vertices.length - 2];
+      if(haversine(a, b) < DBL_M){
+        vertices.pop();
+        const mk = nodeLabels.pop();
+        if(mk) group.removeLayer(mk);
+        if(building) building.setLatLngs(vertices);
+      }
+    }
+    if(e && e.originalEvent){
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
+    }
+    finishLine();
+  });
+
+  document.addEventListener('keydown', ev => {
+    if(ev.key === 'm' || ev.key === 'M'){ btnToggle && btnToggle.click(); }
+    if(!measuring) return;
+
+    if(ev.key === 'Escape'){
+      measuring = false;
+      btnToggle && btnToggle.classList.remove('active');
+      clearBuilding();
+    } else if(ev.key === 'Backspace'){
+      ev.preventDefault();
+      if(vertices.length){
+        vertices.pop();
+        if(building) building.setLatLngs(vertices);
+        const mk = nodeLabels.pop();
+        if(mk) group.removeLayer(mk);
+        updateLabels();
+      }
+    } else if(ev.key === 'Enter'){
+      finishLine();
+    }
+  });
+})();
+
+</script>
+
+<!-- Hover halo -->
+<script>
+(function(){
+  if(!map.getPane('hoverPane')){ map.createPane('hoverPane'); map.getPane('hoverPane').style.zIndex = 640; }
+  function getFeatLabel(layer){ try{ const f=layer.feature||{}; const p=(f&&f.properties)||{}; const t=getLabel(p); if(t && String(t).trim()!=='') return String(t); return p && (p.name||p.label||p.title||p._layer) || ''; }catch(_){ return ''; } }
+  function attachHover(layer){ if(!(layer instanceof L.Path)) return; let halo=null; let tip=null;
+    function makeHalo(){ try{ const latlngs=layer.getLatLngs(); const baseW=(layer.options && Number(layer.options.weight))?Number(layer.options.weight):2; const opts={ color:'#ffffff', weight: baseW+6, opacity:0.9, pane:'hoverPane', lineCap:'round', lineJoin:'round', interactive:false }; halo=(layer instanceof L.Polygon)? L.polygon(latlngs, Object.assign({fill:false}, opts)) : L.polyline(latlngs, opts); halo.addTo(map); }catch(_){ } }
+    function removeHalo(){ if(halo){ map.removeLayer(halo); halo=null; } }
+    function onOver(e){ makeHalo(); const text=getFeatLabel(layer); if(text){ tip=L.tooltip({className:'hover-label', sticky:true, permanent:false, direction:'top', opacity:1}).setContent(escapeHtml(text)).setLatLng(e.latlng).addTo(map); } }
+    function onMove(e){ if(!tip) return; tip.setLatLng(e.latlng); }
+    function onOut(){ removeHalo(); if(tip){ map.removeLayer(tip); tip=null; } }
+    function onRemove(){ onOut(); }
+    layer.off('mouseover.__halo').off('mousemove.__halo').off('mouseout.__halo').off('remove.__halo');
+    layer.on('mouseover.__halo', onOver); layer.on('mousemove.__halo', onMove); layer.on('mouseout.__halo', onOut); layer.on('remove.__halo', onRemove);
+  }
+  const wiredGroups=new WeakSet();
+  function wireGroup(info){ if(!info || !info.fg || wiredGroups.has(info.fg)) return; info.fg.eachLayer(attachHover); info.fg.on('layeradd', e=> attachHover(e.layer)); wiredGroups.add(info.fg); }
+  function wireAll(){ try{ for(const [,info] of groups){ wireGroup(info); } }catch(_){ }
+  }
+  wireAll(); const __oldRefresh=window.refreshLayerList; if(typeof __oldRefresh==='function'){ window.refreshLayerList=function(){ __oldRefresh(); wireAll(); }; }
+  window.addEventListener('load', ()=> setTimeout(wireAll, 200));
+})();
+</script>
+
+<!-- Search -->
+<script>
+(function(){
+  const input=document.getElementById('searchBox');
+  function searchFeature(query){
+    if(!query) return; query=query.toLowerCase();
+    for(const [,info] of groups){
+      for(const l of info.fg.getLayers()){
+        const f=l.feature||{}; const props=(f&&f.properties)||{}; const label=getLabel(props);
+        if(label && label.toLowerCase().includes(query)){
+          if(l.getBounds){ map.fitBounds(l.getBounds(), {padding:[40,40]}); }
+          else if(l.getLatLng){ map.setView(l.getLatLng(), 14); }
+          if(l.setStyle){ l.setStyle({color:'yellow'}); setTimeout(()=>{ l.setStyle({color:info.color}); },2000); }
+          return;
+        }
+      }
+    }
+    alert('ไม่พบฟีเจอร์ที่ตรงกับ: '+query);
+  }
+  input.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ searchFeature(input.value.trim()); } });
+  document.addEventListener('keydown',ev=>{ if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='k'){ ev.preventDefault(); input.focus(); input.select(); } else if(ev.key.toLowerCase()==='b'){ toggleBase(); } else if(ev.key.toLowerCase()==='z'){ document.getElementById('fitBtn').click(); } });
+})();
+</script>
+
+<!-- togeojson (KML) -->
+<script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+<script>
+function renderGeoJSONNoCache(gj){
+  const fc=normalizeToFeatureCollection(gj); const feats=fc.features||[]; const progress=document.getElementById('progress');
+  let i=0; const chunk=2000;
+  function addChunk(){
+    const end=Math.min(i+chunk,feats.length);
+    for(;i<end;i++){ const f=feats[i]; const lname=f.properties && f.properties._layer ? String(f.properties._layer) : 'default'; addFeatureToGroup(lname,f); }
+    progress.textContent=`โหลด ${i}/${feats.length} features (KML)`;
+    if(i<feats.length){ requestIdleCallback(addChunk); }
+    else {
+      progress.textContent='';
+      const g=L.featureGroup([...groups.values()].map(o=>o.fg));
+      if(g.getLayers().length) map.fitBounds(g.getBounds(),{padding:[20,20]});
+      refreshLayerList();
+    }
+  }
+  addChunk();
+}
+async function handleKMLFile(file){
+  const errors=document.getElementById('errors');
+  try{
+    const text=await file.text();
+    const parser=new DOMParser(); const kmlDoc=parser.parseFromString(text, "application/xml");
+    const gj=toGeoJSON.kml(kmlDoc);
+    try{ const base=(file && file.name ? file.name : 'KML').replace(/\.[^/.]+$/, ''); if(gj && Array.isArray(gj.features)){ gj.features.forEach(f=>{ if(!f.properties) f.properties={}; f.properties._layer = "KML: "+ base; }); } }catch(_){}
+    renderGeoJSONNoCache(gj);
+  }catch(err){ errors.textContent += (errors.textContent ? '\n' : '') + `Cannot read KML: ${file.name}\n${err && err.message ? err.message : err}`; }
+}
+// Make KML pass through above without caching duplication
+(function(){
+  const __origHandleFilesKML=handleFiles;
+  handleFiles=async function(files){
+    const arr=Array.from(files||[]);
+    const kmls=arr.filter(f=>f.name.toLowerCase().endsWith('.kml'));
+    const others=arr.filter(f=>!f.name.toLowerCase().endsWith('.kml'));
+    if(kmls.length){ for(const k of kmls){ await handleKMLFile(k); } }
+    if(others.length){ return await __origHandleFilesKML.call(this, others); }
+  };
+})();
+</script>
+
+<!-- Inline parser worker (off-main-thread for big GeoJSON/KML) -->
+<script>
+(function(){
+  let __worker_url = null;
+  try{
+    const src = `self.onmessage = function(e){
+  const data = e.data || {};
+  const name = data.name || 'file';
+  const type = data.type || 'geojson';
+  const text = data.text || '';
+  const batchSize = data.batchSize || 1000;
+  function normalizeToFC(obj){ try{ if(!obj) return {type:'FeatureCollection',features:[]}; if(obj.type==='FeatureCollection'&&Array.isArray(obj.features)) return obj; if(obj.type==='Feature') return {type:'FeatureCollection',features:[obj]}; if(obj.type&&obj.coordinates) return {type:'Feature',geometry:obj,properties:{}}; }catch(_){} return {type:'FeatureCollection',features:[]}; }
+  try{
+    if(type==='geojson'){
+      const obj = JSON.parse(text);
+      const fc = obj.type==='Feature' ? {type:'FeatureCollection',features:[obj]} : (obj.type==='FeatureCollection'?obj:normalizeToFC(obj));
+      const feats = Array.isArray(fc.features) ? fc.features : [];
+      for(let i=0;i<feats.length;i+=batchSize){
+        const slice = feats.slice(i, i+batchSize);
+        self.postMessage({kind:'batch', name, i:Math.min(i+batchSize,feats.length), total:feats.length, features:slice});
+      }
+      self.postMessage({kind:'done', name});
+      return;
+    }
+    if(type==='kml'){
+      if(typeof DOMParser==='undefined'){ self.postMessage({kind:'needs-togeojson', name, text}); return; }
+      try{ if(typeof self.toGeoJSON==='undefined'){ importScripts('https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js'); } }catch(_){}
+      if(typeof self.toGeoJSON==='undefined'){ self.postMessage({kind:'needs-togeojson', name, text}); return; }
+      const xml = new DOMParser().parseFromString(text,'application/xml');
+      const gj = self.toGeoJSON.kml(xml) || {type:'FeatureCollection',features:[]};
+      const feats = Array.isArray(gj.features) ? gj.features : [];
+      const lname = 'KML: ' + name.replace(/\\.[^.]+$/, '');
+      for(let i=0;i<feats.length;i++){ const f=feats[i]; try{ if(!f.properties) f.properties={}; if(!('_layer' in f.properties)) f.properties._layer=lname; }catch(_){ } }
+      for(let i=0;i<feats.length;i+=batchSize){
+        const slice = feats.slice(i, i+batchSize);
+        self.postMessage({kind:'batch', name, i:Math.min(i+batchSize,feats.length), total:feats.length, features:slice});
+      }
+      self.postMessage({kind:'done', name});
+      return;
+    }
+    self.postMessage({kind:'error', name, message:'Unknown type: '+type});
+  }catch(err){ self.postMessage({kind:'error', name, message:(err && err.message) || String(err)}); }
+};`;
+    __worker_url = URL.createObjectURL(new Blob([src], {type:'text/javascript'}));
+  }catch(e){ console.warn('Blob worker build failed', e); }
+
+  try{
+    const parser = __worker_url ? new Worker(__worker_url) : null;
+    const errorsEl = document.getElementById('errors');
+    const progEl = document.getElementById('progress');
+    if(!parser) throw new Error('Worker not available');
+
+    parser.onmessage = function(e){
+      const data = e.data || {};
+      if (data.kind === 'batch') {
+        const feats = data.features || [];
+        for (let i=0; i<feats.length; i++){
+          const f = feats[i]; const lname = (f && f.properties && f.properties._layer) ? String(f.properties._layer) : 'default';
+          try { addFeatureToGroup(lname, f); } catch(err){ console.warn('Batch add failed', err); }
+        }
+        if (progEl) progEl.textContent = 'โหลด ' + (data.i || 0) + '/' + (data.total || 0) + ' features';
+      } else if (data.kind === 'done') {
+        if (progEl) progEl.textContent = '';
+        refreshLayerList();
+        if (typeof window.fitToData === 'function') window.fitToData();
+      } else if (data.kind === 'needs-togeojson') {
+        if (progEl) progEl.textContent = '';
+        if (typeof handleKMLFile === 'function' && data.name && data.text) {
+          const f = new File([data.text], data.name, { type: 'application/xml' });
+          handleKMLFile(f);
+        } else {
+          if (errorsEl) errorsEl.textContent += (errorsEl.textContent ? '\n' : '') + 'อ่าน KML ไม่ได้ (worker ไม่มี DOMParser/togeojson)';
+        }
+      } else if (data.kind === 'error') {
+        if (progEl) progEl.textContent = '';
+        if (errorsEl) errorsEl.textContent += (errorsEl.textContent ? '\n' : '') + (data.name ? (data.name + ': ') : '') + (data.message || 'error');
+      }
+    };
+
+    // Override handleFiles to use worker
+    const __origHandleFiles = (typeof handleFiles === 'function') ? handleFiles : null;
+    window.handleFiles = async function(files){
+      const errors = errorsEl; const prog = progEl; if (errors) errors.textContent = '';
+      for (const f of files) {
+        try {
+          const name = f && f.name ? f.name : 'file'; const low = name.toLowerCase();
+          if (!(low.endsWith('.geojson') || low.endsWith('.json') || low.endsWith('.kml'))) { throw new Error('รองรับเฉพาะไฟล์ GeoJSON (.geojson/.json) หรือ KML (.kml)'); }
+          const text = await f.text();
+          if (prog) prog.textContent = 'กำลังอ่าน ' + name + '...';
+          const type = low.endsWith('.kml') ? 'kml' : 'geojson';
+          parser.postMessage({ name, type, text, batchSize: 2000 });
+        } catch (e) {
+          const msg = 'อ่านไฟล์ไม่ได้: ' + (f && f.name ? f.name : '') + '\n' + (e && e.message ? e.message : String(e));
+          if (errors) errors.textContent += (errors.textContent ? '\n' : '') + msg;
+        } finally { if (prog) prog.textContent = ''; }
+      }
+    };
+
+    // tiny API for console debugging
+    window.app = { toggleBase, handleGeoJSON, fitToData: function(){ try{
+      const fgs=[]; for(const o of groups.values()){ if(o?.fg?.getLayers?.().length) fgs.push(o.fg); }
+      if(!fgs.length) return; const g=L.featureGroup(fgs); const b=g.getBounds(); if(b?.isValid?.()) map.fitBounds(b,{padding:[20,20]});
+    }catch(e){ console.warn('fitToData failed', e); }} };
+
+    window.addEventListener('unload', ()=>{ try{ URL.revokeObjectURL(__worker_url); }catch(_){ } });
+  }catch(e){ console.warn('Worker setup failed; using original handleFiles', e); }
+})();
+</script>
+
+<!-- UnifiedCache (inline) -->
+<script>
+(function(){
+  class UnifiedCache{
+    constructor(){ this.dbName='geojson_unified_v1'; this.storeName='layers'; this.stateKey='geojson_app_state_v1'; }
+    init(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open(this.dbName,1); req.onerror=()=>reject(req.error); req.onupgradeneeded=(ev)=>{ const db=ev.target.result; if(!db.objectStoreNames.contains(this.storeName)){ db.createObjectStore(this.storeName,{keyPath:'id'}); } }; req.onsuccess=()=>resolve(req.result); }); }
+    async saveState(layers,mapView){
+      try{
+        const db=await this.init(); const tx=db.transaction([this.storeName],'readwrite'); const st=tx.objectStore(this.storeName);
+        await new Promise((res,rej)=>{ const r=st.clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+        for(const rec of (Array.isArray(layers)?layers:[])){
+          const row={ id:String(rec.id), name:rec.name||String(rec.id), data:rec.data, visible:!!rec.visible, showLabels:!!rec.showLabels, color:rec.color||null, ts:Date.now() };
+          await new Promise((res,rej)=>{ const r=st.put(row); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+        }
+        try{ localStorage.setItem(this.stateKey, JSON.stringify({ mapView, baseOn:(typeof window.baseOn==='boolean'?window.baseOn:false), ts:Date.now() })); }catch(_){}
+        db.close();
+      }catch(e){ console.warn('[UnifiedCache] saveState failed', e); }
+    }
+    async restoreState(){
+      try{
+        const db=await this.init(); const tx=db.transaction([this.storeName],'readonly'); const st=tx.objectStore(this.storeName);
+        const rows=await new Promise((res,rej)=>{ const r=st.getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); db.close();
+        if(!rows.length) return false;
+
+        // wipe current map layers
+        try{ if(window.groups && window.groups.size){ for(const [,info] of window.groups){ if(info && info.fg) window.map.removeLayer(info.fg); } window.groups.clear(); } }catch(_){ }
+
+        // re-inject from cache
+        for(const row of rows){
+          const lname = row.name || row.id;
+          const fc = row.data && row.data.type ? row.data : {type:'FeatureCollection',features:(row.features||[])};
+          const feats = Array.isArray(fc.features) ? fc.features : [];
+          for(const f of feats){ try{ if(!f.properties) f.properties={}; if(!('_layer' in f.properties)) f.properties._layer = lname; addFeatureToGroup(lname, f); }catch(_){ } }
+          const info = window.groups.get(lname);
+          if(info){ info.visible = row.visible!==false; info.showLabels = row.showLabels!==false; if(!info.visible){ try{ window.map.removeLayer(info.fg);}catch(_){ } } }
+        }
+        if(typeof window.refreshLayerList==='function') window.refreshLayerList();
+
+        // restore view/base
+        try{
+          const s = localStorage.getItem(this.stateKey); const st=s?JSON.parse(s):null;
+          if(st && st.mapView && st.mapView.center && Number.isFinite(st.mapView.zoom)){ window.map.setView([st.mapView.center.lat, st.mapView.center.lng], st.mapView.zoom); }
+          else if(typeof window.app?.fitToData==='function'){ window.app.fitToData(); }
+          if(typeof st?.baseOn==='boolean' && st.baseOn!==window.baseOn && typeof window.toggleBase==='function') window.toggleBase();
+        }catch(_){ if(typeof window.app?.fitToData==='function') window.app.fitToData(); }
+        return true;
+      }catch(e){ console.warn('[UnifiedCache] restoreState failed', e); return false; }
+    }
+    async list(){
+      try{
+        const db=await this.init(); const tx=db.transaction([this.storeName],'readonly'); const st=tx.objectStore(this.storeName);
+        const rows=await new Promise((res,rej)=>{ const r=st.getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); db.close();
+        return rows.map(r=>({ key:String(r.id), name:r.name||String(r.id), count:(Array.isArray(r?.data?.features)?r.data.features.length:(Array.isArray(r.features)?r.features.length:0)) }))
+                   .sort((a,b)=>a.name.localeCompare(b.name));
+      }catch(e){ console.warn('[UnifiedCache] list failed', e); return []; }
+    }
+    async clear(){ try{ const db=await this.init(); const tx=db.transaction([this.storeName],'readwrite'); await new Promise((res,rej)=>{ const r=tx.objectStore(this.storeName).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); db.close(); }catch(e){ console.warn('[UnifiedCache] clear failed', e); } }
+  }
+  window.UnifiedCache = UnifiedCache;
+
+  // bridge: nuke legacy caches once, create instance, autosave/restore
+  try{ localStorage.removeItem('geojson_data'); localStorage.removeItem('geojson_state'); localStorage.removeItem('geojson_filenames'); try{ indexedDB.deleteDatabase('gjv-cache-v1'); }catch(_){ } try{ indexedDB.deleteDatabase('geojson_cache_v1'); }catch(_){ } }catch(_){}
+  if(!window.cache) try{ window.cache = new window.UnifiedCache(); }catch(_){ }
+
+  async function saveState(){
+    try{
+      if(!window.cache) return;
+      const layers=[];
+      for(const [name,info] of (window.groups||new Map()).entries()){
+        const feats=[]; if(info?.fg?.eachLayer){ info.fg.eachLayer(l=>{ if(l?.feature) feats.push(l.feature); }); }
+        layers.push({ id:name, name, data:{type:'FeatureCollection',features:feats}, visible:!!info?.visible, showLabels:!!info?.showLabels, color:info?.color||null });
+      }
+      const mv = { center: map.getCenter(), zoom: map.getZoom() };
+      await window.cache.saveState(layers, mv);
+    }catch(e){ console.warn('saveState failed', e); }
+  }
+  window.saveState = saveState;
+
+  window.addEventListener('load', async ()=>{
+    try{ console.log('[UnifiedCache] restoreState start'); const ok = await window.cache.restoreState(); console.log('[UnifiedCache] restoreState done', ok); }catch(e){ console.warn('[UnifiedCache] restoreState error', e); }
+  }, { once:true });
+
+  (function(){
+    const saveSoon = ()=> (window.requestIdleCallback? requestIdleCallback(saveState) : setTimeout(saveState,0));
+    if(typeof window.handleGeoJSON==='function'){ const o=window.handleGeoJSON; window.handleGeoJSON=function(gj){ const r=o.call(this,gj); saveSoon(); return r; }; }
+    if(typeof window.refreshLayerList==='function'){ const o=window.refreshLayerList; window.refreshLayerList=function(){ const r=o.call(this); saveSoon(); return r; }; }
+    try{ map.on('moveend zoomend', saveSoon); }catch(_){ }
+    const clr=document.getElementById('clearBtn'); if(clr){ const old=clr.onclick; clr.onclick=async function(ev){ if(typeof old==='function') old.call(this,ev); try{ await window.cache.clear(); }catch(_){ } }; }
+  })();
+})();
+</script>
+
+<!-- Sidebar list from UnifiedCache -->
+<script>
+(function(){
+  async function render(){
+    try{
+      if(!window.cache) window.cache = new window.UnifiedCache();
+      const LIST=document.getElementById('fileStatusList'); if(!LIST) return;
+      const items = await window.cache.list();
+      LIST.innerHTML = items.length
+        ? items.map(it=>`<li>${escapeHtml(it.name)}${it.count?` <span style="opacity:.7">(${it.count})</span>`:''}</li>`).join('')
+        : '<li>—</li>';
+    }catch(e){ console.warn('[UnifiedSidebar] render failed', e); }
+  }
+  const BTNCLR = document.getElementById('fileStatusClear');
+  if (BTNCLR) BTNCLR.onclick = async function(){ try{ await window.cache.clear(); }catch(_){ } await render(); };
+  const mainClr = document.getElementById('clearBtn');
+  if (mainClr){ const old=mainClr.onclick; mainClr.onclick = async function(ev){ if (typeof old==='function') old.call(this,ev); try{ await window.cache.clear(); }catch(_){ } await render(); }; }
+  if (typeof window.handleFiles === 'function'){ const o=window.handleFiles; window.handleFiles = async function(files){ const r = await o.call(this, files); setTimeout(render, 80); return r; }; }
+  if (typeof window.handleGeoJSON === 'function'){ const o2=window.handleGeoJSON; window.handleGeoJSON = function(gj){ const r = o2.call(this, gj); setTimeout(render, 80); return r; }; }
+  if (typeof window.refreshLayerList === 'function'){ const o3=window.refreshLayerList; window.refreshLayerList = function(){ const r = o3.call(this); setTimeout(render, 0); return r; }; }
+  window.addEventListener('load', ()=> setTimeout(render, 150), { once:true });
+})();
+</script>
+
+</body>
+</html>

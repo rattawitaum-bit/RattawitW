@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Platform Slot Coordinate Tool - Indian 1975 / UTM Zone 47N</title>
+<style>
+  :root{ --bg:#ffffff; --panel:#f9fafb; --muted:#6b7280; --text:#111827; --b:#d1d5db; --pri:#2563eb; --ok:#059669; --bad:#dc2626; --chip:#e5e7eb; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Segoe UI,Roboto,Arial,sans-serif}
+  header{position:sticky;top:0;z-index:10;background:#2563eb;color:#fff}
+  h1{margin:0;font-size:18px;padding:12px 16px}
+  main{padding:16px}
+  .wrap{display:grid;grid-template-columns:460px 1fr;gap:16px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--b);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  label{font-size:12px;color:var(--muted)}
+  input,select,button{border-radius:8px;border:1px solid var(--b);background:#fff;color:#111827;padding:8px 10px;font-size:14px;width:100%}
+  input[type="file"]{padding:6px}
+  button{cursor:pointer;width:auto}
+  button.primary{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .grid{display:grid;grid-template-columns:200px 1fr;gap:8px 10px;margin:8px 0}
+  .kv{display:grid;grid-template-columns:240px 1fr;gap:6px 10px;font-variant-numeric:tabular-nums}
+  .pill{display:inline-flex;gap:6px;align-items:center;background:var(--chip);padding:4px 8px;border-radius:999px;color:#111827;font-size:12px}
+  .small{font-size:12px;color:var(--muted)}
+  .table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .table thead th{position:sticky;top:0;background:var(--panel);padding:8px 6px;border-bottom:2px solid var(--b);text-align:left;font-weight:600}
+  .table tbody td{border:1px solid var(--b);padding:6px 8px}
+  .mono{font-family:Consolas,Monaco,Courier New,monospace}
+  svg{width:480px;height:360px;border:1px solid var(--b);border-radius:8px;background:#fff;display:block}
+</style>
+</head>
+<body>
+<header><h1>Platform Slot Coordinate Tool - Indian 1975 / UTM Zone 47N</h1></header>
+<main>
+  <div class="wrap">
+    <section class="card">
+      <div class="toolbar">
+        <button id="btnCalc" class="primary">Calculate</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnExportCSV">Export CSV</button>
+        <button id="btnExportSample">Export Sample CSV</button>
+      </div>
+      <div class="grid">
+        <label>Platform Name</label><input id="inName" placeholder="e.g., PLWA" />
+        <label>Platform Center Easting (X, m)</label><input id="inE" inputmode="decimal" value="791000.00" />
+        <label>Platform Center Northing (Y, m)</label><input id="inN" inputmode="decimal" value="981680.00" />
+        <label>Heading value (deg)</label><input id="inHeading" type="number" inputmode="decimal" value="5.00" step="0.01" />
+        <label>Heading type</label><select id="selHeadingType"><option value="grid">Grid</option><option value="true">True</option></select>
+        <label>UTM Zone (fixed)</label><input id="zoneFixed" value="47N" disabled />
+        <label>Slot CSV</label><input id="inCSV" type="file" accept=".csv" />
+      </div>
+      <div class="toolbar" style="margin:8px 0 4px">
+        <button id="btnSample">Load Sample CSV</button>
+        <button id="btnProcessCSV">Process Selected CSV</button>
+        <span class="small">CSV headers (flexible): <span class="mono">name, east|dx|x, north|dy|y</span></span>
+      </div>
+      <div class="kv" style="margin-top:10px">
+        <div>Meridian convergence gamma @ center (deg)</div><div id="outGamma">-</div>
+        <div>Grid heading (deg)</div><div id="outGrid">-</div>
+        <div>True heading (deg)</div><div id="outTrue">-</div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--b);margin:12px 0">
+      <div class="kv">
+        <div>Platform center - WGS84 (Decimal)</div><div id="outWGS84DD">-</div>
+        <div>Platform center - WGS84 (DM)</div><div id="outWGS84DM">-</div>
+        <div>Platform center - Indian 1975 (DMS)</div><div id="outIND75DMS">-</div>
+      </div>
+      <div id="err" class="small" style="display:none;color:var(--bad);margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <div class="toolbar" style="align-items:center;gap:12px">
+        <span class="pill">SVG view of calculated coordinates</span>
+        <label class="pill"><input type="checkbox" id="cbShowGrid" checked> Gridlines</label>
+        <label class="pill"><input type="checkbox" id="cbNames" checked> Show slot names</label>
+        <button id="btnSaveSVG">Download SVG</button>
+      </div>
+      <svg id="plot" viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" aria-label="slot-plot"></svg>
+
+      <div style="overflow:auto;max-height:48vh;margin-top:12px">
+        <table class="table" id="tbl">
+          <thead><tr>
+            <th>#</th><th>Slot</th><th>dE (m)</th><th>dN (m)</th>
+            <th>dE_rot (m)</th><th>dN_rot (m)</th>
+            <th>E (m)</th><th>N (m)</th>
+            <th>WGS84 lat (DD)</th><th>WGS84 lon (DD)</th>
+            <th>WGS84 lat (DM)</th><th>WGS84 lon (DM)</th>
+            <th>Indian 1975 lat (DMS)</th><th>Indian 1975 lon (DMS)</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+// ===== Constants & helpers =====
+var a_wgs=6378137, f_wgs=1/298.257223563;
+var a_ind=6377276.345, f_ind=1/300.8017;
+var dx=-204.64, dy=-834.74, dz=-293.8;
+var k0=0.9996, zone=47;
+var PI=Math.PI;
+function degToRad(d){return d*PI/180;} function radToDeg(r){return r*180/PI;}
+function toFixed(v,n){return (isFinite(v)? Number(v).toFixed(n||2): "-");}
+function dm_ascii(v){if(!isFinite(v))return "-";var s=v<0?"-":"";var a=Math.abs(v),d=Math.floor(a),m=(a-d)*60;return s+d+" deg "+m.toFixed(4)+"'";}
+function dms_ascii_prec(v,p){if(!isFinite(v))return "-";var s=v<0?"-":"";var a=Math.abs(v),d=Math.floor(a);a=(a-d)*60;var m=Math.floor(a),sec=(a-m)*60;return s+d+" deg "+m+"' "+sec.toFixed(p)+'"';}
+function dm(v){return dm_ascii(v);} function dms3(v){return dms_ascii_prec(v,3);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){switch(c){case '&':return '&amp;';case '<':return '&lt;';case '>':return '&gt;';case '"':return '&quot;';case "'":return '&#39;';default:return c;}});}
+function safeFilename(s){ return (s||'platform').trim().replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,''); }
+
+// ===== Conversion (Indian 1975 UTM -> WGS84) =====
+function geodeticToECEF(lat, lon, h, a, f){
+  var lr=degToRad(lat), br=degToRad(lon), e2=f*(2-f);
+  var nu=a/Math.sqrt(1-e2*Math.sin(lr)*Math.sin(lr));
+  return [(nu+h)*Math.cos(lr)*Math.cos(br),(nu+h)*Math.cos(lr)*Math.sin(br),(nu*(1-e2)+h)*Math.sin(lr)];
+}
+function ecefToGeodetic(X,Y,Z,a,f){
+  var e2=f*(2-f), p=Math.hypot(X,Y);
+  var lon=Math.atan2(Y,X), lat=Math.atan2(Z,p*(1-e2)), h=0;
+  for(var i=0;i<60;i++){
+    var nu=a/Math.sqrt(1-e2*Math.sin(lat)*Math.sin(lat));
+    var hn=p/Math.cos(lat)-nu;
+    var ln=Math.atan2(Z+e2*nu*Math.sin(lat),p);
+    if(Math.abs(hn-h)<1e-10 && Math.abs(ln-lat)<1e-12)break;
+    lat=ln; h=hn;
+  }
+  return [radToDeg(lat),radToDeg(lon),h];
+}
+function utmToLatLon(E,N,a,f){
+  var cm=6*zone-183;
+  var l0=degToRad(cm), e2=f*(2-f), ep2=e2/(1-e2);
+  var e4=e2*e2, e6=e4*e2;
+  var alpha1=1 - e2/4 - 3*e4/64 - 5*e6/256;
+  var M=N/k0, mu=M/(a*alpha1), e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  var phi1=mu + (3/2*e1 - 27/32*Math.pow(e1,3))*Math.sin(2*mu) + (21/16*e1*e1 - 55/32*Math.pow(e1,4))*Math.sin(4*mu) + (151/96*Math.pow(e1,3))*Math.sin(6*mu) + (1097/512*Math.pow(e1,4))*Math.sin(8*mu);
+  var nu1=a/Math.sqrt(1-e2*Math.sin(phi1)*Math.sin(phi1)), rho1=a*(1-e2)/Math.pow(1-e2*Math.sin(phi1)*Math.sin(phi1),1.5);
+  var t1=Math.tan(phi1), D=(E-500000)/(nu1*k0), eta2=ep2*Math.cos(phi1)*Math.cos(phi1);
+  var lat=phi1 - (nu1*t1/rho1)*(D*D/2 - (5+3*t1*t1+10*eta2 - 4*eta2*eta2 - 9*ep2)*Math.pow(D,4)/24 + (61+90*t1*t1+298*eta2+45*t1*t1*t1*t1 -252*ep2 -3*eta2*eta2)*Math.pow(D,6)/720);
+  var lon=l0 + (D - (1+2*t1*t1+eta2)*Math.pow(D,3)/6 + (5-2*eta2+28*t1*t1 -3*eta2*eta2 +8*ep2 +24*t1*t1*t1*t1)*Math.pow(D,5)/120)/Math.cos(phi1);
+  return [radToDeg(lat),radToDeg(lon)];
+}
+function indian1975UTMToWGS84(E,N){
+  var il=utmToLatLon(E,N,a_ind,f_ind);
+  var ecef=geodeticToECEF(il[0],il[1],0,a_ind,f_ind);
+  var w=ecefToGeodetic(ecef[0]-dx,ecef[1]-dy,ecef[2]-dz,a_wgs,f_wgs);
+  return [w[0],w[1],il[0],il[1]];
+}
+function gammaAtUTM(E,N){
+  var cm=6*zone-183;
+  var g=indian1975UTMToWGS84(E,N);
+  var lat_i=g[2], lon_i=g[3];
+  return radToDeg(Math.atan(Math.tan(degToRad(lon_i-cm))*Math.sin(degToRad(lat_i))));
+}
+
+// ===== CSV & rotation =====
+var slots=[];
+function parseCSV(text){
+  var lines=text.split(/\r?\n/).filter(function(x){return x.trim().length;});
+  if(!lines.length) return [];
+  var head=lines[0].split(',').map(function(s){return s.trim().toLowerCase();});
+  var iStart=1;
+  var idxName=head.findIndex(function(h){return /name/.test(h);});
+  var idxE=head.findIndex(function(h){return /^(e(asting)?|dx|x)\b/.test(h);});
+  var idxN=head.findIndex(function(h){return /^(n(orthing)?|dy|y)\b/.test(h);});
+  if(idxE<0||idxN<0){ idxName=0; idxE=1; idxN=2; iStart=0; }
+  var out=[];
+  for(var i=iStart;i<lines.length;i++){
+    var cols=lines[i].split(',');
+    if(cols.length<Math.max(idxName,idxE,idxN)+1) continue;
+    var name=(cols[idxName]||('S'+i)).trim();
+    var dE=parseFloat((cols[idxE]||'').replace(/\s/g,''));
+    var dN=parseFloat((cols[idxN]||'').replace(/\s/g,''));
+    if(isFinite(dE)&&isFinite(dN)) out.push({name:name,dE:dE,dN:dN});
+  }
+  return out;
+}
+function rotateOffsets(dE,dN,gridDeg){
+  var t=degToRad(gridDeg);
+  return [dE*Math.cos(t)+dN*Math.sin(t), -dE*Math.sin(t)+dN*Math.cos(t)];
+}
+
+// ===== Compute, table, SVG =====
+function compute(){
+  var err=document.getElementById('err'); err.style.display='none'; err.textContent='';
+  var E0=parseFloat(document.getElementById('inE').value.replace(',','.'));
+  var N0=parseFloat(document.getElementById('inN').value.replace(',','.'));
+  var headVal=parseFloat(document.getElementById('inHeading').value.replace(',','.'));
+  var hType=document.getElementById('selHeadingType').value;
+  var pname=document.getElementById('inName').value||'';
+  zone=47;
+  if(!isFinite(E0)||!isFinite(N0)||!isFinite(headVal)){err.textContent='Please enter valid numbers.';err.style.display='block';return;}
+  var gamma=gammaAtUTM(E0,N0);
+  var grid=headVal, trueH=headVal;
+  if(hType==='grid'){ trueH=(grid+gamma+360)%360; } else { grid=(headVal-gamma+360)%360; }
+  var conv=indian1975UTMToWGS84(E0,N0); var lat_w=conv[0], lon_w=conv[1], lat_i=conv[2], lon_i=conv[3];
+  document.getElementById('outGamma').textContent=toFixed(gamma,6);
+  document.getElementById('outGrid').textContent=toFixed(grid,2);
+  document.getElementById('outTrue').textContent=toFixed(trueH,2);
+  document.getElementById('outWGS84DD').textContent=lat_w.toFixed(7)+", "+lon_w.toFixed(7);
+  document.getElementById('outWGS84DM').textContent=dm(lat_w)+", "+dm(lon_w);
+  document.getElementById('outIND75DMS').textContent=dms3(lat_i)+", "+dms3(lon_i);
+
+  var tbody=document.getElementById('tbody'); tbody.innerHTML='';
+  var rows=[];
+  for(var i=0;i<slots.length;i++){
+    var s=slots[i];
+    var r=rotateOffsets(s.dE,s.dN,grid);
+    var E=E0+r[0], N=N0+r[1];
+    var wl=indian1975UTMToWGS84(E,N);
+    var row={idx:i+1,name:s.name,dE:s.dE,dN:s.dN,rE:r[0],rN:r[1],E:+E.toFixed(2),N:+N.toFixed(2),lat:wl[0],lon:wl[1],ilat:wl[2],ilon:wl[3]};
+    rows.push(row);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+row.idx+'</td>'+'<td class="mono">'+esc(row.name)+'</td>'+'<td class="mono">'+toFixed(row.dE,3)+'</td>'+'<td class="mono">'+toFixed(row.dN,3)+'</td>'+'<td class="mono">'+toFixed(row.rE,3)+'</td>'+'<td class="mono">'+toFixed(row.rN,3)+'</td>'+'<td class="mono">'+toFixed(row.E,2)+'</td>'+'<td class="mono">'+toFixed(row.N,2)+'</td>'+'<td class="mono">'+row.lat.toFixed(7)+'</td>'+'<td class="mono">'+row.lon.toFixed(7)+'</td>'+'<td class="mono">'+dm(row.lat)+'</td>'+'<td class="mono">'+dm(row.lon)+'</td>'+'<td class="mono">'+dms3(row.ilat)+'</td>'+'<td class="mono">'+dms3(row.ilon)+'</td>';
+    tbody.appendChild(tr);
+  }
+  drawSVG(E0,N0,grid,rows);
+  window.__last={E0:E0,N0:N0,grid:grid,trueH:trueH,gamma:gamma,rows:rows,lat_w:lat_w,lon_w:lon_w,lat_i:lat_i,lon_i:lon_i,zone:zone,platform:pname};
+}
+
+// --- SVG drawing ---
+function drawSVG(E0,N0,grid,rows){
+  var svg=document.getElementById('plot');
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  var W=480, H=360, M=24;
+  var minE=E0, maxE=E0, minN=N0, maxN=N0;
+  for(var i=0;i<rows.length;i++){ var r=rows[i]; if(r.E<minE)minE=r.E; if(r.E>maxE)maxE=r.E; if(r.N<minN)minN=r.N; if(r.N>maxN)maxN=r.N; }
+  if(maxE-minE<1){maxE=minE+1;} if(maxN-minN<1){maxN=minN+1;}
+  var sx=(W-2*M)/(maxE-minE), sy=(H-2*M)/(maxN-minN);
+  function X(E){ return M+(E-minE)*sx; }
+  function Y(N){ return H-M-(N-minN)*sy; }
+  var ns='http://www.w3.org/2000/svg';
+
+  if(document.getElementById('cbShowGrid').checked){
+    var g=document.createElementNS(ns,'g'); g.setAttribute('stroke','#e5e7eb'); g.setAttribute('stroke-width','1');
+    var stepE=(maxE-minE)/6, stepN=(maxN-minN)/6;
+    for(var e=minE; e<=maxE+1e-9; e+=stepE){ var lx=document.createElementNS(ns,'line'); lx.setAttribute('x1',X(e)); lx.setAttribute('y1',Y(minN)); lx.setAttribute('x2',X(e)); lx.setAttribute('y2',Y(maxN)); g.appendChild(lx); }
+    for(var n=minN; n<=maxN+1e-9; n+=stepN){ var ly=document.createElementNS(ns,'line'); ly.setAttribute('x1',X(minE)); ly.setAttribute('y1',Y(n)); ly.setAttribute('x2',X(maxE)); ly.setAttribute('y2',Y(n)); g.appendChild(ly); }
+    svg.appendChild(g);
+  }
+
+  var ax=document.createElementNS(ns,'g'); ax.setAttribute('stroke','#c7cdd4'); ax.setAttribute('stroke-width','1.2');
+  var x0=document.createElementNS(ns,'line'); x0.setAttribute('x1',M); x0.setAttribute('y1',Y(N0)); x0.setAttribute('x2',W-M); x0.setAttribute('y2',Y(N0)); ax.appendChild(x0);
+  var y0=document.createElementNS(ns,'line'); y0.setAttribute('x1',X(E0)); y0.setAttribute('y1',M); y0.setAttribute('x2',X(E0)); y0.setAttribute('y2',H-M); ax.appendChild(y0);
+  svg.appendChild(ax);
+
+  var cx=X(E0), cy=Y(N0);
+  var c=document.createElementNS(ns,'circle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',4); c.setAttribute('fill','#059669'); svg.appendChild(c);
+  var lbl=document.createElementNS(ns,'text'); lbl.textContent=(window.__last && window.__last.platform? window.__last.platform+' - ' : '')+'Platform Center'; lbl.setAttribute('x',cx+6); lbl.setAttribute('y',cy-6); lbl.setAttribute('font-size','12'); lbl.setAttribute('fill','#111827'); svg.appendChild(lbl);
+  var t=degToRad(grid), L=36, x2=cx+L*Math.sin(t), y2=cy-L*Math.cos(t);
+  var hl=document.createElementNS(ns,'line'); hl.setAttribute('x1',cx); hl.setAttribute('y1',cy); hl.setAttribute('x2',x2); hl.setAttribute('y2',y2);
+  hl.setAttribute('stroke','#2563eb'); hl.setAttribute('stroke-width','2'); svg.appendChild(hl);
+  var ah=7, a1=t+Math.PI-Math.PI/6, a2=t+Math.PI+Math.PI/6;
+  var h1=document.createElementNS(ns,'line'); h1.setAttribute('x1',x2); h1.setAttribute('y1',y2); h1.setAttribute('x2',x2+ah*Math.sin(a1)); h1.setAttribute('y2',y2-ah*Math.cos(a1)); h1.setAttribute('stroke','#2563eb'); h1.setAttribute('stroke-width','2'); svg.appendChild(h1);
+  var h2=document.createElementNS(ns,'line'); h2.setAttribute('x1',x2); h2.setAttribute('y1',y2); h2.setAttribute('x2',x2+ah*Math.sin(a2)); h2.setAttribute('y2',y2-ah*Math.cos(a2)); h2.setAttribute('stroke','#2563eb'); h2.setAttribute('stroke-width','2'); svg.appendChild(h2);
+
+  var showNames=document.getElementById('cbNames').checked;
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    var p=document.createElementNS(ns,'circle'); p.setAttribute('cx',X(r.E)); p.setAttribute('cy',Y(r.N)); p.setAttribute('r',3); p.setAttribute('fill','#111827'); svg.appendChild(p);
+    if(showNames){ var t=document.createElementNS(ns,'text'); t.textContent=r.name; t.setAttribute('x',X(r.E)+6); t.setAttribute('y',Y(r.N)-6); t.setAttribute('font-size','12'); svg.appendChild(t); }
+  }
+}
+
+// save SVG
+document.getElementById('btnSaveSVG').addEventListener('click',function(){
+  var svg=document.getElementById('plot');
+  var src=new XMLSerializer().serializeToString(svg);
+  var blob=new Blob([src],{type:'image/svg+xml;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); var name=safeFilename(document.getElementById('inName').value||'platform'); a.download=name+'_slots.svg'; a.click(); URL.revokeObjectURL(a.href);
+});
+
+// ===== Excel-friendly CSV export =====
+function excelQuote(v){
+  // For anything that looks numeric or very long, wrap as ="..."
+  var s=String(v);
+  if(/^[\d.+-eE]+$/.test(s) || s.length>12){ return '="'+s+'"'; }
+  return s;
+}
+function exportCSV(){
+  if(!window.__last){alert('No results yet. Click Calculate first.');return;}
+  var o=window.__last;
+  var lines=[];
+  lines.push('sep=,');
+  lines.push(['Platform_Name', excelQuote(o.platform||'')].join(','));
+  lines.push(['Zone',o.zone].join(','));
+  lines.push(['Center_E',excelQuote(o.E0.toFixed(2)),'Center_N',excelQuote(o.N0.toFixed(2)),'Grid_deg',excelQuote(o.grid.toFixed(2)),'True_deg',excelQuote(o.trueH.toFixed(2)),'Gamma_deg',excelQuote(o.gamma.toFixed(6))].join(','));
+  lines.push(['Center_WGS84_DD',excelQuote(o.lat_w.toFixed(7)),excelQuote(o.lon_w.toFixed(7))].join(','));
+  lines.push(['Center_WGS84_DM',dm(o.lat_w),dm(o.lon_w)].join(','));
+  lines.push(['Center_Indian1975_DMS',dms3(o.lat_i),dms3(o.lon_i)].join(','));
+  lines.push('');
+  lines.push(['#','Name','dE','dN','dE_rot','dN_rot','E','N','WGS84_lat','WGS84_lon','WGS84_DM_lat','WGS84_DM_lon','Indian1975_DMS_lat','Indian1975_DMS_lon'].map(excelQuote).join(','));
+  for(var i=0;i<o.rows.length;i++){
+    var r=o.rows[i];
+    lines.push([r.idx,csvSafe(r.name),excelQuote(r.dE),excelQuote(r.dN),excelQuote(r.rE),excelQuote(r.rN),excelQuote(r.E),excelQuote(r.N),excelQuote(r.lat.toFixed(7)),excelQuote(r.lon.toFixed(7)),dm(r.lat),dm(r.lon),dms3(r.ilat),dms3(r.ilon)].join(','));
+  }
+  var blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); var name=safeFilename(o.platform||'platform'); a.download=name+'_slots.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+function csvSafe(v){ var s=String(v); return /[",\n]/.test(s)? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+function loadSample(){
+  var sample='name,dx,dy\nS01,0,0\nS02,5,0\nS03,-5,0\nS04,0,5\nS05,0,-5\nS06,12,12\nS07,-12,12\nS08,12,-12\nS09,-12,-12';
+  slots=parseCSV(sample); compute();
+}
+
+document.getElementById('btnCalc').addEventListener('click',compute);
+document.getElementById('btnReset').addEventListener('click',function(){document.getElementById('inName').value='';document.getElementById('inE').value='791000.00';document.getElementById('inN').value='981680.00';document.getElementById('inHeading').value='45.00';document.getElementById('selHeadingType').value='grid';slots=[];document.getElementById('tbody').innerHTML='';var svg=document.getElementById('plot');while(svg.firstChild) svg.removeChild(svg.firstChild);window.__last=null;});
+document.getElementById('btnExportCSV').addEventListener('click',exportCSV);
+document.getElementById('btnExportSample').addEventListener('click',function(){var tmpl='name,dx,dy\nS01,0,0\nS02,5,0\nS03,-5,0\n';var blob=new Blob(['\uFEFF'+tmpl],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='slot_offsets_template.csv';a.click();URL.revokeObjectURL(a.href);});
+var fileInput=document.getElementById('inCSV');
+function processCurrentCSV(){var f=fileInput.files && fileInput.files[0]; if(!f){alert('Please select a CSV file first.'); return;} var rdr=new FileReader(); rdr.onload=function(){ slots=parseCSV(String(rdr.result)); compute(); }; rdr.readAsText(f); }
+fileInput.addEventListener('change',function(){ if(fileInput.files && fileInput.files.length) processCurrentCSV(); });
+document.getElementById('btnProcessCSV').addEventListener('click',processCurrentCSV);
+
+// Init sample
+loadSample();
+</script>
+</body>
+
+<!-- === PATCH START: Excel export, CSV hide (no edits to existing code) === -->
+<style>
+  /* Hide helper (only affects elements we target) */
+  .hidden{ display:none !important; }
+</style>
+
+<script>
+(function(){
+  // 1) Load SheetJS dynamically
+  function loadSheetJS(cb){
+    if (window.XLSX) return cb();
+    var s=document.createElement('script');
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=cb; document.head.appendChild(s);
+  }
+
+  // 2) Create Export Excel button next to existing toolbar buttons
+  function ensureExcelButton(){
+    if (document.getElementById('btnExportExcel')) return;
+    var toolbar = document.querySelector('.toolbar'); // first toolbar with calc/reset/csv
+    if (!toolbar) return;
+    var btn = document.createElement('button');
+    btn.id = 'btnExportExcel';
+    btn.className = 'primary';
+    btn.textContent = 'Export Excel';
+    // insert after "Export Sample CSV" if present; else append
+    var anchor = document.getElementById('btnExportSample');
+    (anchor && anchor.parentNode === toolbar)
+      ? toolbar.insertBefore(btn, anchor.nextSibling)
+      : toolbar.appendChild(btn);
+  }
+
+  // 3) Professional Excel export (reads window.__last populated by your compute())
+  function exportExcel(){
+    if(!window.__last){ alert('No results yet. Click Calculate first.'); return; }
+    var o = window.__last;
+
+    var wb = XLSX.utils.book_new();
+    var A = [];
+
+    // Header block
+    A.push(["Platform Slot Coordinate Tool"]);
+    A.push(["Platform Name:", o.platform || ""]);
+    A.push(["Zone:", o.zone]);
+    A.push(["Center E:", o.E0.toFixed(2), "Center N:", o.N0.toFixed(2)]);
+    A.push(["Grid Deg:", o.grid.toFixed(2), "True Deg:", o.trueH.toFixed(2), "Gamma Deg:", o.Convergence .toFixed(2)]);
+    A.push(["Center WGS84 (DD):", o.lat_w.toFixed(7), o.lon_w.toFixed(7)]);
+    A.push(["Center WGS84 (DM):", dm(o.lat_w), dm(o.lon_w)]);
+    A.push(["Center Indian 1975 (DMS):", dms3(o.lat_i), dms3(o.lon_i)]);
+    A.push([]); // spacer
+
+    // Table header + rows
+    var headers = ["#","Name","dE","dN","dE_rot","dN_rot","E","N","WGS84_lat","WGS84_lon","WGS84_DM_lat","WGS84_DM_lon","Indian1975_DMS_lat","Indian1975_DMS_lon"];
+    A.push(headers);
+
+    o.rows.forEach(function(r){
+      A.push([
+        r.idx, r.name, r.dE, r.dN, r.rE, r.rN, r.E, r.N,
+        r.lat.toFixed(7), r.lon.toFixed(7),
+        dm(r.lat), dm(r.lon), dms3(r.ilat), dms3(r.ilon)
+      ]);
+    });
+
+    var ws = XLSX.utils.aoa_to_sheet(A);
+
+    // Styling: title merge + bold
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:4} }];
+    if (!ws.A1) ws.A1 = { t:'s', v:'Platform Slot Coordinate Tool' };
+    ws.A1.s = { font:{ bold:true, sz:14 } };
+
+    // Header row styling
+    var headerRow = 9; // 0-indexed row where headers landed after header block
+    for (var c=0;c<headers.length;c++){
+      var ref = XLSX.utils.encode_cell({r:headerRow, c:c});
+      if (ws[ref]) {
+        ws[ref].s = {
+          font:{bold:true, color:{rgb:"FFFFFF"}},
+          fill:{fgColor:{rgb:"2563EB"}},
+          alignment:{horizontal:"center", vertical:"center"},
+          border:{top:{style:"thin"},bottom:{style:"thin"},left:{style:"thin"},right:{style:"thin"}}
+        };
+      }
+    }
+
+    // Auto column widths
+    ws['!cols'] = headers.map(function(h, i){
+      var maxLen = A.reduce(function(m,row){ return Math.max(m, String(row[i]??'').length); }, h.length);
+      return { wch: Math.min(Math.max(10, maxLen+2), 32) };
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, "Platform Slots");
+    XLSX.writeFile(wb, (safeFilename(o.platform || "platform") + "_slots.xlsx"));
+  }
+
+  // 4) Disable + hide CSV buttons when Excel is ready
+  function hideCsvButtonsWhenExcelReady(){
+    var csv = document.getElementById('btnExportCSV');
+    var sample = document.getElementById('btnExportSample');
+    var excelReady = !!window.XLSX && !!document.getElementById('btnExportExcel');
+
+    if (csv){ csv.disabled = true; csv.classList.toggle('hidden', excelReady); }
+    if (sample){ sample.disabled = true; sample.classList.toggle('hidden', excelReady); }
+  }
+
+  // 5) Wire everything up
+  function wireExcel(){
+    ensureExcelButton();
+    var btn = document.getElementById('btnExportExcel');
+    if (btn && !btn.__wired){
+      btn.addEventListener('click', exportExcel);
+      btn.__wired = true;
+    }
+    hideCsvButtonsWhenExcelReady();
+  }
+
+  // Boot: after DOM ready, load SheetJS, then wire
+  document.addEventListener('DOMContentLoaded', function(){
+    loadSheetJS(function(){
+      wireExcel();
+    });
+    wireExcel();
+  });
+})();
+</script>
+<!-- === PATCH END === -->
+
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Catenary Studio – Phase 4 (No buoy) • Cleaned</title>
+  <style>
+    :root{ --bg:#0b1220; --panel:#0f172a; --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    h1{font-size:18px;margin:14px 16px}
+    .wrap{display:grid;grid-template-columns:400px 1fr;gap:14px;padding:12px}
+    .panel{background:var(--panel);border:1px solid #1f2937;border-radius:14px;padding:14px}
+    .controls .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .controls label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .controls input[type="number"], .controls input[type="text"], .controls select{width:100%;padding:8px 10px;border:1px solid #334155;border-radius:10px;background:#0b1628;color:#e2e8f0}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{background:var(--accent);color:#001b0a;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600}
+    .small{font-size:12px;color:#94a3b8}
+    canvas{width:100%;height:560px;display:block;background:#0b1628;border:1px solid #1f2937;border-radius:12px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:6px 8px;border-bottom:1px solid #1f2937}
+    th{color:#cbd5e1;text-align:left}
+    td{text-align:left}
+    .err{color:#fecaca}
+    @media (max-width:1100px){ .wrap{grid-template-columns:1fr} }
+    .group{border:1px dashed #23314a;padding:10px;border-radius:10px}
+    .helper-dd{margin-left:6px}
+
+    .headerbar{display:flex;justify-content:space-between;align-items:center;margin:14px 16px}
+    .credit{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <h1 class="headerbar"><span>⚓ Catenary Studio – Phase 4 (No buoy)</span><span class="credit">Developed by Rattawit W.</span></h1>
+  <div class="wrap">
+    <div class="panel controls">
+      <div class="grid">
+        <div><label>Water depth (m)</label><input id="WD" type="number" step="0.1" value="70"></div>
+        <div><label>Fairlead height df (m) <span class="small">(negative = above sea)</span></label><input id="df" type="number" step="0.1" value="-3.5"></div>
+        <div><label>Total line length include chain (m)</label><input id="Ltot" type="number" step="0.1" value="900"></div>
+        <div>
+          <label>Overlays tension (t)</label>
+          <input id="overlays" type="text" value="5, 10, 15">
+          <div class="small" style="margin-top:6px">
+            <label style="display:flex;gap:8px;align-items:center;">
+              <input id="chk_no_ground" type="checkbox"> <span>Calculate max overlay with <strong>Wire on ground = 0</strong> and <strong>Chain on ground = 0</strong> and append to list</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <strong>Wire (from fairlead)</strong>
+        <div class="row">
+          <div style="flex:1">
+            <label>w_wire (kgf/m)</label>
+            <input id="w_wire" type="number" step="0.01" value="5.6">
+            <select id="wire_helper" class="helper-dd" title="Wire helper (kgf/m)">
+              <option value="">Wire helper</option>
+              <option value="1">1&quot;</option>
+              <option value="1.5">1.5&quot; (JU)</option>
+              <option value="2">2&quot;</option>
+              <option value="2.5">2.5&quot; (Tender)</option>
+            </select>
+          </div>
+          <div style="flex:1"><label>μ_wire</label><input id="mu_wire" type="number" step="0.01" value="0.4"></div>
+        </div>
+        <strong>Chain (at anchor - combined with total length )</strong>
+        <div class="row">
+          <div style="flex:1"><label>L_chain (m)</label><input id="L_chain" type="number" step="0.1" value="0"></div>
+          <div style="flex:1">
+            <label>w_chain (kgf/m)</label>
+            <input id="w_chain" type="number" step="0.01" value="18">
+            <select id="chain_helper" class="helper-dd" title="Chain helper (kgf/m)">
+              <option value="">Chain helper</option>
+              <option value="1">1&quot;</option>
+              <option value="1.5">1.5&quot;</option>
+              <option value="2">2&quot;</option>
+              <option value="2.5">2.5&quot;</option>
+            </select>
+          </div>
+          <div style="flex:1"><label>μ_chain</label><input id="mu_chain" type="number" step="0.01" value="0.6"></div>
+        </div>
+      </div>
+
+
+
+      <div class="row" style="margin-top:12px">
+        <button id="run" class="btn">Update</button>
+        <span id="err" class="err"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong>Profile (X right, Y depth +down)</strong>
+        <span class="small" id="status"></span>
+      </div>
+      <canvas id="chart"></canvas>
+      <div id="report" class="small"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  /** =====================
+   *  Configuration & DOM
+   *  ===================== */
+  const CONFIG = {
+    DISABLE_BUOYS: true,
+    DISABLE_ANCHOR: true,
+    SAMPLES: 480,
+    EPS_Y: 1e-6,
+    EPS_U: 1e-6
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const els = { err: $('err'), status: $('status'), report: $('report'), canvas: $('chart') };
+
+  /** =====================
+   *  Helpers
+   *  ===================== */
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const round1 = (v) => Math.round(v * 10) / 10;
+
+  function parseOverlays() {
+    const raw = $('overlays').value || '';
+    const list = raw.split(/[\s,]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x) && x > 0);
+    // normalize to 0.1t and dedupe
+    return [...new Set(list.map(round1))].sort((a,b)=>a-b).slice(0, 8);
+  }
+
+  function readBuoys(Ltot) {
+    if (CONFIG.DISABLE_BUOYS) return { buoys: [], warnings: [] };
+    const N = parseInt($('buoyN').value) || 0;
+    const B = []; const warnings = [];
+    const clampFair = (sFromAnchor) => {
+      if (sFromAnchor > Ltot) warnings.push(`Buoy arc from anchor ${sFromAnchor} m > Ltot ${Ltot} m - clamped to anchor.`);
+      return clamp(Ltot - sFromAnchor, 0, Ltot);
+    };
+    if (N >= 1) {
+      B.push({ uplift_t: (parseFloat($('b1_uplift').value)||0) * 1000, pennant: parseFloat($('b1_pennant').value)||0, s_from_anchor: parseFloat($('b1_s_from_anchor').value)||0 });
+    }
+    if (N >= 2) {
+      B.push({ uplift_t: (parseFloat($('b2_uplift').value)||0) * 1000, pennant: parseFloat($('b2_pennant').value)||0, s_from_anchor: parseFloat($('b2_s_from_anchor').value)||0 });
+    }
+    B.sort((a,b)=>a.s_from_anchor-b.s_from_anchor);
+    B.forEach((b, idx)=>{ b.idx = idx; b.s_from_fairlead = clampFair(b.s_from_anchor); });
+    return { buoys: B, warnings };
+  }
+
+  function readAnchor() {
+    if (CONFIG.DISABLE_ANCHOR) return { mode: 'seated', capacity_t: Infinity, weight_t: 0 };
+    return {
+      mode: $('anchor_mode').value || 'seated',
+      capacity_t: parseFloat($('anchor_capacity').value) || 0,
+      weight_t: parseFloat($('anchor_weight').value) || 0
+    };
+  }
+
+  function validate() {
+    const WD = parseFloat($('WD').value) || 0;
+    const df = parseFloat($('df').value) || 0;
+    const Ltot = parseFloat($('Ltot').value) || 0;
+    const wWire = parseFloat($('w_wire').value) || 0;
+    const wChain = parseFloat($('w_chain').value) || 0;
+    const Lchain = parseFloat($('L_chain').value) || 0;
+    const muWire = parseFloat($('mu_wire').value) || 0;
+    const muChain = parseFloat($('mu_chain').value) || 0;
+
+    const errs = [];
+    if(!(WD > 0)) errs.push('WD > 0');
+    if(!(Ltot > 0)) errs.push('Ltot > 0');
+    if(!(wWire > 0)) errs.push('w_wire > 0');
+    if(!(wChain > 0)) errs.push('w_chain > 0');
+    if(!(Lchain >= 0 && Lchain <= Ltot)) errs.push('0 ≤ L_chain ≤ Ltot');
+    if(!(muWire >= 0 && muWire <= 1.5)) errs.push('0 ≤ μ_wire ≤ 1.5');
+    if(!(muChain >= 0 && muChain <= 1.5)) errs.push('0 ≤ μ_chain ≤ 1.5');
+
+    return {WD, df, Ltot, wWire, wChain, Lchain, muWire, muChain, errs};
+  }
+
+  /** =====================
+   *  Physics (refactored, same math)
+   *  ===================== */
+  function suspendedWithBuoysToTD({ H, Lwire, Lchain, wWire, wChain, drop, buoys, samples = CONFIG.SAMPLES }) {
+    const Hs = Math.max(H, 1e-9); // horizontal tension
+    const Ltot = (Lwire||0) + (Lchain||0);
+    const maxIt = 64, maxSteps = 20000;
+
+    // Events along s from fairlead
+    const events = (buoys||[]).map(b=>({ type: 'buoy', s: Math.max(0, b.s_from_fairlead||0), B: +b.uplift_t||0, idx: b.idx }));
+    events.push({ type: 'switch', s: Math.max(0, Lwire||0) });
+    events.push({ type: 'end', s: Infinity });
+    events.sort((a,b)=> a.s - b.s || ((a.type==='switch') - (b.type==='switch')));
+
+    function integrate(u0, collect=true){
+      let s=0, x=0, y=0, u=u0; // y down +
+      let mat=1, w=wWire, iEvt=0; // 1=wire,2=chain
+      let LsWire=0, LsChain=0;
+      const plotDs = Math.max((Ltot||1)/(samples||300), 0.05);
+      let nextPlotS = 0;
+      const ptsWire=[], ptsChain=[], buoyMarks=[];
+      const pushPt = ()=>{ const pt={x,y}; (mat===1?ptsWire:ptsChain).push(pt); };
+      if (collect){ pushPt(); nextPlotS += plotDs; }
+
+      let hitUZero=false, yAtUZero=y, xAtUZero=x, sAtUZero=s;
+
+      function step(ds){
+        const cu=Math.cosh(u), tu=Math.tanh(u);
+        const du=(w/(Hs*cu))*ds;
+        x += (1/cu)*ds; y += (-tu)*ds; u += du; s += ds;
+        if (mat===1) LsWire+=ds; else LsChain+=ds;
+      }
+      function pick_ds(nextSEvent, yTarget){
+        const remToEvent = nextSEvent - s;
+        const denom = Math.max(1e-6, Math.abs(Math.tanh(u)));
+        let ds_fromY = 0.05/denom; // ~5 cm y-step baseline
+        return Math.max(1e-5, Math.min(remToEvent*0.5, ds_fromY, 0.2));
+      }
+
+      let steps=0;
+      while (steps++ < maxSteps){
+        const next = events[iEvt];
+        const nextS = next.s;
+        const ds = pick_ds(nextS, drop);
+        const cu=Math.cosh(u); const du=(w/(Hs*cu))*ds; const u_next=u+du;
+
+        // hit event exactly
+        if (s + ds >= nextS){
+          const ds1 = Math.max(0, nextS - s);
+          if (ds1>0){ step(ds1); if (collect){ pushPt(); nextPlotS += plotDs; } }
+          if (next.type==='switch' && mat===1){ mat=2; w=wChain; }
+          else if (next.type==='buoy'){
+            const Vnew = Hs*Math.sinh(u) - next.B; u = Math.asinh(clamp(Vnew/Hs, -1e9, 1e9));
+            if (collect) buoyMarks.push({x,y,s_from_fairlead:next.s, idx:next.idx});
+          }
+          iEvt++; continue;
+        }
+
+        // reach seabed drop y=drop inside step?
+        const dy_ds = -Math.tanh(u);
+        if (dy_ds > 0 && y < drop){
+          const ds_to_drop = (drop - y) / dy_ds;
+          if (ds_to_drop >= 0 && ds_to_drop <= ds){
+            step(ds_to_drop); if (collect){ pushPt(); nextPlotS += plotDs; }
+            // locate u=0 for residual (silent marching)
+            while (!hitUZero && steps++ < maxSteps){ step(0.05); if (u >= 0){ hitUZero=true; yAtUZero=y; xAtUZero=x; sAtUZero=s; break; } }
+            break;
+          }
+        }
+
+        // cross u=0 inside step?
+        if (u < 0 && u_next >= 0){
+          const frac = (0 - u) / (u_next - u || 1e-9); step(ds*frac); if (collect){ pushPt(); nextPlotS += plotDs; }
+          hitUZero=true; yAtUZero=y; xAtUZero=x; sAtUZero=s; break;
+        }
+
+        step(ds);
+        if (collect && s >= nextPlotS){ pushPt(); nextPlotS += plotDs; }
+        if (s >= Ltot + 1e-6) break; if (y >= drop + 5) break;
+      }
+
+      if (collect) pushPt();
+      const lastPt = (ptsChain.length ? ptsChain[ptsChain.length-1] : (ptsWire.length ? ptsWire[ptsWire.length-1] : {x:0,y:0}));
+      return { hitUZero, yAtUZero, xAtUZero, sAtUZero, ptsWire, ptsChain, buoyMarks, LsWire, LsChain, xEnd:lastPt.x, yEnd:lastPt.y };
+    }
+
+    function residual(u0){ const r=integrate(u0,false); return r.hitUZero ? (r.yAtUZero - drop) : 1e6; }
+
+    let umax=-1e-6, umin=-1.0, rmax=residual(umax), rmin=residual(umin), guard=0;
+    while ((rmin <= 0) && (guard++ < 40)){ umin *= 2; rmin = residual(umin); }
+    if (!(rmin > 0 && rmax < 0)){ umin=-8.0; rmin=residual(umin); }
+    if (!(rmin > 0 && rmax < 0)){
+      const f=integrate(umax,true); return { ok:false, reason:'Could not bracket u0; showing gentle-sag', ptsWire:f.ptsWire, ptsChain:f.ptsChain, LsWire:f.LsWire, LsChain:f.LsChain, xEnd:f.xEnd, yEnd:Math.min(drop,f.yEnd), buoyMarks:f.buoyMarks };
+    }
+
+    for (let it=0; it<maxIt; it++){
+      const mid=0.5*(umin+umax); const rmid=residual(mid);
+      if (Math.abs(rmid) < CONFIG.EPS_Y || Math.abs(umax-umin) < 1e-6){
+        const out = integrate(mid,true);
+        return { ok:true, ptsWire:out.ptsWire, ptsChain:out.ptsChain, LsWire:out.LsWire, LsChain:out.LsChain, xEnd:out.xEnd, yEnd:Math.min(drop,out.yEnd), buoyMarks:out.buoyMarks };
+      }
+      if (rmid > 0){ umin=mid; } else { umax=mid; }
+    }
+    const out = integrate(0.5*(umin+umax), true);
+    return { ok:false, reason:'Bisection did not converge', ptsWire:out.ptsWire, ptsChain:out.ptsChain, LsWire:out.LsWire, LsChain:out.LsChain, xEnd:out.xEnd, yEnd:Math.min(drop,out.yEnd), buoyMarks:out.buoyMarks };
+  }
+
+  function iterateSeabedFrictionWithBuoys({H_fair, Lwire, Lchain, wWire, wChain, muWire, muChain, drop, buoys}){
+    const H = Math.max(H_fair, 1e-8);
+    const p = suspendedWithBuoysToTD({H, Lwire, Lchain, wWire, wChain, drop, buoys, samples: CONFIG.SAMPLES});
+    const LgWire = Math.max(0, Lwire - p.LsWire);
+    const LgChain = Math.max(0, Lchain - p.LsChain);
+    const F = muWire * wWire * LgWire + muChain * wChain * LgChain; // kgf
+    const Hanchor = Math.max(0, H - F);
+    const LsTotal = p.LsWire + p.LsChain;
+    return { ok:true, HTD:H, Hanchor, p, LgWire, LgChain, LsTotal };
+  }
+
+  function findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys}){
+    const tol_m = 0.05, maxIt = 60;
+    const deficitMeters = (tTon)=>{
+      const H = Math.max(tTon*1000, 1e-6);
+      const p = suspendedWithBuoysToTD({H, Lwire:Math.max(0,Lwire||0), Lchain:Math.max(0,Lchain||0), wWire, wChain, drop, buoys:buoys||[], samples: Math.min(CONFIG.SAMPLES, 360)});
+      return Math.max(0, Lwire - p.LsWire) + Math.max(0, Lchain - p.LsChain);
+    };
+    let tLo=0.1, dLo=deficitMeters(tLo); if (dLo <= tol_m) return {ok:true, t_crit:tLo};
+    let tHi=5.0, dHi=deficitMeters(tHi), guard=0;
+    while (dHi > tol_m && guard++ < 40){ tHi *= 2; dHi = deficitMeters(tHi); if (tHi > 1e5) break; }
+    if (dHi > tol_m) return {ok:false};
+    for (let it=0; it<maxIt; it++){
+      const tm=0.5*(tLo+tHi), dm=deficitMeters(tm);
+      if (dm <= tol_m){ tHi=tm; } else { tLo=tm; }
+      if (Math.abs(tHi - tLo) <= 1e-3) break;
+    }
+    return {ok:true, t_crit:tHi};
+  }
+
+  /** =====================
+   *  Rendering (Canvas)
+   *  ===================== */
+  const COLORS_SERIES = ['#ef4444','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#10b981','#f97316'];
+
+  function drawCanvasChart(datasets, canvasId, WD, df){
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    ctx.setTransform(1,0,0,1,0,0); // reset
+    ctx.scale(dpr, dpr);
+    const width = rect.width, height = rect.height;
+
+    // background
+    ctx.fillStyle = '#0b1628';
+    ctx.fillRect(0,0,width,height);
+    if (!datasets || !datasets.length) return;
+
+    const allX = datasets.flatMap(d => (d.data||[]).map(p=>p.x));
+    const allY = datasets.flatMap(d => (d.data||[]).map(p=>p.y));
+    if (!allX.length){ return; }
+
+    const minX = 0;
+    const maxX = Math.max(...allX, 1) * 1.05;
+    const minY = Math.min(df - 5, ...allY);
+    const maxY = Math.max(WD + 10, ...allY);
+
+    const padding = 50;
+    const chartW = Math.max(1, width - 2*padding);
+    const chartH = Math.max(1, height - 2*padding);
+    const scaleX = (x)=> padding + (x - minX) / Math.max(1e-6, (maxX - minX)) * chartW;
+    const scaleY = (y)=> padding + (y - minY) / Math.max(1e-6, (maxY - minY)) * chartH;
+
+    // grid
+    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 1;
+    for (let i=0;i<=10;i++){ const x = scaleX(minX + (maxX-minX)*i/10); ctx.beginPath(); ctx.moveTo(x,padding); ctx.lineTo(x,height-padding); ctx.stroke(); }
+    for (let i=0;i<=10;i++){ const y = scaleY(minY + (maxY-minY)*i/10); ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(width-padding,y); ctx.stroke(); }
+
+    // water surface y=0
+    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.setLineDash([10,5]);
+    ctx.beginPath(); const waterY = scaleY(0); ctx.moveTo(padding, waterY); ctx.lineTo(width-padding, waterY); ctx.stroke(); ctx.setLineDash([]);
+
+    // axes
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(padding,padding); ctx.lineTo(padding,height-padding); ctx.lineTo(width-padding,height-padding); ctx.stroke();
+
+    // series
+    datasets.forEach((ds, i) => {
+      const color = ds.borderColor || COLORS_SERIES[i % COLORS_SERIES.length];
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = ds.borderWidth || 2;
+      ctx.setLineDash(ds.borderDash || []);
+      const data = ds.data || [];
+      if (ds.showLine !== false && data.length > 1){
+        ctx.beginPath();
+        data.forEach((pt, idx)=>{ const x=scaleX(pt.x), y=scaleY(Math.min(pt.y, WD)); if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+        ctx.stroke();
+      }
+      if ((ds.pointRadius||0) > 0){
+        data.forEach(pt => { const x=scaleX(pt.x), y=scaleY(Math.min(pt.y, WD));
+          if (ds.pointStyle === 'rect'){ ctx.fillRect(x-ds.pointRadius, y-ds.pointRadius, ds.pointRadius*2, ds.pointRadius*2); }
+          else if (ds.pointStyle === 'triangle'){ ctx.beginPath(); ctx.moveTo(x, y-ds.pointRadius); ctx.lineTo(x-ds.pointRadius, y+ds.pointRadius); ctx.lineTo(x+ds.pointRadius, y+ds.pointRadius); ctx.closePath(); ctx.fill(); }
+          else if (ds.pointStyle === 'crossRot'){ ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-ds.pointRadius, y-ds.pointRadius); ctx.lineTo(x+ds.pointRadius, y+ds.pointRadius); ctx.moveTo(x+ds.pointRadius, y-ds.pointRadius); ctx.lineTo(x-ds.pointRadius, y+ds.pointRadius); ctx.stroke(); }
+          else { ctx.beginPath(); ctx.arc(x, y, ds.pointRadius, 0, Math.PI*2); ctx.fill(); }
+        });
+      }
+    });
+
+    // labels
+    ctx.fillStyle = '#cbd5e1'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+    for (let i=0;i<=5;i++){ const val=minX+(maxX-minX)*i/5; const x=scaleX(val); ctx.fillText(Math.round(val)+'m', x, height - padding + 20); }
+    ctx.textAlign='right';
+    for (let i=0;i<=5;i++){ const val=minY+(maxY-minY)*i/5; const y=scaleY(val); ctx.fillText(Math.round(val)+'m', padding-10, y+4); }
+    ctx.textAlign='left'; ctx.fillStyle='#3b82f6'; ctx.fillText('Sea Surface', padding+10, waterY-5);
+    ctx.textAlign='center'; ctx.font='bold 16px system-ui'; ctx.fillStyle='#cbd5e1'; ctx.fillText('Catenary Profile Analysis', width/2, 25);
+  }
+
+  /** =====================
+   *  Build & UI wiring
+   *  ===================== */
+  function build(){
+    const {WD, df, Ltot, wWire, wChain, Lchain, muWire, muChain, errs} = validate();
+    if (errs.length){ els.err.textContent = 'Input error: ' + errs.join(', '); return; }
+    els.err.textContent = ''; els.status.textContent = ''; els.report.innerHTML = '';
+
+    let overlays = parseOverlays();
+    const preMsgs = [];
+
+    // Optional compute critical overlay and append
+    if (($('chk_no_ground')?.checked)){
+      const drop = WD - df; const Lwire = Math.max(0, Ltot - Lchain);
+      const res = findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys: []});
+      if (res && res.ok && isFinite(res.t_crit)){
+        const tRound = round1(res.t_crit);
+        if (!overlays.includes(tRound)) overlays = [...overlays, tRound].sort((a,b)=>a-b);
+        $('overlays').value = overlays.map(v => (Math.abs(v - Math.round(v)) < 1e-9) ? String(Math.round(v)) : v.toFixed(1)).join(', ');
+        preMsgs.push(`★ Added critical overlay (no grounded span): ${tRound.toFixed(1)} t`);
+      } else {
+        preMsgs.push('Could not bracket critical overlay (no-ground).');
+      }
+    }
+    if (!overlays.length){ els.err.textContent = 'Add at least one overlay (tonnes).'; return; }
+
+    const {buoys, warnings} = readBuoys(Ltot);
+    const anchor = readAnchor();
+    if (!CONFIG.DISABLE_ANCHOR && anchor.mode === 'hanging' && anchor.weight_t > 0) {
+      buoys.unshift({ uplift_t: -(anchor.weight_t*1000), pennant: 0, s_from_anchor: Ltot, s_from_fairlead: 0, idx: -1 });
+    }
+
+    const drop = WD - df; const Lwire = Math.max(0, Ltot - Lchain);
+    const ds = [];
+    const rows = [['Overlay (t)','x_TD (m)','Lg_wire (m)','Lg_chain (m)','x_anchor (m)','H_anchor (t)']];
+    const msgs = [...warnings, ...preMsgs];
+
+    // fairlead + seabed
+    ds.push({ label:'Fairlead', data:[{x:0,y:df}], pointRadius:6, pointStyle:'rect', borderColor:'#cbd5e1', backgroundColor:'#cbd5e1', showLine:false, showInLegend:false });
+    ds.push({ label:'Seabed (y=WD)', data:[{x:0,y:WD},{x:Math.max(10,Ltot),y:WD}], showLine:true, borderColor:'#475569', borderDash:[6,6], borderWidth:1.5, pointRadius:0 });
+
+    // cap overlays by critical no-ground (skip above)
+    let tMaxOverlay=null; try { const r=findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys: []}); if (r&&r.ok&&isFinite(r.t_crit)) tMaxOverlay=round1(r.t_crit); } catch(_){}
+
+    overlays.forEach((t, i)=>{
+      if (tMaxOverlay !== null && t > tMaxOverlay + 1e-9){ msgs.push(`${t.toFixed(1)} t → above calculated max overlay ${tMaxOverlay.toFixed(1)} t (Lg_wire + Lg_chain = 0). Skipped.`); return; }
+      const col = COLORS_SERIES[i % COLORS_SERIES.length];
+      const H_fair = t * 1000; // kgf
+      const it = iterateSeabedFrictionWithBuoys({H_fair, Lwire, Lchain, wWire, wChain, muWire, muChain, drop, buoys});
+
+      const addSuspended = (label, arr, dashed=false)=>{ if (!arr || !arr.length) return; ds.push({ label, data: arr.map(q=>({x:q.x, y: Math.min(q.y+df, WD)})), showLine:true, borderColor:col, borderDash: dashed?[2,2]:undefined, borderWidth:2, pointRadius:0 }); };
+      const addPoint = (label, x, y, style) => ds.push({ label, type:'scatter', data:[{x,y}], pointRadius: style==='crossRot'?4:6, pointStyle: style||'circle', borderColor: col, backgroundColor: col, showInLegend:false });
+
+      if (!it.ok){
+        const p = suspendedWithBuoysToTD({H:H_fair, Lwire, Lchain, wWire, wChain, drop, buoys, samples: Math.min(CONFIG.SAMPLES, 360)});
+        addSuspended(`${t.toFixed(1)} t - wire (to TD)`, p.ptsWire);
+        addSuspended(`${t.toFixed(1)} t - chain (to TD)`, p.ptsChain, true);
+        addPoint(`${t.toFixed(1)} t - TD`, p.xEnd, Math.min(df+p.yEnd, WD), 'crossRot');
+        // pennants
+        p.buoyMarks.forEach(mark => { const buoy = buoys.find(b=> b.idx===mark.idx); if (!buoy) return; const xa=mark.x, ya=Math.min(mark.y+df, WD), xb=xa, yb=Math.min(ya - buoy.pennant, WD);
+          addPoint(`${t.toFixed(1)} t - buoy ${buoy.idx+1}`, xb, yb, 'triangle');
+          ds.push({ label:`${t.toFixed(1)} t - pennant ${buoy.idx+1}`, data:[{x:xa,y:ya},{x:xb,y:yb}], showLine:true, borderColor:col, borderDash:[1,3], borderWidth:1, pointRadius:0, showInLegend:false });
+        });
+        rows.push([`${t.toFixed(1)}`, p.xEnd.toFixed(1), '—', '—', p.xEnd.toFixed(1), '—']);
+        msgs.push(`${t.toFixed(1)} t → too small vs friction (no equilibrium). Showing suspended to TD only.`);
+      } else {
+        const {p, LgWire, LgChain, Hanchor, LsTotal} = it; const xTD=p.xEnd; const xAnchor=xTD + LgWire + LgChain;
+        addSuspended(`${t.toFixed(1)} t - wire (susp)`, p.ptsWire);
+        addSuspended(`${t.toFixed(1)} t - chain (susp)`, p.ptsChain, true);
+        if (LgWire > 0) ds.push({ label:`${t.toFixed(1)} t - wire (grounded)`, data:[{x:xTD,y:WD},{x:xTD+LgWire,y:WD}], showLine:true, borderColor:col, borderDash:[6,6], borderWidth:2, pointRadius:0 });
+        if (LgChain > 0) ds.push({ label:`${t.toFixed(1)} t - chain (grounded)`, data:[{x:xTD+LgWire,y:WD},{x:xAnchor,y:WD}], showLine:true, borderColor:col, borderDash:[10,6], borderWidth:2, pointRadius:0 });
+        addPoint(`${t.toFixed(1)} t - TD`, xTD, WD, 'crossRot');
+        if ((LgWire+LgChain) > 0) addPoint(`${t.toFixed(1)} t - anchor`, xAnchor, WD, 'rect');
+        // buoys & pennants (flag seabed)
+        p.buoyMarks.forEach(mark => {
+          const buoy = buoys.find(b => Math.abs(b.s_from_fairlead - mark.s_from_fairlead) < 1e-6); if (!buoy) return;
+          const onSeabed = (buoy.s_from_fairlead > LsTotal);
+          const xa=mark.x, ya=Math.min(mark.y+df, WD), xb=xa, yb=Math.min(ya - buoy.pennant, WD);
+          const col2 = onSeabed ? '#94a3b8' : col;
+          ds.push({ label:`${t.toFixed(1)} t - buoy ${buoy.idx+1}`, type:'scatter', data:[{x:xb,y:yb}], pointRadius:6, pointStyle:'triangle', borderColor:col2, backgroundColor:col2, showInLegend:false });
+          ds.push({ label:`${t.toFixed(1)} t - pennant ${buoy.idx+1}`, data:[{x:xa,y:ya},{x:xb,y:yb}], showLine:true, borderColor:col2, borderDash:[1,3], borderWidth:1, pointRadius:0, showInLegend:false });
+          if (onSeabed) msgs.push(`Buoy ${buoy.idx + 1} at s_from_anchor ${buoy.s_from_anchor} m is on seabed at ${t} t overlay.`);
+        });
+        rows.push([`${t.toFixed(1)}`, xTD.toFixed(1), LgWire.toFixed(1), LgChain.toFixed(1), xAnchor.toFixed(1), (Hanchor/1000).toFixed(2)]);
+      }
+    });
+
+    drawCanvasChart(ds, 'chart', WD, df);
+
+    // table
+    let html = '<table><tr><th>Tension (t)</th><th>Fairlead-TD (m)</th><th>Wire on ground (m)</th><th>Chain on ground (m)</th><th>Hor. anchor dist (m)</th><th>Tension_anchor (t)</th></tr>';
+    rows.slice(1).forEach(r => { html += '<tr>' + r.map((c, j)=> (j===5?`<td style="text-align:right">${c}</td>`:`<td>${c}</td>`)).join('') + '</tr>'; });
+    html += '</table>';
+    if (msgs.length) html += `<div class="small" style="margin-top:8px;color:#fbbf24">${msgs.join('<br>')}</div>`;
+    els.report.innerHTML = html;
+
+    els.status.textContent = (CONFIG.DISABLE_BUOYS || CONFIG.DISABLE_ANCHOR) ? 'Buoys & anchor inputs disabled' : '';
+  }
+
+  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(null,args), ms); } }
+
+  function init(){
+    const inputIds = ['WD','df','Ltot','w_wire','mu_wire','w_chain','mu_chain','L_chain','overlays','buoyN','b1_uplift','b1_pennant','b1_s_from_anchor','b2_uplift','b2_pennant','b2_s_from_anchor','anchor_mode','anchor_capacity','anchor_weight'];
+    inputIds.forEach(id => { const el = $(id); if (el) el.addEventListener('input', build); });
+    $('run').addEventListener('click', build);
+    $('chk_no_ground').addEventListener('change', build);
+
+    // disable buoys & anchor controls when feature is off
+    (function(){ const ids = ['buoyN','b1_uplift','b1_pennant','b1_s_from_anchor','b2_uplift','b2_pennant','b2_s_from_anchor','anchor_mode','anchor_capacity','anchor_weight'];
+      ids.forEach(id => { const el=$(id); if (el) el.disabled = CONFIG.DISABLE_BUOYS || CONFIG.DISABLE_ANCHOR; });
+      const buoyN = $('buoyN'); if (buoyN) buoyN.value = '0';
+    })();
+
+    // size helpers
+    (function(){
+      const WIRE_HELPER_KGFM = {"1":2.4,"1.5":5.5,"2":8.5,"2.5":13.25};
+      const CHAIN_HELPER_KGFM = {"1":16.0,"1.5":38.0,"2":66.5,"2.5":107.5};
+      const wireSel=$('wire_helper'), chainSel=$('chain_helper');
+      const wWireEl=$('w_wire'), wChainEl=$('w_chain');
+      wireSel?.addEventListener('change', function(){ const k=this.value; if (k && WIRE_HELPER_KGFM[k]){ wWireEl.value = WIRE_HELPER_KGFM[k]; build(); } });
+      chainSel?.addEventListener('change', function(){ const k=this.value; if (k && CHAIN_HELPER_KGFM[k]){ wChainEl.value = CHAIN_HELPER_KGFM[k]; build(); } });
+    })();
+
+    // Re-render on resize
+    window.addEventListener('resize', debounce(build, 100));
+
+    build();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  // Safety if Chart.js present elsewhere
+  if (typeof Chart !== 'undefined' && Chart.defaults?.elements?.line){ try{ Chart.defaults.elements.line.tension = 0; }catch(e){} }
+})();
+</script>
+</body>
+</html>
