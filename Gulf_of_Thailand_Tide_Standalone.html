@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gulf of Thailand — Tide Map (IDW k=2, p=2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" / crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1224; --panel:#0e1430; --text:#e5e7eb; --muted:#9aa3b2; --accent:#22d3ee; --violet:#a78bfa; --border:#1f2a40;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+  .wrap{max-width:1320px;margin:16px auto;padding:0 16px}
+  h1{margin:0 0 12px;font-size:20px;}
+  .grid{display:grid;grid-template-columns: 420px 1fr;gap:12px}
+  .card{background:linear-gradient(180deg,#0e1430,#0a0f1d);border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.35);}
+  .card > .hd{padding:12px 14px;border-bottom:1px dashed #1c2743;font-weight:600}
+  .card > .bd{padding:12px 14px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+  input[type="number"], input[type="date"], select{width:100%;background:#0b1328;color:var(--text);border:1px solid #233055;border-radius:10px;padding:10px 12px;outline:none}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{background:linear-gradient(180deg,#1f2a40,#111827);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:var(--accent);box-shadow:0 0 0 1px rgba(34,211,238,.35) inset}
+  .btn-ghost{background:transparent;border:1px dashed #26314f}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  .muted{color:var(--muted);}
+  #map{height:420px;border-bottom-left-radius:14px;border-bottom-right-radius:14px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:6px 8px;border-bottom:1px dashed #22304e;font-size:13px}
+  th{color:var(--muted);font-weight:600}
+  canvas{background:#0b1022;border-radius:12px}
+  details > summary{cursor:pointer;color:#c7d2fe}
+  .weights{font-size:12px;color:#cbd5e1}
+</style>
+
+<style>/*__size_override__*/
+#lat,#lon,#start,#end,#interval,#k,#p, select{padding:6px 8px !important;font-size:13px !important;}
+.leaflet-tooltip.station-label{background:transparent;border:none;color:#e5e7eb;text-shadow:0 1px 2px rgba(0,0,0,.85);font-weight:600;font-size:12px;padding:0;}
+.map-legend{background:#0e1430cc;color:#e5e7eb;padding:8px 10px;border-radius:10px;border:1px solid #1f2a40;font:12px/1.2 Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+.map-legend .legend-title{font-weight:600;margin-bottom:4px;color:#a5b4fc}
+.map-legend .legend-item{display:flex;align-items:center;gap:6px;margin:3px 0;white-space:nowrap}
+.map-legend .swatch{display:inline-block;width:14px;height:10px;border-radius:2px;border:1px solid #22d3ee}
+.map-legend .swatch.station{background:#22d3ee}
+.map-legend .swatch.buffer{background:#22d3ee;opacity:.25}
+/* message box */
+#msgbox{display:none;margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid #1f2a40}
+#msgbox.info{display:block;background:#0b3a46;color:#e0fbff}
+#msgbox.warn{display:block;background:#3a2a03;color:#ffe9b3}
+#msgbox.error{display:block;background:#461919;color:#ffd0d0}
+/* simple locations list */
+#locations{margin-top:8px;border-top:1px dashed #1f2a40;padding-top:8px}
+#locations .row{display:flex;align-items:center;gap:6px;margin:4px 0}
+#locations .tag{padding:2px 6px;border-radius:999px;background:#1f2a40}
+#locations button{padding:2px 6px;border-radius:8px;border:1px solid #1f2a40;background:#0e1430;color:#e5e7eb;cursor:pointer}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script>
+/* Generated from original HTML */
+const STATION_COORDS = {"AWP26":{"lat":8.5107,"lon":102.2262},"AWP36":{"lat":7.94077,"lon":102.6856},"B832":{"lat":10.520936,"lon":101.27638},"G365":{"lat":7.586336,"lon":102.121412},"SBWA":{"lat":8.68628,"lon":101.3838},"SGWH":{"lat":8.683,"lon":101.743},"PDWA":{"lat":9.47695,"lon":101.394183},"PLLQ":{"lat":9.691283333,"lon":101.4042333},"BQP":{"lat":8.019097,"lon":102.32179},"QPS":{"lat":7.492083333,"lon":102.6147667},"FULQ":{"lat":8.933933333,"lon":101.5894333},"ERLQ":{"lat":9.077383333,"lon":101.3095},"AQP":{"lat":8.260766667,"lon":102.52465},"YAWD":{"lat":9.92305,"lon":101.4586},"SALQ":{"lat":9.286267,"lon":101.412167}};
+
+</script>
+<script>
+const STATION_HARMONICS = {
+  "AQP": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.22,
+      "trend_per_hour": 0.0,
+      "n_obs": 233777,
+      "rmse": 0.06435584648593054,
+      "r2": 0.8386423175412554
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.07761554361674994,
+        "phi_deg": 248.69426826649135
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.034512267239258466,
+        "phi_deg": 290.7790023441002
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.018413873996133225,
+        "phi_deg": 63.54680815197029
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.012667807547190504,
+        "phi_deg": 202.02627572749407
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.07399416834560102,
+        "phi_deg": 52.14533351984035
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.022411334335185083,
+        "phi_deg": 306.6279816250143
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.02026452522039283,
+        "phi_deg": 323.2572675284234
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.005925109182936351,
+        "phi_deg": 172.86688803258073
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0025331061379031436,
+        "phi_deg": 144.23490690121116
+      }
+    ]
+  },
+  "AWP26": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.22,
+      "trend_per_hour": -2.6669951008963e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.0867360315973111,
+        "phi_deg": 246.95352209123394
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.040283498950018246,
+        "phi_deg": 298.8903613651734
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.01657793056571255,
+        "phi_deg": 73.2663311416388
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.01388117303359823,
+        "phi_deg": 216.02755294886288
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.02226241357647175,
+        "phi_deg": 120.49020791670948
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.04719578523055928,
+        "phi_deg": 34.519476346046645
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.006386130290438864,
+        "phi_deg": 28.530660329315843
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.008970192484788168,
+        "phi_deg": 232.6054823133776
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0001276519454459681,
+        "phi_deg": 113.7725948228529
+      }
+    ]
+  },
+  "AWP36": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.25,
+      "trend_per_hour": -2.500431965573463e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.05778994373049265,
+        "phi_deg": 215.6541339416983
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.0402865072093398,
+        "phi_deg": 246.6137106367452
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.01095733188121244,
+        "phi_deg": 42.081865970213286
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.014084936015188872,
+        "phi_deg": 163.3131318228438
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.1227815204422036,
+        "phi_deg": 30.80350404425921
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.0589431078688718,
+        "phi_deg": 236.22820090493616
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.0362231727663743,
+        "phi_deg": 292.8662993742673
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.011462745759375531,
+        "phi_deg": 77.70256142760084
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.00011258641580138738,
+        "phi_deg": 83.05906531354208
+      }
+    ]
+  },
+  "B832": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.83,
+      "trend_per_hour": -2.110039775777207e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.08682246210991551,
+        "phi_deg": 316.166543287611
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.050369624589058436,
+        "phi_deg": 13.664366841569437
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.01688416101621743,
+        "phi_deg": 141.4712517318921
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.017658039817257967,
+        "phi_deg": 292.267303566049
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.38745654602996527,
+        "phi_deg": 204.9288567254839
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.2946522791422838,
+        "phi_deg": 49.412808058359055
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.11745786281050023,
+        "phi_deg": 108.0642613667939
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.05677706949174588,
+        "phi_deg": 248.6950579020227
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0001244872642954832,
+        "phi_deg": 85.43567796038043
+      }
+    ]
+  },
+  "BQP": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.23,
+      "trend_per_hour": 0.0,
+      "n_obs": 145738,
+      "rmse": 0.05667575204795969,
+      "r2": 0.8847703177416399
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.09259607305621008,
+        "phi_deg": 245.54987512594352
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.0404935860807092,
+        "phi_deg": 285.7619131171533
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.02153650363693704,
+        "phi_deg": 62.93671847381619
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.015057413569795142,
+        "phi_deg": 204.85820821005174
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.08176731888760948,
+        "phi_deg": 39.10734885882569
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.019397658594003667,
+        "phi_deg": 257.80558123108005
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.022771882375610675,
+        "phi_deg": 303.8867371090759
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.005414795008907457,
+        "phi_deg": 147.58959829983823
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0036232812977384106,
+        "phi_deg": 152.92839683293548
+      }
+    ]
+  },
+  "ERLQ": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.33,
+      "trend_per_hour": -3.646908806497524e-06
+    },
+     "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.12270498727182182,
+        "phi_deg": 285.50448560794865
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.054557439872755666,
+        "phi_deg": 347.44952117882934
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.01885239985039316,
+        "phi_deg": 96.14745769174982
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.01970841526075116,
+        "phi_deg": 279.3050707030817
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.17919318758229935,
+        "phi_deg": 223.80921734147964
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.15385168824510465,
+        "phi_deg": 60.73771667890474
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.05635157255404776,
+        "phi_deg": 120.82897343506883
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.036201171759270616,
+        "phi_deg": 235.1252551997425
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0031459175819410303,
+        "phi_deg": 300.14626564261806
+      }
+    ]
+  },
+  "FULQ": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.27,
+      "trend_per_hour": -3.827285197949767e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.11417681658955561,
+        "phi_deg": 281.2968379703773
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.04530508028366512,
+        "phi_deg": 350.1942293861106
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.02255113139847792,
+        "phi_deg": 89.51113089061789
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.012394304074484797,
+        "phi_deg": 265.8912071012894
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.12652508205266114,
+        "phi_deg": 220.79418037025158
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.12399771452818358,
+        "phi_deg": 56.522048766470974
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.038642191886302045,
+        "phi_deg": 118.53034197282278
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.029682979069254132,
+        "phi_deg": 233.27486142594563
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0005851201928875029,
+        "phi_deg": 144.01361166280708
+      }
+    ]
+  },
+  "G365": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.18,
+      "trend_per_hour": -2.772165882154234e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.08671827296559508,
+        "phi_deg": 232.25442123285444
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.04021026554209842,
+        "phi_deg": 252.33837770545
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.01656400885765691,
+        "phi_deg": 58.33748096709527
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.0139940699357165,
+        "phi_deg": 168.6383322337641
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.10053006894665031,
+        "phi_deg": 12.423848140407861
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.0471164363833707,
+        "phi_deg": 209.3420283766576
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.02969140103534437,
+        "phi_deg": 274.0355928517803
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.00906661417353111,
+        "phi_deg": 51.54550538440782
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 8.051085096483618e-05,
+        "phi_deg": 100.6632746677577
+      }
+    ]
+  },
+  "PDWA": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.45,
+      "trend_per_hour": -3.362139121243246e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.11571095952543088,
+        "phi_deg": 293.9264172186014
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.05036234725452637,
+        "phi_deg": 354.6234128718435
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.02221782852708095,
+        "phi_deg": 119.9006222603374
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.017395479682034542,
+        "phi_deg": 272.52484568296427
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.2327205826307153,
+        "phi_deg": 212.2002571907325
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.1885544351490205,
+        "phi_deg": 55.114678152645524
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.07040158840965663,
+        "phi_deg": 115.00174849683042
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.03594757102692394,
+        "phi_deg": 254.76742279309258
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 9.912836246988523e-05,
+        "phi_deg": 92.27415907801065
+      }
+    ]
+  },
+  "PLLQ": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.52,
+      "trend_per_hour": -6.246602624264139e-06
+    },
+   "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.10442613172903126,
+        "phi_deg": 301.3280606335923
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.04598643309780362,
+        "phi_deg": 18.43545283970913
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.017601058584335538,
+        "phi_deg": 107.65650110751145
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.016676146150428933,
+        "phi_deg": 293.36016111058456
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.2574623679748665,
+        "phi_deg": 215.54552579940366
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.20938840038851586,
+        "phi_deg": 55.374898249961625
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.07257327169954973,
+        "phi_deg": 110.88095099589036
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.04318224244162601,
+        "phi_deg": 232.31946516523817
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.001457629884495376,
+        "phi_deg": 125.92778300114405
+      }
+    ]
+  },
+  "QPS": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.30,
+      "trend_per_hour": -2.502348493097537e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.0770374479067555,
+        "phi_deg": 204.2565932848906
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.04026466421448239,
+        "phi_deg": 240.2071143030732
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.014657139234441419,
+        "phi_deg": 30.153196207713748
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.014054083723877439,
+        "phi_deg": 156.7149932672485
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.1560764504393704,
+        "phi_deg": 21.65101268806602
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.08248970931822659,
+        "phi_deg": 224.8124500859489
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.04623937868492121,
+        "phi_deg": 283.6915927017805
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.01591616618804372,
+        "phi_deg": 65.96977174843373
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0001335516849563576,
+        "phi_deg": 109.1123047874525
+      }
+    ]
+  },
+  "SALQ": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.40,
+      "trend_per_hour": -2.108e-07
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.11376551607109707,
+        "phi_deg": 292.1021076686377
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30.0,
+        "H": 0.046013189313278385,
+        "phi_deg": 0.24659191809857856
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.022972017476626715,
+        "phi_deg": 95.4496907167222
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.013269120798981505,
+        "phi_deg": 283.22126124467707
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.19970092436895265,
+        "phi_deg": 216.47853532554004
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.17407131201641043,
+        "phi_deg": 55.877075847150586
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.055292177152595115,
+        "phi_deg": 115.23477899244519
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.03355688116732198,
+        "phi_deg": 228.02042264501375
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0012124219901558785,
+        "phi_deg": 114.87760756009065
+      }
+    ]
+  },
+  "SBWA": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.29,
+      "trend_per_hour": -3.346050866119485e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.1253417408065142,
+        "phi_deg": 270.7404406901733
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.060455672639436686,
+        "phi_deg": 331.4026138254815
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.024040362645791655,
+        "phi_deg": 96.8581659531736
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.02091529465897356,
+        "phi_deg": 249.048630617045
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.12163140876507701,
+        "phi_deg": 223.24341296318448
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.1177868336391143,
+        "phi_deg": 58.48674437671233
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.03716586995724494,
+        "phi_deg": 126.0800582318056
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.022349555026846223,
+        "phi_deg": 257.9507931624818
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.00013192170011142303,
+        "phi_deg": 110.090178333338
+      }
+    ]
+  },
+  "SGWH": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.24,
+      "trend_per_hour": -2.808320281380403e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.1060390248800487,
+        "phi_deg": 264.5396074696292
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.05036496847947648,
+        "phi_deg": 325.2835251779871
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.020322575488946695,
+        "phi_deg": 90.67731388037491
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.017384451162263267,
+        "phi_deg": 242.9091339407245
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.08831697170216937,
+        "phi_deg": 215.71904857362486
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.0942875773835873,
+        "phi_deg": 54.35276111966456
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.027105859083515406,
+        "phi_deg": 118.8165901821156
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.01790157662236201,
+        "phi_deg": 253.63209629201947
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.0001155726346037357,
+        "phi_deg": 120.2294306019019
+      }
+    ]
+  },
+  "YAWD": {
+    "meta": {
+      "t0": "2025-01-01 00:00:00+07:00",
+      "z0": 0.59,
+      "trend_per_hour": -3.32934699911404e-06
+    },
+    "constituents": [
+      {
+        "name": "M2",
+        "speed_deg_per_hr": 28.9841042,
+        "H": 0.10608830567204698,
+        "phi_deg": 301.9157700514605
+      },
+      {
+        "name": "S2",
+        "speed_deg_per_hr": 30,
+        "H": 0.050375865188168646,
+        "phi_deg": 2.3188421628685614
+      },
+      {
+        "name": "N2",
+        "speed_deg_per_hr": 28.4397295,
+        "H": 0.02044187496013012,
+        "phi_deg": 127.7531485977326
+      },
+      {
+        "name": "K2",
+        "speed_deg_per_hr": 30.0821373,
+        "H": 0.017446547384257,
+        "phi_deg": 280.1911062215275
+      },
+      {
+        "name": "K1",
+        "speed_deg_per_hr": 15.0410686,
+        "H": 0.2883125900382161,
+        "phi_deg": 205.789877911445
+      },
+      {
+        "name": "O1",
+        "speed_deg_per_hr": 13.9430356,
+        "H": 0.22386168608127502,
+        "phi_deg": 50.127290182608874
+      },
+      {
+        "name": "P1",
+        "speed_deg_per_hr": 14.9589314,
+        "H": 0.08697534968752468,
+        "phi_deg": 108.5581481169714
+      },
+      {
+        "name": "Q1",
+        "speed_deg_per_hr": 13.3986609,
+        "H": 0.04253002608546394,
+        "phi_deg": 249.90371193646996
+      },
+      {
+        "name": "M4",
+        "speed_deg_per_hr": 57.9682084,
+        "H": 0.00011357559586911491,
+        "phi_deg": 87.58804800017823
+      }
+    ]
+  }
+};
+</script>
+
+<style>
+/* ===== App Header (QC) ===== */
+.app-header{position:sticky;top:0;z-index:1000;background:linear-gradient(180deg,#0e1430,#0a0f1d);
+  border-bottom:1px solid #1f2a40;box-shadow:0 6px 20px rgba(0,0,0,.35);}
+.app-header .inner{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.app-header .title{font-weight:700;letter-spacing:.2px}
+.app-header .subtitle{color:#9aa3b2}
+.app-header .pill{border:1px solid #26314f;border-radius:999px;padding:4px 10px;font-size:12px}
+.app-header .ok{border-color:#1f4d3a;background:#0c2a20;color:#b9f6d3}
+.app-header .meta{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.app-header .meta .kv{font-size:12px;color:#cbd5e1}
+.app-header a{color:#22d3ee;text-decoration:none}
+.app-header a:hover{opacity:.9;text-decoration:underline}
+.wrap{padding-top:10px}
+
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="inner">
+    <div class="title">Gulf of Thailand — Tide Map</div>
+    <div class="subtitle">IDW interpolation (k=2, p=2) · Asia/Bangkok</div>
+    <div class="pill ok">QC: Code reviewed 2025-09-19</div>
+    <div class="meta">
+      <span class="kv">Developed by <b>Rattawit&nbsp;W.</b></span>
+      <span class="kv">Build: <code>QC2</code></span>
+      <a class="pill" href="#about">About</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- Left: Controls + Map -->
+    <div class="card">
+      <div class="hd">Pick a point (click map) or enter lat/lon</div>
+      <div class="bd">
+        <div class="row">
+          <div>
+            <label for="lat">Latitude</label>
+            <input id="lat" type="number" step="0.000001" placeholder="9.50" />
+          </div>
+          <div>
+            <label for="lon">Longitude</label>
+            <input id="lon" type="number" step="0.000001" placeholder="101.50" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="start">Start date (00:00 local)</label>
+            <input id="start" type="date" />
+          </div>
+          <div>
+            <label for="end">End date (24:00 local)</label>
+            <input id="end" type="date" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Quick range</label>
+            <div class="btns">
+              <button class="btn" data-days="1">1 day</button>
+              <button class="btn" data-days="3">3 days</button>
+              <button class="btn" data-days="5">5 days</button>
+              <button class="btn" data-days="7">7 days</button>
+            </div>
+          </div>
+          <div>
+            <label for="interval">Interval</label>
+            <select id="interval">
+              <option value="10" selected>10 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Interpolation (IDW)</label>
+            <div class="row">
+              <div>
+                <label for="k">Neighbors (k)</label>
+                <select id="k"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+              </div>
+              <div>
+                <label for="p">Power (p)</label>
+                <select id="p"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+              </div>
+            </div>
+            <div class="muted" style="margin-top:6px">Default k=2, p=2. Linear/bilinear can misbehave on coasts; IDW is safer.
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;justify-content:flex-end">
+            <div id="msgbox"></div>
+<div id="locations"></div>
+<button id="runBtn" class="btn">Compute tides</button>
+            <button id="csvBtn" class="btn btn-ghost">Export CSV</button>
+          </div>
+        </div>
+      </div>
+      <div class="hd">Map (click to compute — <span class="muted">Shift+Click adds location</span>)</div>
+      <div id="map"></div>
+    </div>
+
+    <!-- Right: Chart + High/Low + Constants -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="hd">Tide curve</div>
+        <div class="bd">
+          <canvas id="chart" height="170"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="hd">Daily High / Low — Time: HH:mm, Level: m</div>
+        <div class="bd" id="hl"></div>
+      </div>
+      <div class="card">
+        <div class="hd">Harmonic constants at point</div>
+        <div class="bd">
+          <div id="constMeta" class="muted" style="margin-bottom:8px">—</div>
+          <details open>
+            <summary>Show table</summary>
+            <div style="border:1px solid var(--border);border-radius:10px;margin-top:8px">
+              <table id="constTab">
+                <thead>
+                  <tr><th style="text-align:left">Name</th><th>Speed (°/hr)</th><th>H (m)</th><th>φ (deg)</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </details>
+          <div class="weights" id="weights"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Data moved out: loaded via external JS files.
+// ====== Helpers ======
+// Message box helpers
+function showMsg(text,type='info'){ const box=document.getElementById('msgbox'); if(!box) return; box.className=''; box.textContent=text; if(text){ box.classList.add(type); } }
+function clearMsg(){ const box=document.getElementById('msgbox'); if(!box) return; box.className=''; box.textContent=''; box.style.display='none'; }
+
+const USE_TZ = 'Asia/Bangkok';
+function parseISOToDate(iso){ return new Date(iso); }
+function hoursSince(t_ms, t0_ms){ return (t_ms - t0_ms)/3600000; }
+function haversine(lat1,lon1,lat2,lon2){ const R=6371; const toRad=x=>x*Math.PI/180; const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1); const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(a)); }
+
+function nearestStationDistanceKm(lat, lon){
+  let minD = Infinity;
+  for (const xy of Object.values(STATION_COORDS)){
+    const d = haversine(lat, lon, xy.lat, xy.lon);
+    if (d < minD) minD = d;
+  }
+  return minD;
+}
+
+
+
+function synthesizeLevel(t_ms, meta, consts){
+  const t0 = parseISOToDate(meta.t0).getTime();
+  const t_hr = hoursSince(t_ms, t0);
+  let y = meta.z0 + meta.trend_per_hour * t_hr;
+  // Long-period & MS4 excluded (as in your base code)
+  for (const c of consts){
+    if (c.name==='Sa' || c.name==='Ssa' || c.name==='MS4') continue;
+    const w = (Math.PI/180)*c.speed_deg_per_hr; // rad/hour
+    const phi = (c.phi_deg || c.phi || 0) * Math.PI / 180; // radians
+    const H = c.H;
+    y += H * Math.cos(w * t_hr - phi);
+  }
+  return y;
+}
+
+function genSeries(HARMONICS, startDate, endDate, minutes){
+  const startDT = luxon.DateTime.fromISO(startDate+'T00:00', {zone:USE_TZ});
+  const endDTInc = luxon.DateTime.fromISO(endDate+'T00:00', {zone:USE_TZ}).plus({days:1}); // inclusive to 24:00
+  const out=[];
+  for (let t=startDT; t<endDTInc; t=t.plus({minutes})){
+    out.push([t.toJSDate(), synthesizeLevel(t.toJSDate().getTime(), HARMONICS.meta, HARMONICS.constituents)]);
+  }
+  return out;
+}
+
+function findExtrema(series){
+  const hi=[], lo=[];
+  for(let i=1;i<series.length-1;i++){
+    const y0=series[i-1][1], y1=series[i][1], y2=series[i+1][1];
+    if (Number.isFinite(y0) && Number.isFinite(y1) && Number.isFinite(y2)){
+      if (y1>y0 && y1>y2) hi.push(series[i]);
+      if (y1<y0 && y1<y2) lo.push(series[i]);
+    }
+  }
+  return {hi,lo};
+}
+
+function groupByDay(pts){
+  const map = new Map();
+  const key = d => luxon.DateTime.fromJSDate(d).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  for (const [t,y] of pts){ const k=key(t); if(!map.has(k)) map.set(k, []); map.get(k).push([t,y]); }
+  return map; // Map(dateStr -> [[t,y]...])
+}
+
+// ====== IDW interpolation of harmonic constants ======
+function idwConstants(lat, lon, k=2, p=2) {
+  const stations = Object.entries(STATION_COORDS)
+    .map(([id, xy]) => ({id, lat: xy.lat, lon: xy.lon, d: haversine(lat, lon, xy.lat, xy.lon)}))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, Math.max(1, k));
+
+  let wsum = 0;
+  const W = stations.map(s => {
+    const d = Math.max(s.d, 1e-6);
+    const w = 1 / Math.pow(d, p);
+    wsum += w;
+    return {id: s.id, w, d: s.d};
+  });
+  W.forEach(w => w.w /= wsum);
+
+  const first = STATION_HARMONICS[stations[0].id];
+  const names = first.constituents.map(c => c.name);
+
+  const z0 = W.reduce((acc, wi) => acc + wi.w * STATION_HARMONICS[wi.id].meta.z0, 0);
+  const trend = W.reduce((acc, wi) => acc + wi.w * STATION_HARMONICS[wi.id].meta.trend_per_hour, 0);
+  const t0 = first.meta.t0;
+
+  const constituents = names.map(name => {
+    const speed = first.constituents.find(c => c.name === name).speed_deg_per_hr;
+    let A = 0, B = 0;
+    for (const wi of W) {
+      const c = STATION_HARMONICS[wi.id].constituents.find(x => x.name === name);
+      const phi = (c.phi_deg || 0) * Math.PI / 180;
+      const a = c.H * Math.cos(phi);
+      const b = c.H * Math.sin(phi);
+      A += wi.w * a;
+      B += wi.w * b;
+    }
+    const H = Math.hypot(A, B);
+    let phi_deg = Math.atan2(B, A) * 180 / Math.PI;
+    if (phi_deg < 0) phi_deg += 360;
+    return {name, speed_deg_per_hr: speed, H, phi_deg};
+  });
+
+  return {
+    meta: {t0, z0, trend_per_hour: trend, station: `@interp(${lat.toFixed(5)},${lon.toFixed(5)})`},
+    constituents,
+    weights: W
+  };
+}
+
+// ====== UI wiring ======
+let chart;
+
+// --- Chart.js plugin: draw day separators (midnight local time) ---
+
+
+const daySeparator = {
+  id: 'daySeparator',
+  afterDatasetsDraw(chart){
+    const {ctx, chartArea, scales} = chart;
+    if (!chartArea || !(scales && scales.x)) return;
+    const {top, bottom, left, right} = chartArea;
+    const x = scales.x;
+    const min = x.min, max = x.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+
+    // Build daily boundaries (start-of-day in local tz)
+    let edge = luxon.DateTime.fromMillis(min).setZone(USE_TZ).startOf('day');
+    if (edge.toMillis() > min) edge = edge.minus({days:1});
+    const edges = [];
+    for (let t = edge; t.toMillis() <= max + 24*3600*1000; t = t.plus({days:1})) {
+      edges.push(t.toMillis());
+    }
+
+    // Midnight lines
+    const midnights = edges.filter(ms => ms > min && ms < max);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(left, top, right - left, bottom - top);
+    ctx.clip();
+    ctx.setLineDash([5,5]);
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = 'rgba(148,163,184,0.45)';
+    for (const ms of midnights) {
+      const px = x.getPixelForValue(ms);
+      ctx.beginPath();
+      ctx.moveTo(px, top);
+      ctx.lineTo(px, bottom);
+      ctx.stroke();
+    }
+
+    // Centered labels for each visible day segment
+    ctx.setLineDash([]);
+    ctx.font = '12px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = 0; i < edges.length - 1; i++) {
+      const segL = Math.max(min, edges[i]);
+      const segR = Math.min(max, edges[i+1]);
+      if (segR <= segL) continue;
+      const cx = x.getPixelForValue((segL + segR) / 2);
+      const label = luxon.DateTime.fromMillis((segL + segR) / 2).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+      const w = 78, h = 16;
+      ctx.fillStyle = 'rgba(11,18,36,0.75)';
+      ctx.fillRect(cx - w/2, top + 2, w, h);
+      ctx.fillStyle = '#e5e7eb';
+      ctx.fillText(label, cx, top + 4);
+    }
+    ctx.restore();
+  }
+};
+
+
+function renderChart(series){
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  const {hi,lo} = findExtrema(series);
+  const label = (Number.isFinite(lat) && Number.isFinite(lon)) ? `${lat.toFixed(4)}, ${lon.toFixed(4)}` : 'point';
+  renderChartMulti([{label, color:'#22d3ee', series, hi, lo}]);
+}
+
+
+function renderHL(hi, lo){
+  const div = document.getElementById('hl');
+  function fmt(d){ return luxon.DateTime.fromJSDate(d).setZone(USE_TZ).toFormat('HH:mm'); }
+  const hiBy=groupByDay(hi), loBy=groupByDay(lo);
+  const days = Array.from(new Set([...hiBy.keys(), ...loBy.keys()])).sort();
+  const rows=[];
+  for(const day of days){
+    rows.push(`<div style="margin:6px 0 4px;color:#a5b4fc;font-weight:600">${day}</div>`);
+    rows.push('<table><thead><tr><th style="text-align:left">Type</th><th style="text-align:center">Time (HH:mm)</th><th style="text-align:right">Level (m)</th></tr></thead><tbody>');
+    (hiBy.get(day)||[]).forEach(([t,y])=>rows.push(`<tr><td style="color:#aff7ff">High</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`));
+    (loBy.get(day)||[]).forEach(([t,y])=>rows.push(`<tr><td style="color:#ffd1f8">Low</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`));
+    rows.push('</tbody></table>');
+  }
+  div.innerHTML = rows.join('') || '<div class="muted">No extrema found in this range.</div>';
+}
+
+function renderConstants(HARMONICS, weights) {
+  const meta = HARMONICS.meta;
+  const tbody = document.querySelector('#constTab tbody');
+  tbody.innerHTML = '';
+  for (const c of HARMONICS.constituents) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="text-align:left">${c.name}</td>
+      <td>${c.speed_deg_per_hr.toFixed(6)}</td>
+      <td>${Number(c.H).toFixed(6)}</td>
+      <td>${Number(c.phi_deg).toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  }
+  const z = n => Number(n).toFixed(6);
+  document.getElementById('constMeta').innerHTML =
+    `t0: <code>${meta.t0}</code> · z0: <b>${z(meta.z0)}</b> m · trend: <b>${(+meta.trend_per_hour).toExponential(3)}</b> m/hr`;
+  const wtxt = weights && weights.length ?
+    ('Weights (k='+weights.length+'): ' +
+     weights.map(w => `${w.id}: ${(w.w*100).toFixed(1)}% (d≈${w.d.toFixed(2)} km)`).join(' · ')) : '';
+  document.getElementById('weights').textContent = wtxt;
+}
+
+function computeAt(lat, lon){
+  const dmin = nearestStationDistanceKm(lat, lon);
+  if (dmin > 100){
+    showMsg(`Out of range: ${dmin.toFixed(1)} km from the nearest station (limit 100 km).`, 'warn');
+    return null;
+  }
+  try{ clearMsg(); }catch(_){}
+  if (dmin > 100){
+    showMsg(`Out of range: ${dmin.toFixed(1)} km from the nearest station (limit 100 km).`, 'warn');
+    return null; }
+  try{ clearMsg(); }catch(_){} 
+  const k = +document.getElementById('k').value; const p=+document.getElementById('p').value;
+  const start = document.getElementById('start').value; const end=document.getElementById('end').value; const minutes=+document.getElementById('interval').value;
+  if (!start || !end) { showMsg('Choose start & end dates','warn'); return null; }
+  const interp = idwConstants(lat, lon, k, p);
+  const series = genSeries(interp, start, end, minutes);
+  const {hi,lo} = findExtrema(series);
+  renderChartMulti([{label: `${lat.toFixed(4)}, ${lon.toFixed(4)}`, color:'#22d3ee', series, hi, lo}]); renderHL(hi,lo); renderConstants(interp, interp.weights);
+  // return payload for popup
+  return {interp, series, hi, lo};
+}
+
+function quickRange(days){
+  const sd = document.getElementById('start').value; if(!sd) return;
+  const start = new Date(sd+'T00:00:00');
+  const end = new Date(start.getTime() + (days-1)*24*3600*1000);
+  const yyyy=end.getFullYear(), mm=String(end.getMonth()+1).padStart(2,'0'), dd=String(end.getDate()).padStart(2,'0');
+  document.getElementById('end').value = `${yyyy}-${mm}-${dd}`;
+}
+
+// ====== Map ======
+
+function updateWeightsFor(L){
+  const k=+document.getElementById('k').value, p=+document.getElementById('p').value;
+  const interp=idwConstants(L.lat,L.lon,k,p);
+  renderConstants(interp, interp.weights);
+}
+
+
+// ====== Multi-location comparison ======
+const LOCS = []; // {id, lat, lon, color}
+const COLOR_POOL = ['#22d3ee','#a78bfa','#34d399','#f59e0b','#ef4444','#60a5fa','#f472b6','#10b981','#eab308'];
+function colorFor(i){ return COLOR_POOL[i % COLOR_POOL.length]; }
+
+function addLocation(lat,lon,label){
+  const id = label || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  
+  {
+    const dmin = nearestStationDistanceKm(lat, lon);
+    if (dmin > 100){
+      showMsg(`Out of range: ${dmin.toFixed(1)} km from the nearest station (limit 100 km).`, 'warn');
+      return;
+    }
+  }
+if (LOCS.some(l=>Math.abs(l.lat-lat)<1e-6 && Math.abs(l.lon-lon)<1e-6)) { showMsg('Location already added','info'); return; }
+  const color = colorFor(LOCS.length);
+  const marker = L.circleMarker([lat,lon],{radius:6,color:'#a78bfa',fillColor:'#22d3ee',weight:1,fillOpacity:.8}).addTo(map);
+  marker.bindTooltip(id,{permanent:true,direction:'top',offset:[0,-10],className:'station-label'});
+  const Lobj = {id,lat,lon,color,marker};
+  LOCS.push(Lobj);
+  const list = document.getElementById('locations');
+  const row = document.createElement('div'); row.className='row'; row.dataset.id=id;
+  row.innerHTML = `<span class="tag" style="border:1px solid ${color};color:${color}">${id}</span>
+    <button data-act="zoom">Zoom</button>
+    <button data-act="remove">Remove</button>`;
+  list.appendChild(row);
+  row.addEventListener('click',(e)=>{
+    const act = (e.target && e.target.getAttribute('data-act')) || 'select';
+    if (act==='zoom'){ map.setView([lat,lon], Math.max(9, map.getZoom())); return; }
+    if (act==='remove'){
+      const idx = LOCS.findIndex(x=>x.id===id);
+      if (idx>=0){ try{ map.removeLayer(LOCS[idx].marker); }catch{} LOCS.splice(idx,1); }
+      list.removeChild(row);
+      recomputeAll();
+      return;
+    }
+    // default: select row to display weights for that location
+    updateWeightsFor(Lobj);
+  });
+  recomputeAll();
+}function recomputeAll(){
+  try{ clearMsg(); }catch(_){} 
+  const start=document.getElementById('start').value;
+  const end=document.getElementById('end').value;
+  const minutes=+document.getElementById('interval').value;
+  const k=+document.getElementById('k').value, p=+document.getElementById('p').value;
+  if(!start||!end){ showMsg('Choose start & end dates','warn'); return; }
+  if (LOCS.length===0){
+    // fallback: single-location from inputs
+    const lat=parseFloat(document.getElementById('lat').value);
+    const lon=parseFloat(document.getElementById('lon').value);
+    {
+      const dmin = nearestStationDistanceKm(lat, lon);
+      if (dmin > 100){
+        showMsg(`Out of range: ${dmin.toFixed(1)} km from the nearest station (limit 100 km).`, 'warn');
+        return;
+      }
+    }
+    if (!Number.isFinite(lat)||!Number.isFinite(lon)){ showMsg('Enter valid lat/lon or click the map','warn'); return; }
+    const interp=idwConstants(lat,lon,k,p);
+    const series=genSeries(interp,start,end,minutes);
+    const {hi,lo}=findExtrema(series);
+    renderChartMulti([{label:`${lat.toFixed(4)}, ${lon.toFixed(4)}`, color:'#22d3ee', series, hi, lo}]);
+    renderHL(hi,lo); renderConstants(interp, interp.weights);
+    return;
+  }
+  // compute for each location
+  const data = LOCS.map((L)=>{
+    
+    const dmin = nearestStationDistanceKm(L.lat, L.lon);
+    if (dmin > 100){
+      showMsg(`Location "${L.id}" is out of range: ${dmin.toFixed(1)} km (limit 100 km).`, 'warn');
+      return {label:L.id, color:L.color, series:[], hi:[], lo:[]};
+    }
+const interp=idwConstants(L.lat,L.lon,k,p);
+    const series=genSeries(interp,start,end,minutes);
+    const {hi,lo}=findExtrema(series);
+    if (LOCS.length===1){ renderHL(hi,lo); renderConstants(interp, interp.weights); }
+    return {label:L.id, color:L.color, series, hi, lo};
+  });
+  renderChartMulti(data);
+  
+  if (!data.some(d => d.series && d.series.length)){
+    showMsg('All selected locations are out of range (limit 100 km).', 'warn');
+    try{ renderChartMulti([]); document.getElementById('weights').textContent=''; }catch(_){}
+    return;
+  }
+if (LOCS.length>1){ document.getElementById('weights').textContent = 'Multiple locations: click a location row to show its IDW weights here.'; }
+}
+
+// Render multi-dataset chart with rising/falling segment colors, plus hi/lo markers
+function renderChartMulti(items){
+  const ctx=document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  const datasets = [];
+  for (const it of items){
+    const base = it.series.map(([t,y])=>({x:t,y}));
+    datasets.push({
+      label: it.label,
+      data: base,
+      pointRadius: 0, borderWidth: 2.2, cubicInterpolationMode: 'monotone',
+      segment: {
+        borderColor: ctx => {
+          const up = ctx.p0.parsed.y <= ctx.p1.parsed.y;
+          return up ? it.color : '#9aa3b2';
+        }
+      }
+    });
+    // High/Low markers
+    datasets.push({
+      label: it.label + ' - extrema',
+      data: [...it.hi, ...it.lo].map(([t,y])=>({x:t,y})),
+      type: 'scatter',
+      pointRadius: 3,
+      showLine: false,
+      borderWidth: 0,
+      borderColor: it.color,
+      backgroundColor: it.color
+    });
+  }
+  chart = new Chart(ctx, { type:'line', plugins:[daySeparator], data:{ datasets }, options:{ responsive:true, animation:false, interaction:{mode:'index', intersect:false, axis:'x'}, elements:{ point:{ radius:0, hoverRadius:4, hitRadius:10 } },
+      scales:{ x:{type:'time', time:{tooltipFormat:'yyyy-LL-dd HH:mm'}}, y:{title:{display:true,text:'m'}} },
+      plugins:{ legend:{display:true} }
+    }
+  });
+}
+
+// Button to add current lat/lon as a location
+(function addLocationButton(){
+  const btn = document.createElement('button');
+  btn.textContent = 'Add Location';
+  btn.style.marginLeft = '6px';
+  const runBtn = document.getElementById('runBtn');
+  runBtn.parentNode.insertBefore(btn, runBtn.nextSibling);
+  btn.addEventListener('click', ()=>{
+    const lat=parseFloat(document.getElementById('lat').value);
+    const lon=parseFloat(document.getElementById('lon').value);
+    if (!Number.isFinite(lat)||!Number.isFinite(lon)){ showMsg('Enter valid lat/lon','warn'); return; }
+    addLocation(lat,lon);
+  });
+})();
+
+// Recompute on control changes
+;['start','end','interval','k','p','lat','lon'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  const evt = (id==='lat' || id==='lon') ? 'input' : 'change';
+  el.addEventListener(evt, recomputeAll);
+});
+
+// Recompute after quick range (idempotent binder)
+function bindQuickRangeButtons(){
+  document.querySelectorAll('.btn[data-days]').forEach(b=>{
+    if(b.dataset.bound) return;
+    b.dataset.bound='1';
+    b.addEventListener('click', ()=> { quickRange(+b.getAttribute('data-days')); setTimeout(recomputeAll, 0); });
+  });
+}
+bindQuickRangeButtons();
+// (Do not bind again elsewhere)
+
+// quick-range bindings deduped by bindQuickRangeButtons()
+const map = L.map('map', {zoomControl: true, attributionControl: true }).setView([9.2, 101.9], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 12,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// --- Combined 50km buffer from all tide stations ---
+try{
+  const pts = Object.entries(STATION_COORDS).map(([id,xy])=> turf.point([xy.lon,xy.lat],{id}));
+  const buffers = pts.map(pt=>turf.buffer(pt,50,{units:'kilometers'}));
+  let unionGeom=buffers[0]; for(let i=1;i<buffers.length;i++){ unionGeom=turf.union(unionGeom,buffers[i]); }
+  const bufferStyle={color:'#22d3ee',weight:1,fillColor:'#22d3ee',fillOpacity:.10};
+  if(!map.getPane('bufferPane')){ map.createPane('bufferPane'); map.getPane('bufferPane').style.zIndex=300; }
+const stationBufferLayer=L.geoJSON(unionGeom,{ style:bufferStyle, pane:'bufferPane', interactive:false }).addTo(map);
+stationBufferLayer.bringToBack();
+window.stationBufferLayer=stationBufferLayer;
+} catch(e){
+  console.warn('Buffer union failed (turf?)', e);
+  showMsg('Could not compute combined 50 km buffer. Showing individual buffers instead.','warn');
+  try{
+    if(!map.getPane('bufferPane')){ map.createPane('bufferPane'); map.getPane('bufferPane').style.zIndex=300; }
+    const style={color:'#22d3ee',weight:1,fillColor:'#22d3ee',fillOpacity:.08};
+    Object.entries(STATION_COORDS).forEach(([id,xy])=>{
+      const g = turf.buffer(turf.point([xy.lon,xy.lat]),50,{units:'kilometers'});
+      L.geoJSON(g,{style, pane:'bufferPane', interactive:false}).addTo(map);
+    });
+  }catch(e2){ console.warn('Fallback buffers failed', e2); }
+}
+
+
+
+// --- Tide stations (markers + permanent labels) ---
+for (const [id,xy] of Object.entries(STATION_COORDS)){
+  const m = L.circleMarker([xy.lat, xy.lon], {radius:6,color:'#a78bfa',fillColor:'#22d3ee',weight:1,fillOpacity:.8}).addTo(map);
+  m.bindTooltip(id, {permanent:true, direction:'top', offset:[0,-10], className:'station-label'});
+}
+
+// --- Map legend ---
+try{
+  const legend=L.control({position:'bottomright'});
+  legend.onAdd=function(map){
+    const div=L.DomUtil.create('div','map-legend');
+    div.innerHTML=`<div class="legend-title">Legend</div>
+      <div class="legend-item"><span class="swatch station"></span> Tide station</div>
+      <div class="legend-item"><span class="swatch buffer"></span> Combined 50 km buffer</div>`;
+    return div;
+  };
+  legend.addTo(map);
+}catch(e){ console.warn('Legend add failed',e); }
+let clickMarker=null;
+map.on('click', (e)=>{
+  const {lat, lng} = e.latlng;
+  if (e && e.originalEvent && e.originalEvent.shiftKey){ addLocation(lat,lng); return; }
+  document.getElementById('lat').value = lat.toFixed(6);
+  document.getElementById('lon').value = lng.toFixed(6);
+  try{ refreshComputeState(); }catch(_){}
+  try{ clearMsg(); }catch(_){ }
+  const res = computeAt(lat, lng); if (!res) return;
+  if (clickMarker) map.removeLayer(clickMarker);
+  clickMarker = L.marker([lat,lng]).addTo(map);
+  // Build popup mini table for the first day
+  const hiBy=groupByDay(res.hi), loBy=groupByDay(res.lo);
+  const days = Array.from(new Set([...hiBy.keys(), ...loBy.keys()])).sort();
+  const first = days[0];
+  function fmt(d){ return luxon.DateTime.fromJSDate(d).setZone(USE_TZ).toFormat('HH:mm'); }
+  let html = `<div style="font-weight:600;margin-bottom:4px">${lat.toFixed(4)}, ${lng.toFixed(4)}</div>`;
+  
+if (first){
+  html += `<div class="muted" style="margin-bottom:4px">Daily High / Low (first day)</div>`;
+  html += `<table class="tbl small"><thead><tr>
+    <th style="text-align:left">Type</th>
+    <th style="text-align:center">Time (HH:mm)</th>
+    <th style="text-align:right">m</th>
+  </tr></thead><tbody>`;
+  (hiBy.get(first)||[]).forEach(([t,y])=> { 
+    html += `<tr><td>High</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`; 
+  });
+  (loBy.get(first)||[]).forEach(([t,y])=> { 
+    html += `<tr><td>Low</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`; 
+  });
+  html += `</tbody></table>`;
+}
+
+  html += `<div style="margin-top:6px"></div>`;
+  clickMarker.bindPopup(html).openPopup();
+});
+
+// ====== Events ======
+// default start/end = today/today
+(function initDates(){
+  const today = luxon.DateTime.now().setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  document.getElementById('start').value = today; document.getElementById('end').value = today;
+})();
+
+// quick range buttons — (deduped; handled above with recomputeAll)
+// Compute button
+document.getElementById('runBtn').addEventListener('click', ()=>{
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) { alert('Enter valid lat/lon or click the map.'); return; }
+  computeAt(lat, lon);
+  if (clickMarker){ clickMarker.setLatLng([lat,lon]); } else { clickMarker = L.marker([lat,lon]).addTo(map); }
+});
+
+// CSV export (series)
+document.getElementById('csvBtn').addEventListener('click', ()=>{
+  if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length===0 || !chart.data.datasets[0].data || chart.data.datasets[0].data.length===0){
+    alert('Compute tides first.');
+    return;
+  }
+  const data = chart.data.datasets[0].data;
+  const lat = document.getElementById('lat').value || '';
+  const lon = document.getElementById('lon').value || '';
+  const start = document.getElementById('start').value || '';
+  const end = document.getElementById('end').value || '';
+  const minutes = document.getElementById('interval').value || '';
+  const lines = [['Latitude','Longitude','Date','Time','Tide_m'].join(',')];
+  for (const pt of data){
+    const dt = luxon.DateTime.fromJSDate(pt.x).setZone(USE_TZ);
+    lines.push([lat,lon,dt.toFormat('yyyy-LL-dd'),dt.toFormat('HH:mm'), Number(pt.y).toFixed(3)].join(','));
+  }
+  const csv = lines.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = `tide_${lat}_${lon}_${start}_${end}_${minutes}min.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+});
+
+// --- Auto-disable Compute button when out of range (>100 km) ---
+function refreshComputeState(){
+  const latEl = document.getElementById('lat');
+  const lonEl = document.getElementById('lon');
+  const btn   = document.getElementById('runBtn');
+  if (!latEl || !lonEl || !btn) return;
+
+  const lat = parseFloat(latEl.value);
+  const lon = parseFloat(lonEl.value);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)){
+    btn.disabled = true;
+    return;
+  }
+  const dmin = nearestStationDistanceKm(lat, lon);
+  if (dmin > 100){
+    btn.disabled = true;
+    showMsg(`Out of range: ${dmin.toFixed(1)} km from the nearest station (limit 100 km).`, 'warn');
+  } else {
+    btn.disabled = false;
+  }
+}
+
+// Re-check whenever the user edits lat/lon
+['lat','lon'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', refreshComputeState);
+});
+
+// Initial check at load time
+try { refreshComputeState(); } catch(_){}
+</script>
+
+<!-- About Section -->
+<div id="about" class="wrap" style="margin-top:14px">
+  <div class="card">
+    <div class="hd">About this tool</div>
+    <div class="bd">
+      <p class="muted">
+        Offline tide synthesis using station harmonics with IDW interpolation over the Gulf of Thailand.
+        Chart shading indicates rising (dataset color) vs. falling (muted) segments. Shift+Click on the map to compare multiple locations.
+      </p>
+
+      <p class="muted"><b>Accuracy guidance:</b> Interpolated tide values are intended to be reliable <b>within 50&nbsp;km</b> of the nearest tide station (inside the cyan buffer). Outside this range, values may be indicative only; use with caution.</p>
+      <p class="muted">QC status: reviewed on 2025-09-19. Author: Rattawit W.</p>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function(){
+  function msg(t, lvl){ try{ showMsg(t, lvl||'error'); }catch(_){ alert(t); } }
+  if (typeof window !== 'undefined'){
+    var missing = [];
+    if (typeof STATION_COORDS === 'undefined') missing.push('STATION_COORDS');
+    if (typeof STATION_HARMONICS === 'undefined') missing.push('STATION_HARMONICS');
+    if (missing.length){
+      msg('Data files failed to load: ' + missing.join(', ') + '. Please check station_coords.js / harmonics_deg.js', 'error');
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

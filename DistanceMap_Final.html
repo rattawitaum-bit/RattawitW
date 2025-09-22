@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GOT — Distance Matrix & Map (Indian 1975 → WGS84)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+<style>
+  :root{ --line:#e5e7eb; --text:#111827; --muted:#6b7280; --brand:#1f7ae0; --bg:#ffffff; --radius:12px; --table-scale:1.0; --hl:#eef6ff; }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:var(--bg)}
+  header{padding:10px 16px;border-bottom:1px solid var(--line);background:#fff}
+  header .titlerow{display:flex;align-items:baseline;justify-content:space-between}
+  header h1{margin:0;font-size:18px}
+  header .sub{color:var(--muted);font-size:12px}
+  .metabar{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;color:#475569;font-size:12px}
+  .metabar b{font-weight:700}
+
+  .wrap{display:grid;grid-template-columns:420px 1fr;gap:0;height:calc(100% - 78px)}
+  .panel{display:flex;flex-direction:column;background:#fff;border-right:1px solid var(--line);min-width:340px}
+  #mapWrap{position:relative}
+  #map{position:absolute;inset:0}
+
+  .card{background:#fff;border-bottom:1px solid var(--line);padding:12px}
+  .card h3{margin:0 0 8px 0;font-size:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  input[type="number"], select, input[type="file"]{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+  .btn:hover{background:#f3f4f6}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .muted{color:var(--muted);font-size:12px}
+  .drop{border:1.5px dashed #cbd5e1;border-radius:12px;padding:10px;text-align:center;color:#334155;background:#fcfcfe}
+  .drop.drag{background:#eef2ff;border-color:#93c5fd;color:#1e3a8a}
+
+  .tabs{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line)}
+  .tab{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-weight:600}
+  .tab.active{background:#eef6ff;border-color:#93c5fd;color:#0b3d91}
+  .tabpanes{flex:1;overflow:auto;border-top:1px dashed var(--line);padding:10px 12px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:calc(12px * var(--table-scale))}
+  thead th{position:sticky;top:0;background:#f8fafc;border-bottom:1px solid var(--line);font-weight:700;color:#0f172a}
+  th,td{border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+  tbody tr:nth-child(odd){background:#fafafa}
+  tbody tr:hover{background:#f3f4f6}
+  th:first-child, td:first-child{position:sticky;left:0;background:inherit;z-index:1}
+  thead th:first-child{z-index:3}
+  th:first-child, td:first-child{border-right:1px solid #d1d5db;background:#f9fafb}
+  #matrixTable thead th{text-align:center} #matrixTable td{text-align:center}
+  .row-hl th, .row-hl td{background:var(--hl)!important}
+  .col-hl{background:var(--hl)!important}
+  td.empty{background:#f0f0f0;color:var(--muted)} /* light grey null cells */
+
+  .distance-chip{font:11px/1.0 Inter, system-ui, sans-serif;color:#111827}
+  .text-halo{ text-shadow:0 0 2px #fff,0 0 4px #fff,0 0 6px #fff,0 0 8px #fff,-1px 0 1px #fff,1px 0 1px #fff,0 -1px 1px #fff,0 1px 1px #fff; font-weight:700;white-space:nowrap }
+  .poi-chip-svg{pointer-events:none}
+  /* Enhanced label appearance and leader lines */
+  .poi-chip-svg svg { filter: drop-shadow(0 1px 3px rgba(0,0,0,0.12)); }
+  .leader-line { pointer-events: none; }
+  .badge-ref{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;font-size:11px}
+
+  @media print{ @page{ size:A3 landscape; margin:8mm } .wrap{grid-template-columns:1fr} .panel{display:none} header{position:static} }
+</style>
+</head>
+<body>
+<header>
+  <div class="titlerow">
+    <h1>GOT — Distance Matrix & Map</h1>
+    <div class="sub">Indian 1975 / UTM 47N → WGS84 (DM)</div>
+  </div>
+  <div id="metaBar" class="metabar">
+    <span>Owner: <b>PPD/P Geomatics</b></span> •
+    <span>Now: <b id="dateHeader"></b></span> •
+    <span>Speed: <b id="speedHeader">8</b> kn</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="panel">
+    <div class="card">
+      <h3>Upload</h3>
+      <div class="row">
+        <button id="btnTemplate" class="btn">⬇ CSV Template</button>
+        <input id="file" type="file" accept="*/*" title="CSV: Name,Easting,Northing"/>
+      </div>
+      <div id="drop" class="drop" style="margin-top:8px">Drag & drop CSV here</div>
+      <p class="muted" style="margin-top:6px">CSV headers: <b>Name,Easting,Northing</b> • UTM 47N (m)</p>
+    </div>
+
+    <div class="card">
+      <h3>Settings</h3>
+      <div class="grid2">
+        <div>
+          <label for="speed">Speed (knots)</label>
+          <input id="speed" type="number" min="0.1" step="0.1" value="8">
+        </div>
+        <div>
+          <label for="refSelect">Reference Point</label>
+          <select id="refSelect"><option value="">— None —</option></select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="toggleLines"/> Show lines from reference point
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          Zoom table <input id="zoomRange" type="range" min="0.8" max="1.2" step="0.02" value="1.00" style="width:160px">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Export & Preview</h3>
+      <div class="row">
+        <button id="btnExport" class="btn primary">🖨 Export PDF (2 pages)</button>
+        <button id="btnExportMatrixOnly" class="btn">🖨 Export Matrix Only</button>
+        <button id="btnExportMatrixExcel" class="btn">⬇ Export Matrix (Excel)</button>
+        <button id="btnPreviewMapA3" class="btn">👁 Preview Map (A3 Portrait)</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnPreviewPOIs" class="btn">👁 Preview POI List</button>
+        <button id="btnPreviewMatrix" class="btn">👁 Preview Matrix</button>
+        <button id="btnClear" class="btn" style="margin-left:auto">Clear</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="poi">POI List</button>
+      <button class="tab" data-tab="matrix">Matrix</button>
+    </div>
+    <div class="tabpanes">
+      <div id="pane-poi">
+        <table id="poiTable">
+          <thead><tr><th>Name</th><th>Easting (m)</th><th>Northing (m)</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="pane-matrix" style="display:none">
+        <table id="matrixTable"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div id="statusArea" class="card muted">Ready.</div>
+  </aside>
+
+  <main id="mapWrap"><div id="map"></div></main>
+</div>
+
+<!-- Libs -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+"use strict";
+/* ========= App Config (tweak here) ========= */
+const CFG = {
+  /** Base circle radius (Leaflet units). */
+  MARKER_BASE_RADIUS: 8,
+  /** Scale for short-name (red) markers; 1.0 = same size as base. */
+  RED_SHORTNAME_SCALE: 1.0,
+  /** Scale for non-reference, non-short-name markers (30–50% smaller recommended). */
+  OTHER_POI_SCALE: 0.6,
+  /** Names shorter than this (ignoring spaces) are treated as "short". */
+  SHORT_NAME_THRESHOLD: 6
+};
+/* ===== End Config ===== */
+
+
+/* ========= GeoJSON (rounded to 6 decimals) ========= */
+const GOT_POLY={"type":"FeatureCollection","features":[
+  {"type":"Feature","id":3,"geometry":{"type":"Polygon","coordinates":[
+    [[103.038151,7.818802],[102.300159,8.668734],[102.061281,8.668732],[101.978684,8.599952],[101.975496,8.597298],[101.963707,8.587481],[101.961433,8.585588],[101.917786,8.549241],[101.929947,8.518742],[101.976125,8.482246],[101.981812,8.477751],[101.992057,8.469653],[102.001393,8.462275],[102.164538,8.333334],[102.207412,8.299448],[102.947800,7.714284],[103.038151,7.818802]]
+  ]},"properties":{"OBJECTID":3,"NAME":"Arthit Restricted Area","TYPE":1}},
+  {"type":"Feature","id":1204,"geometry":{"type":"Polygon","coordinates":[
+    [[101.468879,10.001962],[101.313342,10.001960],[101.313343,9.935299],[101.353616,9.935299],[101.353617,9.835307],[101.263350,9.835306],[101.263351,9.701982],[101.163364,9.701981],[101.163363,9.801974],[101.130034,9.801974],[101.130033,9.868635],[101.096704,9.868635],[101.096706,9.668650],[101.263352,9.668651],[101.263353,9.551993],[101.246688,9.551993],[101.246689,9.518662],[101.163366,9.518662],[101.163365,9.535327],[101.146701,9.535327],[101.146701,9.568658],[101.113371,9.568657],[101.113372,9.501996],[101.130037,9.501996],[101.130037,9.485331],[101.146701,9.485331],[101.146702,9.435334],[101.163366,9.435335],[101.163367,9.418669],[101.180031,9.418669],[101.180031,9.402004],[101.213361,9.402004],[101.213362,9.302012],[101.230026,9.302012],[101.230026,9.285346],[101.246691,9.285346],[101.246692,9.160356],[101.221695,9.160355],[101.221695,9.202019],[101.213362,9.202019],[101.213362,9.252015],[101.180033,9.252015],[101.180033,9.185353],[101.196698,9.185353],[101.196699,9.102026],[101.205031,9.102026],[101.205031,9.074251],[101.230028,9.074251],[101.230029,9.002034],[101.296687,9.002035],[101.296688,8.977036],[101.321684,8.977037],[101.321685,8.968704],[101.330017,8.968704],[101.330017,8.935373],[101.346682,8.935373],[101.346683,8.768719],[101.363348,8.768719],[101.363349,8.668726],[101.463336,8.668731],[101.463336,8.735389],[101.430007,8.735389],[101.430004,9.002036],[101.363346,9.002035],[101.363345,9.052031],[101.446668,9.052032],[101.446669,9.002036],[101.480000,9.002036],[101.479999,8.902044],[101.529993,8.902044],[101.529994,8.768720],[101.596652,8.768721],[101.596653,8.735390],[101.704973,8.735391],[101.704973,8.668729],[101.864398,8.668731],[101.596649,9.085364],[101.563317,9.435338],[101.496657,9.601992],[101.495268,9.668654],[101.468879,10.001962]]
+  ]},"properties":{"OBJECTID":1204,"NAME":"G1/61 Restricted Area"}},
+  {"type":"Feature","id":2004,"geometry":{"type":"Polygon","coordinates":[
+    [[101.863290,8.335421],[101.863291,8.252094],[102.096596,8.252096],[102.096597,8.068776],[102.163256,8.068776],[102.163256,8.002115],[102.263244,8.002115],[102.263244,7.968784],[102.296574,7.968785],[102.296574,7.935454],[102.329903,7.935454],[102.329903,7.902123],[102.363233,7.902123],[102.363233,7.835462],[102.396562,7.835462],[102.396186,7.799686],[102.532850,7.799391],[102.532202,7.832243],[102.798100,7.832827],[102.163253,8.335424],[101.863290,8.335421]]
+  ]},"properties":{"OBJECTID":2004,"NAME":"G2/61 North Restricted Area"}},
+  {"type":"Feature","id":2005,"geometry":{"type":"Polygon","coordinates":[
+    [[102.429892,7.799613],[102.429893,7.735469],[102.463222,7.735469],[102.463222,7.668808],[102.496552,7.668808],[102.496552,7.568815],[102.529882,7.568815],[102.529882,7.468822],[102.563212,7.468823],[102.563213,7.335499],[102.613207,7.335499],[102.947800,7.714284],[102.798100,7.832828],[102.532202,7.832243],[102.532850,7.799391],[102.429892,7.799613]]
+  ]},"properties":{"OBJECTID":2005,"NAME":"G2/61 South Restricted Area"}}
+]};
+
+/* ========= Geodesy ========= */
+const a_wgs=6378137,f_wgs=1/298.257223563,a_ind=6377276.345,f_ind=1/300.8017;
+const dx=-204.64,dy=-834.74,dz=-293.8,k0=0.9996,zone=47,cm=6*zone-183,false_e=500000;
+const degToRad=d=>d*Math.PI/180, radToDeg=r=>r*180/Math.PI;
+function geodeticToECEF(lat,lon,h,a,f){const lr=degToRad(lat),mr=degToRad(lon),e2=f*(2-f),nu=a/Math.sqrt(1-e2*Math.sin(lr)**2);return[(nu+h)*Math.cos(lr)*Math.cos(mr),(nu+h)*Math.cos(lr)*Math.sin(mr),(nu*(1-e2)+h)*Math.sin(lr)];}
+function ecefToGeodetic(X,Y,Z,a,f){const e2=f*(2-f),p=Math.sqrt(X*X+Y*Y);let lon=Math.atan2(Y,X),lat=Math.atan2(Z,p*(1-e2)),h=0;for(let i=0;i<100;i++){const nu=a/Math.sqrt(1-e2*Math.sin(lat)**2),h2=p/Math.cos(lat)-nu,lat2=Math.atan2(Z+e2*nu*Math.sin(lat),p);if(Math.abs(lat2-lat)<1e-9&&Math.abs(h2-h)<1e-9)break;lat=lat2;h=h2;}return[radToDeg(lat),radToDeg(lon),h];}
+function utmToLatLon(east,north,a,f){
+  const l0=degToRad(cm),e2=f*(2-f),e4=e2*e2,e6=e2*e4,ep2=e2/(1-e2);
+  const a1=1-e2/4-3*e4/64-5*e6/256;
+  const M=north/k0,mu=M/(a*a1);
+  const e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  let phi1=mu+(3/2*e1-27/32*e1**3)*Math.sin(2*mu)+(21/16*e1**2-55/32*e1**4)*Math.sin(4*mu)+(151/96*e1**3)*Math.sin(6*mu)+(1097/512*e1**4)*Math.sin(8*mu);
+  const nu1=a/Math.sqrt(1-e2*Math.sin(phi1)**2),rho1=a*(1-e2)/((1-e2*Math.sin(phi1)**2)**1.5),t1=Math.tan(phi1),eta12=ep2*Math.cos(phi1)**2;
+  const D=(east-false_e)/(nu1*k0);
+  const term_lat=D**2/2-(5+3*t1**2+10*eta12-4*eta12**2-9*ep2)*D**4/24+(61+90*t1**2+298*eta12+45*t1**4-252*ep2-3*eta12**2)*D**6/720;
+  let lat=phi1-(nu1*t1/rho1)*term_lat;
+  const term_lon=D-(1+2*t1**2+eta12)*D**3/6+(5-2*eta12+28*t1**2-3*eta12**2+8*ep2+24*t1**4)*D**5/120;
+  let lon=l0+term_lon/Math.cos(phi1);
+  return[radToDeg(lat),radToDeg(lon)];
+}
+function indian1975UTMToWGS84(e,n){
+  const [li,lo]=utmToLatLon(e,n,a_ind,f_ind);
+  const [x,y,z]=geodeticToECEF(li,lo,0,a_ind,f_ind);
+  const [lw,ow]=ecefToGeodetic(x-dx,y-dy,z-dz,a_wgs,f_wgs);
+  return[lw,ow,li,lo];
+}
+
+/* ========= Helpers ========= */
+const kmToNm=km=>km/1.852;
+function haversineKm(a1,o1,a2,o2){const R=6371.0088,t=d=>d*Math.PI/180,dA=t(a2-a1),dO=t(o2-o1),A=Math.sin(dA/2)**2+Math.cos(t(a1))*Math.cos(t(a2))*Math.sin(dO/2)**2;return 2*R*Math.asin(Math.sqrt(A));}
+function fmtNum(x){return(x==null||!isFinite(x))?'':x.toLocaleString(undefined,{maximumFractionDigits:2});}
+function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg),d=Math.floor(a),m=(a-d)*60,dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m.toFixed(3)}’${dir}`;}
+function esc(s){return String(s).replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+function hrsToHM(hrs){ if(!isFinite(hrs)) return '—'; let h=Math.floor(hrs); let m=Math.round((hrs-h)*60); if(m===60){h+=1;m=0;} return `${h}:${String(m).padStart(2,'0')}`; }
+function ydm(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${day}-${m}`; }
+
+/* NEW: split name into max 2 lines for tighter columns */
+function breakNameTwoLines(s){
+  const t = String(s||'').trim();
+  if(!t) return '';
+  if(t.length <= 20) return t;                // short -> one line
+  const parts = t.split(/\s+/);
+  if(parts.length <= 1){                      // no spaces -> hard split
+    const mid = Math.ceil(t.length/2);
+    return t.slice(0, mid) + '\n' + t.slice(mid);
+  }
+  const half = Math.ceil(parts.length/2);     // split around middle word
+  return parts.slice(0, half).join(' ') + '\n' + parts.slice(half).join(' ');
+}
+/* ========= State & elements ========= */
+let pois=[]; let map,bgPolyLayer,markersLayer,linesLayer;
+const els={
+  file:document.getElementById('file'),
+  drop:document.getElementById('drop'),
+  btnTemplate:document.getElementById('btnTemplate'),
+  btnClear:document.getElementById('btnClear'),
+  btnExport:document.getElementById('btnExport'),
+  btnExportMatrixOnly:document.getElementById('btnExportMatrixOnly'),
+  btnExportMatrixExcel:document.getElementById('btnExportMatrixExcel'),
+  btnPreviewPOIs:document.getElementById('btnPreviewPOIs'),
+  btnPreviewMatrix:document.getElementById('btnPreviewMatrix'),
+  btnPreviewMapA3:document.getElementById('btnPreviewMapA3'),
+  ref:document.getElementById('refSelect'),
+  speed:document.getElementById('speed'),
+  toggleLines:document.getElementById('toggleLines'),
+  zoom:document.getElementById('zoomRange'),
+  status:document.getElementById('statusArea'),
+  dateHeader:document.getElementById('dateHeader'),
+  speedHeader:document.getElementById('speedHeader')
+};
+const setStatus=(msg,ok=true)=>{els.status.textContent=msg; els.status.style.color=ok?'#111827':'#7c2d12';};
+
+/* ========= Map ========= */
+function initMap(){
+  const mapWrap=document.getElementById('mapWrap');
+  const resize=()=>{ const rect=mapWrap.getBoundingClientRect(); document.getElementById('map').style.height = rect.height+'px'; if(map) map.invalidateSize(); };
+  const vhFix=()=>{ const hHeader=78; const h=window.innerHeight - hHeader; mapWrap.style.height = (h>200?h:200)+'px'; };
+  vhFix(); window.addEventListener('resize', ()=>{ vhFix(); resize(); });
+
+  map=L.map('map',{zoomControl:true,preferCanvas:true,zoomSnap:0.5,zoomDelta:0.5});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'&copy; OSM & CARTO',crossOrigin:true}).addTo(map);
+  L.control.scale({imperial:false}).addTo(map);
+  const legend=L.control({position:'bottomright'});
+  legend.onAdd=function(){
+    const d=L.DomUtil.create('div'); d.style.cssText='background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;line-height:1.2;font:12px Inter,sans-serif';
+    d.innerHTML=`<div style="font-weight:600;margin-bottom:4px">Legend</div>
+      <div><span style="display:inline-block;width:12px;height:12px;background:#0ea5e9;opacity:.25;border:1px solid #0284c7;margin-right:6px;vertical-align:middle"></span>Restricted Area</div>
+      <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1f7ae0;margin-right:6px"></span>Reference point</div>
+      <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#111827;margin-right:6px;border:2px solid #fff;box-shadow:0 0 0 1px #6b7280"></span>POI</div>
+      <div><span style="display:inline-block;width:18px;height:2px;background:#2563eb;margin-right:6px;vertical-align:middle"></span>Distance line</div>`;
+    return d;
+  };
+  legend.addTo(map);
+
+  map.createPane('bgPoly'); map.getPane('bgPoly').style.zIndex=200; map.getPane('bgPoly').style.pointerEvents='none';
+  bgPolyLayer=L.geoJSON(GOT_POLY,{pane:'bgPoly',style:{color:'#0284c7',weight:1,opacity:0.7,fillColor:'#0ea5e9',fillOpacity:0.12}}).addTo(map);
+  markersLayer=L.layerGroup().addTo(map);
+  linesLayer=L.layerGroup().addTo(map);
+  // Recalculate label positions when view changes
+  map.on('zoomend moveend', ()=>{ setTimeout(()=>{ renderPOIs(); drawLines(); }, 80); });
+  fitMap();
+  resize();
+}
+const _measureCtx=document.createElement('canvas').getContext('2d');
+function measureTextPx(text,px=12,f='Inter, system-ui, sans-serif',w=700){_measureCtx.font=`${w} ${px}px ${f}`;return{w:_measureCtx.measureText(text).width,h:px};}
+function escapeXml(s){return String(s).replace(/[<>&'"]/g,c=>c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':c==="'"?'&#39;':'&quot;');}
+function makePoiChipSVG(name,{ref=false,fontPx=12,padX=7,padY=3}={}){const f='Inter, system-ui, sans-serif',w=700,{w:tw}=measureTextPx(name,fontPx,f,w),halo=3,chipW=Math.ceil(tw+padX*2),chipH=Math.ceil(fontPx+padY*2),textY=padY+fontPx-2,fill='#fff',stroke=ref?'#93c5fd':'#cbd5e1',textFill=ref?'#0b3d91':'#0b1a2a';return `<svg xmlns="http://www.w3.org/2000/svg" width="${chipW}" height="${chipH}"><rect x="0.5" y="0.5" rx="10" ry="10" width="${chipW-1}" height="${chipH-1}" fill="${fill}" stroke="${stroke}"/><text x="${padX}" y="${textY}" font-family="${f}" font-size="${fontPx}" font-weight="${w}" fill="${textFill}" stroke="#ffffff" stroke-width="${halo}" stroke-linejoin="round" paint-order="stroke fill">${escapeXml(name)}</text></svg>`;}
+
+/* ===== Helpers for smart label placement ===== */
+function calculateSmartLabelPositions(pois) {
+  const positions = [];
+  const leaderThreshold = 35;
+
+  // Candidate offsets around the marker (pixels)
+  const offsetOptions = [
+    [0, -30], [22, -22], [30, 0], [22, 22], [0, 30], [-22, 22], [-30, 0], [-22, -22],
+    [0, -45], [35, -15], [45, 0], [35, 15], [0, 45], [-35, 15], [-45, 0], [-35, -15],
+    [15, -40], [40, -10], [40, 10], [15, 40], [-15, 40], [-40, 10], [-40, -10], [-15, -40]
+  ];
+
+  // Put the selected reference first so it gets the best slot
+  const refVal = document.getElementById('refSelect').value;
+  const poiPixels = pois.map((poi, index) => {
+    const pt = map.latLngToContainerPoint([poi.lat, poi.lon]);
+    return { poi, index, x: pt.x, y: pt.y, priority: refVal === String(index) ? 10 : 1 };
+  }).sort((a,b) => b.priority - a.priority);
+
+  poiPixels.forEach(p => {
+    let best = {score: -Infinity, off: [0,-30]};
+    for (const off of offsetOptions) {
+      const lx = p.x + off[0], ly = p.y + off[1];
+      let minDist = Infinity;
+      for (const q of positions) {
+        const dx = lx - q.labelX, dy = ly - q.labelY;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < minDist) minDist = d;
+      }
+      let score = (minDist === Infinity) ? 200 : Math.min(minDist, 200);
+      // Gentle preferences: right/above; penalties near edges
+      if (off[0] > 0) score += 5;
+      if (off[1] < 0) score += 3;
+      const size = map.getSize(), margin = 60;
+      if (lx < margin || lx > size.x - margin || ly < 20 || ly > size.y - 20) score -= 100;
+      if (score > best.score) best = {score, off};
+    }
+    positions.push({
+      poi: p.poi,
+      index: p.index,
+      labelX: p.x + best.off[0],
+      labelY: p.y + best.off[1],
+      needsLeader: Math.hypot(best.off[0], best.off[1]) > leaderThreshold
+    });
+  });
+
+  return positions;
+}
+function addLeaderLines(positions){
+  positions.forEach(pos => {
+    if (!pos.needsLeader) return;
+    const start = [pos.poi.lat, pos.poi.lon];
+    const labelLL = map.containerPointToLatLng([pos.labelX, pos.labelY]);
+    L.polyline([start, [labelLL.lat, labelLL.lng]], {
+      color: '#9ca3af', weight: 2, opacity: 1, dashArray: '2,4', className: 'leader-line'
+    }).addTo(markersLayer);
+  });
+}
+function fitMap(){
+  const padding=[30,30];
+  if(bgPolyLayer && pois.length){
+    const polyB=bgPolyLayer.getBounds(), poiB=L.latLngBounds(pois.map(p=>[p.lat,p.lon])); polyB.extend(poiB); map.fitBounds(polyB,{padding});
+  }else if(bgPolyLayer){ map.fitBounds(bgPolyLayer.getBounds(),{padding}); }
+  else if(pois.length){ map.fitBounds(L.latLngBounds(pois.map(p=>[p.lat,p.lon])),{padding}); }
+  else { map.fitBounds([[5.0,99.0],[14.5,105.8]],{padding}); }
+}
+
+/* ========= Rendering ========= */
+function renderPOIs(){
+  const tb=document.querySelector('#poiTable tbody'); tb.innerHTML='';
+  const prev = els.ref.value;
+  els.ref.innerHTML='<option value="">— None —</option>';
+  markersLayer.clearLayers();
+
+  // Keep dropdown population
+  pois.forEach((p,i)=>{ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=p.name; els.ref.appendChild(opt); });
+  if(prev !== '' && Number(prev)>=0 && Number(prev) < pois.length) els.ref.value = prev;
+  const refIndex = els.ref.value === '' ? -1 : Number(els.ref.value);
+
+  // Build table rows (unchanged)
+  pois.forEach((p,i)=>{
+    const isRef = i === refIndex;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(p.name)}${isRef?'<span class="badge-ref">Ref</span>':''}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td><td>${formatDM(p.lat,true)}</td><td>${formatDM(p.lon,false)}</td>`;
+    tr.addEventListener('click',()=>{ els.ref.value=String(i); persist(); renderPOIs(); drawLines(); });
+    tb.appendChild(tr);
+  });
+
+  // Markers (same rules as before)
+  const base = CFG.MARKER_BASE_RADIUS;
+  pois.forEach((p,i)=>{
+    const isRef = i === refIndex;
+    let radius = base;
+    let fill = isRef ? '#1f7ae0' : '#111827';
+    if (!isRef) {
+      const nameChars = String(p.name||'').replace(/\s+/g,'');
+      const isShort = nameChars.length < CFG.SHORT_NAME_THRESHOLD;
+      if (isShort) {
+        fill = '#dc2626';
+        radius = Math.round(base * CFG.RED_SHORTNAME_SCALE * 10) / 10;
+      } else {
+        radius = Math.round(base * CFG.OTHER_POI_SCALE * 10) / 10;
+      }
+    }
+    const marker=L.circleMarker([p.lat,p.lon],{radius,weight:2.5,color:'#ffffff',opacity:1,fillColor:fill,fillOpacity:1}).addTo(markersLayer);
+    marker.on('click',()=>{ els.ref.value=String(i); persist(); renderPOIs(); drawLines(); });
+  });
+
+  // Smart label placement + leader lines
+  if (!pois.length) { fitMap(); renderMatrix(); setStatus(`Rendered: 0 POIs`, true); return; }
+  const positions = calculateSmartLabelPositions(pois);
+  addLeaderLines(positions);
+  positions.forEach(pos=>{
+    const isRef = refIndex === pos.index;
+    // Reuse existing chip generator for consistent look
+    const svgHtml = makePoiChipSVG(pos.poi.name, {ref:isRef,fontPx:12,padX:7,padY:3});
+    const labelLL = map.containerPointToLatLng([pos.labelX, pos.labelY]);
+    L.marker([labelLL.lat,labelLL.lng],{icon:L.divIcon({className:'poi-chip-svg',html:svgHtml,iconSize:null,iconAnchor:[0,10]}),interactive:false}).addTo(markersLayer);
+  });
+
+  fitMap();
+  renderMatrix();
+  setStatus(`Rendered: ${pois.length} POIs • Matrix ${pois.length}×${pois.length}`, true);
+}
+
+function renderMatrix(){
+  const thead=document.querySelector('#matrixTable thead');
+  const tbody=document.querySelector('#matrixTable tbody');
+  thead.innerHTML=''; tbody.innerHTML='';
+  if(!pois.length) return;
+
+  const trh=document.createElement('tr');
+  trh.innerHTML='<th>From \\\\ To</th>'+pois.map(p=>`<th title="${esc(p.name)}"><div class="name2l-h" style="max-width:120px;line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;margin:0 auto">${esc(breakNameTwoLines(p.name)).replace(/\\n/g,"<br>")}</div></th>`).join('');
+  thead.appendChild(trh);
+
+  const speed=parseFloat(els.speed.value||'8');
+  for(let i=0;i<pois.length;i++){
+    const row=document.createElement('tr'); row.innerHTML=`<th><div class="name2l" style="max-width:180px;line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(breakNameTwoLines(pois[i].name)).replace(/\\n/g,"<br>")}</div></th>`;
+    for(let j=0;j<pois.length;j++){
+      if(i===j){ row.innerHTML+=`<td class="muted empty">—</td>`; continue; }
+      const km=haversineKm(pois[i].lat,pois[i].lon,pois[j].lat,pois[j].lon);
+      const nm=kmToNm(km), hrs=nm/(speed>0?speed:1);
+      row.innerHTML+=`<td title="${km.toFixed(2)} km | ${nm.toFixed(2)} nm | ${hrsToHM(hrs)}"><div style="line-height:1.1"><div style="font-weight:600">${nm.toFixed(1)} nm</div><div class="muted">${hrsToHM(hrs)}</div></div></td>`;
+    }
+    tbody.appendChild(row);
+  }
+  addMatrixHoverHighlight();
+}
+
+function addMatrixHoverHighlight(){
+  const table=document.getElementById('matrixTable');
+  const rows=Array.from(table.querySelectorAll('tbody tr'));
+  const clearHL=()=>{
+    rows.forEach(r=>r.classList.remove('row-hl'));
+    table.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
+  };
+  table.addEventListener('mouseleave', clearHL, {once:true});
+  rows.forEach(r=>{
+    Array.from(r.children).forEach((cell,ci)=>{
+      cell.addEventListener('mouseenter',()=>{
+        clearHL(); r.classList.add('row-hl');
+        rows.forEach(rr=>{const c=rr.children[ci]; if(c) c.classList.add('col-hl');});
+        const headRow=table.tHead && table.tHead.rows[0]; if(headRow && headRow.children[ci]) headRow.children[ci].classList.add('col-hl');
+      });
+    });
+  });
+}
+function drawLines(){
+  linesLayer.clearLayers(); if(!pois.length) return;
+  const show=els.toggleLines.checked;
+  const refVal=els.ref.value;
+  if(!show || refVal==='') return;
+  const A=pois[Number(refVal)];
+  const speed=parseFloat(els.speed.value||'8');
+
+  pois.forEach(B=>{
+    if(A===B) return;
+    const km=haversineKm(A.lat,A.lon,B.lat,B.lon), nm=kmToNm(km), hrs=nm/(speed>0?speed:1);
+    const text=`${nm.toFixed(1)}\nnm · ${hrsToHM(hrs)}\nh`;
+    L.polyline([[A.lat,A.lon],[B.lat,B.lon]],{color:'#2563eb',weight:2,opacity:0.9}).addTo(linesLayer);
+    const mid=L.latLng((A.lat+B.lat)/2,(A.lon+B.lon)/2);
+    L.marker(mid,{icon:L.divIcon({className:'distance-chip',html:`<span class="text-halo">${text}</span>`,iconSize:[0,0]}),interactive:false}).addTo(linesLayer);
+  });
+}
+
+/* ========= CSV load / template ========= */
+/* Future improvement ideas:
+   - Accept header aliases (e.g., "Point Name", "UTM_E", "UTM_N") and map them to Name/Easting/Northing.
+   - Strip non-breaking spaces (NBSP) inside numbers more aggressively.
+   - Allow choosing delimiter (comma/semicolon/TAB) explicitly via a setting.
+   - Give per-row error details for malformed lines.
+*/
+function parseCsvRobust(text){
+  text = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n'); // strip BOM, normalize EOL
+  const lines = text.split(/\n/).filter(l=>l.trim().length>0);
+  if(!lines.length) return {rows:[],reason:'Empty file'};
+
+  // Splitter that honors quotes; treats comma, semicolon, or TAB as delimiters
+  const split = s => {
+    const out=[]; let cur=''; let q=false;
+    for(let i=0;i<s.length;i++){
+      let ch=s[i], nx=s[i+1];
+      if(ch==='“'||ch==='”') ch='"';
+      if(ch==='"'){
+        if(q && nx === '"'){ cur+='"'; i++; } else { q=!q; }
+        continue;
+      }
+      if(!q && (ch===',' || ch===';' || ch==='\t')){ out.push(cur.trim()); cur=''; continue; }
+      cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  };
+
+  const headersRaw = split(lines[0]).map(h=>h.trim());
+  const norm = h => h.replace(/\s+/g,'').replace(/\(.*?\)/g,'').toLowerCase();
+  const headers = headersRaw.map(norm);
+  const iN  = headers.findIndex(h => h === 'name');
+  const iE  = headers.findIndex(h => h === 'easting');
+  const iNo = headers.findIndex(h => h === 'northing');
+  if(iN===-1 || iE===-1 || iNo===-1) return {rows:[],reason:'CSV must have headers: Name,Easting,Northing'};
+
+  const rows=[];
+  for(let r=1;r<lines.length;r++){
+    const cols = split(lines[r]);
+    const get = (arr,idx)=> (idx>=0 && idx<arr.length ? arr[idx] : '');
+    const name = String(get(cols,iN)).replace(/^"|"$/g,'').trim();
+    const eStr = String(get(cols,iE)).replace(/[ ,"]/g,'');
+    const nStr = String(get(cols,iNo)).replace(/[ ,"]/g,'');
+    const e = Number(eStr), n = Number(nStr);
+    if(name && Number.isFinite(e) && Number.isFinite(n)) rows.push({Name:name,Easting:e,Northing:n});
+  }
+  if(!rows.length) return {rows:[],reason:'No valid rows found'};
+  return {rows,reason:null};
+}
+function loadRows(rows){
+  let list=rows;
+  if(list.length>40){ setStatus('More than 40 POIs; truncating to 40.', false); list=list.slice(0,40); }
+  const out=[];
+  for(const r of list){
+    const name=String(r.Name||'').trim(); const e=Number(r.Easting), n=Number(r.Northing);
+    if(!name||!Number.isFinite(e)||!Number.isFinite(n)) continue;
+    const [lat,lon]=indian1975UTMToWGS84(e,n);
+    out.push({name,e,n,lat,lon});
+  }
+  if(!out.length){ setStatus('Parsed rows, but none valid for conversion.', false); return; }
+  pois=out; persist();
+  renderPOIs(); drawLines();
+  setStatus(`Loaded ${out.length} POIs.`);
+}
+
+/* ========= Exports ========= */
+async function captureMapToPDF(doc){
+  const canvas=await html2canvas(document.getElementById('map'),{scale:1.0,useCORS:true,backgroundColor:'#ffffff'}).catch(()=>null);
+  const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight(), margin=8;
+  if(canvas){
+    const availW=pageW-margin*2, availH=pageH-margin*2-10, ratio=canvas.width/canvas.height;
+    let imgW=availW, imgH=imgW/ratio; if(imgH>availH){ imgH=availH; imgW=imgH*ratio; }
+    const x=margin+(availW-imgW)/2, y=14;
+    const img=canvas.toDataURL('image/jpeg',0.68);
+    doc.addImage(img,'JPEG',x,y,imgW,imgH);
+  }else{
+    doc.setFontSize(10); doc.setTextColor(150); doc.text('Map snapshot unavailable',8,20);
+  }
+}
+
+els.btnExport.addEventListener('click', async ()=>{
+  if(!pois.length){alert('Load POIs first');return;}
+  const exportedAt=new Date(), exportedStr=exportedAt.toLocaleString();
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
+  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),margin=8;
+
+  function footer(){
+    doc.setFontSize(8);doc.setTextColor(90);
+    const left=`Owner: PPD/P Geomatics • Exported: ${exportedStr}`;
+    const right=`Indian 1975 → WGS84 • Speed ${(els.speed.value||'8')} kn`;
+    doc.text(left,margin,pageH-4); 
+    const w=doc.getTextWidth(right); 
+    doc.text(right,pageW-margin-w,pageH-4);
+  }
+
+  // PAGE 1: OPTIMIZED MATRIX
+  const cols=['From \\ To','WGS84 (DM)', ...pois.map(p=>p.name)];
+  const speedVal=parseFloat(els.speed.value||'8');
+  const numCols = cols.length;
+  
+  const body=pois.map((from,i)=>{
+    const row=[breakNameTwoLines(from.name), [formatDM(from.lat,true),formatDM(from.lon,false)]];
+    for(let j=0;j<pois.length;j++){
+      if(i===j){row.push('—');continue;}
+      const km=haversineKm(from.lat,from.lon,pois[j].lat,pois[j].lon); 
+      const nm=kmToNm(km), hrs=nm/(speedVal>0?speedVal:1);
+      row.push([`${nm.toFixed(1)} nm`, `${hrsToHM(hrs)}`]);
+    }
+    return row;
+  });
+
+  // DYNAMIC SIZING CALCULATION
+  function calculateMatrixSizing(numCols) {
+    const availableWidth = pageW - (margin * 2);
+    const firstColWidth = 28;  // From column
+    const secondColWidth = 28; // WGS84 column
+    const remainingWidth = availableWidth - firstColWidth - secondColWidth;
+    const dataColumns = numCols - 2;
+    const maxColWidth = Math.min(22, remainingWidth / dataColumns);
+    
+    let fontSize, padding;
+    
+    if (numCols <= 12) {
+      fontSize = 9.0; padding = 1.5;
+    } else if (numCols <= 16) {
+      fontSize = 8.2; padding = 1.3;
+    } else if (numCols <= 20) {
+      fontSize = 7.5; padding = 1.1;
+    } else if (numCols <= 25) {
+      fontSize = 6.8; padding = 1.0;
+    } else if (numCols <= 30) {
+      fontSize = 6.2; padding = 0.9;
+    } else if (numCols <= 35) {
+      fontSize = 5.6; padding = 0.8;
+    } else if (numCols <= 40) {
+      fontSize = 5.0; padding = 0.7;
+    } else {
+      fontSize = 4.6; padding = 0.6;
+    }
+    
+    return {
+      fontSize,
+      padding,
+      firstColWidth,
+      secondColWidth,
+      dataColWidth: Math.max(10, maxColWidth)
+    };
+  }
+
+  const sizing = calculateMatrixSizing(numCols);
+  
+  // Column styles
+  const columnStyles = {
+    0: { cellWidth: sizing.firstColWidth },
+    1: { cellWidth: sizing.secondColWidth }
+  };
+  for(let i = 2; i < numCols; i++) {
+    columnStyles[i] = { cellWidth: sizing.dataColWidth };
+  }
+
+  // HEADER
+  doc.setFontSize(12);doc.setTextColor(0);doc.text('GOT Distance Matrix and Map',margin,10);
+  doc.setFontSize(9);doc.setTextColor(100);doc.text(`Speed: ${speedVal} kn • ${numCols-2} locations`,margin,16);
+
+  // MATRIX TABLE
+  doc.autoTable({
+    startY:20, 
+    head:[cols], 
+    body:body, 
+    theme:'grid',
+    styles:{ 
+      fontSize: sizing.fontSize, 
+      cellPadding: sizing.padding, 
+      halign:'center', 
+      valign:'middle', 
+      overflow:'linebreak', 
+      lineWidth:0.1, 
+      lineColor:[220,220,220], 
+      textColor:25, 
+      lineHeight:0.9 
+    },
+    headStyles:{ 
+      fillColor:[248,248,248], 
+      textColor:15, 
+      lineColor:[200,200,200], 
+      lineWidth:0.1,
+      fontSize: Math.max(sizing.fontSize - 0.8, 4.0)
+    },
+    bodyStyles:{ 
+      fillColor:[255,255,255], 
+      textColor:25, 
+      lineColor:[230,230,230], 
+      lineWidth:0.1 
+    },
+    alternateRowStyles:{ 
+      fillColor:[250,250,250] 
+    },
+    columnStyles: columnStyles,
+    tableWidth:'auto',
+    margin: { top: margin, bottom: margin + 12, left: margin, right: margin },
+    didParseCell:(ctx)=>{ 
+      if(ctx.section!=='body')return; 
+      if(Array.isArray(ctx.cell.raw)) ctx.cell.text=ctx.cell.raw; 
+      else if(ctx.cell.raw==='—') ctx.cell.text=['—']; 
+      
+      // Optimized cell height
+      const mmPerPt=0.352778;
+      const minH = Math.max(sizing.fontSize * mmPerPt * 2.6, 5.5); 
+      ctx.cell.styles.minCellHeight=Math.max(ctx.cell.styles.minCellHeight||0, minH); 
+    }
+  });
+  footer();
+
+  // Page 2: Map
+  doc.addPage('a3','landscape');
+  doc.setFontSize(12);doc.setTextColor(0);doc.text('Distance Map (lines from selected reference point only)',8,10);
+  await captureMapToPDF(doc);
+  footer();
+
+  const stamp=ydm(exportedAt);
+  doc.save(`Distance_Matrix-Map_${stamp}.pdf`);
+});
+
+
+// Replace your existing btnExportMatrixOnly event listener with this improved version
+
+els.btnExportMatrixOnly.addEventListener('click', ()=>{
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  const exportedAt=new Date();
+  const { jsPDF } = window.jspdf;
+
+  const cols=['From \\ To','WGS84 (DM)', ...pois.map(p=>p.name)];
+  const speedVal=parseFloat(els.speed.value||'8');
+  const numCols = cols.length;
+
+  // Prepare data with 2-line names for better fit
+  const body=pois.map((from)=>{
+    const row=[ breakNameTwoLines(from.name), [formatDM(from.lat,true), formatDM(from.lon,false)] ];
+    for(const to of pois){
+      if(from===to){row.push('—'); continue;}
+      const km=haversineKm(from.lat,from.lon,to.lat,to.lon);
+      const nm=kmToNm(km), hrs=nm/(speedVal>0?speedVal:1);
+      row.push([`${nm.toFixed(1)} nm`, `${hrsToHM(hrs)}`]);
+    }
+    return row;
+  });
+
+  // Calculate optimal sizing based on number of columns
+  function calculateOptimalSizing(numCols) {
+    // A3 landscape: ~410mm width, ~280mm height usable
+    const pageWidth = 410; // mm
+    const margins = 16; // total left+right margins
+    const availableWidth = pageWidth - margins;
+    
+    // Fixed widths for first two columns
+    const firstColWidth = 26;
+    const secondColWidth = 26;
+    const remainingWidth = availableWidth - firstColWidth - secondColWidth;
+    
+    // Calculate dynamic column width for data columns
+    const dataColumns = numCols - 2;
+    const maxColWidth = Math.min(25, remainingWidth / dataColumns);
+    
+    let fontSize, padding;
+    
+    if (numCols <= 15) {
+      fontSize = 8.5;
+      padding = 1.4;
+    } else if (numCols <= 20) {
+      fontSize = 7.8;
+      padding = 1.2;
+    } else if (numCols <= 25) {
+      fontSize = 7.2;
+      padding = 1.0;
+    } else if (numCols <= 30) {
+      fontSize = 6.5;
+      padding = 0.9;
+    } else if (numCols <= 35) {
+      fontSize = 5.8;
+      padding = 0.8;
+    } else if (numCols <= 40) {
+      fontSize = 5.2;
+      padding = 0.7;
+    } else {
+      fontSize = 4.8;
+      padding = 0.6;
+    }
+    
+    return {
+      fontSize,
+      padding,
+      firstColWidth,
+      secondColWidth,
+      dataColWidth: Math.max(12, maxColWidth) // minimum 12mm
+    };
+  }
+
+  const sizing = calculateOptimalSizing(numCols);
+  
+  // Create document with calculated settings
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const margin=8;
+
+  // Header
+  doc.setFontSize(12); 
+  doc.text('GOT Distance Matrix — Optimized Single Page', margin, 10);
+  doc.setFontSize(9); 
+  doc.text(`Speed: ${speedVal} kn • ${numCols-2} locations • Optimized layout`, margin, 16);
+
+  // Column styles with calculated widths
+  const columnStyles = {
+    0: { cellWidth: sizing.firstColWidth },
+    1: { cellWidth: sizing.secondColWidth }
+  };
+  
+  // Set uniform width for all data columns
+  for(let i = 2; i < numCols; i++) {
+    columnStyles[i] = { cellWidth: sizing.dataColWidth };
+  }
+
+  doc.autoTable({
+    startY: 20,
+    head: [cols],
+    body: body,
+    theme: 'grid',
+    styles: { 
+      fontSize: sizing.fontSize,
+      cellPadding: sizing.padding,
+      halign: 'center', 
+      valign: 'middle', 
+      overflow: 'linebreak',
+      lineWidth: 0.12,
+      lineColor: [225,225,225],
+      textColor: 30,
+      lineHeight: 0.92
+    },
+    headStyles: { 
+      fillColor: [245,245,245], 
+      textColor: 20, 
+      lineColor: [220,220,220], 
+      lineWidth: 0.12,
+      fontSize: Math.max(sizing.fontSize - 0.5, 4.5) // Slightly smaller header
+    },
+    bodyStyles: { 
+      fillColor: [255,255,255], 
+      textColor: 30, 
+      lineColor: [230,230,230], 
+      lineWidth: 0.12 
+    },
+    alternateRowStyles: { 
+      fillColor: [248,248,248] 
+    },
+    columnStyles: columnStyles,
+    tableWidth: 'auto',
+    margin: { 
+      top: margin, 
+      bottom: margin + 10, // Extra bottom margin for footer
+      left: margin, 
+      right: margin 
+    },
+    didParseCell: (ctx) => {
+      if(ctx.section !== 'body') return;
+      
+      // Handle array data (distance + time)
+      if(Array.isArray(ctx.cell.raw)) {
+        ctx.cell.text = ctx.cell.raw;
+      } else if(ctx.cell.raw === '—') {
+        ctx.cell.text = ['—'];
+      }
+      
+      // Set minimum cell height for readability
+      const mmPerPt = 0.352778;
+      const minHeight = Math.max(sizing.fontSize * mmPerPt * 2.8, 6.5);
+      ctx.cell.styles.minCellHeight = Math.max(ctx.cell.styles.minCellHeight || 0, minHeight);
+    }
+  });
+
+  // Check if table fits on page
+  const finalY = doc.lastAutoTable && doc.lastAutoTable.finalY || 0;
+  const fits = finalY <= (pageH - margin - 10);
+  
+  // Footer
+  doc.setFontSize(8); 
+  doc.setTextColor(90);
+  const footerY = pageH - 4;
+  const left = `Owner: PPD/P Geomatics • Exported: ${exportedAt.toLocaleString()}`;
+  const right = `Indian 1975 → WGS84 • Speed ${speedVal} kn • ${fits ? 'Optimized fit' : 'Compressed'}`;
+  doc.text(left, margin, footerY);
+  const rightWidth = doc.getTextWidth(right);
+  doc.text(right, pageW - margin - rightWidth, footerY);
+
+  // Add warning if still doesn't fit
+  if (!fits) {
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text('Note: Large matrix compressed to fit single page. Consider reducing POI count for better readability.', 
+             margin, footerY - 6);
+  }
+
+  const stamp = ydm(exportedAt);
+  doc.save(`Distance_Matrix_SinglePage_${stamp}.pdf`);
+});
+
+/* ========= Previews ========= */
+function makeMetaBarHTML(nowStr, speed){
+  return `<div class="metabar" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 0 0;color:#475569;font-size:12px">
+    <span>Owner: <b>PPD/P Geomatics</b></span> •
+    <span>Now: <b>${nowStr}</b></span> •
+    <span>Speed: <b>${speed}</b> kn</span>
+  </div>`;
+}
+/* Preview Map (A3 Portrait) */
+els.btnPreviewMapA3.addEventListener('click', async ()=>{
+  const w = window.open('about:blank','_blank','width=1000,height=1400');
+  if(!w){ alert('Please allow pop-ups for this site.'); return; }
+
+  setStatus('Rendering map preview…');
+  try {
+    // Give tiles/labels a moment just in case
+    await new Promise(r => setTimeout(r, 150));
+
+    const mapEl = document.getElementById('map');
+    const canvas = await html2canvas(mapEl, {
+      scale: 2,                 // high-res for print
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+
+    const img = canvas.toDataURL('image/jpeg', 0.92);
+    const nowStr = new Date().toLocaleString();
+    const speedStr = els.speed.value || '8';
+    const refIdx = (els.ref.value === '' ? -1 : Number(els.ref.value));
+    const refName = (refIdx >= 0 && pois[refIdx]) ? pois[refIdx].name : '— None —';
+
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Map — A3 Portrait Preview</title>
+<style>
+  :root { --line:#e5e7eb; --muted:#64748b; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#0f172a;background:#fff}
+  header{padding:12px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px 0;font-size:16px}
+  .meta{color:var(--muted);font-size:12px}
+  .wrap{padding:10mm 10mm 12mm}
+  /* A3 portrait printable page */
+  @media print{
+    @page { size: A3 portrait; margin: 10mm; }
+    body{background:#fff}
+    header{break-after:avoid}
+    .wrap{padding:0}
+  }
+  /* Keep aspect fit inside A3 content area (roughly 277x387mm after margins) */
+  .imgBox{
+    width:100%;
+    max-width: 1900px;              /* large enough for most screens */
+    margin:12px auto 0;
+  }
+  .imgBox img{ width:100%; height:auto; display:block; border:1px solid var(--line) }
+  .toolbar{display:flex; gap:8px; padding:8px 16px; border-bottom:1px solid var(--line); background:#fff; position:sticky; top:0}
+  .btn{border:1px solid var(--line); background:#fff; padding:6px 10px; border-radius:10px; cursor:pointer; font-weight:600}
+  .btn:hover{background:#f3f4f6}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Distance Map — A3 Portrait Preview</h1>
+    <div class="meta">
+      Owner: <b>PPD/P Geomatics</b> • Now: <b>${nowStr}</b> • Speed: <b>${speedStr}</b> kn • Reference: <b>${refName}</b>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnPrint" class="btn">🖨 Print (A3 Portrait)</button>
+    <button id="btnSave" class="btn">⬇ Save PNG</button>
+  </div>
+
+  <div class="wrap">
+    <div class="imgBox"><img id="mapImg" alt="Map snapshot"></div>
+  </div>
+
+  <script>
+    // Inject image and wire actions
+    const dataUrl = ${JSON.stringify(img)};
+    const imgEl = document.getElementById('mapImg');
+    imgEl.src = dataUrl;
+
+    document.getElementById('btnPrint').addEventListener('click', ()=>window.print());
+    document.getElementById('btnSave').addEventListener('click', ()=>{
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'Map_A3_Preview.png';
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+  <\/script>
+</body>
+</html>`;
+
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setStatus('Map preview ready.', true);
+  } catch (e) {
+    console.error(e);
+    setStatus('Failed to render map preview.', false);
+    alert('Failed to render map preview: ' + (e.message || e));
+  }
+});
+
+
+/* Preview POI List */
+els.btnPreviewPOIs.addEventListener('click', ()=>{
+  const w=window.open('about:blank','_blank','width=1200,height=800'); if(!w){alert('Allow pop-ups in Edge.');return;}
+  const nowStr=new Date().toLocaleString(); const speedStr=els.speed.value||'8';
+
+  const rows=(pois||[]).map(p=>`<tr>
+      <td class="text name">${esc(p.name)}</td>
+      <td class="num e">${fmtNum(p.e)}</td>
+      <td class="num n">${fmtNum(p.n)}</td>
+      <td class="text dm">${formatDM(p.lat,true)}</td>
+      <td class="text dm">${formatDM(p.lon,false)}</td>
+    </tr>`).join('');
+
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>POI List</title>
+  <style>
+    :root{--line:#e5e7eb;--muted:#6b7280;--bg:#f9fafb}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:var(--bg);color:#111827}
+    header{padding:10px 14px;background:#fff;border-bottom:1px solid var(--line)}
+    header h1{margin:0;font-size:15px}
+    .sub{color:var(--muted);font-size:11.5px;padding:4px 14px 10px;background:#fff;border-bottom:1px solid var(--line)}
+    .wrap{height:calc(100vh - 96px);overflow:auto}
+    table{border-collapse:collapse;width:max-content;min-width:0;font-size:11.5px;background:#fff;table-layout:auto}
+    thead th{position:sticky;top:0;background:#f8fafc;z-index:1;text-align:left;border-bottom:1px solid var(--line)}
+    th,td{padding:3px 5px;border-bottom:1px solid var(--line);white-space:nowrap}
+    tbody tr:nth-child(odd){background:#fefefe}
+    tbody tr:hover{background:#f1f5f9}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    td.name{max-width:160px;overflow:hidden;text-overflow:ellipsis}
+    td.dm{min-width:110px}
+    .metabar b{font-weight:700}
+    @media print{
+      @page{size:A3 landscape;margin:10mm}
+      body{background:#fff}
+      header,.sub{break-after:avoid}
+      .wrap{overflow:visible;height:auto}
+      thead th{position:static}
+      table{font-size:10px}
+      th,td{padding:2px 4px}
+    }
+  </style></head><body>
+  <header><h1>POI List</h1>${makeMetaBarHTML(nowStr, speedStr)}</header>
+  <div class="sub">Total ${pois?.length||0} • Indian 1975 / UTM 47N → WGS84 (DM)</div>
+  <div class="wrap">
+    <table>
+      <colgroup>
+        <col style="width:auto">
+        <col style="width:90px">
+        <col style="width:90px">
+        <col style="width:110px">
+        <col style="width:110px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th style="text-align:right">Easting (m)</th>
+          <th style="text-align:right">Northing (m)</th>
+          <th>Lat (WGS84 DM)</th>
+          <th>Lon (WGS84 DM)</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  </body></html>`);
+  w.document.close();
+});
+
+/* ========= Preview Matrix (2-line names + Save HTML) ========= */
+els.btnPreviewMatrix.addEventListener('click', ()=>{
+  if(!pois.length){alert('Load POIs first');return;}
+  const w=window.open('about:blank','_blank','width=1200,height=800'); if(!w){alert('Allow pop-ups in Edge.');return;}
+  const speed=parseFloat(els.speed.value||'8');
+  const nowStr=new Date().toLocaleString();
+
+  const head=`<tr>
+    <th class="sticky-left">From \\\\ To</th>
+    <th class="sticky-left-2">WGS84 (DM)</th>
+    ${pois.map(p=>`<th><div class="name2l-h">${esc(breakNameTwoLines(p.name)).replace(/\\n/g,'<br>')}</div></th>`).join('')}
+  </tr>`;
+
+  const body=pois.map((from,i)=>{
+    const nameHtml = esc(breakNameTwoLines(from.name)).replace(/\\n/g,'<br>');
+    const wgsCell = `<div>${formatDM(from.lat,true)}</div><div>${formatDM(from.lon,false)}</div>`;
+    const tds = pois.map((to,j)=>{
+      if(i===j) return `<td class="muted empty">—</td>`;
+      const km=haversineKm(from.lat,from.lon,to.lat,to.lon);
+      const nm=kmToNm(km), hrs=nm/(speed>0?speed:1);
+      return `<td><div class="cell"><div class="nm">${nm.toFixed(1)} nm</div><div class="tm">${hrsToHM(hrs)}</div></div></td>`;
+    }).join('');
+    return `<tr><th class="sticky-left"><div class="name2l">${nameHtml}</div></th><td class="sticky-left-2 wgs">${wgsCell}</td>${tds}</tr>`;
+  }).join('');
+
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Distance Matrix</title>
+  <style>
+    :root{--line:#e5e7eb;--muted:#6b7280;--bg:#f9fafb;--hl:#eef6ff;--sticky-left-2:160px}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#f9fafb;color:#111827}
+    header{padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
+    header h1{margin:0;font-size:16px}
+    .metabar{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;color:#475569;font-size:12px}
+    .metabar b{font-weight:700}
+    .sub{color:var(--muted);font-size:13px;padding:6px 16px 12px;background:#fff;border-bottom:1px solid var(--line)}
+    .wrap{height:calc(100vh - 138px);overflow:auto}
+    .toolbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line)}
+    .btn{border:1px solid var(--line);background:#fff;padding:6px 10px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn:hover{background:#f3f4f6}
+
+    table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12.5px;background:#fff}
+    thead th{position:sticky;top:0;background:#f8fafc;border-bottom:1px solid var(--line);z-index:3;text-align:center}
+    th,td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+    tbody tr:nth-child(odd){background:#fefefe}
+    .sticky-left{position:sticky;left:0;background:#f9fafb;border-right:1px solid #d1d5db;z-index:4;text-align:left;white-space:normal}
+    .sticky-left-2{position:sticky;left:var(--sticky-left-2);background:#f9fafb;border-right:1px solid #d1d5db;z-index:4;text-align:center}
+    .name2l{max-width:180px;line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .name2l-h{max-width:120px;line-height:1.1;margin:0 auto;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+    td.wgs>div{line-height:1.05}
+    td .cell{line-height:1.1;text-align:center}
+    .cell .nm{font-weight:600;font-variant-numeric:tabular-nums}
+    .cell .tm{color:var(--muted);font-variant-numeric:tabular-nums}
+    .row-hl th, .row-hl td{background:var(--hl) !important}
+    .col-hl{background:var(--hl) !important}
+    .muted{color:var(--muted)}
+    td.empty{background:#f0f0f0;color:#var(--muted)}
+
+    @media print{@page{size:A3 landscape;margin:12mm} body{background:#fff}
+      header,.sub{break-after:avoid}
+      .wrap{overflow:visible;height:auto}
+      thead th,.sticky-left,.sticky-left-2{position:static}
+      table{font-size:11px}}
+  </style></head><body>
+  <header>
+    <h1>Distance Matrix</h1>
+    <div class="metabar">
+      <span>Owner: <b>PPD/P Geomatics</b></span> •
+      <span>Now: <b>${nowStr}</b></span> •
+      <span>Speed: <b>${speed}</b> kn</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button id="btnSaveHtml" class="btn">💾 Save HTML</button>
+  </div>
+
+  <div class="sub">Speed: ${speed} kn • Indian 1975 → WGS84 • WGS84 (DM) shown in column 2</div>
+  <div class="wrap">
+    <table id="m"><thead>${head}</thead><tbody>${body}</tbody></table>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const t=document.getElementById('m');
+      const tbody=t.tBodies[0];
+      const thead=t.tHead;
+      const headRow = thead && thead.rows[0];
+
+      function clear(){
+        t.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
+        t.querySelectorAll('.row-hl').forEach(el=>el.classList.remove('row-hl'));
+      }
+      tbody.addEventListener('mousemove',(e)=>{
+        const cell=e.target.closest('td,th');
+        if(!cell || !tbody.contains(cell)) return;
+        const col = cell.cellIndex;
+        clear();
+        cell.parentElement.classList.add('row-hl');
+        Array.from(tbody.rows).forEach(r=>{
+          const c=r.cells[col];
+          if(c) c.classList.add('col-hl');
+        });
+        if(headRow && headRow.cells[col]) headRow.cells[col].classList.add('col-hl');
+      });
+      tbody.addEventListener('mouseleave', clear);
+
+      function computeStickyOffsets(){
+        const firstTh = headRow?.cells[0];
+        const firstW = firstTh ? firstTh.getBoundingClientRect().width : 160;
+        t.style.setProperty('--sticky-left-2', Math.round(firstW) + 'px');
+      }
+      computeStickyOffsets();
+      window.addEventListener('resize', computeStickyOffsets);
+
+      document.getElementById('btnSaveHtml').addEventListener('click', ()=>{
+        const serializer = new XMLSerializer();
+        const html = '<!doctype html>\n' + serializer.serializeToString(document);
+        const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+          window.navigator.msSaveOrOpenBlob(blob, 'Distance_Matrix_Preview.html');
+        } else {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'Distance_Matrix_Preview.html';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+        }
+      });
+    });
+  <\/script>
+  </body></html>`;
+
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+});
+
+/* ========= Template / Clear ========= */
+els.btnTemplate.addEventListener('click', ()=>{
+  const csv="Name,Easting,Northing\nBQP,865817,888640\nFSO2,868003,892995\n";
+  const blob=new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='poi_template.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+els.btnClear.addEventListener('click', ()=>{
+  pois=[]; els.ref.innerHTML='<option value="">— None —</option>';
+  document.querySelector('#poiTable tbody').innerHTML='';
+  document.querySelector('#matrixTable thead').innerHTML='';
+  document.querySelector('#matrixTable tbody').innerHTML='';
+  markersLayer.clearLayers(); linesLayer.clearLayers();
+  setStatus('Cleared.');
+  persist(); fitMap();
+});
+
+/* ========= File + Drag/Drop ========= */
+els.file.addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(!/\.csv$/i.test(f.name)){ alert('Please upload a CSV with headers Name,Easting,Northing'); e.target.value=''; return; }
+  try{
+    
+let text;
+try{
+  if (f.arrayBuffer) {
+    const buf = await f.arrayBuffer();
+    // try UTF-8 first
+    let dec = new TextDecoder('utf-8', {fatal:false});
+    text = dec.decode(buf);
+    // Heuristic: if we see lots of NULs, try UTF-16LE then UTF-16BE
+    const nulFrac = (new Uint8Array(buf)).filter(b=>b===0).length / Math.max(1, buf.byteLength);
+    if(nulFrac > 0.1){
+      try{ text = new TextDecoder('utf-16le').decode(buf); }
+      catch{ try{ text = new TextDecoder('utf-16be').decode(buf); } catch{} }
+    }
+  } else if (f.text) {
+    text = await f.text();
+  } else {
+    text = await new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = ()=>reject(r.error||new Error("File read failed"));
+      r.readAsText(f, "utf-8");
+    });
+  }
+} catch (e) {
+  console.error(e);
+  setStatus('Failed to read file: '+(e.message||e), false);
+  alert('Failed to read file: '+(e.message||e));
+  return;
+}
+const {rows,reason}=parseCsvRobust(text);
+
+    if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
+    loadRows(rows);
+  }catch(err){ console.error(err); setStatus('Failed to read the CSV: '+(err.message||err), false); alert('Failed to read the CSV: '+(err.message||err)); }
+  finally{ e.target.value=''; }
+});
+window.addEventListener('dragover', e => { e.preventDefault(); });
+window.addEventListener('drop',     e => { e.preventDefault(); });
+['dragenter','dragover'].forEach(ev=>els.drop.addEventListener(ev, e=>{e.preventDefault(); els.drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev, e=>{e.preventDefault(); els.drop.classList.remove('drag');}));
+els.drop.addEventListener('drop', async e=>{
+  const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return;
+  if(!/\.csv$/i.test(f.name)){ alert('Please drop a CSV with headers Name,Easting,Northing'); return; }
+  try{
+    
+let text;
+try{
+  if (f.arrayBuffer) {
+    const buf = await f.arrayBuffer();
+    // try UTF-8 first
+    let dec = new TextDecoder('utf-8', {fatal:false});
+    text = dec.decode(buf);
+    // Heuristic: if we see lots of NULs, try UTF-16LE then UTF-16BE
+    const nulFrac = (new Uint8Array(buf)).filter(b=>b===0).length / Math.max(1, buf.byteLength);
+    if(nulFrac > 0.1){
+      try{ text = new TextDecoder('utf-16le').decode(buf); }
+      catch{ try{ text = new TextDecoder('utf-16be').decode(buf); } catch{} }
+    }
+  } else if (f.text) {
+    text = await f.text();
+  } else {
+    text = await new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = ()=>reject(r.error||new Error("File read failed"));
+      r.readAsText(f, "utf-8");
+    });
+  }
+} catch (e) {
+  console.error(e);
+  setStatus('Failed to read file: '+(e.message||e), false);
+  alert('Failed to read file: '+(e.message||e));
+  return;
+}
+const {rows,reason}=parseCsvRobust(text);
+
+    if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
+    loadRows(rows);
+  }catch(err){ console.error(err); setStatus(err.message||err, false); alert('Failed to read the CSV: '+(err.message||err)); }
+});
+
+/* ========= Tabs, persistence, live updates ========= */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    document.getElementById('pane-poi').style.display = t.dataset.tab==='poi'?'block':'none';
+    document.getElementById('pane-matrix').style.display = t.dataset.tab==='matrix'?'block':'none';
+  });
+});
+function persist(){ const data={speed:els.speed.value, ref:els.ref.value, show:els.toggleLines.checked, zoom:els.zoom.value, pois}; localStorage.setItem('got_app_v2', JSON.stringify(data)); }
+function restore(){
+  try{
+    const data=JSON.parse(localStorage.getItem('got_app_v2')||'{}');
+    if(data.speed) els.speed.value=data.speed;
+    if(data.show!=null) els.toggleLines.checked=data.show;
+    if(data.zoom){ els.zoom.value=data.zoom; document.documentElement.style.setProperty('--table-scale', data.zoom); }
+    if(Array.isArray(data.pois)) pois=data.pois;
+    if(typeof data.ref!=='undefined') els.ref.value=String(data.ref);
+  }catch{}
+}
+const onSpeedChange = ()=>{ els.speedHeader.textContent=els.speed.value||'8'; renderMatrix(); drawLines(); persist(); };
+els.speed.addEventListener('input', onSpeedChange);
+els.speed.addEventListener('change', onSpeedChange);
+els.speed.addEventListener('keyup', onSpeedChange);
+els.ref.addEventListener('change', ()=>{ renderPOIs(); drawLines(); persist(); });
+els.toggleLines.addEventListener('change', ()=>{ drawLines(); persist(); });
+els.zoom.addEventListener('input', ()=>{ document.documentElement.style.setProperty('--table-scale', els.zoom.value); persist(); });
+setInterval(()=>{ els.dateHeader.textContent=new Date().toLocaleString(); },1000);
+
+/* ========= Excel export for Matrix (2-line, BOM, CRLF + tip row) ========= */
+els.btnExportMatrixExcel.addEventListener('click', ()=>{
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  const speedVal=parseFloat(els.speed.value||'8');
+
+  const header = ['From \\\\ To', 'WGS84 (DM)', ...pois.map(p => breakNameTwoLines(p.name))];
+  const tips   = ['(nm, hh:mm)', '', ...pois.map(_ => '(nm, hh:mm)')];
+
+  const rows = pois.map(from => {
+    const r = [breakNameTwoLines(from.name), `${formatDM(from.lat,true)} / ${formatDM(from.lon,false)}`];
+    for (const to of pois) {
+      if (from === to) { r.push('—'); continue; }
+      const km = haversineKm(from.lat,from.lon,to.lat,to.lon);
+      const nm = kmToNm(km), hrs = nm/(speedVal>0?speedVal:1);
+      r.push(`${nm.toFixed(1)}, ${hrsToHM(hrs)}`);
+    }
+    return r;
+  });
+
+  // Build CSV with BOM + CRLF
+  const toCSV = (arr) => arr.map(row => row.map(x => {
+    const s=String(x??'').replace(/"/g,'""');
+    return /[",\r\n]/.test(s) ? `"${s}"` : s;
+  }).join(',')).join('\r\n');
+
+  const csv = '\ufeff' + toCSV([header, tips, ...rows]);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Distance_Matrix.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+});
+
+/* ========= Init ========= */
+initMap(); restore(); renderPOIs(); drawLines();
+els.dateHeader.textContent=new Date().toLocaleString();
+els.speedHeader.textContent=els.speed.value||'8';
+</script>
+</body>
+</html>
