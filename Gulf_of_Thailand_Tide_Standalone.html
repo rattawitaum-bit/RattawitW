@@ -294,7 +294,7 @@ function renderConstants(HARMONICS){
       <td>${Number(c.phi_deg).toFixed(3)}</td>`;
     tbody.appendChild(tr);
   }
-  const z = n => Number(n).toFixed(6);
+  const z = n => Number(n).toFixed(2);
   document.getElementById('constMeta').innerHTML =
     `z0: <b>${z(HARMONICS.meta.z0)}</b> m · phase: <b>local</b>`;
 }
