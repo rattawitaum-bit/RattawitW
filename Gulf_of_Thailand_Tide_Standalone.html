@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf of Thailand — Tide Map</title>
+<title>Gulf of Thailand — Tide Map (Grid TPS V7)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -14,25 +14,213 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="all_constituents_0p1deg_TPS_weighted_plus150km.js"></script>
 <style>
-  :root{ --bg:#0b1224; --panel:#0e1430; --text:#e5e7eb; --muted:#9aa3b2; --accent:#22d3ee; --violet:#a78bfa; --border:#1f2a40; }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
-  .wrap{max-width:1200px;margin:16px auto;padding:0 16px}
-  .grid{display:grid;grid-template-columns:420px 1fr;gap:12px}
-  .card{background:linear-gradient(180deg,#0e1430,#0a0f1d);border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.35);}
-  .card>.hd{padding:12px 14px;border-bottom:1px dashed #1c2743;font-weight:600}
-  .card>.bd{padding:12px 14px}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
-  input[type="number"], input[type="date"], select{width:100%;background:#0b1328;color:var(--text);border:1px solid #233055;border-radius:10px;padding:10px 12px;outline:none}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .btn{background:linear-gradient(180deg,#1f2a40,#111827);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
-  .btn:hover{border-color:#22d3ee;box-shadow:0 0 0 1px rgba(34,211,238,.35) inset}
-  .muted{color:var(--muted);}
-  #map{height:420px;border-bottom-left-radius:14px;border-bottom-right-radius:14px}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:6px 8px;border-bottom:1px dashed #22304e;font-size:13px}
-  th{color:var(--muted);font-weight:600}
-  canvas{background:#0b1022;border-radius:12px}
+:root {
+  --bg: #f5f7fa;
+  --panel: #ffffff;
+  --text: #111827;
+  --muted: #4b5563;
+  --accent: #3b82f6;
+  --violet: #6366f1;
+  --border: #e5e7eb;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+}
+
+.wrap {
+  max-width: 1200px;
+  margin: 16px auto;
+  padding: 0 16px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    flex-direction: row;
+  }
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.card > .hd {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.card > .bd {
+  padding: 16px;
+}
+
+label {
+  font-size: 13px;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+input[type="number"],
+input[type="date"],
+select {
+  width: 100%;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+  font-size: 14px;
+}
+
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(30%);
+  cursor: pointer;
+}
+
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 99px; /* makes it pill */
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+  background-color: #2563eb;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+#map {
+  height: 400px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.card .bd td {
+  color: #1f2937;
+}
+
+td[style*="aff7ff"] {
+  color: #0284c7 !important;
+}
+
+td[style*="ffd1f8"] {
+  color: #be185d !important;
+}
+
+canvas {
+  background: #f0f3f9;
+  border-radius: 12px;
+}
+input#lat,
+input#lon {
+  width: 100%;
+  max-width: 140px;
+}
+
+input#start,
+input#end {
+  width: 100%;
+  max-width: 140px;
+}
+
+select#interval {
+  width: 100%;
+  max-width: 140px;
+}
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .grid > .card {
+    flex: 0 0 420px; /* fixed width for the left input card */
+  }
+
+  .grid > .output-column {
+    flex: 1; /* make the right output area expand */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+
 </style>
+
 </head>
 <body>
 <div class="wrap">
@@ -44,7 +232,7 @@
 
   <div class="grid">
     <div class="card">
-      <div class="hd">Pick a point (grid TPS only)</div>
+      <div class="hd">Pick a point</div>
       <div class="bd">
         <div class="row">
           <div>
@@ -90,13 +278,15 @@
           <div id="msgbox" class="muted" style="flex:1"></div>
           <button id="runBtn" class="btn">Compute tides</button>
           <button id="csvBtn" class="btn">Export CSV</button>
+          <button id="pngBtn" class="btn">Export PNG</button>
         </div>
       </div>
       <div class="hd">Map (click to compute)</div>
       <div id="map"></div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="output-column">
+
       <div class="card">
         <div class="hd">Tide curve</div>
         <div class="bd"><canvas id="chart" height="170"></canvas></div>
@@ -125,11 +315,7 @@
 
 <script>
 const USE_TZ = 'Asia/Bangkok';
-
-if (typeof TIDE_GRID_META === 'undefined' || typeof TIDE_GRID_ROWS === 'undefined'){
-  alert('Grid JS not loaded.');
-}
-
+if (typeof TIDE_GRID_META === 'undefined' || typeof TIDE_GRID_ROWS === 'undefined'){ alert('Grid JS not loaded.'); }
 const GRID_STEP = TIDE_GRID_META.grid.step;
 const LAT_MIN = TIDE_GRID_META.grid.lat_min;
 const LAT_MAX = TIDE_GRID_META.grid.lat_max;
@@ -137,12 +323,10 @@ const LON_MIN = TIDE_GRID_META.grid.lon_min;
 const LON_MAX = TIDE_GRID_META.grid.lon_max;
 const CONS = TIDE_GRID_META.constituents.slice();
 
-const gridMap = new Map();
-for (const r of TIDE_GRID_ROWS){ gridMap.set(`${r.lat},${r.lon}`, r); }
+const gridMap = new Map(TIDE_GRID_ROWS.map(r=>[`${r.lat},${r.lon}`, r]));
 
 function showMsg(t){ const box = document.getElementById('msgbox'); box.textContent = t||''; }
 function clearMsg(){ showMsg(''); }
-
 function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 function fracIndex(v, vmin, step){ const f = (v - vmin) / step; return {i: Math.floor(f), f: f - Math.floor(f)}; }
 function getNode(lat, lon){ return gridMap.get(`${lat},${lon}`); }
@@ -174,10 +358,7 @@ function interpConstituents(lat, lon){
   });
   return {meta: {t0: TIDE_GRID_META.t0, z0, trend_per_hour: 0.0, source:'gridTPS'}, constituents: consts};
 }
-function getSpeed(name){
-  const r0 = TIDE_GRID_ROWS[0];
-  return r0[`${name}_speed_deg_per_hr`];
-}
+function getSpeed(name){ const r0 = TIDE_GRID_ROWS[0]; return r0[`${name}_speed_deg_per_hr`]; }
 
 function hoursSince(t_ms, t0_ms){ return (t_ms - t0_ms)/3600000; }
 function synthesizeLevel(t_ms, meta, consts){
@@ -294,9 +475,8 @@ function renderConstants(HARMONICS){
       <td>${Number(c.phi_deg).toFixed(3)}</td>`;
     tbody.appendChild(tr);
   }
-  const z = n => Number(n).toFixed(2);
   document.getElementById('constMeta').innerHTML =
-    `z0: <b>${z(HARMONICS.meta.z0)}</b> m · phase: <b>local</b>`;
+    `z0: <b>${Number(HARMONICS.meta.z0).toFixed(2)}</b> m · phase: <b>local</b>`;
 }
 
 function computeAt(lat, lon, fromManual=false){
@@ -315,7 +495,7 @@ function computeAt(lat, lon, fromManual=false){
   clearMsg();
   if (fromManual) {
     if (clickMarker) map.removeLayer(clickMarker);
-    clickMarker = L.marker([lat, lon]).addTo(map);
+    clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`).openPopup();
     map.setView([lat, lon], Math.max(8, map.getZoom()));
   }
   return {series, hi, lo};
@@ -341,8 +521,21 @@ document.getElementById('csvBtn').addEventListener('click', ()=>{
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 });
 
+document.getElementById('pngBtn').addEventListener('click', ()=>{
+  const c = document.getElementById('chart');
+  const url = c.toDataURL('image/png');
+  const a = document.createElement('a'); a.href=url; a.download='tide_chart.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+});
+
 const map = L.map('map', {zoomControl:true}).setView([(LAT_MIN+LAT_MAX)/2, (LON_MIN+LON_MAX)/2], 7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:12,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+// Domain polygon showing calculable area
+const domainBounds = [[LAT_MIN, LON_MIN],[LAT_MIN, LON_MAX],[LAT_MAX, LON_MAX],[LAT_MAX, LON_MIN]];
+const domainPoly = L.polygon(domainBounds, {
+  color:'#22d3ee', weight:1.5, fill:true, fillOpacity:0.05, dashArray:'6,4'
+}).addTo(map);
+
 let clickMarker=null;
 map.on('click', (e)=>{
   const {lat, lng} = e.latlng;
@@ -351,7 +544,7 @@ map.on('click', (e)=>{
   const res = computeAt(lat, lng);
   if (!res) return;
   if (clickMarker) map.removeLayer(clickMarker);
-  clickMarker = L.marker([lat,lng]).addTo(map);
+  clickMarker = L.marker([lat,lng]).addTo(map).bindPopup(`Lat: ${lat.toFixed(5)}<br>Lon: ${lng.toFixed(5)}`).openPopup();
 });
 
 document.querySelectorAll('button[data-days]').forEach(btn=>{
