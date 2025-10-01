@@ -829,52 +829,65 @@ body {
             }
         }
 
-        function loadFileSection2() {
-            const file = document.getElementById('fileInputSection2').files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const lines = e.target.result.split('\n').map(line => line.trim()).filter(line => line);
-                    const table = document.getElementById('table2');
-                    const tbody = table.getElementsByTagName('tbody')[0];
-                    const rows = table.getElementsByTagName('tr');
-                    let rowIndex = 1;
-                    clearSection2();
-                    lines.forEach(line => {
-                        const parts = line.split(/,|\s+/);
-                        if (parts.length >= 3) {
-                            const no = parts[0];
-                            const x = parts[1];
-                            const y = parts[2];
-                            if (rowIndex >= rows.length) {
-                                const newRow = document.createElement('tr');
-                                newRow.innerHTML = `
-                                    <td>${no}</td>
-                                    <td></td><td></td>
-                                    <td class="input-cell"><span>${x}</span><input type="number" step="0.01" value="${x}"></td>
-                                    <td class="input-cell"><span>${y}</span><input type="number" step="0.01" value="${y}"></td>
-                                    <td></td><td></td>
-                                `;
-                                tbody.appendChild(newRow);
-                            } else {
-                                const cells = rows[rowIndex].getElementsByTagName('td');
-                                cells[0].innerText = no;
-                                cells[3].querySelector('input').value = x;
-                                cells[4].querySelector('input').value = y;
-                                updateDisplay(cells[3]);
-                                updateDisplay(cells[4]);
-                            }
-                            rowIndex++;
-                        }
-                    });
-                    document.querySelectorAll('#table2 .input-cell').forEach(cell => {
-                        const input = cell.querySelector('input');
-                        input.addEventListener('input', () => updateDisplay(cell));
-                    });
-                };
-                reader.readAsText(file);
-            }
-        }
+ function loadFileSection2() {
+  const file = document.getElementById('fileInputSection2').files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    const table = document.getElementById('table2');
+    const tbody = table.tBodies[0];
+    const rows  = table.rows;
+    let rowIndex = 1;
+
+    clearSection2();
+
+    lines.forEach((line) => {
+      // CSV: split by comma; TXT: split by whitespace
+      const parts = line.includes(',') ? line.split(',').map(s => s.trim())
+                                       : line.split(/\s+/);
+
+      if (parts.length < 3) return;
+
+      // Skip header-ish rows
+      const p0 = (parts[0] || '').toLowerCase();
+      const p1 = (parts[1] || '').toLowerCase();
+      if (p0 === 'pointid' || p1 === 'x') return;
+
+      const no = parts[0];
+      const x  = parseFloat(parts[1]);
+      const y  = parseFloat(parts[2]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+      if (rowIndex >= rows.length) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${no}</td>
+          <td></td><td></td>
+          <td class="input-cell"><span>${x}</span><input type="number" step="0.01" value="${x}"></td>
+          <td class="input-cell"><span>${y}</span><input type="number" step="0.01" value="${y}"></td>
+          <td></td><td></td>
+        `;
+        tbody.appendChild(tr);
+      } else {
+        const cells = rows[rowIndex].cells;
+        cells[0].textContent = no;
+        cells[3].querySelector('input').value = x;
+        cells[4].querySelector('input').value = y;
+        updateDisplay(cells[3]);
+        updateDisplay(cells[4]);
+      }
+      rowIndex++;
+    });
+
+    // Keep the UX tight: compute immediately after load.
+    calculateSection2();
+  };
+
+  reader.readAsText(file);
+}
 
         function clearSection1() {
             updateSection1Table();
