@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf of Thailand — Tide Map (Grid TPS V7)</title>
+<title>Gulf of Thailand — Tide Map (Grid TPS V8)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,6 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="all_constituents_0p1deg_TPS_weighted_plus150km.js"></script>
+<script src="station_coords.js"></script>
 <style>
 :root {
   --bg: #f5f7fa;
@@ -234,6 +235,14 @@ select#interval {
     <div class="card">
       <div class="hd">Pick a point</div>
       <div class="bd">
+        <div class="row" style="margin-bottom:10px">
+          <div style="grid-column: 1 / -1">
+            <label for="stationSelect">Preset location (optional)</label>
+            <select id="stationSelect">
+              <option value="">— Select a station from list —</option>
+            </select>
+          </div>
+        </div>
         <div class="row">
           <div>
             <label for="lat">Latitude</label>
@@ -501,25 +510,74 @@ function computeAt(lat, lon, fromManual=false){
   return {series, hi, lo};
 }
 
-document.getElementById('csvBtn').addEventListener('click', ()=>{
-  if (!chart || !chart.data || !chart.data.datasets[0] || !chart.data.datasets[0].data){ alert('Compute tides first.'); return; }
-  const data = chart.data.datasets[0].data;
-  const lat = document.getElementById('lat').value || '';
-  const lon = document.getElementById('lon').value || '';
+document.getElementById('csvBtn').addEventListener('click', () => {
+  if (!chart || !chart.data || !chart.data.datasets[0] || !chart.data.datasets[0].data) {
+    alert('Compute tides first.');
+    return;
+  }
+
+  // Strong typing
+  const lat = Number.parseFloat(document.getElementById('lat').value);
+  const lon = Number.parseFloat(document.getElementById('lon').value);
   const start = document.getElementById('start').value || '';
   const end = document.getElementById('end').value || '';
-  const minutes = document.getElementById('interval').value || '';
-  const lines = [['Latitude','Longitude','Date','Time','Tide_m'].join(',')];
-  for (const pt of data){
-    const dt = luxon.DateTime.fromJSDate(pt.x).setZone(USE_TZ);
-    lines.push([lat,lon,dt.toFormat('yyyy-LL-dd'),dt.toFormat('HH:mm'), Number(pt.y).toFixed(3)].join(','));
+  const minutes = Number.parseInt(document.getElementById('interval').value, 10); // still used for filename
+  const tz = USE_TZ;
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    alert('Enter valid lat/lon or click the map.');
+    return;
   }
-  const csv = lines.join('\\n');
+
+  // Columns after removal:
+  // latitude,longitude,timezone,date_local,time_local,tide_m
+  const header = [
+    'latitude',
+    'longitude',
+    'timezone',
+    'date_local',
+    'time_local',
+    'tide_m'
+  ];
+  const rows = [header];
+
+  for (const pt of chart.data.datasets[0].data) {
+    const dtLocal = luxon.DateTime.fromJSDate(pt.x).setZone(tz);
+
+    rows.push([
+      lat.toFixed(6),
+      lon.toFixed(6),
+      tz,
+      dtLocal.toFormat('yyyy-LL-dd'),
+      dtLocal.toFormat('HH:mm'),
+      Number(pt.y).toFixed(3)
+    ]);
+  }
+
+  // Excel-friendly CSV: BOM + CRLF
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-  a.download = `tide_${lat}_${lon}_${start}_${end}_${minutes}min.csv`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+
+  // Deterministic filename (keeps interval in name; not in CSV columns)
+  const fname = [
+    'tide',
+    lat.toFixed(4),
+    lon.toFixed(4),
+    start || 'NA',
+    end || 'NA',
+    `${minutes}min`,
+    tz.replace('/', '-')
+  ].join('_') + '.csv';
+
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 });
+
+
 
 document.getElementById('pngBtn').addEventListener('click', ()=>{
   const c = document.getElementById('chart');
@@ -558,11 +616,55 @@ document.querySelectorAll('button[data-days]').forEach(btn=>{
   });
 });
 
+
+// === Preset station dropdown: populate + select ===
+function populateStationDropdown() {
+  try {
+    const sel = document.getElementById('stationSelect');
+    if (!sel || typeof STATION_COORDS !== 'object') return;
+    const entries = Object.entries(STATION_COORDS)
+      .map(([code, v]) => ({ code, lat: +v.lat, lon: +v.lon }))
+      .sort((a,b) => a.code.localeCompare(b.code));
+    for (const {code, lat, lon} of entries) {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${code}  (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      opt.dataset.lat = lat;
+      opt.dataset.lon = lon;
+      sel.appendChild(opt);
+    }
+  } catch (e) { /* silent */ }
+}
+
+function onStationSelected(e) {
+  const opt = e.target.selectedOptions && e.target.selectedOptions[0];
+  if (!opt || !opt.dataset.lat || !opt.dataset.lon) return;
+  const lat = +opt.dataset.lat;
+  const lon = +opt.dataset.lon;
+  const latEl = document.getElementById('lat');
+  const lonEl = document.getElementById('lon');
+  if (latEl) latEl.value = lat.toFixed(6);
+  if (lonEl) lonEl.value = lon.toFixed(6);
+  const res = computeAt(lat, lon, true);
+  if (!res) {
+    showMsg('Selected station is out of model domain.');
+    return;
+  }
+  if (window.clickMarker) {
+    clickMarker.bindPopup(`Station: <b>${opt.value}</b><br>Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`).openPopup();
+  }
+}
+
 (function init(){
   const today = luxon.DateTime.now().setZone(USE_TZ).toFormat('yyyy-LL-dd');
   document.getElementById('start').value = today;
   document.getElementById('end').value = today;
-  document.getElementById('runBtn').addEventListener('click', ()=>{
+  
+  // Populate preset dropdown and bind change handler
+  populateStationDropdown();
+  const stationSel = document.getElementById('stationSelect');
+  if (stationSel) stationSel.addEventListener('change', onStationSelected);
+document.getElementById('runBtn').addEventListener('click', ()=>{
     const lat = parseFloat(document.getElementById('lat').value);
     const lon = parseFloat(document.getElementById('lon').value);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)){ showMsg('Enter lat/lon or click the map'); return; }
