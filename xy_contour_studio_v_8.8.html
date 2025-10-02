@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v8.8</title>
+<title>XY Contour Studio — v8.8 Final</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   /* Light minimal theme + fixed header/footer */
@@ -118,7 +118,7 @@
           
             <button id="btnKML" class="btn" disabled style="flex:1">⬇ KML (WGS84)</button>
           
-            <button id="btnSHPFiles" class="btn" disabled style="flex:1">⬇ SHP (files)</button>
+            <button id="btnSHPFiles" class="btn" disabled style="flex:1">⬇ SHP 47N (files)</button>
           </div>
         </div>
       </div>
@@ -243,6 +243,11 @@
 
 <!-- Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+function dePreviewFlip(E, N){
+  return (typeof flipYEl!=='undefined' && flipYEl && flipYEl.checked) ? [E, -N] : [E, N];
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.0.7/dist-browser/geotiff.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-contour@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/simplify-js@1.2.4/simplify.min.js"></script>
@@ -458,10 +463,12 @@ function buildRasterPreview(vals){
       try{
         var buf=await f.arrayBuffer(); var tiff=await GeoTIFF.fromArrayBuffer(buf); img=await tiff.getImage();
         var w=img.getWidth(), h=img.getHeight();
+        var origW=w, origH=h;
         var maxCells=6000000, band0;
         if(w*h>maxCells){ var s=Math.sqrt((w*h)/maxCells); var rw=Math.max(2,Math.floor(w/s)), rh=Math.max(2,Math.floor(h/s)); band0=await img.readRasters({width:rw,height:rh,interleave:false,samples:[0]}); w=rw; h=rh; status.textContent='Downsampled to '+w+'×'+h; }
         else { band0=await img.readRasters({interleave:false,samples:[0]}); status.textContent='Raster size: '+w+'×'+h; }
         var arr=Array.isArray(band0)?band0[0]:band0; values=Array.from(arr); width=w; height=h;
+        var vals = values;
 
         var fd=img.getFileDirectory(); var mt=fd.ModelTransformation;
         if(Array.isArray(mt) && mt.length===16){ GT0=mt[3]; GT1=mt[0]; GT2=mt[1]; GT3=mt[7]; GT4=mt[4]; GT5=mt[5]; }
@@ -469,6 +476,12 @@ function buildRasterPreview(vals){
                if(Array.isArray(tieRaw) && tieRaw.length>=6){ i0=tieRaw[0]; j0=tieRaw[1]; x0=tieRaw[3]; y0=tieRaw[4]; }
                else { var tps=img.getTiePoints(); if(Array.isArray(tps)&&tps.length){ i0=tps[0].i||0; j0=tps[0].j||0; x0=tps[0].x||0; y0=tps[0].y||0; } }
                GT1=scale[0]; GT5=-scale[1]; GT2=0; GT4=0; GT0=x0 - i0*GT1 - j0*GT2; GT3=y0 - i0*GT4 - j0*GT5; }
+        // Inline downsample scaling so world size stays correct
+        if (typeof origW==='number' && typeof origH==='number' && (origW!==w || origH!==h)) {
+          var __dsX = origW / w, __dsY = origH / h;
+          GT1 *= __dsX; GT4 *= __dsX;
+          GT2 *= __dsY; GT5 *= __dsY;
+        }
 
         var pxSize=Math.abs(GT1||0); loadInfo.textContent=f.name+' — '+width+'×'+height+' px, px='+(pxSize?pxSize.toFixed(3):'?')+' m';
 
@@ -570,8 +583,7 @@ function buildRasterPreview(vals){
   // ---- Exports + Validator ----
   function buildDXF(fc){
   // R12 ASCII DXF (AC1009) — ENTITIES only, maximum compatibility (no HEADER/TABLES)
-  var NL = '\r\n';
-  var out = ['0','SECTION','2','ENTITIES'].join(NL)+NL;
+  var NL='\r\n'; var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
 
   var labelEvery = Math.max(1, parseFloat(labelEveryEl.value)||100);
   var textHeight = Math.max(0.1, parseFloat(labelSizeEl.value)||2.5);
@@ -640,7 +652,7 @@ function buildRasterPreview(vals){
       }else if(type==='TEXT'){
         var x2=null,y2=null,label=null, inner2=true, q;
         while(inner2){ q=readPair(); if(!q) break; if(q.code==='0'){ i-=2; break; }
-          if(q.code==='10'){ x2=parseFloat(q.value); } else if(q.code==='20'){ y2=parseFloat(q.value); } else if(q.code==='1'){ label=p.value; }
+          if(q.code==='10'){ x2=parseFloat(q.value); } else if(q.code==='20'){ y2=parseFloat(q.value); } else if(q.code==='1'){ label=q.value; }
         }
         if(isFinite(x2)&&isFinite(y2)) features.push({type:'Feature',properties:{label:label||''},geometry:{type:'Point',coordinates:[x2,y2]}});
       }
@@ -766,8 +778,7 @@ function buildKML_WGS84_from_IndianUTM(fc){
   function coordsToLonLatString(coords){
     var parts=[], i, E, N, ll, lon, lat;
     for(i=0;i<coords.length;i++){
-      E=Number(coords[i][0]); N=Number(coords[i][1]);
-      ll = indian1975UTMToWGS84(E,N);  // [lat, lon]
+      E=Number(coords[i][0]); N=Number(coords[i][1]); var __tmp=dePreviewFlip(E,N); ll = indian1975UTMToWGS84(__tmp[0], __tmp[1]);  // [lat, lon]
       lon = ll[1].toFixed(6); lat = ll[0].toFixed(6);
       parts.push(lon+','+lat);
     }
@@ -854,187 +865,94 @@ function writeDoubleLE(b, d){
 }
 
 // --- Build SHP/SHX/DBF from features ---
-function buildSHP_WGS84_from_IndianUTM(fc){
-  var recs=[];
-  var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-
+function buildSHP_47N_FromFC(fc){
+  var recs=[], minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  function pushPart(part, nm, elev){
+    var coords=[], p,E,N,en;
+    for(var j=0;j<part.length;j++){
+      p=part[j]; E=Number(p[0]); N=Number(p[1]);
+      en = dePreviewFlip(E,N);
+      coords.push([en[0], en[1]]);
+      if(en[0]<minX) minX=en[0]; if(en[1]<minY) minY=en[1];
+      if(en[0]>maxX) maxX=en[0]; if(en[1]>maxY) maxY=en[1];
+    }
+    if(coords.length>=2) recs.push({parts:[coords], name:nm||'', elev:(elev!=null?Number(elev):null)});
+  }
   for(var i=0;i<fc.features.length;i++){
-    var f=fc.features[i]; if(!f || !f.geometry) continue;
+    var f=fc.features[i]; if(!f||!f.geometry) continue;
     var nm='', elev=null;
     if(f.properties){
       if(f.properties.elev!=null){ elev=Number(f.properties.elev); nm=String(f.properties.elev)+' m'; }
       else if(f.properties.ELEV!=null){ elev=Number(f.properties.ELEV); nm=String(f.properties.ELEV)+' m'; }
       else if(f.properties.name){ nm=String(f.properties.name); }
     }
-    function pushPart(part){
-      var coords=[], j,p,ll,lon,lat;
-      for(j=0;j<part.length;j++){
-        p=part[j];
-        ll = indian1975UTMToWGS84(Number(p[0]), Number(p[1])); // [lat,lon]
-        lon=ll[1]; lat=ll[0];
-        coords.push([lon,lat]);
-        if(lon<minX) minX=lon; if(lat<minY) minY=lat; if(lon>maxX) maxX=lon; if(lat>maxY) maxY=lat;
-      }
-      if(coords.length>=2) recs.push({parts:[coords], name:nm, elev:elev});
-    }
-    if(f.geometry.type==='LineString'){ pushPart(f.geometry.coordinates); }
-    else if(f.geometry.type==='MultiLineString'){ for(var k=0;k<f.geometry.coordinates.length;k++) pushPart(f.geometry.coordinates[k]); }
+    if(f.geometry.type==='LineString'){ pushPart(f.geometry.coordinates, nm, elev); }
+    else if(f.geometry.type==='MultiLineString'){ for(var k=0;k<f.geometry.coordinates.length;k++) pushPart(f.geometry.coordinates[k], nm, elev); }
   }
+  if(!recs.length){ alert('No features to export.'); return null; }
 
-  // --- SHP file (3 = PolyLine) ---
+  function BE32(b,v){ b.push((v>>>24)&255,(v>>>16)&255,(v>>>8)&255,(v)&255); }
+  function LE32(b,v){ b.push((v)&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255); }
+  function F64LE(b,x){ var dv=new DataView(new ArrayBuffer(8)); dv.setFloat64(0,x,true); for(var t=0;t<8;t++) b.push(dv.getUint8(t)); }
+
   var shp=[], shx=[];
-  // Headers (100 bytes each)
-  // SHP header
-  writeInt32BE(shp, 9994);                // file code
-  for(var i=0;i<5;i++) writeInt32BE(shp, 0);  // unused
-  var shpFileLenWordsPos = shp.length;    // remember position to fill later
-  writeInt32BE(shp, 0);                   // file length (words) placeholder
-  writeInt32LE(shp, 1000);                // version
-  writeInt32LE(shp, 3);                   // shape type PolyLine
-  writeDoubleLE(shp, minX); writeDoubleLE(shp, minY); writeDoubleLE(shp, maxX); writeDoubleLE(shp, maxY); // bbox
-  // Z/M ranges unused
-  for(var i=0;i<4;i++) writeDoubleLE(shp, 0);
+  BE32(shp,9994); for(var i0=0;i0<5;i0++) BE32(shp,0); var shpLenPos=shp.length; BE32(shp,0); LE32(shp,1000); LE32(shp,3);
+  F64LE(shp,minX); F64LE(shp,minY); F64LE(shp,maxX); F64LE(shp,maxY); for(var i1=0;i1<4;i1++) F64LE(shp,0);
 
-  // SHX header
-  writeInt32BE(shx, 9994);
-  for(var i=0;i<5;i++) writeInt32BE(shx, 0);
-  var shxFileLenWordsPos = shx.length;
-  writeInt32BE(shx, 0); // placeholder
-  writeInt32LE(shx, 1000);
-  writeInt32LE(shx, 3);
-  writeDoubleLE(shx, minX); writeDoubleLE(shx, minY); writeDoubleLE(shx, maxX); writeDoubleLE(shx, maxY);
-  for(var i=0;i<4;i++) writeDoubleLE(shx, 0);
+  BE32(shx,9994); for(var i2=0;i2<5;i2++) BE32(shx,0); var shxLenPos=shx.length; BE32(shx,0); LE32(shx,1000); LE32(shx,3);
+  F64LE(shx,minX); F64LE(shx,minY); F64LE(shx,maxX); F64LE(shx,maxY); for(var i3=0;i3<4;i3++) F64LE(shx,0);
 
-  var shpBytes = 100; // header size
-  var recNum=1;
+  var shpBytes=100, recNum=1;
+  for(var r=0;r<recs.length;r++,recNum++){
+    var rec=recs[r], pts=rec.parts[0], numParts=1, numPoints=pts.length;
+    var rminX=Infinity,rminY=Infinity,rmaxX=-Infinity,rmaxY=-Infinity;
+    for(var j=0;j<numPoints;j++){ var X=pts[j][0], Y=pts[j][1]; if(X<rminX) rminX=X; if(Y<rminY) rminY=Y; if(X>rmaxX) rmaxX=X; if(Y>rmaxY) rmaxY=Y; }
 
-  for(var r=0;r<recs.length;r++, recNum++){
-    var rec=recs[r];
-    var pts=rec.parts[0];
-    var numParts=1, numPoints=pts.length;
+    var contentBytes=4+32+4+4+(4*numParts)+(16*numPoints);
+    var contentWords=contentBytes/2; var offsetWords=shpBytes/2;
 
-    var contentBytes = 4 + 32 + 4 + 4 + (4*numParts) + (16*numPoints);
-    var contentWords = contentBytes/2;
+    BE32(shx,offsetWords); BE32(shx,contentWords);
 
-    var offsetWords = shpBytes/2;
-    writeInt32BE(shx, offsetWords);
-    writeInt32BE(shx, contentWords);
+    BE32(shp,recNum); BE32(shp,contentWords);
+    LE32(shp,3); F64LE(shp,rminX); F64LE(shp,rminY); F64LE(shp,rmaxX); F64LE(shp,rmaxY);
+    LE32(shp,numParts); LE32(shp,numPoints);
+    LE32(shp,0);
+    for(var j=0;j<numPoints;j++){ F64LE(shp,pts[j][0]); F64LE(shp,pts[j][1]); }
 
-    writeInt32BE(shp, recNum);
-    writeInt32BE(shp, contentWords);
-
-    writeInt32LE(shp, 3); // PolyLine
-    var rminX=Infinity, rminY=Infinity, rmaxX=-Infinity, rmaxY=-Infinity;
-    for(var j=0;j<numPoints;j++){
-      if(pts[j][0]<rminX) rminX=pts[j][0];
-      if(pts[j][1]<rminY) rminY=pts[j][1];
-      if(pts[j][0]>rmaxX) rmaxX=pts[j][0];
-      if(pts[j][1]>rmaxY) rmaxY=pts[j][1];
-    }
-    writeDoubleLE(shp, rminX); writeDoubleLE(shp, rminY); writeDoubleLE(shp, rmaxX); writeDoubleLE(shp, rmaxY);
-    writeInt32LE(shp, numParts);
-    writeInt32LE(shp, numPoints);
-    writeInt32LE(shp, 0);
-    for(var j=0;j<numPoints;j++){ writeDoubleLE(shp, pts[j][0]); writeDoubleLE(shp, pts[j][1]); }
-
-    shpBytes += 8 + contentBytes; // header + content
+    shpBytes += 8 + contentBytes;
   }
+  var shpWords=shpBytes/2; shp[shpLenPos+0]=(shpWords>>>24)&255; shp[shpLenPos+1]=(shpWords>>>16)&255; shp[shpLenPos+2]=(shpWords>>>8)&255; shp[shpLenPos+3]=(shpWords)&255;
+  var shxBytes=100 + recs.length*8; var shxWords=shxBytes/2;
+  shx[shxLenPos+0]=(shxWords>>>24)&255; shx[shxLenPos+1]=(shxWords>>>16)&255; shx[shxLenPos+2]=(shxWords>>>8)&255; shx[shxLenPos+3]=(shxWords)&255;
 
-  var shpFileLenWords = (shpBytes/2);
-  shp[shpFileLenWordsPos+0]=(shpFileLenWords>>>24)&255
-  shp[shpFileLenWordsPos+1]=(shpFileLenWords>>>16)&255
-  shp[shpFileLenWordsPos+2]=(shpFileLenWords>>>8)&255
-  shp[shpFileLenWordsPos+3]=(shpFileLenWords)&255
+  var dbf=[];
+  function le16(v){ dbf.push(v&255,(v>>8)&255); }
+  function le32(v){ dbf.push(v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255); }
+  function asciiPadRight(s,len){ s=String(s||'').replace(/[^ -~]/g,''); if(s.length>len) s=s.slice(0,len); while(s.length<len) s+=' '; return s; }
+  function asciiPadLeft(s,len){ s=String(s||'').replace(/[^ -~]/g,''); if(s.length>len) s=s.slice(0,len); while(s.length<len) s=' '+s; return s; }
+  function field(name,type,len,dec){ var b=new Array(32).fill(0); name=String(name||'').toUpperCase().replace(/[^A-Z0-9_]/g,''); if(name.length>10) name=name.slice(0,10); for(var i=0;i<name.length;i++) b[i]=name.charCodeAt(i); b[11]=type.charCodeAt(0); b[16]=len&255; b[17]=(dec||0)&255; for(var i=0;i<32;i++) dbf.push(b[i]); }
 
-  var shxBytes = 100 + recs.length*8;
-  var shxFileLenWords = (shxBytes/2);
-  shx[shxFileLenWordsPos+0]=(shxFileLenWords>>>24)&255
-  shx[shxFileLenWordsPos+1]=(shxFileLenWords>>>16)&255
-  shx[shxFileLenWordsPos+2]=(shxFileLenWords>>>8)&255
-  shx[shxFileLenWordsPos+3]=(shxFileLenWords)&255
+  var now=new Date();
+  dbf.push(0x03, now.getFullYear()-1900, now.getMonth()+1, now.getDate());
+  le32(recs.length);
+  var recLen=1+32+10, hdrLen=32 + 32*2 + 1;
+  le16(hdrLen); le16(recLen);
+  for(var i4=0;i4<20;i4++) dbf.push(0);
 
-  
-// --- DBF (dBase III) with NAME (C,32) and ELEV (C,12) ---
-function writeLE16(arr, v){ arr.push(v & 0xFF, (v>>8)&0xFF); }
-function writeLE32(arr, v){ arr.push(v & 0xFF, (v>>8)&0xFF, (v>>16)&0xFF, (v>>24)&0xFF); }
-function asciiPadRight(s, len){
-  s = String(s || '');
-  // ASCII only
-  s = s.replace(/[^\x20-\x7E]/g, '');
-  if(s.length > len) s = s.slice(0, len);
-  while(s.length < len) s += ' ';
-  return s;
-}
-function makeFieldDesc(name, type, len, dec, offset){
-  // 32 bytes
-  var b = [];
-  var nm = String(name||'').toUpperCase().replace(/[^A-Z0-9_]/g,'');
-  if(nm.length > 10) nm = nm.slice(0,10);
-  for(var i=0;i<11;i++) b.push(0);
-  for(var i=0;i<nm.length;i++) b[i] = nm.charCodeAt(i);
-  b[nm.length] = 0x00;
-  b.push(type.charCodeAt(0));
-  // address of field in record (little endian 4 bytes)
-  writeLE32(b, offset>>>0);
-  b.push(len & 0xFF);
-  b.push(dec & 0xFF);
-  // the rest 14 bytes = zeros
-  for(var i=0;i<14;i++) b.push(0);
-  return b;
-}
+  field('NAME','C',32,0); field('ELEV','N',10,1);
+  dbf.push(0x0D);
+  for(var i5=0;i5<recs.length;i5++){
+    var R=recs[i5];
+    dbf.push(0x20);
+    var nameTxt=asciiPadRight(R.name||'',32); for(var j=0;j<32;j++) dbf.push(nameTxt.charCodeAt(j));
+    var elevTxt=asciiPadLeft((R.elev!=null && isFinite(R.elev))?Number(R.elev).toFixed(1):'',10); for(var j=0;j<10;j++) dbf.push(elevTxt.charCodeAt(j));
+  }
+  dbf.push(0x1A);
 
-// Records
-var records = recs.length;
-// Prepare values arrays for each record to compute lengths easily
-var fieldDefs = [
-  {name:'NAME', type:'C', len:32, dec:0},
-  {name:'ELEV', type:'C', len:12, dec:0},
-];
-var recLen = 1; // deletion flag
-for(var fi=0; fi<fieldDefs.length; fi++){ recLen += fieldDefs[fi].len; }
-var headerLen = 32 + fieldDefs.length * 32 + 1; // end header 0x0D
+  var prjText='PROJCS["Indian_1975_UTM_Zone_47N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]';
+  var cpgText='UTF-8';
 
-// Header (32 bytes)
-var dbf = [];
-var now = new Date();
-dbf.push(0x03);                         // version
-dbf.push(now.getFullYear()-1900);       // year
-dbf.push(now.getMonth()+1);             // month
-dbf.push(now.getDate());                // day
-writeLE32(dbf, records);                // number of records
-writeLE16(dbf, headerLen);              // header length
-writeLE16(dbf, recLen);                 // record length
-// bytes 12..31 (20 bytes) reserved/flags
-for(var i=0;i<20;i++) dbf.push(0);
-// If you want, set language driver (byte 29) to 0x57 (ANSI); keeping 0 while .cpg is present is usually fine.
-
-// Field descriptors
-var offset = 1; // start after deletion flag
-for(var fi=0; fi<fieldDefs.length; fi++){
-  var fd = fieldDefs[fi];
-  var fdBytes = makeFieldDesc(fd.name, fd.type, fd.len, fd.dec, offset);
-  for(var k=0;k<fdBytes.length;k++) dbf.push(fdBytes[k]);
-  offset += fd.len;
-}
-// Header terminator
-dbf.push(0x0D);
-
-// Records
-for(var i=0;i<recs.length;i++){
-  var r=recs[i];
-  dbf.push(0x20); // not deleted
-  var nameVal = asciiPadRight(r.name||'', 32);
-  for(var j=0;j<32;j++) dbf.push(nameVal.charCodeAt(j));
-  var elevTxt = asciiPadRight((r.elev!=null && isFinite(r.elev)) ? Number(r.elev).toFixed(1) : '', 12);
-  for(var j=0;j<12;j++) dbf.push(elevTxt.charCodeAt(j));
-}
-// EOF
-dbf.push(0x1A);
-// --- PRJ & CPG ---
-  var prjText = 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]';
-
-  var cpgText = 'UTF-8';
-return { shp:new Uint8Array(shp), shx:new Uint8Array(shx), dbf:new Uint8Array(dbf), prj:new TextEncoder().encode(prjText), cpg:new TextEncoder().encode(cpgText) };
+  return { shp:new Uint8Array(shp), shx:new Uint8Array(shx), dbf:new Uint8Array(dbf), prj:new TextEncoder().encode(prjText), cpg:new TextEncoder().encode(cpgText) };
 }
 
 // --- Minimal ZIP (stored) ---
@@ -1096,7 +1014,7 @@ function zipStore(files){
 // Direct SHP export (separate files, no ZIP)
 btnSHPFiles.addEventListener('click', function(){
   if(!lastFC){ alert('Please generate contours first.'); return; }
-  var data = buildSHP_WGS84_from_IndianUTM(lastFC);
+  var data = buildSHP_47N_FromFC(lastFC);
   function saveBytes(bytes, name){
     var blob=new Blob([bytes], {type:'application/octet-stream'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
