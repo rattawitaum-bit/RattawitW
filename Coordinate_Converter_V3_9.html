@@ -4,7 +4,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GOT Coordinate Converter : WGS84 - Indian 1975 47N V3.9</title>
+    <title>Coordinate Converter v3.10</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -278,7 +278,7 @@ select[title]:hover::after {
 </style>
 </head>
 <footer class="fixed-footer">
-  Developed by Rattawit W. — Use at your own risk!! 😄😄😄
+  Developed by PPD/P : Geomatics, Rattawit W. 😄😄😄
 </footer>
 
 <style>
@@ -299,14 +299,36 @@ select[title]:hover::after {
 body {
   margin-bottom: 40px;   /* prevent content overlap */
 }
+#build-banner{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bottom:2px solid #334155;}
+#build-banner .v{font-weight:700;margin-right:8px}
+#build-banner code{background:#111827;color:#e5e7eb;padding:1px 6px;border-radius:6px}
+#build-banner small{color:#94a3b8}
 </style>
-<body>
+
+<div id="build-banner">
+  <span class="v">GOT - Coordinate Converter — Version 3.10</span>
+  <div>
+    <b>Indian 1975 (Everest 1830):</b>
+    <code>a=6377276.345</code>,
+    <code>1/f=300.8017</code>,
+    <code>k0=0.9996</code>,
+    <code>FE=500000</code>,
+    <code>FN=0</code>,
+    <code>Default UTM Zone=47N (CM=99°E)</code>
+  </div>
+  <div>
+    <b>Datum shift (Indian→WGS84, 3-param):</b>
+    <code>dx=+204.64 m</code>,
+    <code>dy=+834.74 m</code>,
+    <code>dz=+293.80 m</code>.
+  </div>
+
+</div>
+
     <div class="header p-2 mb-2">
-        <h1>GOT - Coordinate Converter</h1>
-        <p>Owner: PPD/P Geomatics</p>
 		<p>Section 1: Converts WGS84 Lat/Long (Deg Min or Decimal Deg) to Indian 1975 UTM Zone 47N and Lat/Long DMS.</p> 
 		<p>Section 2 WGS84 output: Deg Min (default), Decimal Deg, or DMS. </p>
-		<p>Datum shift: dX=-204.64, dY=-834.74, dZ=-293.8. Format: "09°42.979’N" (WGS84 DM), "9.65892°N" (WGS84 D), "7°54'40.760"N" (Indian DMS).</p>
         <p>Supports 10 points/section by default, more via TXT import, Excel copy-paste, CSV/KML export, and SVG visualization (WGS84 or UTM).</p> 
 		<button class="clear-all btn-sm" onclick="clearAllInputs()" title="Clear all inputs and SVG">Clear All Inputs</button>
     </div>
@@ -2066,5 +2088,90 @@ function validateSection1Coordinates() {
   window.copyTable = copyTable;
 })();
 </script>
+
+<script>
+// === DISPLAY PRECISION POLICY (v3.10) ===
+(function(){
+  window.__PREC_CFG__ = { decdeg_dp:6, dms_sec_dp:3, dm_min_dp:5, utm_dp:2 };
+  function toFixedSafe(x, dp){ return (Math.round(Number(x) * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp); }
+  window.formatDecimalDegrees = function(dd){ return toFixedSafe(dd, window.__PREC_CFG__.decdeg_dp); };
+  window.formatUTM = function(m){ return toFixedSafe(m, window.__PREC_CFG__.utm_dp); };
+  window.formatDM = function(dd){
+    const sign = dd < 0 ? "-" : ""; const abs = Math.abs(dd);
+    let d = Math.floor(abs); let m = (abs - d) * 60;
+    const mTxt = toFixedSafe(m, window.__PREC_CFG__.dm_min_dp);
+    let mNum = Number(mTxt); if (mNum >= 60){ mNum = 0; d += 1; }
+    return `${sign}${d}° ${mNum.toFixed(window.__PREC_CFG__.dm_min_dp)}'`;
+  };
+  window.formatDMS = function(dd){
+    const sign = dd < 0 ? "-" : ""; const abs = Math.abs(dd);
+    let d = Math.floor(abs); let mFloat = (abs - d) * 60; let m = Math.floor(mFloat);
+    let s = (mFloat - m) * 60; const dp = window.__PREC_CFG__.dms_sec_dp;
+    const k = Math.pow(10, dp); s = Math.round(s * k) / k;
+    if (s >= 60){ s = 0; m += 1; } if (m >= 60){ m = 0; d += 1; }
+    return `${sign}${d}° ${m}' ${s.toFixed(dp)}"`;
+  };
+})();
+</script>
+
 </body>
 </html>
+
+<script>
+// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.10)
+(function(){
+  const A = 6377276.345;            // Everest 1830 (Indian 1975)
+  const F = 1/300.8017;
+  const K0 = 0.9996, FE=500000.0, FN=0.0;
+  function lambda0FromZone(zone){ return (6*zone - 183) * Math.PI/180; }
+
+  function utmToLatLon_Indian1975(E, N, zone=47){
+    const L0 = lambda0FromZone(zone);
+    const e2 = F*(2 - F), e4 = e2*e2, e6 = e4*e2, ep2 = e2/(1-e2);
+    const M = (N - FN)/K0;
+    const alpha = 1 - e2/4 - 3*e4/64 - 5*e6/256;
+    const mu = M/(A*alpha);
+    const e1 = (1 - Math.sqrt(1-e2))/(1 + Math.sqrt(1-e2));
+    const phi1 = mu
+      + (3*e1/2 - 27*Math.pow(e1,3)/32)*Math.sin(2*mu)
+      + (21*Math.pow(e1,2)/16 - 55*Math.pow(e1,4)/32)*Math.sin(4*mu)
+      + (151*Math.pow(e1,3)/96)*Math.sin(6*mu)
+      + (1097*Math.pow(e1,4)/512)*Math.sin(8*mu);
+    const sin1=Math.sin(phi1), cos1=Math.cos(phi1), tan1=Math.tan(phi1);
+    const N1 = A/Math.sqrt(1 - e2*sin1*sin1);
+    const R1 = A*(1 - e2)/Math.pow(1 - e2*sin1*sin1, 1.5);
+    const T1 = tan1*tan1, C1 = ep2*cos1*cos1;
+    const D = (E - FE)/(N1*K0);
+    const phi = phi1 - (N1*tan1/R1) * ( (D*D)/2
+      - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*ep2)*Math.pow(D,4)/24
+      + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*ep2 - 3*C1*C1)*Math.pow(D,6)/720 );
+    const lam = L0 + ( D - (1 + 2*T1 + C1)*Math.pow(D,3)/6
+      + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*ep2 + 24*T1*T1)*Math.pow(D,5)/120 )/cos1;
+    return [phi*180/Math.PI, lam*180/Math.PI];
+  }
+
+  function latLonToUTM_Indian1975(lat, lon, zone=47){
+    const L0 = lambda0FromZone(zone);
+    const phi = Number(lat)*Math.PI/180, lam = Number(lon)*Math.PI/180;
+    const e2 = F*(2 - F), e4=e2*e2, e6=e4*e2, ep2=e2/(1-e2);
+    const nu = A/Math.sqrt(1 - e2*Math.sin(phi)**2);
+    const t = Math.tan(phi), eta2 = ep2*Math.cos(phi)**2;
+    const l = lam - L0, A1 = l*Math.cos(phi);
+    const a1 = 1 - e2/4 - 3*e4/64 - 5*e6/256;
+    const a2 = 3*e2/8 + 3*e4/32 + 45*e6/1024;
+    const a3 = 15*e4/256 + 45*e6/1024;
+    const a4 = 35*e6/3072;
+    const M = A*(a1*phi - a2*Math.sin(2*phi) + a3*Math.sin(4*phi) - a4*Math.sin(6*phi));
+    const E = FE + K0*nu*( A1 + (1 - t*t + eta2)*Math.pow(A1,3)/6
+      + (5 - 18*t*t + t**4 + 14*eta2 - 58*eta2*t*t)*Math.pow(A1,5)/120 );
+    const N = FN + K0*( M + nu*t*( A1*A1/2
+      + (5 - t*t + 9*eta2 + 4*eta2**2)*Math.pow(A1,4)/24
+      + (61 - 58*t*t + t**4 + 270*eta2 - 330*eta2*t*t)*Math.pow(A1,6)/720 ) );
+    return [E, N];
+  }
+
+  window.utmToLatLon_Indian1975 = utmToLatLon_Indian1975;
+  window.latLonToUTM_Indian1975 = latLonToUTM_Indian1975;
+})();
+</script>
+
