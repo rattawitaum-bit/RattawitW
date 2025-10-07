@@ -363,3 +363,206 @@ window.addEventListener('DOMContentLoaded', function(){
 </script>
 </body>
 </html>
+
+
+<!-- === PATCH: Coordinate conversion functions overridden with logic from Coordinate_Converter_V3_12 (non-invasive) === -->
+<script>
+/* This patch redefines ONLY the following functions with improved logic:
+   - geodeticToECEF(lat, lon, h, a, f)
+   - ecefToGeodetic(X, Y, Z, a, f)
+   - utmToLatLon(E, N, a, f)          // uses current global 'zone' if available, else 47
+   - indian1975UTMToWGS84(E, N)       // returns [lat_wgs, lon_wgs, lat_ind, lon_ind]
+   No other functions, globals, or parameters are touched.
+*/
+(function(){
+  var PI = Math.PI;
+  function _degToRad(d){ return d*PI/180; }
+  function _radToDeg(r){ return r*180/PI; }
+
+  // Geodetic (lat,lon,h) → ECEF (X,Y,Z) on ellipsoid (a,f)
+  function _geodeticToECEF(lat, lon, h, a, f){
+    var lr = _degToRad(lat), br = _degToRad(lon), e2 = f*(2-f);
+    var sinl = Math.sin(lr), cosl = Math.cos(lr), cosb = Math.cos(br), sinb = Math.sin(br);
+    var nu = a/Math.sqrt(1 - e2*sinl*sinl);
+    return [
+      (nu+h)*cosl*cosb,
+      (nu+h)*cosl*sinb,
+      (nu*(1-e2)+h)*sinl
+    ];
+  }
+
+  // ECEF (X,Y,Z) → Geodetic (lat,lon,h) on ellipsoid (a,f)  (iterative, robust)
+  function _ecefToGeodetic(X, Y, Z, a, f){
+    var e2 = f*(2-f), p = Math.hypot(X,Y);
+    var lon = Math.atan2(Y, X), lat = Math.atan2(Z, p*(1-e2)), h = 0;
+    for (var i=0;i<60;i++){
+      var sinl = Math.sin(lat);
+      var nu = a/Math.sqrt(1 - e2*sinl*sinl);
+      var hNew = p/Math.cos(lat) - nu;
+      var latNew = Math.atan2(Z + e2*nu*sinl, p);
+      if (Math.abs(hNew - h) < 1e-8 && Math.abs(latNew - lat) < 1e-12) { h = hNew; lat = latNew; break; }
+      h = hNew; lat = latNew;
+    }
+    return [_radToDeg(lat), _radToDeg(lon), h];
+  }
+
+  // Indian 1975 UTM (E,N) → geodetic on given (a,f). Uses global zone/k0 if present; defaults otherwise.
+  function _utmToLatLon(E, N, a, f){
+    var _k0 = (typeof k0 === 'number' ? k0 : 0.9996);
+    var _zone = (typeof zone === 'number' ? zone : 47);
+    var lambda0 = _degToRad(6*_zone - 183);
+    var e2 = f*(2-f), e4 = e2*e2, e6 = e4*e2, ep2 = e2/(1-e2);
+    var alpha1 = 1 - e2/4 - 3*e4/64 - 5*e6/256;
+    var M = N / _k0;
+    var mu = M / (a*alpha1);
+    var e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+
+    // series for phi1
+    var mu2 = 2*mu;
+    var phi1 = mu       + (3/2*e1 - 27/32*e1**3)*Math.sin(mu2)       + (21/16*e1**2 - 55/32*e1**4)*Math.sin(4*mu)       + (151/96*e1**3)*Math.sin(6*mu)       + (1097/512*e1**4)*Math.sin(8*mu);
+
+    var sinp = Math.sin(phi1), cosp = Math.cos(phi1), t1 = Math.tan(phi1);
+    var nu1  = a/Math.sqrt(1 - e2*sinp*sinp);
+    var rho1 = a*(1 - e2) / (1 - e2*sinp*sinp)**1.5;
+    var eta2 = ep2*cosp*cosp;
+    var D    = (E - 500000) / (nu1*_k0);
+
+    var D2 = D*D, D3 = D2*D, D4 = D2*D2, D5 = D4*D, D6 = D3*D3;
+
+    var term_lat =  D2/2                   - (5 + 3*t1*t1 + 10*eta2 - 4*eta2*eta2 - 9*ep2)*D4/24                   + (61 + 90*t1*t1 + 298*eta2 + 45*t1**4 - 252*ep2 - 3*eta2*eta2)*D6/720;
+
+    var lat = phi1 - (nu1*t1/rho1)*term_lat;
+
+    var term_lon =  D                   - (1 + 2*t1*t1 + eta2)*D3/6                   + (5 - 2*eta2 + 28*t1*t1 - 3*eta2*eta2 + 8*ep2 + 24*t1**4)*D5/120;
+
+    var lon = lambda0 + term_lon/cosp;
+
+    return [_radToDeg(lat), _radToDeg(lon)];
+  }
+
+  // Public overrides delegating to internal implementations (signatures unchanged)
+  window.geodeticToECEF = function(lat, lon, h, a, f){ return _geodeticToECEF(lat, lon, h, a, f); };
+  window.ecefToGeodetic = function(X, Y, Z, a, f){ return _ecefToGeodetic(X, Y, Z, a, f); };
+  window.utmToLatLon = function(E, N, a, f){ return _utmToLatLon(E, N, a, f); };
+
+  // Indian 1975 UTM → WGS84 (uses robust ECEF bridge with 3-param shift)
+  window.indian1975UTMToWGS84 = function(E, N){
+    var a_wgs = 6378137,        f_wgs = 1/298.257223563;
+    var a_ind = 6377276.345,    f_ind = 1/300.8017;
+    var dx = -204.64, dy = -834.74, dz = -293.8;
+
+    var geod_ind = _utmToLatLon(E, N, a_ind, f_ind);
+    var ecef_ind = _geodeticToECEF(geod_ind[0], geod_ind[1], 0, a_ind, f_ind);
+
+    var xw = ecef_ind[0] - dx, yw = ecef_ind[1] - dy, zw = ecef_ind[2] - dz;
+    var geod_wgs = _ecefToGeodetic(xw, yw, zw, a_wgs, f_wgs);
+
+    // [lat_wgs, lon_wgs, lat_ind, lon_ind]
+    return [geod_wgs[0], geod_wgs[1], geod_ind[0], geod_ind[1]];
+  };
+})();
+</script>
+
+
+<!-- === ADD-ON: Indian 1975 DMS output (non-invasive; no existing functions modified) === -->
+<script>
+(function(){
+  function toDMS(deg, isLat){
+    if(!isFinite(deg)) return "—";
+    var hemi = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+    var v = Math.abs(deg);
+    var d = Math.floor(v);
+    var mFloat = (v - d) * 60;
+    var m = Math.floor(mFloat);
+    var s = (mFloat - m) * 60;
+    return d + '\u00B0 ' + m + "' " + s.toFixed(3) + '\" ' + hemi;
+  }
+
+  function ensureIndianDMSPanel(){
+    if(document.getElementById('ind_dms')) return;
+    var anchor = document.querySelector('.status') || document.querySelector('main .card');
+    var box = document.createElement('div');
+    box.id = 'ind_dms';
+    box.className = 'small';
+    box.style.marginTop = '8px';
+    box.innerHTML = '<div style="font-weight:600;margin:6px 0">Indian 1975 (Geodetic DMS)</div><div id="ind_dms_lines"></div>';
+    anchor && anchor.parentNode.insertBefore(box, anchor.nextSibling);
+  }
+
+  function computeIndianDMS(){
+    try {
+      ensureIndianDMSPanel();
+      var rows = (typeof getRows === 'function') ? getRows() : [];
+      var out = rows.map(function(r){
+        var ind = utmToLatLon(r.x, r.y, a_ind, f_ind); // uses existing converter & constants
+        var str = toDMS(ind[0], true) + ' ' + toDMS(ind[1], false);
+        return '<div><b>' + r.role + ':</b> ' + str + '</div>';
+      }).join('');
+      var el = document.getElementById('ind_dms_lines');
+      if(el) el.innerHTML = out;
+    } catch(e){
+      // fail silently to avoid impacting core UX
+    }
+  }
+
+  // Wire-up without touching existing handlers
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureIndianDMSPanel();
+    computeIndianDMS();
+    var btn = document.getElementById('btnCalc');
+    if(btn) btn.addEventListener('click', computeIndianDMS);
+    document.querySelectorAll('#rows .x, #rows .y, #rows .roleSel').forEach(function(el){
+      el.addEventListener('input', computeIndianDMS);
+      el.addEventListener('change', computeIndianDMS);
+    });
+  });
+})();
+</script>
+<!-- === END ADD-ON === -->
+
+
+<!-- === MICRO-PATCH: Allow single-number native paste in first X cell === -->
+<script>
+(function(){
+  if (typeof window.handlePaste === 'function') {
+    var _origHandlePaste = window.handlePaste;
+    window.handlePaste = function(e){
+      try {
+        var clip = (e.clipboardData || window.clipboardData);
+        var text = clip ? (clip.getData && clip.getData('text')) : '';
+        var matches = text ? text.match(/-?\d+(?:[.,]\d+)?/g) : null;
+        // If fewer than 2 numbers, let the browser handle paste normally.
+        if (!matches || matches.length < 2) { return; }
+      } catch(err){ /* fall through to original */ }
+      return _origHandlePaste(e);
+    };
+  }
+})();
+</script>
+<!-- === END MICRO-PATCH === -->
+
+
+<!-- === MICRO-PATCH v2: Permit single-number native paste (blocks Smart Paste in capture) === -->
+<script>
+(function(){
+  // Intercept at the DOCUMENT capture phase so row wrapper's capture handler won't fire.
+  document.addEventListener('paste', function(e){
+    try{
+      var firstX = document.querySelector('#rows .rowgrid .x');
+      if (!firstX) return;
+      if (e.target !== firstX) return; // only touch first X cell
+      var clip = (e.clipboardData || window.clipboardData);
+      var text = clip ? (clip.getData && clip.getData('text')) : '';
+      var matches = text ? text.match(/-?\d+(?:[.,]\d+)?/g) : null;
+      // If fewer than 2 numbers, we want native paste and we want to BLOCK the app handler.
+      if (!matches || matches.length < 2) {
+        var statusEl = document.getElementById('pasteStatus');
+        if (statusEl) { statusEl.textContent = ''; statusEl.style.color = '#374151'; }
+        e.stopPropagation();    // prevent the app's Smart Paste from seeing this
+        // DO NOT call preventDefault => allow native paste to occur
+      }
+    }catch(_){ /* no-op */ }
+  }, true); // <== capture
+})();
+</script>
+<!-- === END MICRO-PATCH v2 === -->
