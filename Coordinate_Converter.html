@@ -4,7 +4,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v3.10</title>
+    <title>Coordinate Converter v3.12</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -307,7 +307,7 @@ background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bott
 </style>
 
 <div id="build-banner">
-  <span class="v">GOT - Coordinate Converter — Version 3.10</span>
+  <span class="v">GOT - Coordinate Converter — Version 3.12</span>
   <div>
     <b>Indian 1975 (Everest 1830):</b>
     <code>a=6377276.345</code>,
@@ -911,9 +911,57 @@ background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bott
   reader.readAsText(file);
 }
 
-        function clearSection1() {
-            updateSection1Table();
-        }
+
+function clearSection1() {
+  const table = document.getElementById('table1');
+  if (!table) return;
+  const tbody = table.tBodies[0] || table.querySelector('tbody');
+  if (!tbody) return;
+
+  // Trim to exactly 10 rows (match Section 2 behavior)
+  while (tbody.rows.length > 10) {
+    tbody.deleteRow(tbody.rows.length - 1);
+  }
+  // If somehow fewer than 10, clone last row shape (DM/D) until 10
+  while (tbody.rows.length < 10 && tbody.rows.length > 0) {
+    const clone = tbody.rows[tbody.rows.length - 1].cloneNode(true);
+    const tds = clone.cells;
+    if (tds[0]) tds[0].textContent = String(tbody.rows.length + 1);
+    for (let j = 1; j < tds.length; j++) {
+      const cell  = tds[j];
+      const input = cell.querySelector('input');
+      const span  = cell.querySelector('span');
+      if (input) input.value = '';
+      if (span)  span.textContent = '';
+      if (!input) cell.textContent = ''; // output cells
+    }
+    tbody.appendChild(clone);
+  }
+
+  // Clear all existing rows and renumber IDs
+  for (let i = 0; i < tbody.rows.length; i++) {
+    const row = tbody.rows[i];
+    const cells = row.cells;
+    if (cells[0]) cells[0].textContent = String(i + 1);
+    for (let j = 1; j < cells.length; j++) {
+      const cell  = cells[j];
+      const input = cell.querySelector('input');
+      const span  = cell.querySelector('span');
+      if (input) input.value = '';
+      if (span)  span.textContent = '';
+      if (!input) cell.textContent = '';
+      if (typeof updateDisplay === 'function' && input) updateDisplay(cell);
+    }
+  }
+
+  // Reset status + file picker; do not touch SVG (that’s Clear All’s job)
+  const st = document.getElementById('section1Status');
+  if (st) { st.textContent = ''; st.className = 'status'; }
+  const f = document.getElementById('fileInputSection1');
+  if (f) f.value = '';
+}
+
+
 
         function clearSection2() {
   const table = document.getElementById('table2');
@@ -2090,7 +2138,7 @@ function validateSection1Coordinates() {
 </script>
 
 <script>
-// === DISPLAY PRECISION POLICY (v3.10) ===
+// === DISPLAY PRECISION POLICY (v3.12) ===
 (function(){
   window.__PREC_CFG__ = { decdeg_dp:6, dms_sec_dp:3, dm_min_dp:5, utm_dp:2 };
   function toFixedSafe(x, dp){ return (Math.round(Number(x) * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp); }
@@ -2118,7 +2166,7 @@ function validateSection1Coordinates() {
 </html>
 
 <script>
-// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.10)
+// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.12)
 (function(){
   const A = 6377276.345;            // Everest 1830 (Indian 1975)
   const F = 1/300.8017;
@@ -2175,3 +2223,108 @@ function validateSection1Coordinates() {
 })();
 </script>
 
+
+
+<!-- BEGIN SELF-QC PATCH (minimal-impact, additive) -->
+<script>(function(){'use strict';
+  /* ---------------- Section 1: Prefill (DM & D) ---------------- */
+  var DM_SAMPLES=[
+    {latDeg:9,latMin:39.535,lonDeg:101,lonMin:21.718},
+    {latDeg:7,latMin:54.807,lonDeg:102,lonMin:49.359}
+  ];
+  function setCell(td,val){
+    if(!td) return;
+    var inp=td.querySelector('input'), span=td.querySelector('span');
+    if(inp) inp.value=val;
+    if(span) span.textContent=(inp&&inp.value!==undefined)?inp.value:String(val);
+    if(typeof window.updateDisplay==='function') window.updateDisplay(td);
+  }
+  function seedDMRow(tr,s){var c=tr.cells||[]; setCell(c[1],s.latDeg); setCell(c[2],s.latMin); setCell(c[3],s.lonDeg); setCell(c[4],s.lonMin);}
+  function seedDRow(tr,s){
+    var lat=(s.latDeg<0?-1:1)*(Math.abs(s.latDeg)+s.latMin/60);
+    var lon=(s.lonDeg<0?-1:1)*(Math.abs(s.lonDeg)+s.lonMin/60);
+    var fmt=(typeof window.formatDecimalDegrees==='function')?window.formatDecimalDegrees:(x=>Number(x).toFixed(6));
+    var c=tr.cells||[]; setCell(c[1],fmt(lat)); setCell(c[2],fmt(lon));
+  }
+  function rowIsEmpty(tr){
+    var inps=tr?tr.querySelectorAll('input'):[];
+    for(var i=0;i<inps.length;i++){ if(String(inps[i].value||'').trim()!=='') return false; }
+    return true;
+  }
+  function seedSection1(){
+    var sel=document.getElementById('section1InputFormat'), tbl=document.getElementById('table1');
+    if(!sel||!tbl||!tbl.tBodies[0]) return;
+    var isDM=String(sel.value||'dm').toLowerCase()==='dm', rows=tbl.tBodies[0].rows;
+    for(var i=0;i<Math.min(2,rows.length);i++){ if(rowIsEmpty(rows[i])) (isDM?seedDMRow:seedDRow)(rows[i],DM_SAMPLES[i]); }
+  }
+  var _updateS1=window.updateSection1Table;
+  window.updateSection1Table=function(){ if(typeof _updateS1==='function') _updateS1(); setTimeout(seedSection1,0); };
+  window.addEventListener('DOMContentLoaded',function(){ setTimeout(seedSection1,0); });
+
+  /* ---------------- Section 1: QC + wrapper ---------------- */
+  function numify(x){ try{ if(typeof window.toNumber==='function') return window.toNumber(x); return Number(String(x).replace(/,/g,'')); }catch(e){ return NaN; } }
+  function s1QC(){
+    var msgs=[], sel=document.getElementById('section1InputFormat'), tbl=document.getElementById('table1');
+    if(!sel||!tbl) return msgs;
+    var fmt=String(sel.value||'dm').toLowerCase(), rows=tbl.rows;
+    for(var i=1;i<rows.length;i++){
+      var c=rows[i].cells;
+      if(fmt==='dm'){
+        var latD=numify(c[1].querySelector('input').value), latM=numify(c[2].querySelector('input').value),
+            lonD=numify(c[3].querySelector('input').value), lonM=numify(c[4].querySelector('input').value);
+        var empty=[latD,latM,lonD,lonM].every(function(v){return isNaN(v);}); if(empty) continue;
+        if([latD,latM,lonD,lonM].some(function(v){return isNaN(v);})){ msgs.push('Row '+i+': all four DM fields must be numbers'); continue; }
+        if(latM<0||latM>=60||lonM<0||lonM>=60) msgs.push('Row '+i+': minutes must be 0–<60');
+        if(latD<-90||latD>90) msgs.push('Row '+i+': latitude degrees must be −90..90');
+        if(lonD<-180||lonD>180) msgs.push('Row '+i+': longitude degrees must be −180..180');
+      }else{
+        var lat=numify(c[1].querySelector('input').value), lon=numify(c[2].querySelector('input').value);
+        var bothEmpty=isNaN(lat)&&isNaN(lon); if(bothEmpty) continue;
+        if(isNaN(lat)||isNaN(lon)){ msgs.push('Row '+i+': provide both Lat and Lon (D)'); continue; }
+        if(lat<-90||lat>90) msgs.push('Row '+i+': latitude must be −90..90');
+        if(lon<-180||lon>180) msgs.push('Row '+i+': longitude must be −180..180');
+      }
+    }
+    return msgs;
+  }
+  (function(){ var _calc1=window.calculateSection1;
+    window.safeCalculateSection1=function(){
+      var el=document.getElementById('section1Status'), msgs=s1QC();
+      if(msgs.length){ if(el){ el.textContent=msgs.join(' | '); el.className='status err'; } alert(msgs.join('\n')); return; }
+      if(typeof _calc1==='function') _calc1();
+      if(el){ el.textContent=''; el.className='status ok'; }
+    };
+  })();
+
+  /* ---------------- Section 2: QC (ignore empty rows) ---------------- */
+  (function(){
+    var EAST_MIN=500000, EAST_MAX=960000, NORTH_MIN=800000, NORTH_MAX=1200000;
+    function parseCell(td){
+      var inp=td&&td.querySelector('input'); var raw=inp?inp.value:'';
+      var s=String(raw||'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[\s\u00A0]/g,'').replace(/,/g,'');
+      if(s==='') return {empty:true,num:NaN};
+      var n=Number(s); return {empty:false,num:(isFinite(n)?n:NaN)};
+    }
+    function s2QC(){
+      var msgs=[], table=document.getElementById('table2'); if(!table) return msgs;
+      for(var i=1;i<table.rows.length;i++){
+        var c=table.rows[i].cells; if(!c||c.length<5) continue;
+        var east=parseCell(c[3]), north=parseCell(c[4]);
+        if(east.empty && north.empty) continue;
+        if(isNaN(east.num)||isNaN(north.num)){ msgs.push('Row '+i+': Easting and Northing must be numbers (both required)'); continue; }
+        if(east.num<EAST_MIN||east.num>EAST_MAX) msgs.push('Row '+i+': Easting must be in 500000–960000 m');
+        if(north.num<NORTH_MIN||north.num>NORTH_MAX) msgs.push('Row '+i+': Northing must be in 800000–1200000 m');
+      }
+      return msgs;
+    }
+    var _calc2=window.calculateSection2;
+    window.calculateSection2=function(){
+      var el=document.getElementById('section2Status'), msgs=s2QC();
+      if(msgs.length){ if(el){ el.textContent=msgs.join(' | '); el.className='status err'; } alert(msgs.join('\n')); return; }
+      if(typeof _calc2==='function') _calc2();
+      if(el){ el.textContent=''; el.className='status ok'; }
+    };
+  })();
+
+})();</script>
+<!-- END SELF-QC PATCH -->
