@@ -12,7 +12,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-<script src="all_constituents_0p1deg_TPS_weighted_plus150km.js"></script>
 <script src="station_coords.js"></script>
 <style>
 :root {
@@ -224,6 +223,78 @@ select#interval {
 
 </head>
 <body>
+<!-- UI กลางๆ ใช้งานได้เลย -->
+<div style="max-width:920px;margin:16px auto;padding:12px;border:1px solid #ddd;border-radius:12px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <label>Lat <input id="lat" type="number" step="0.0001" value="12.5"></label>
+    <label>Lon <input id="lon" type="number" step="0.0001" value="100.5"></label>
+    <label>Start <input id="start" type="date" value="2025-01-01"></label>
+    <label>End <input id="end" type="date" value="2025-01-02"></label>
+    <label>Interval (min) <input id="iv" type="number" value="10" min="5"></label>
+    <button id="go">Compute</button>
+  </div>
+  <canvas id="chart" height="140" style="width:100%;margin-top:10px;"></canvas>
+  <div id="extrema" style="font:12px/1.4 monospace;margin-top:8px;"></div>
+</div>
+
+<!-- ใส่ Chart.js จาก CDN ถ้าคุณยังไม่มี -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides'; // URL ของคุณ
+
+async function fetchTides(lat, lon, start, end, interval=10){
+  const u = new URL(API);
+  u.searchParams.set('lat', lat);
+  u.searchParams.set('lon', lon);
+  u.searchParams.set('start', start);
+  u.searchParams.set('end', end);
+  u.searchParams.set('interval', interval);
+  const r = await fetch(u, { mode: 'cors' });
+  if(!r.ok) throw new Error('API error');
+  return r.json(); // { series:[[ts,level],...], highs:[...], lows:[...] }
+}
+
+function ts2local(ts){
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, { hour12:false });
+}
+
+let chart;
+function renderChart(series){
+  const labels = series.map(p => new Date(p[0]));
+  const data   = series.map(p => p[1]);
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label:'Tide (m)', data, pointRadius:0, borderWidth:1 }] },
+    options: { scales: { x: { type: 'time', time: { unit:'hour' } } } }
+  });
+}
+
+function renderExtrema(highs, lows){
+  const fmt = arr => arr.map(([t,y]) => `${ts2local(t)}  ${y.toFixed(3)} m`).join('<br>');
+  document.getElementById('extrema').innerHTML =
+    `<b>Highs</b><br>${fmt(highs)}<br><br><b>Lows</b><br>${fmt(lows)}`;
+}
+
+document.getElementById('go').addEventListener('click', async ()=>{
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  const start = document.getElementById('start').value;
+  const end   = document.getElementById('end').value;
+  const iv    = parseInt(document.getElementById('iv').value,10);
+
+  try{
+    const res = await fetchTides(lat, lon, start, end, iv);
+    renderChart(res.series);
+    renderExtrema(res.highs, res.lows);
+  }catch(e){
+    alert('API error: '+e.message);
+  }
+});
+</script>
+
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <div style="font-weight:700">Gulf of Thailand — Tide Map</div>
