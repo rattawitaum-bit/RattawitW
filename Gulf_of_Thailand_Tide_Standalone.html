@@ -3,532 +3,245 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf of Thailand — Tide Map (API)</title>
+<title>Gulf of Thailand — Tide (API-only)</title>
 
-<!-- Import fonts and libraries -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+<!-- Fonts & minimal CSS -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7fb;--panel:#fff;--txt:#111827;--muted:#6b7280;--accent:#2563eb;--border:#e5e7eb}
+*{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}
+.wrap{max-width:1100px;margin:18px auto;padding:0 16px}
+.hbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.hbar .sp{margin-left:auto;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.card>.hd{padding:12px 14px;border-bottom:1px solid var(--border);font-weight:600}
+.card>.bd{padding:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.grid{grid-template-columns:360px 1fr}}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+select,.btn{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font-size:14px}
+.btn{background:var(--accent);border:none;color:#fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px}
+.kv div:nth-child(odd){color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}
+canvas{background:#eef2ff;border-radius:12px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
+th{color:var(--muted);font-weight:600;text-align:left}
+#msg{color:var(--muted);min-height:18px}
+.pill{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:999px;padding:2px 8px;font-size:12px}
+.bad{color:#b91c1c}
+</style>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-
+<!-- Chart.js + Luxon time adapter (required for time axis) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-
-<!-- Load station coordinates (sets window.STATION_COORDS) -->
-<script src="./station_coords.js"></script>
-
-<style>
-  :root {
-    --bg: #f5f7fa;
-    --panel: #ffffff;
-    --text: #111827;
-    --muted: #4b5563;
-    --accent: #3b82f6;
-    --border: #e5e7eb;
-  }
-  html, body {
-    height: 100%;
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
-  }
-  .wrap {
-    max-width: 1200px;
-    margin: 16px auto;
-    padding: 0 16px;
-  }
-  .grid {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  @media (min-width: 768px) {
-    .grid {
-      flex-direction: row;
-    }
-  }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  }
-  .card > .hd {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    font-weight: 600;
-    font-size: 15px;
-  }
-  .card > .bd {
-    padding: 16px;
-  }
-  label {
-    font-size: 13px;
-    color: var(--muted);
-    display: block;
-    margin-bottom: 6px;
-  }
-  input[type="number"],
-  input[type="date"],
-  select {
-    width: 100%;
-    background: #fff;
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    outline: none;
-    font-size: 14px;
-  }
-  input:focus,
-  select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .btn {
-    background-color: var(--accent);
-    color: #fff;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 99px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-  .btn:hover {
-    background-color: #2563eb;
-  }
-  .muted {
-    color: var(--muted);
-  }
-  #map {
-    height: 400px;
-    border-bottom-left-radius: 14px;
-    border-bottom-right-radius: 14px;
-  }
-  canvas {
-    background: #f0f3f9;
-    border-radius: 12px;
-  }
-</style>
 </head>
+
 <body>
 <div class="wrap">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-    <div style="font-weight:700">Gulf of Thailand — Tide Map</div>
-    <div class="muted">Developed by <strong>Rattawit W</strong></div>
-    <div class="muted" style="margin-left:auto">Time zone: Asia/Bangkok</div>
+  <div class="hbar">
+    <div style="font-weight:700">Gulf of Thailand — Tide (API)</div>
+    <div class="sp">Client computes nothing. Server returns series/highs/lows/z0.</div>
   </div>
+
   <div class="grid">
+    <!-- LEFT: controls & meta -->
     <div class="card">
-      <div class="hd">Pick a point</div>
+      <div class="hd">Station</div>
       <div class="bd">
-        <div class="row" style="margin-bottom:10px">
-          <div style="grid-column: 1 / -1">
-            <label for="stationSelect">Preset location (optional)</label>
-            <select id="stationSelect">
-              <option value="">— Select a station from list —</option>
-            </select>
-          </div>
+        <label for="station">Choose a station</label>
+        <select id="station"></select>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="run" class="btn">Compute</button>
+          <button id="csv" class="btn">Export CSV</button>
+          <button id="png" class="btn">Export PNG</button>
         </div>
-        <div class="row">
-          <div>
-            <label for="lat">Latitude</label>
-            <input id="lat" type="number" step="0.000001" placeholder="9.50" />
-          </div>
-          <div>
-            <label for="lon">Longitude</label>
-            <input id="lon" type="number" step="0.000001" placeholder="101.50" />
-          </div>
+        <div id="msg" style="margin-top:8px"></div>
+
+        <div class="hd" style="margin:12px -14px 6px -14px;padding:10px 14px;border-top:1px solid var(--border);border-bottom:none">Result meta</div>
+        <div class="kv bd" id="metaKV">
+          <div>Lat, Lon</div><div id="kv-ll">—</div>
+          <div>Window</div><div id="kv-win">—</div>
+          <div>Interval</div><div id="kv-int">—</div>
+          <div>z0</div><div id="kv-z0">—</div>
         </div>
-        <div class="row" style="margin-top:10px">
-          <div>
-            <label for="start">Start date (00:00 local)</label>
-            <input id="start" type="date" />
-          </div>
-          <div>
-            <label for="end">End date (24:00 local)</label>
-            <input id="end" type="date" />
-          </div>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <div>
-            <label>Quick range</label>
-            <div>
-              <button class="btn" data-days="1">1 day</button>
-              <button class="btn" data-days="3">3 days</button>
-              <button class="btn" data-days="5">5 days</button>
-              <button class="btn" data-days="7">7 days</button>
-            </div>
-          </div>
-          <div>
-            <label for="interval">Interval</label>
-            <select id="interval">
-              <option value="10" selected>10 min</option>
-              <option value="20">20 min</option>
-              <option value="30">30 min</option>
-              <option value="60">60 min</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <div id="msgbox" class="muted" style="flex:1">Data served by Cloudflare Worker API.</div>
-          <button id="runBtn" class="btn">Compute tides</button>
-          <button id="csvBtn" class="btn">Export CSV</button>
-          <button id="pngBtn" class="btn">Export PNG</button>
-        </div>
+        <div class="small">Window is enforced by the API (Worker). Interval is fixed at 15 min.</div>
       </div>
-      <div class="hd">Map (click to compute)</div>
-      <div id="map"></div>
     </div>
-    <div class="output-column" style="flex:1;display:flex;flex-direction:column;gap:12px">
-      <div class="card">
-        <div class="hd">Tide curve</div>
-        <div class="bd"><canvas id="chart" height="170"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="hd">Daily High / Low — Time: HH:mm, Level: m</div>
-        <div class="bd" id="hl"></div>
-      </div>
-      <div class="card">
-        <div class="hd">Site constant — z0 (m)</div>
-        <div class="bd"><div id="z0">—</div></div>
-      </div>
+
+    <!-- RIGHT: chart + highs/lows -->
+    <div class="card">
+      <div class="hd">Tide curve</div>
+      <div class="bd"><canvas id="chart" height="190"></canvas></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <div class="hd">Daily highs / lows (HH:mm, m)</div>
+      <div class="bd" id="hl"></div>
     </div>
   </div>
 </div>
 
-<!-- Main script: interacts with API and renders charts -->
 <script>
+const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
 const USE_TZ = 'Asia/Bangkok';
-// Worker API endpoint (replace with your subdomain)
-const API_ENDPOINT = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
-// Snap function to align lat/lon to the 0.1° grid for caching
-const snap = (x, step = 0.1) => Math.round(x / step) * step;
 
-function showMsg(txt) {
-  document.getElementById('msgbox').textContent = txt || '';
-}
-function clearMsg() {
-  showMsg('');
-}
-
-async function fetchTides(lat, lon, start, end, interval = 10) {
-  const url = new URL(API_ENDPOINT);
-  url.searchParams.set('lat', snap(lat));
-  url.searchParams.set('lon', snap(lon));
-  url.searchParams.set('start', start);
-  url.searchParams.set('end', end);
-  url.searchParams.set('interval', interval);
-  const response = await fetch(url.toString(), { mode: 'cors' });
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-  return response.json();
-}
-
-// Chart.js plugin to draw daily separators and date labels
-const daySeparator = {
-  id: 'daySeparator',
-  afterDatasetsDraw(chart) {
-    const { ctx, chartArea, scales } = chart;
-    if (!chartArea || !scales || !scales.x) return;
-    const { top, bottom, left, right } = chartArea;
-    const x = scales.x;
-    const min = x.min;
-    const max = x.max;
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
-    // Start at the beginning of the day in the current timezone
-    let startDay = luxon.DateTime.fromMillis(min).setZone(USE_TZ).startOf('day');
-    if (startDay.toMillis() > min) startDay = startDay.minus({ days: 1 });
-    const ticks = [];
-    // Create a set of timestamps for each day between min and max
-    for (let t = startDay; t.toMillis() <= max + 24 * 3600 * 1000; t = t.plus({ days: 1 })) {
-      ticks.push(t.toMillis());
-    }
-    ctx.save();
-    // Clip drawing region to chart area
-    ctx.beginPath();
-    ctx.rect(left, top, right - left, bottom - top);
-    ctx.clip();
-    // Draw dashed vertical lines
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 1.25;
-    ctx.strokeStyle = 'rgba(148,163,184,0.45)';
-    for (const ts of ticks.filter((ts) => ts > min && ts < max)) {
-      const px = x.getPixelForValue(ts);
-      ctx.beginPath();
-      ctx.moveTo(px, top);
-      ctx.lineTo(px, bottom);
-      ctx.stroke();
-    }
-    // Remove dash pattern
-    ctx.setLineDash([]);
-    // Draw date labels on top of the chart area
-    ctx.font = '12px Inter, system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    for (let i = 0; i < ticks.length - 1; i++) {
-      const segL = Math.max(min, ticks[i]);
-      const segR = Math.min(max, ticks[i + 1]);
-      if (segR <= segL) continue;
-      const cx = x.getPixelForValue((segL + segR) / 2);
-      const label = luxon.DateTime.fromMillis((segL + segR) / 2)
-        .setZone(USE_TZ)
-        .toFormat('yyyy-LL-dd');
-      const w = 78;
-      const h = 16;
-      ctx.fillStyle = 'rgba(11,18,36,0.75)';
-      ctx.fillRect(cx - w / 2, top + 2, w, h);
-      ctx.fillStyle = '#e5e7eb';
-      ctx.fillText(label, cx, top + 4);
-    }
-    ctx.restore();
-  },
+// 1) Hard-coded stations (copied from your station_coords.js)
+const STATIONS = {
+  "AWP26":{"lat":8.5107,"lon":102.2262},
+  "AWP36":{"lat":7.94077,"lon":102.6856},
+  "B832":{"lat":10.520936,"lon":101.27638},
+  "G365":{"lat":7.586336,"lon":102.121412},
+  "SBWA":{"lat":8.68628,"lon":101.3838},
+  "SGWH":{"lat":8.683,"lon":101.743},
+  "PDWA":{"lat":9.47695,"lon":101.394183},
+  "PLLQ":{"lat":9.691283333,"lon":101.4042333},
+  "BQP":{"lat":8.019097,"lon":102.32179},
+  "QPS":{"lat":7.492083333,"lon":102.6147667},
+  "FULQ":{"lat":8.933933333,"lon":101.5894333},
+  "ERLQ":{"lat":9.077383333,"lon":101.3095},
+  "AQP":{"lat":8.260766667,"lon":102.52465},
+  "YAWD":{"lat":9.92305,"lon":101.4586},
+  "SALQ":{"lat":9.286267,"lon":101.412167}
 };
 
-let chartInstance = null;
-function renderChart(series) {
-  const ctx = document.getElementById('chart').getContext('2d');
-  if (chartInstance) chartInstance.destroy();
-  const data = series.map(([t, y]) => ({ x: new Date(t), y }));
-  chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [
-        {
-          label: 'Tide (m)',
-          data: data,
-          pointRadius: 0,
-          borderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      interaction: { mode: 'index', intersect: false, axis: 'x' },
-      scales: {
-        x: { type: 'time' },
-        y: { title: { display: true, text: 'm' } },
-      },
-    },
-    plugins: [daySeparator],
-  });
-}
-
-function renderHighLows(highs, lows) {
-  const container = document.getElementById('hl');
-  const format = (ts) => luxon.DateTime.fromMillis(ts).setZone(USE_TZ).toFormat('HH:mm');
-  // Group by day in local timezone
-  const groupByDay = (arr) => {
-    const m = new Map();
-    for (const [t, y] of arr) {
-      const day = luxon.DateTime.fromMillis(t).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-      if (!m.has(day)) m.set(day, []);
-      m.get(day).push([t, y]);
-    }
-    return m;
-  };
-  const hiBy = groupByDay(highs);
-  const loBy = groupByDay(lows);
-  const allDays = Array.from(new Set([...hiBy.keys(), ...loBy.keys()])).sort();
-  const rows = [];
-  for (const day of allDays) {
-    // Merge highs and lows and sort by time
-    const merged = [
-      ...(hiBy.get(day) || []).map(([t, y]) => ({ t, y, type: 'High' })),
-      ...(loBy.get(day) || []).map(([t, y]) => ({ t, y, type: 'Low' })),
-    ].sort((a, b) => a.t - b.t);
-    rows.push(`<div style="margin:6px 0 4px;color:#4f46e5;font-weight:600">${day}</div>`);
-    rows.push('<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left">Type</th><th style="text-align:center">Time</th><th style="text-align:right">m</th></tr></thead><tbody>');
-    merged.forEach(({ t, y, type }) => {
-      const color = type === 'High' ? '#0ea5e9' : '#db2777';
-      rows.push(
-        `<tr><td style="color:${color}">${type}</td><td style="text-align:center">${format(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`
-      );
-    });
-    rows.push('</tbody></table>');
-  }
-  container.innerHTML = rows.join('') || '<div class="muted">No extrema found in this range.</div>';
-}
-
-function renderZ0(constants) {
-  const val = Number(constants?.z0 ?? NaN);
-  document.getElementById('z0').textContent = Number.isFinite(val) ? val.toFixed(6) + ' m' : '—';
-}
-
-async function computeAndRender(lat, lon, manual = false) {
-  const start = document.getElementById('start').value;
-  const end = document.getElementById('end').value;
-  const minutes = parseInt(document.getElementById('interval').value, 10);
-  if (!start || !end) {
-    showMsg('Choose start and end dates');
-    return;
-  }
-  showMsg('Computing…');
-  try {
-    const res = await fetchTides(lat, lon, start, end, minutes);
-    renderChart(res.series);
-    renderHighLows(res.highs, res.lows);
-    renderZ0(res.constants);
-    clearMsg();
-    // Optionally drop a marker on manual update
-    if (manual) {
-      if (window.lastMarker) map.removeLayer(window.lastMarker);
-      window.lastMarker = L.marker([lat, lon]).addTo(map).bindPopup(
-        `Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`
-      );
-      map.setView([lat, lon], Math.max(8, map.getZoom()));
-    }
-  } catch (err) {
-    showMsg('API unavailable or outside model domain');
-  }
-}
-
-// CSV export
-document.getElementById('csvBtn').addEventListener('click', () => {
-  if (!chartInstance || !chartInstance.data?.datasets?.[0]?.data?.length) {
-    alert('Compute tides first.');
-    return;
-  }
-  const lat = Number.parseFloat(document.getElementById('lat').value);
-  const lon = Number.parseFloat(document.getElementById('lon').value);
-  const start = document.getElementById('start').value || '';
-  const end = document.getElementById('end').value || '';
-  const minutes = parseInt(document.getElementById('interval').value, 10);
-  const tz = USE_TZ;
-  const header = ['latitude', 'longitude', 'timezone', 'date_local', 'time_local', 'tide_m'];
-  const rows = [header];
-  for (const pt of chartInstance.data.datasets[0].data) {
-    const d = luxon.DateTime.fromJSDate(pt.x).setZone(tz);
-    rows.push([
-      lat.toFixed(6),
-      lon.toFixed(6),
-      tz,
-      d.toFormat('yyyy-LL-dd'),
-      d.toFormat('HH:mm'),
-      Number(pt.y).toFixed(3),
-    ]);
-  }
-  const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tide_${lat.toFixed(4)}_${lon.toFixed(4)}_${start || 'NA'}_${end || 'NA'}_${minutes}min_${tz.replace('/', '-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-});
-// PNG export
-document.getElementById('pngBtn').addEventListener('click', () => {
-  if (!chartInstance) {
-    alert('Compute tides first.');
-    return;
-  }
-  const canvas = document.getElementById('chart');
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'tide_chart.png';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-});
-
-// Map setup
-const map = L.map('map', { zoomControl: true }).setView([10.5, 100.5], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 12,
-  attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map);
-map.on('click', (evt) => {
-  const { lat, lng } = evt.latlng;
-  document.getElementById('lat').value = lat.toFixed(6);
-  document.getElementById('lon').value = lng.toFixed(6);
-  computeAndRender(lat, lng, true);
-});
-
-// Populate station dropdown from global STATION_COORDS
-function populateStations() {
-  const sel = document.getElementById('stationSelect');
-  if (!sel || typeof window.STATION_COORDS !== 'object') return;
-  const opts = Object.entries(window.STATION_COORDS)
-    .map(([code, info]) => ({ code, ...info }))
-    .sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
-  for (const { code, name, lat, lon } of opts) {
-    const opt = document.createElement('option');
-    opt.value = code;
-    opt.dataset.lat = lat;
-    opt.dataset.lon = lon;
-    opt.textContent = `${name || code} (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
-    sel.appendChild(opt);
-  }
-}
-function onStationChange(e) {
-  const opt = e.target.selectedOptions?.[0];
-  if (!opt) return;
-  const lat = parseFloat(opt.dataset.lat);
-  const lon = parseFloat(opt.dataset.lon);
-  document.getElementById('lat').value = lat.toFixed(6);
-  document.getElementById('lon').value = lon.toFixed(6);
-  computeAndRender(lat, lon, true);
-}
-
-// Initialize page on load
-(function init() {
-  // Set default dates to today
-  const today = luxon.DateTime.now().setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  document.getElementById('start').value = today;
-  document.getElementById('end').value = today;
-  // Populate station list if available
-  populateStations();
-  const sel = document.getElementById('stationSelect');
-  sel.addEventListener('change', onStationChange);
-  // Quick range buttons update end date
-  document.querySelectorAll('button[data-days]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const days = parseInt(btn.dataset.days, 10);
-      const sd = document.getElementById('start').value;
-      if (!sd) return;
-      const start = new Date(sd + 'T00:00:00');
-      const endDate = new Date(start.getTime() + (days - 1) * 24 * 3600 * 1000);
-      const yyyy = endDate.getFullYear();
-      const mm = String(endDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(endDate.getDate()).padStart(2, '0');
-      document.getElementById('end').value = `${yyyy}-${mm}-${dd}`;
-    });
-  });
-  // Run compute on button click
-  document.getElementById('runBtn').addEventListener('click', () => {
-    const lat = parseFloat(document.getElementById('lat').value);
-    const lon = parseFloat(document.getElementById('lon').value);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      showMsg('Enter lat/lon or click the map');
-      return;
-    }
-    computeAndRender(lat, lon, true);
-  });
-  // Support Enter key to run
-  ['lat', 'lon', 'start', 'end'].forEach((id) => {
-    document.getElementById(id).addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('runBtn').click();
-      }
-    });
-  });
+// 2) Populate dropdown
+(function initStations(){
+  const sel = document.getElementById('station');
+  const items = Object.entries(STATIONS)
+    .map(([code, v]) => ({ code, lat:+v.lat, lon:+v.lon }))
+    .sort((a,b)=> a.code.localeCompare(b.code));
+  sel.innerHTML = items.map(({code,lat,lon}) =>
+    `<option value="${code}" data-lat="${lat}" data-lon="${lon}">
+      ${code} (${lat.toFixed(4)}, ${lon.toFixed(4)})
+     </option>`).join('');
 })();
-</script>
 
+// 3) API call
+async function fetchTides(lat, lon){
+  const u = new URL(API);
+  u.searchParams.set('lat', lat);
+  u.searchParams.set('lon', lon);
+  const r = await fetch(u, { mode:'cors' });
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  return r.json(); // { meta{lat,lon,start_iso,end_iso,interval_min}, z0, series, highs, lows }
+}
+
+// 4) Chart plugin to show daily separators
+const daySeparator = {
+  id:'daySeparator',
+  afterDatasetsDraw(chart){
+    const {ctx, chartArea, scales} = chart; if(!chartArea||!scales?.x) return;
+    const {top,bottom,left,right} = chartArea, x=scales.x, min=x.min, max=x.max;
+    if(!Number.isFinite(min)||!Number.isFinite(max)) return;
+    let edge = luxon.DateTime.fromMillis(min).setZone(USE_TZ).startOf('day');
+    if(edge.toMillis()>min) edge=edge.minus({days:1});
+    const edges=[]; for(let t=edge; t.toMillis()<=max+86400000; t=t.plus({days:1})) edges.push(t.toMillis());
+    const mids=edges.filter(ms=>ms>min&&ms<max);
+    ctx.save(); ctx.beginPath(); ctx.rect(left,top,right-left,bottom-top); ctx.clip();
+    ctx.setLineDash([5,5]); ctx.lineWidth=1.25; ctx.strokeStyle='rgba(148,163,184,0.45)';
+    for(const ms of mids){ const px=x.getPixelForValue(ms); ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,bottom); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.restore();
+  }
+};
+let chart=null;
+function renderChart(series){
+  const ctx=document.getElementById('chart').getContext('2d');
+  if(chart) chart.destroy();
+  const data = series.map(([t,y])=>({x:new Date(t), y}));
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{ datasets:[{ label:'Tide (m)', data, borderWidth:2, pointRadius:0 }] },
+    options:{
+      responsive:true, animation:false,
+      interaction:{ mode:'index', intersect:false, axis:'x' },
+      scales:{ x:{ type:'time', adapters:{date:{zone:USE_TZ}} }, y:{ title:{display:true,text:'m'} } }
+    },
+    plugins:[daySeparator]
+  });
+}
+
+// 5) High/low table
+function groupByDay(pts){
+  const m=new Map(); const k = ms => luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  for(const [t,y] of pts){ const kk=k(t); if(!m.has(kk)) m.set(kk,[]); m.get(kk).push([t,y]); }
+  return m;
+}
+function renderHL(highs, lows){
+  const div=document.getElementById('hl');
+  const fmt = ms => luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm');
+  const hiBy=groupByDay(highs), loBy=groupByDay(lows);
+  const days=[...new Set([...hiBy.keys(),...loBy.keys()])].sort();
+  const out=[];
+  for(const d of days){
+    const merged=[...(hiBy.get(d)||[]).map(v=>({t:v[0],y:v[1],type:'High'})),
+                  ...(loBy.get(d)||[]).map(v=>({t:v[0],y:v[1],type:'Low'}))].sort((a,b)=>a.t-b.t);
+    out.push(`<div style="margin:6px 0 4px;color:#6d28d9;font-weight:600">${d}</div>`);
+    out.push('<table><thead><tr><th>Type</th><th style="text-align:center">Time</th><th style="text-align:right">m</th></tr></thead><tbody>');
+    for(const {t,y,type} of merged){
+      const color = type==='High' ? '#0ea5e9' : '#db2777';
+      out.push(`<tr><td style="color:${color}">${type}</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`);
+    }
+    out.push('</tbody></table>');
+  }
+  div.innerHTML = out.join('') || '<div class="small">No extrema in range.</div>';
+}
+
+// 6) Meta & z0
+function renderMeta(meta, z0){
+  document.getElementById('kv-ll').textContent = `${(+meta.lat).toFixed(4)}, ${(+meta.lon).toFixed(4)}`;
+  const s = luxon.DateTime.fromISO(meta.start_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  const e = luxon.DateTime.fromISO(meta.end_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  document.getElementById('kv-win').innerHTML = `${s} → ${e} <span class="pill">API-enforced</span>`;
+  document.getElementById('kv-int').textContent = `${meta.interval_min} min`;
+  document.getElementById('kv-z0').textContent = Number(z0).toFixed(6) + ' m';
+}
+
+// 7) CSV / PNG exports
+document.getElementById('csv').addEventListener('click', ()=>{
+  if(!chart) return alert('Compute first.');
+  const rows=[['timestamp_ms','date_local','time_local','tide_m']];
+  for(const p of chart.data.datasets[0].data){
+    const d = luxon.DateTime.fromJSDate(p.x).setZone(USE_TZ);
+    rows.push([p.x.getTime(), d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm'), Number(p.y).toFixed(3)]);
+  }
+  const csv = '\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='tide_series.csv'; document.body.appendChild(a); a.click(); a.remove();
+});
+document.getElementById('png').addEventListener('click', ()=>{
+  if(!chart) return alert('Compute first.');
+  const a=document.createElement('a'); a.href=document.getElementById('chart').toDataURL('image/png');
+  a.download='tide_chart.png'; document.body.appendChild(a); a.click(); a.remove();
+});
+
+// 8) Orchestration
+async function runSelected(){
+  const sel=document.getElementById('station');
+  const opt=sel.selectedOptions?.[0]; if(!opt){ return; }
+  const lat=+opt.dataset.lat, lon=+opt.dataset.lon;
+  try{
+    msg('Computing…');
+    const res = await fetchTides(lat, lon);
+    if(!Array.isArray(res.series) || res.series.length===0){
+      msg('No data returned by API.'); return;
+    }
+    renderChart(res.series);
+    renderHL(res.highs || [], res.lows || []);
+    renderMeta(res.meta || {}, res.z0);
+    msg('');
+  }catch(e){ msg('API error. Check CORS or params.'); console.error(e); }
+}
+function msg(t){ document.getElementById('msg').textContent = t || ''; }
+
+// Bind events & auto-run first station
+document.getElementById('run').addEventListener('click', runSelected);
+window.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('station').selectedIndex = 0; runSelected(); });
+</script>
 </body>
 </html>
