@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gulf of Thailand — Tide (API-only)</title>
 
-<!-- Fonts & minimal CSS -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 :root{--bg:#f6f7fb;--panel:#fff;--txt:#111827;--muted:#6b7280;--accent:#2563eb;--border:#e5e7eb}
 *{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}
 .wrap{max-width:1100px;margin:18px auto;padding:0 16px}
-.hbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.hbar{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .hbar .sp{margin-left:auto;color:var(--muted)}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
 .card>.hd{padding:12px 14px;border-bottom:1px solid var(--border);font-weight:600}
@@ -33,10 +33,12 @@ th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
 th{color:var(--muted);font-weight:600;text-align:left}
 #msg{color:var(--muted);min-height:18px}
 .pill{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:999px;padding:2px 8px;font-size:12px}
-.bad{color:#b91c1c}
+.segment{display:flex;gap:6px}
+.segment .seg{background:#fff;border:1px solid var(--border);padding:6px 10px;border-radius:999px;cursor:pointer}
+.segment .seg.active{background:#1f2937;color:#fff;border-color:#1f2937}
 </style>
 
-<!-- Chart.js + Luxon time adapter (required for time axis) -->
+<!-- Chart.js + Luxon adapter (required for time axis) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
@@ -46,7 +48,7 @@ th{color:var(--muted);font-weight:600;text-align:left}
 <div class="wrap">
   <div class="hbar">
     <div style="font-weight:700">Gulf of Thailand — Tide (API)</div>
-    <div class="sp">Client computes nothing. Server returns series/highs/lows/z0.</div>
+    <div class="sp">Developed by <b>Rattawit W.</b></div>
   </div>
 
   <div class="grid">
@@ -56,8 +58,17 @@ th{color:var(--muted);font-weight:600;text-align:left}
       <div class="bd">
         <label for="station">Choose a station</label>
         <select id="station"></select>
-        <div style="display:flex;gap:8px;margin-top:10px">
+
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:10px">
           <button id="run" class="btn">Compute</button>
+          <div class="segment" id="viewSeg" title="Change viewing window (no extra API calls)">
+            <div class="seg active" data-days="1">1 day</div>
+            <div class="seg" data-days="3">3 days</div>
+            <div class="seg" data-days="7">7 days</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
           <button id="csv" class="btn">Export CSV</button>
           <button id="png" class="btn">Export PNG</button>
         </div>
@@ -69,8 +80,8 @@ th{color:var(--muted);font-weight:600;text-align:left}
           <div>Window</div><div id="kv-win">—</div>
           <div>Interval</div><div id="kv-int">—</div>
           <div>z0</div><div id="kv-z0">—</div>
+          <div>Policy</div><div id="kv-policy">Calculates only <b>15 days before today</b> and <b>next 30 days</b> (API-enforced).</div>
         </div>
-        <div class="small">Window is enforced by the API (Worker). Interval is fixed at 15 min.</div>
       </div>
     </div>
 
@@ -91,7 +102,7 @@ th{color:var(--muted);font-weight:600;text-align:left}
 const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
 const USE_TZ = 'Asia/Bangkok';
 
-// 1) Hard-coded stations (copied from your station_coords.js)
+// --- Hard-coded stations (from your file) ---
 const STATIONS = {
   "AWP26":{"lat":8.5107,"lon":102.2262},
   "AWP36":{"lat":7.94077,"lon":102.6856},
@@ -109,8 +120,6 @@ const STATIONS = {
   "YAWD":{"lat":9.92305,"lon":101.4586},
   "SALQ":{"lat":9.286267,"lon":101.412167}
 };
-
-// 2) Populate dropdown
 (function initStations(){
   const sel = document.getElementById('station');
   const items = Object.entries(STATIONS)
@@ -122,7 +131,17 @@ const STATIONS = {
      </option>`).join('');
 })();
 
-// 3) API call
+// --- Utilities ---
+const dt = luxon.DateTime;
+function fmtDDMMYY(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('ddLLyy'); }
+function fmtDate(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd'); }
+function fmtTime(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm'); }
+function todayMidnightMs(){
+  const now = dt.now().setZone(USE_TZ);
+  return now.startOf('day').toMillis();
+}
+
+// --- API ---
 async function fetchTides(lat, lon){
   const u = new URL(API);
   u.searchParams.set('lat', lat);
@@ -132,14 +151,14 @@ async function fetchTides(lat, lon){
   return r.json(); // { meta{lat,lon,start_iso,end_iso,interval_min}, z0, series, highs, lows }
 }
 
-// 4) Chart plugin to show daily separators
+// --- Chart plugin for day gridlines ---
 const daySeparator = {
   id:'daySeparator',
   afterDatasetsDraw(chart){
     const {ctx, chartArea, scales} = chart; if(!chartArea||!scales?.x) return;
     const {top,bottom,left,right} = chartArea, x=scales.x, min=x.min, max=x.max;
     if(!Number.isFinite(min)||!Number.isFinite(max)) return;
-    let edge = luxon.DateTime.fromMillis(min).setZone(USE_TZ).startOf('day');
+    let edge = dt.fromMillis(min).setZone(USE_TZ).startOf('day');
     if(edge.toMillis()>min) edge=edge.minus({days:1});
     const edges=[]; for(let t=edge; t.toMillis()<=max+86400000; t=t.plus({days:1})) edges.push(t.toMillis());
     const mids=edges.filter(ms=>ms>min&&ms<max);
@@ -149,14 +168,14 @@ const daySeparator = {
     ctx.setLineDash([]); ctx.restore();
   }
 };
+
 let chart=null;
 function renderChart(series){
   const ctx=document.getElementById('chart').getContext('2d');
   if(chart) chart.destroy();
-  const data = series.map(([t,y])=>({x:new Date(t), y}));
   chart = new Chart(ctx, {
     type:'line',
-    data:{ datasets:[{ label:'Tide (m)', data, borderWidth:2, pointRadius:0 }] },
+    data:{ datasets:[{ label:'Tide (m)', data: series.map(([t,y])=>({x:new Date(t), y})), borderWidth:2, pointRadius:0 }] },
     options:{
       responsive:true, animation:false,
       interaction:{ mode:'index', intersect:false, axis:'x' },
@@ -166,15 +185,13 @@ function renderChart(series){
   });
 }
 
-// 5) High/low table
 function groupByDay(pts){
-  const m=new Map(); const k = ms => luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  for(const [t,y] of pts){ const kk=k(t); if(!m.has(kk)) m.set(kk,[]); m.get(kk).push([t,y]); }
+  const m=new Map(); const key = ms => dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  for(const [t,y] of pts){ const k=key(t); if(!m.has(k)) m.set(k,[]); m.get(k).push([t,y]); }
   return m;
 }
 function renderHL(highs, lows){
   const div=document.getElementById('hl');
-  const fmt = ms => luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm');
   const hiBy=groupByDay(highs), loBy=groupByDay(lows);
   const days=[...new Set([...hiBy.keys(),...loBy.keys()])].sort();
   const out=[];
@@ -185,45 +202,55 @@ function renderHL(highs, lows){
     out.push('<table><thead><tr><th>Type</th><th style="text-align:center">Time</th><th style="text-align:right">m</th></tr></thead><tbody>');
     for(const {t,y,type} of merged){
       const color = type==='High' ? '#0ea5e9' : '#db2777';
-      out.push(`<tr><td style="color:${color}">${type}</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`);
+      out.push(`<tr><td style="color:${color}">${type}</td><td style="text-align:center">${fmtTime(t)}</td><td style="text-align:right">${(+y).toFixed(2)}</td></tr>`);
     }
     out.push('</tbody></table>');
   }
   div.innerHTML = out.join('') || '<div class="small">No extrema in range.</div>';
 }
 
-// 6) Meta & z0
 function renderMeta(meta, z0){
   document.getElementById('kv-ll').textContent = `${(+meta.lat).toFixed(4)}, ${(+meta.lon).toFixed(4)}`;
-  const s = luxon.DateTime.fromISO(meta.start_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  const e = luxon.DateTime.fromISO(meta.end_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  const s = dt.fromISO(meta.start_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  const e = dt.fromISO(meta.end_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
   document.getElementById('kv-win').innerHTML = `${s} → ${e} <span class="pill">API-enforced</span>`;
   document.getElementById('kv-int').textContent = `${meta.interval_min} min`;
-  document.getElementById('kv-z0').textContent = Number(z0).toFixed(6) + ' m';
+  document.getElementById('kv-z0').textContent = `${Number(z0).toFixed(2)} m`;
 }
 
-// 7) CSV / PNG exports
-document.getElementById('csv').addEventListener('click', ()=>{
-  if(!chart) return alert('Compute first.');
-  const rows=[['timestamp_ms','date_local','time_local','tide_m']];
-  for(const p of chart.data.datasets[0].data){
-    const d = luxon.DateTime.fromJSDate(p.x).setZone(USE_TZ);
-    rows.push([p.x.getTime(), d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm'), Number(p.y).toFixed(3)]);
-  }
-  const csv = '\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='tide_series.csv'; document.body.appendChild(a); a.click(); a.remove();
-});
-document.getElementById('png').addEventListener('click', ()=>{
-  if(!chart) return alert('Compute first.');
-  const a=document.createElement('a'); a.href=document.getElementById('chart').toDataURL('image/png');
-  a.download='tide_chart.png'; document.body.appendChild(a); a.click(); a.remove();
-});
+function msg(t){ document.getElementById('msg').textContent = t || ''; }
 
-// 8) Orchestration
+// --- Client-side view window (no extra API) ---
+let full = null;   // { series, highs, lows, meta, z0 }
+let viewDays = 1;  // 1 | 3 | 7
+
+function updateView(){
+  if(!full) return;
+  const start0 = todayMidnightMs();
+  const startMs = Math.max(start0, full.series[0][0]);
+  const endMs = Math.min(start0 + viewDays*86400000 - 1, full.series[full.series.length-1][0]);
+
+  // Filter series/highs/lows for the view window
+  const inRange = ([t]) => t >= startMs && t <= endMs;
+  const seriesV = full.series.filter(inRange);
+  const highsV  = (full.highs || []).filter(inRange);
+  const lowsV   = (full.lows  || []).filter(inRange);
+
+  renderChart(seriesV);
+  renderHL(highsV, lowsV);
+}
+
+function setActiveSeg(days){
+  document.querySelectorAll('#viewSeg .seg').forEach(el=>{
+    el.classList.toggle('active', +el.dataset.days === days);
+  });
+}
+
+// --- Orchestration ---
 async function runSelected(){
   const sel=document.getElementById('station');
   const opt=sel.selectedOptions?.[0]; if(!opt){ return; }
+  const code = opt.value;
   const lat=+opt.dataset.lat, lon=+opt.dataset.lon;
   try{
     msg('Computing…');
@@ -231,17 +258,66 @@ async function runSelected(){
     if(!Array.isArray(res.series) || res.series.length===0){
       msg('No data returned by API.'); return;
     }
-    renderChart(res.series);
-    renderHL(res.highs || [], res.lows || []);
-    renderMeta(res.meta || {}, res.z0);
+    full = { series:res.series, highs:res.highs||[], lows:res.lows||[], meta:res.meta||{}, z0:res.z0 };
+    renderMeta(full.meta, full.z0);
     msg('');
+
+    // Default to 1-day view on first compute
+    viewDays = 1; setActiveSeg(viewDays); updateView();
+
+    // Hook exports with current view window & station code
+    wireExports(code);
   }catch(e){ msg('API error. Check CORS or params.'); console.error(e); }
 }
-function msg(t){ document.getElementById('msg').textContent = t || ''; }
 
-// Bind events & auto-run first station
 document.getElementById('run').addEventListener('click', runSelected);
-window.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('station').selectedIndex = 0; runSelected(); });
+window.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('station').selectedIndex = 0;
+  document.querySelectorAll('#viewSeg .seg').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      viewDays = +btn.dataset.days;
+      setActiveSeg(viewDays);
+      updateView(); // reuse already-fetched data
+    });
+  });
+  runSelected(); // auto compute first station
+});
+
+// --- Export (use current view range; name like SBWA_Tide_251012_251030) ---
+function wireExports(stationCode){
+  const getViewBounds = () => {
+    const start0 = todayMidnightMs();
+    const startMs = Math.max(start0, full.series[0][0]);
+    const endMs = Math.min(start0 + viewDays*86400000 - 1, full.series[full.series.length-1][0]);
+    return { startMs, endMs };
+  };
+  const baseName = () => {
+    const { startMs, endMs } = getViewBounds();
+    return `${stationCode}_Tide_${fmtDDMMYY(startMs)}_${fmtDDMMYY(endMs)}`;
+  };
+
+  document.getElementById('csv').onclick = ()=>{
+    if(!chart || !full) return alert('Compute first.');
+    const { startMs, endMs } = getViewBounds();
+    const pts = chart.data.datasets[0].data; // already filtered
+    const rows=[['timestamp_ms','date_local','time_local','tide_m']];
+    for(const p of pts){
+      const d = dt.fromJSDate(p.x).setZone(USE_TZ);
+      const ms = p.x.getTime();
+      if(ms < startMs || ms > endMs) continue;
+      rows.push([ms, d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm'), Number(p.y).toFixed(2)]);
+    }
+    const csv = '\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download = baseName()+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  document.getElementById('png').onclick = ()=>{
+    if(!chart) return alert('Compute first.');
+    const a=document.createElement('a'); a.href=document.getElementById('chart').toDataURL('image/png');
+    a.download = baseName()+'.png'; document.body.appendChild(a); a.click(); a.remove();
+  };
+}
 </script>
 </body>
 </html>
