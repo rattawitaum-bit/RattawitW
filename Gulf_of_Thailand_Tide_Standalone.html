@@ -3,298 +3,47 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf of Thailand — Tide Map (Grid TPS V8)</title>
+<title>Gulf of Thailand — Tide Map (API)</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+<!-- Chart + time adapter (Luxon) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+
+<!-- Optional presets (safe to keep) -->
 <script src="station_coords.js"></script>
+
 <style>
-:root {
-  --bg: #f5f7fa;
-  --panel: #ffffff;
-  --text: #111827;
-  --muted: #4b5563;
-  --accent: #3b82f6;
-  --violet: #6366f1;
-  --border: #e5e7eb;
-}
-
-html, body {
-  height: 100%;
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
-}
-
-.wrap {
-  max-width: 1200px;
-  margin: 16px auto;
-  padding: 0 16px;
-}
-
-.grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-@media (min-width: 768px) {
-  .grid {
-    flex-direction: row;
-  }
-}
-
-.card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.card > .hd {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.card > .bd {
-  padding: 16px;
-}
-
-label {
-  font-size: 13px;
-  color: var(--muted);
-  display: block;
-  margin-bottom: 6px;
-}
-
-input[type="number"],
-input[type="date"],
-select {
-  width: 100%;
-  background: #fff;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  outline: none;
-  font-size: 14px;
-}
-
-input[type="date"] {
-  appearance: none;
-  -webkit-appearance: none;
-  background: #fff;
-  color: #1f2937;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 14px;
-  position: relative;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(30%);
-  cursor: pointer;
-}
-
-
-input:focus,
-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.btn {
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 99px; /* makes it pill */
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.btn:hover {
-  background-color: #2563eb;
-}
-
-.muted {
-  color: var(--muted);
-}
-
-#map {
-  height: 400px;
-  border-bottom-left-radius: 14px;
-  border-bottom-right-radius: 14px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-}
-
-th {
-  color: var(--muted);
-  font-weight: 600;
-  text-align: left;
-}
-
-.card .bd td {
-  color: #1f2937;
-}
-
-td[style*="aff7ff"] {
-  color: #0284c7 !important;
-}
-
-td[style*="ffd1f8"] {
-  color: #be185d !important;
-}
-
-canvas {
-  background: #f0f3f9;
-  border-radius: 12px;
-}
-input#lat,
-input#lon {
-  width: 100%;
-  max-width: 140px;
-}
-
-input#start,
-input#end {
-  width: 100%;
-  max-width: 140px;
-}
-
-select#interval {
-  width: 100%;
-  max-width: 140px;
-}
-.grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-@media (min-width: 768px) {
-  .grid {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-
-  .grid > .card {
-    flex: 0 0 420px; /* fixed width for the left input card */
-  }
-
-  .grid > .output-column {
-    flex: 1; /* make the right output area expand */
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-
+:root { --bg:#f5f7fa; --panel:#fff; --text:#111827; --muted:#4b5563; --accent:#3b82f6; --border:#e5e7eb; }
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+.wrap{max-width:1200px;margin:16px auto;padding:0 16px;}
+.grid{display:flex;flex-direction:column;gap:16px;}
+@media(min-width:768px){.grid{flex-direction:row}.grid>.card{flex:0 0 420px}.grid>.output-column{flex:1;display:flex;flex-direction:column;gap:12px}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.card>.hd{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:15px}
+.card>.bd{padding:16px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+input[type="number"],input[type="date"],select{width:100%;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;outline:none;font-size:14px}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{background:var(--accent);color:#fff;border:none;padding:5px 10px;border-radius:99px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.btn:hover{background:#2563eb}
+.muted{color:var(--muted)}
+#map{height:400px;border-bottom-left-radius:14px;border-bottom-right-radius:14px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px}
+canvas{background:#f0f3f9;border-radius:12px}
 </style>
-
 </head>
+
 <body>
-<!-- UI กลางๆ ใช้งานได้เลย -->
-<div style="max-width:920px;margin:16px auto;padding:12px;border:1px solid #ddd;border-radius:12px;">
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <label>Lat <input id="lat" type="number" step="0.0001" value="12.5"></label>
-    <label>Lon <input id="lon" type="number" step="0.0001" value="100.5"></label>
-    <label>Start <input id="start" type="date" value="2025-01-01"></label>
-    <label>End <input id="end" type="date" value="2025-01-02"></label>
-    <label>Interval (min) <input id="iv" type="number" value="10" min="5"></label>
-    <button id="go">Compute</button>
-  </div>
-  <canvas id="chart" height="140" style="width:100%;margin-top:10px;"></canvas>
-  <div id="extrema" style="font:12px/1.4 monospace;margin-top:8px;"></div>
-</div>
-
-<!-- ใส่ Chart.js จาก CDN ถ้าคุณยังไม่มี -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides'; // URL ของคุณ
-
-async function fetchTides(lat, lon, start, end, interval=10){
-  const u = new URL(API);
-  u.searchParams.set('lat', lat);
-  u.searchParams.set('lon', lon);
-  u.searchParams.set('start', start);
-  u.searchParams.set('end', end);
-  u.searchParams.set('interval', interval);
-  const r = await fetch(u, { mode: 'cors' });
-  if(!r.ok) throw new Error('API error');
-  return r.json(); // { series:[[ts,level],...], highs:[...], lows:[...] }
-}
-
-function ts2local(ts){
-  const d = new Date(ts);
-  return d.toLocaleString(undefined, { hour12:false });
-}
-
-let chart;
-function renderChart(series){
-  const labels = series.map(p => new Date(p[0]));
-  const data   = series.map(p => p[1]);
-  const ctx = document.getElementById('chart').getContext('2d');
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label:'Tide (m)', data, pointRadius:0, borderWidth:1 }] },
-    options: { scales: { x: { type: 'time', time: { unit:'hour' } } } }
-  });
-}
-
-function renderExtrema(highs, lows){
-  const fmt = arr => arr.map(([t,y]) => `${ts2local(t)}  ${y.toFixed(3)} m`).join('<br>');
-  document.getElementById('extrema').innerHTML =
-    `<b>Highs</b><br>${fmt(highs)}<br><br><b>Lows</b><br>${fmt(lows)}`;
-}
-
-document.getElementById('go').addEventListener('click', async ()=>{
-  const lat = parseFloat(document.getElementById('lat').value);
-  const lon = parseFloat(document.getElementById('lon').value);
-  const start = document.getElementById('start').value;
-  const end   = document.getElementById('end').value;
-  const iv    = parseInt(document.getElementById('iv').value,10);
-
-  try{
-    const res = await fetchTides(lat, lon, start, end, iv);
-    renderChart(res.series);
-    renderExtrema(res.highs, res.lows);
-  }catch(e){
-    alert('API error: '+e.message);
-  }
-});
-</script>
-
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <div style="font-weight:700">Gulf of Thailand — Tide Map</div>
@@ -307,33 +56,24 @@ document.getElementById('go').addEventListener('click', async ()=>{
       <div class="hd">Pick a point</div>
       <div class="bd">
         <div class="row" style="margin-bottom:10px">
-          <div style="grid-column: 1 / -1">
+          <div style="grid-column:1 / -1">
             <label for="stationSelect">Preset location (optional)</label>
             <select id="stationSelect">
               <option value="">— Select a station from list —</option>
             </select>
           </div>
         </div>
+
         <div class="row">
-          <div>
-            <label for="lat">Latitude</label>
-            <input id="lat" type="number" step="0.000001" placeholder="9.50">
-          </div>
-          <div>
-            <label for="lon">Longitude</label>
-            <input id="lon" type="number" step="0.000001" placeholder="101.50">
-          </div>
+          <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.000001" placeholder="9.50"></div>
+          <div><label for="lon">Longitude</label><input id="lon" type="number" step="0.000001" placeholder="101.50"></div>
         </div>
+
         <div class="row" style="margin-top:10px">
-          <div>
-            <label for="start">Start date (00:00 local)</label>
-            <input id="start" type="date">
-          </div>
-          <div>
-            <label for="end">End date (24:00 local)</label>
-            <input id="end" type="date">
-          </div>
+          <div><label for="start">Start date (00:00 local)</label><input id="start" type="date"></div>
+          <div><label for="end">End date (24:00 local)</label><input id="end" type="date"></div>
         </div>
+
         <div class="row" style="margin-top:10px">
           <div>
             <label>Quick range</label>
@@ -354,40 +94,33 @@ document.getElementById('go').addEventListener('click', async ()=>{
             </select>
           </div>
         </div>
+
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <div id="msgbox" class="muted" style="flex:1"></div>
+          <div id="msgbox" class="muted" style="flex:1">Data served by your Cloudflare Worker API.</div>
           <button id="runBtn" class="btn">Compute tides</button>
           <button id="csvBtn" class="btn">Export CSV</button>
           <button id="pngBtn" class="btn">Export PNG</button>
         </div>
       </div>
+
       <div class="hd">Map (click to compute)</div>
       <div id="map"></div>
     </div>
 
     <div class="output-column">
-
       <div class="card">
         <div class="hd">Tide curve</div>
         <div class="bd"><canvas id="chart" height="170"></canvas></div>
       </div>
+
       <div class="card">
         <div class="hd">Daily High / Low — Time: HH:mm, Level: m</div>
         <div class="bd" id="hl"></div>
       </div>
+
       <div class="card">
-        <div class="hd">Harmonic constants (interpolated) — <span class="muted">phase = local (deg)</span></div>
-        <div class="bd">
-          <div id="constMeta" class="muted" style="margin-bottom:8px">—</div>
-          <div style="border:1px solid var(--border);border-radius:10px;margin-top:8px">
-            <table id="constTab">
-              <thead>
-                <tr><th style="text-align:left">Name</th><th>Speed (°/hr)</th><th>H (m)</th><th>φ (deg)</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
+        <div class="hd">Site constant — z0 (m)</div>
+        <div class="bd"><div id="z0">—</div></div>
       </div>
     </div>
   </div>
@@ -395,115 +128,40 @@ document.getElementById('go').addEventListener('click', async ()=>{
 
 <script>
 const USE_TZ = 'Asia/Bangkok';
-if (typeof TIDE_GRID_META === 'undefined' || typeof TIDE_GRID_ROWS === 'undefined'){ alert('Grid JS not loaded.'); }
-const GRID_STEP = TIDE_GRID_META.grid.step;
-const LAT_MIN = TIDE_GRID_META.grid.lat_min;
-const LAT_MAX = TIDE_GRID_META.grid.lat_max;
-const LON_MIN = TIDE_GRID_META.grid.lon_min;
-const LON_MAX = TIDE_GRID_META.grid.lon_max;
-const CONS = TIDE_GRID_META.constituents.slice();
+const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides'; // your Worker
+const snap = (x, step=0.1) => Math.round(x/step)*step;
 
-const gridMap = new Map(TIDE_GRID_ROWS.map(r=>[`${r.lat},${r.lon}`, r]));
-
-function showMsg(t){ const box = document.getElementById('msgbox'); box.textContent = t||''; }
+function showMsg(t){ const box=document.getElementById('msgbox'); box.textContent=t||''; }
 function clearMsg(){ showMsg(''); }
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-function fracIndex(v, vmin, step){ const f = (v - vmin) / step; return {i: Math.floor(f), f: f - Math.floor(f)}; }
-function getNode(lat, lon){ return gridMap.get(`${lat},${lon}`); }
 
-function bilinear(lat, lon, getter){
-  if (lat<LAT_MIN || lat>LAT_MAX || lon<LON_MIN || lon>LON_MAX) return null;
-  const il = fracIndex(lat, LAT_MIN, GRID_STEP);
-  const jl = fracIndex(lon, LON_MIN, GRID_STEP);
-  const i0 = clamp(il.i, 0, Math.round((LAT_MAX-LAT_MIN)/GRID_STEP));
-  const j0 = clamp(jl.i, 0, Math.round((LON_MAX-LON_MIN)/GRID_STEP));
-  const la0 = +(LAT_MIN + i0*GRID_STEP).toFixed(6);
-  const la1 = +(la0 + GRID_STEP).toFixed(6);
-  const lo0 = +(LON_MIN + j0*GRID_STEP).toFixed(6);
-  const lo1 = +(lo0 + GRID_STEP).toFixed(6);
-  const Q11 = getNode(la0, lo0), Q12 = getNode(la0, lo1), Q21 = getNode(la1, lo0), Q22 = getNode(la1, lo1);
-  if (!Q11 || !Q12 || !Q21 || !Q22) return null;
-  const fy = il.f, fx = jl.f;
-  const v11 = getter(Q11), v12 = getter(Q12), v21 = getter(Q21), v22 = getter(Q22);
-  return v11*(1-fx)*(1-fy) + v12*(fx)*(1-fy) + v21*(1-fx)*(fy) + v22*(fx)*(fy);
-}
-
-function interpConstituents(lat, lon){
-  const z0 = bilinear(lat, lon, r=>r.z0);
-  const consts = CONS.map(name => {
-    const H = bilinear(lat, lon, r=>r[`${name}_H`]);
-    const phi_deg = bilinear(lat, lon, r=>r[`${name}_phi_deg`]);
-    const speed = getSpeed(name);
-    return {name, speed_deg_per_hr: speed, H, phi_deg};
-  });
-  return {meta: {t0: TIDE_GRID_META.t0, z0, trend_per_hour: 0.0, source:'gridTPS'}, constituents: consts};
-}
-function getSpeed(name){ const r0 = TIDE_GRID_ROWS[0]; return r0[`${name}_speed_deg_per_hr`]; }
-
-function hoursSince(t_ms, t0_ms){ return (t_ms - t0_ms)/3600000; }
-function synthesizeLevel(t_ms, meta, consts){
-  const t0 = new Date(meta.t0).getTime();
-  const t_hr = hoursSince(t_ms, t0);
-  let y = meta.z0 + (meta.trend_per_hour||0) * t_hr;
-  for (const c of consts){
-    const w = (Math.PI/180)*c.speed_deg_per_hr;
-    const phi = (c.phi_deg || 0) * Math.PI / 180;
-    y += c.H * Math.cos(w * t_hr - phi);
-  }
-  return y;
-}
-function genSeries(HARMONICS, startDate, endDate, minutes){
-  const startDT = luxon.DateTime.fromISO(startDate+'T00:00', {zone:USE_TZ});
-  const endDTInc = luxon.DateTime.fromISO(endDate+'T00:00', {zone:USE_TZ}).plus({days:1});
-  const out=[];
-  for (let t=startDT; t<endDTInc; t=t.plus({minutes})){
-    out.push([t.toJSDate(), synthesizeLevel(t.toJSDate().getTime(), HARMONICS.meta, HARMONICS.constituents)]);
-  }
-  return out;
-}
-function findExtrema(series){
-  const hi=[], lo=[];
-  for(let i=1;i<series.length-1;i++){
-    const y0=series[i-1][1], y1=series[i][1], y2=series[i+1][1];
-    if (Number.isFinite(y0) && Number.isFinite(y1) && Number.isFinite(y2)){
-      if (y1>y0 && y1>y2) hi.push(series[i]);
-      if (y1<y0 && y1<y2) lo.push(series[i]);
-    }
-  }
-  return {hi,lo};
-}
-function groupByDay(pts){
-  const map = new Map();
-  const key = d => luxon.DateTime.fromJSDate(d).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  for (const [t,y] of pts){ const k=key(t); if(!map.has(k)) map.set(k, []); map.get(k).push([t,y]); }
-  return map;
+async function fetchTides(lat, lon, start, end, interval=10){
+  const u = new URL(API);
+  u.searchParams.set('lat', snap(lat));
+  u.searchParams.set('lon', snap(lon));
+  u.searchParams.set('start', start);
+  u.searchParams.set('end', end);
+  u.searchParams.set('interval', interval);
+  const r = await fetch(u, { mode: 'cors' });
+  if (!r.ok) throw new Error(`API error ${r.status}`);
+  return r.json(); // { meta, constants:{z0}, series:[[ts,y]...], highs:[], lows:[] }
 }
 
 const daySeparator = {
-  id: 'daySeparator',
+  id:'daySeparator',
   afterDatasetsDraw(chart){
-    const {ctx, chartArea, scales} = chart;
-    if (!chartArea || !scales || !scales.x) return;
-    const {top, bottom, left, right} = chartArea;
-    const x = scales.x; const min=x.min, max=x.max;
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+    const {ctx, chartArea, scales} = chart; if(!chartArea||!scales||!scales.x) return;
+    const {top,bottom,left,right}=chartArea, x=scales.x, min=x.min, max=x.max;
+    if(!Number.isFinite(min)||!Number.isFinite(max)) return;
     let edge = luxon.DateTime.fromMillis(min).setZone(USE_TZ).startOf('day');
-    if (edge.toMillis() > min) edge = edge.minus({days:1});
-    const edges=[];
-    for (let t=edge; t.toMillis()<=max+24*3600*1000; t=t.plus({days:1})) edges.push(t.toMillis());
-    const midnights = edges.filter(ms => ms > min && ms < max);
+    if(edge.toMillis()>min) edge=edge.minus({days:1});
+    const edges=[]; for(let t=edge; t.toMillis()<=max+24*3600*1000; t=t.plus({days:1})) edges.push(t.toMillis());
     ctx.save(); ctx.beginPath(); ctx.rect(left,top,right-left,bottom-top); ctx.clip();
     ctx.setLineDash([5,5]); ctx.lineWidth=1.25; ctx.strokeStyle='rgba(148,163,184,0.45)';
-    for (const ms of midnights){ const px=x.getPixelForValue(ms); ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,bottom); ctx.stroke(); }
+    for(const ms of edges.filter(ms=>ms>min&&ms<max)){ const px=x.getPixelForValue(ms); ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,bottom); ctx.stroke(); }
     ctx.setLineDash([]); ctx.font='12px Inter, system-ui, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top';
-    for (let i=0;i<edges.length-1;i++){
-      const segL = Math.max(min, edges[i]); const segR = Math.min(max, edges[i+1]); if (segR<=segL) continue;
-      const cx = x.getPixelForValue((segL+segR)/2);
-      const label = luxon.DateTime.fromMillis((segL+segR)/2).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-      const w = 78, h = 16;
-      ctx.fillStyle='rgba(11,18,36,0.75)'; ctx.fillRect(cx-w/2, top+2, w, h);
-      ctx.fillStyle='#e5e7eb'; ctx.fillText(label, cx, top+4);
-    }
+    for(let i=0;i<edges.length-1;i++){ const segL=Math.max(min,edges[i]), segR=Math.min(max,edges[i+1]); if(segR<=segL) continue;
+      const cx=x.getPixelForValue((segL+segR)/2), label=luxon.DateTime.fromMillis((segL+segR)/2).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+      const w=78,h=16; ctx.fillStyle='rgba(11,18,36,0.75)'; ctx.fillRect(cx-w/2, top+2, w,h); ctx.fillStyle='#e5e7eb'; ctx.fillText(label,cx,top+4); }
     ctx.restore();
   }
 };
@@ -511,31 +169,34 @@ const daySeparator = {
 let chart=null;
 function renderChart(series, label){
   const ctx=document.getElementById('chart').getContext('2d');
-  if (chart) chart.destroy();
-  const data = series.map(([t,y])=>({x:t,y}));
+  if(chart) chart.destroy();
+  const data = series.map(([t,y])=>({x:new Date(t), y}));
   chart = new Chart(ctx, {
     type:'line',
     data:{datasets:[{label,data,borderWidth:2,pointRadius:0}]},
-    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false,axis:'x'},
-      scales:{x:{type:'time'}, y:{title:{display:true,text:'m'}}}},
+    options:{responsive:true,animation:false,interaction:{mode:'index',intersect:false,axis:'x'},scales:{x:{type:'time'},y:{title:{display:true,text:'m'}}}},
     plugins:[daySeparator]
   });
 }
 
-function renderHL(hi, lo){
-  const div = document.getElementById('hl');
-  const fmt = d => luxon.DateTime.fromJSDate(d).setZone(USE_TZ).toFormat('HH:mm');
-  const hiBy=groupByDay(hi), loBy=groupByDay(lo);
-  const days = Array.from(new Set([...hiBy.keys(), ...loBy.keys()])).sort();
+function renderHL(highs, lows){
+  const div=document.getElementById('hl');
+  const fmt = ts => luxon.DateTime.fromMillis(ts).setZone(USE_TZ).toFormat('HH:mm');
+  // group by local day
+  const byDay = (arr) => {
+    const m=new Map();
+    for(const [t,y] of arr){ const d=luxon.DateTime.fromMillis(t).setZone(USE_TZ).toFormat('yyyy-LL-dd'); if(!m.has(d)) m.set(d,[]); m.get(d).push([t,y]);}
+    return m;
+  };
+  const hiBy=byDay(highs), loBy=byDay(lows);
+  const days=[...new Set([...hiBy.keys(),...loBy.keys()])].sort();
   const rows=[];
   for(const day of days){
-    const merged = [...(hiBy.get(day)||[]).map(([t,y])=>({t,y,type:'High'})),
-                    ...(loBy.get(day)||[]).map(([t,y])=>({t,y,type:'Low'}))]
-                    .sort((a,b)=>a.t-b.t);
+    const merged=[...(hiBy.get(day)||[]).map(v=>({t:v[0],y:v[1],type:'High'})),...(loBy.get(day)||[]).map(v=>({t:v[0],y:v[1],type:'Low'}))].sort((a,b)=>a.t-b.t);
     rows.push(`<div style="margin:6px 0 4px;color:#a5b4fc;font-weight:600">${day}</div>`);
     rows.push('<table><thead><tr><th style="text-align:left">Type</th><th style="text-align:center">Time</th><th style="text-align:right">m</th></tr></thead><tbody>');
     merged.forEach(({t,y,type})=>{
-      const color = type==='High' ? '#aff7ff' : '#ffd1f8';
+      const color = type==='High' ? '#0ea5e9' : '#db2777';
       rows.push(`<tr><td style="color:${color}">${type}</td><td style="text-align:center">${fmt(t)}</td><td style="text-align:right">${y.toFixed(3)}</td></tr>`);
     });
     rows.push('</tbody></table>');
@@ -543,207 +204,116 @@ function renderHL(hi, lo){
   div.innerHTML = rows.join('') || '<div class="muted">No extrema found in this range.</div>';
 }
 
-function renderConstants(HARMONICS){
-  const tbody = document.querySelector('#constTab tbody'); tbody.innerHTML='';
-  const keep = new Set(['M2','S2','K1','O1']);
-  for (const c of HARMONICS.constituents){
-    if (!keep.has(c.name)) continue;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="text-align:left">${c.name}</td>
-      <td>${c.speed_deg_per_hr.toFixed(6)}</td>
-      <td>${Number(c.H).toFixed(6)}</td>
-      <td>${Number(c.phi_deg).toFixed(3)}</td>`;
-    tbody.appendChild(tr);
-  }
-  document.getElementById('constMeta').innerHTML =
-    `z0: <b>${Number(HARMONICS.meta.z0).toFixed(2)}</b> m · phase: <b>local</b>`;
+function renderZ0(constants){
+  const z0 = Number(constants?.z0 ?? NaN);
+  document.getElementById('z0').textContent = Number.isFinite(z0) ? `${z0.toFixed(6)} m` : '—';
 }
 
-function computeAt(lat, lon, fromManual=false){
-  if (!(lat>=LAT_MIN && lat<=LAT_MAX && lon>=LON_MIN && lon<=LON_MAX)){
-    showMsg('Out of domain.'); return null;
-  }
+async function computeAt(lat, lon, fromManual=false){
   const start = document.getElementById('start').value;
-  const end = document.getElementById('end').value;
+  const end   = document.getElementById('end').value;
   const minutes = +document.getElementById('interval').value;
-  if (!start || !end){ showMsg('Choose start & end dates'); return null; }
-  const HARMONICS = interpConstituents(lat, lon);
-  const series = genSeries(HARMONICS, start, end, minutes);
-  const {hi,lo} = findExtrema(series);
-  renderChart(series, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-  renderHL(hi,lo); renderConstants(HARMONICS);
-  clearMsg();
-  if (fromManual) {
-    if (clickMarker) map.removeLayer(clickMarker);
-    clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`).openPopup();
-    map.setView([lat, lon], Math.max(8, map.getZoom()));
+  if (!start || !end){ showMsg('Choose start & end dates'); return; }
+
+  showMsg('Computing…');
+  try{
+    const res = await fetchTides(lat, lon, start, end, minutes);
+    renderChart(res.series, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+    renderHL(res.highs, res.lows);
+    renderZ0(res.constants);
+    clearMsg();
+
+    if(fromManual){
+      if(window.clickMarker) map.removeLayer(clickMarker);
+      clickMarker = L.marker([lat, lon]).addTo(map).bindPopup(`Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`).openPopup();
+      map.setView([lat, lon], Math.max(8, map.getZoom()));
+    }
+  }catch(e){
+    showMsg('API unavailable or outside model domain');
   }
-  return {series, hi, lo};
 }
 
-document.getElementById('csvBtn').addEventListener('click', () => {
-  if (!chart || !chart.data || !chart.data.datasets[0] || !chart.data.datasets[0].data) {
-    alert('Compute tides first.');
-    return;
-  }
-
-  // Strong typing
+// CSV/PNG exports (unchanged)
+document.getElementById('csvBtn').addEventListener('click', ()=>{
+  if(!chart || !chart.data?.datasets?.[0]?.data?.length){ alert('Compute tides first.'); return; }
   const lat = Number.parseFloat(document.getElementById('lat').value);
   const lon = Number.parseFloat(document.getElementById('lon').value);
   const start = document.getElementById('start').value || '';
-  const end = document.getElementById('end').value || '';
-  const minutes = Number.parseInt(document.getElementById('interval').value, 10); // still used for filename
+  const end   = document.getElementById('end').value || '';
+  const minutes = Number.parseInt(document.getElementById('interval').value, 10);
   const tz = USE_TZ;
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    alert('Enter valid lat/lon or click the map.');
-    return;
+  const header = ['latitude','longitude','timezone','date_local','time_local','tide_m'];
+  const rows=[header];
+  for (const pt of chart.data.datasets[0].data){
+    const d = luxon.DateTime.fromJSDate(pt.x).setZone(tz);
+    rows.push([lat.toFixed(6), lon.toFixed(6), tz, d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm'), Number(pt.y).toFixed(3)]);
   }
-
-  // Columns after removal:
-  // latitude,longitude,timezone,date_local,time_local,tide_m
-  const header = [
-    'latitude',
-    'longitude',
-    'timezone',
-    'date_local',
-    'time_local',
-    'tide_m'
-  ];
-  const rows = [header];
-
-  for (const pt of chart.data.datasets[0].data) {
-    const dtLocal = luxon.DateTime.fromJSDate(pt.x).setZone(tz);
-
-    rows.push([
-      lat.toFixed(6),
-      lon.toFixed(6),
-      tz,
-      dtLocal.toFormat('yyyy-LL-dd'),
-      dtLocal.toFormat('HH:mm'),
-      Number(pt.y).toFixed(3)
-    ]);
-  }
-
-  // Excel-friendly CSV: BOM + CRLF
-  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
-
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-
-  // Deterministic filename (keeps interval in name; not in CSV columns)
-  const fname = [
-    'tide',
-    lat.toFixed(4),
-    lon.toFixed(4),
-    start || 'NA',
-    end || 'NA',
-    `${minutes}min`,
-    tz.replace('/', '-')
-  ].join('_') + '.csv';
-
-  a.download = fname;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const csv = '\uFEFF' + rows.map(r=>r.join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=['tide',lat.toFixed(4),lon.toFixed(4),start||'NA',end||'NA',`${minutes}min`,tz.replace('/','-')].join('_')+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 });
-
-
-
 document.getElementById('pngBtn').addEventListener('click', ()=>{
-  const c = document.getElementById('chart');
-  const url = c.toDataURL('image/png');
-  const a = document.createElement('a'); a.href=url; a.download='tide_chart.png';
+  const c=document.getElementById('chart'); const url=c.toDataURL('image/png');
+  const a=document.createElement('a'); a.href=url; a.download='tide_chart.png';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 });
 
-const map = L.map('map', {zoomControl:true}).setView([(LAT_MIN+LAT_MAX)/2, (LON_MIN+LON_MAX)/2], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:12,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-// Domain polygon showing calculable area
-const domainBounds = [[LAT_MIN, LON_MIN],[LAT_MIN, LON_MAX],[LAT_MAX, LON_MAX],[LAT_MAX, LON_MIN]];
-const domainPoly = L.polygon(domainBounds, {
-  color:'#22d3ee', weight:1.5, fill:true, fillOpacity:0.05, dashArray:'6,4'
-}).addTo(map);
-
+// Map wiring
+const map = L.map('map',{zoomControl:true}).setView([10.5,100.5], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 let clickMarker=null;
-map.on('click', (e)=>{
-  const {lat, lng} = e.latlng;
+map.on('click', e=>{
+  const {lat,lng}=e.latlng;
   document.getElementById('lat').value = lat.toFixed(6);
   document.getElementById('lon').value = lng.toFixed(6);
-  const res = computeAt(lat, lng);
-  if (!res) return;
-  if (clickMarker) map.removeLayer(clickMarker);
-  clickMarker = L.marker([lat,lng]).addTo(map).bindPopup(`Lat: ${lat.toFixed(5)}<br>Lon: ${lng.toFixed(5)}`).openPopup();
+  computeAt(lat, lng);
 });
 
-document.querySelectorAll('button[data-days]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const days = +btn.dataset.days;
-    const sd = document.getElementById('start').value; if(!sd) return;
-    const start = new Date(sd+'T00:00:00');
-    const end = new Date(start.getTime() + (days-1)*24*3600*1000);
-    const yyyy=end.getFullYear(), mm=String(end.getMonth()+1).padStart(2,'0'), dd=String(end.getDate()).padStart(2,'0');
-    document.getElementById('end').value = `${yyyy}-${mm}-${dd}`;
-  });
-});
-
-
-// === Preset station dropdown: populate + select ===
-function populateStationDropdown() {
-  try {
-    const sel = document.getElementById('stationSelect');
-    if (!sel || typeof STATION_COORDS !== 'object') return;
-    const entries = Object.entries(STATION_COORDS)
-      .map(([code, v]) => ({ code, lat: +v.lat, lon: +v.lon }))
-      .sort((a,b) => a.code.localeCompare(b.code));
-    for (const {code, lat, lon} of entries) {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = `${code}  (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
-      opt.dataset.lat = lat;
-      opt.dataset.lon = lon;
-      sel.appendChild(opt);
+// Preset dropdown
+function populateStationDropdown(){
+  try{
+    const sel=document.getElementById('stationSelect');
+    if(!sel || typeof STATION_COORDS!=='object') return;
+    const entries = Object.entries(STATION_COORDS).map(([code,v])=>({code,lat:+v.lat,lon:+v.lon})).sort((a,b)=>a.code.localeCompare(b.code));
+    for(const {code,lat,lon} of entries){
+      const opt=document.createElement('option'); opt.value=code; opt.textContent=`${code}  (${lat.toFixed(4)}, ${lon.toFixed(4)})`; opt.dataset.lat=lat; opt.dataset.lon=lon; sel.appendChild(opt);
     }
-  } catch (e) { /* silent */ }
+  }catch(_){}
+}
+function onStationSelected(e){
+  const opt=e.target.selectedOptions && e.target.selectedOptions[0]; if(!opt) return;
+  const lat=+opt.dataset.lat, lon=+opt.dataset.lon;
+  document.getElementById('lat').value=lat.toFixed(6);
+  document.getElementById('lon').value=lon.toFixed(6);
+  computeAt(lat, lon, true);
 }
 
-function onStationSelected(e) {
-  const opt = e.target.selectedOptions && e.target.selectedOptions[0];
-  if (!opt || !opt.dataset.lat || !opt.dataset.lon) return;
-  const lat = +opt.dataset.lat;
-  const lon = +opt.dataset.lon;
-  const latEl = document.getElementById('lat');
-  const lonEl = document.getElementById('lon');
-  if (latEl) latEl.value = lat.toFixed(6);
-  if (lonEl) lonEl.value = lon.toFixed(6);
-  const res = computeAt(lat, lon, true);
-  if (!res) {
-    showMsg('Selected station is out of model domain.');
-    return;
-  }
-  if (window.clickMarker) {
-    clickMarker.bindPopup(`Station: <b>${opt.value}</b><br>Lat: ${lat.toFixed(5)}<br>Lon: ${lon.toFixed(5)}`).openPopup();
-  }
-}
-
+// Init
 (function init(){
   const today = luxon.DateTime.now().setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  document.getElementById('start').value = today;
-  document.getElementById('end').value = today;
-  
-  // Populate preset dropdown and bind change handler
+  document.getElementById('start').value=today;
+  document.getElementById('end').value=today;
   populateStationDropdown();
-  const stationSel = document.getElementById('stationSelect');
-  if (stationSel) stationSel.addEventListener('change', onStationSelected);
-document.getElementById('runBtn').addEventListener('click', ()=>{
-    const lat = parseFloat(document.getElementById('lat').value);
-    const lon = parseFloat(document.getElementById('lon').value);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)){ showMsg('Enter lat/lon or click the map'); return; }
+  const sel=document.getElementById('stationSelect'); if(sel) sel.addEventListener('change', onStationSelected);
+  document.querySelectorAll('button[data-days]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const days=+btn.dataset.days; const sd=document.getElementById('start').value; if(!sd) return;
+      const start=new Date(sd+'T00:00:00'); const end=new Date(start.getTime()+(days-1)*24*3600*1000);
+      const yyyy=end.getFullYear(), mm=String(end.getMonth()+1).padStart(2,'0'), dd=String(end.getDate()).padStart(2,'0');
+      document.getElementById('end').value=`${yyyy}-${mm}-${dd}`;
+    });
+  });
+  document.getElementById('runBtn').addEventListener('click', ()=>{
+    const lat=parseFloat(document.getElementById('lat').value);
+    const lon=parseFloat(document.getElementById('lon').value);
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)){ showMsg('Enter lat/lon or click the map'); return; }
     computeAt(lat, lon, true);
   });
   ['lat','lon','start','end'].forEach(id=>{
-    const el = document.getElementById(id);
-    el.addEventListener('keydown', (e)=>{ if (e.key==='Enter'){ document.getElementById('runBtn').click(); } });
+    const el=document.getElementById(id);
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ document.getElementById('runBtn').click(); } });
   });
 })();
 </script>
