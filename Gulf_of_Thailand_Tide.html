@@ -145,17 +145,31 @@ const STATIONS = {
 
 // Utils
 const dt = luxon.DateTime;
-function fmtDDMMYY(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('ddLLyy'); }
+// was: function fmtDDMMYY(ms){ ... 'ddLLyy' }
+function fmtYYMMDD(ms){
+  return luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('yyLLdd');
+}
 function fmtDate(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd'); }
 function fmtTime(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm'); }
 function todayMidnightMs(){ return dt.now().setZone(USE_TZ).startOf('day').toMillis(); }
 
 // API
 async function fetchTides(lat, lon){
-  const u = new URL(API); u.searchParams.set('lat', lat); u.searchParams.set('lon', lon);
-  const r = await fetch(u, { mode:'cors' }); if (!r.ok) throw new Error(`API ${r.status}`);
-  return r.json(); // { meta{lat,lon,start_iso,end_iso,interval_min}, z0, series, highs, lows }
+  const u = new URL(API);
+  u.searchParams.set('lat', lat);
+  u.searchParams.set('lon', lon);
+
+  // IMPORTANT: always use CORS mode when calling the Worker
+  const r = await fetch(u, { mode:'cors' });
+
+  if (!r.ok) {
+    let bodyText = '';
+    try { bodyText = await r.text(); } catch {}
+    throw new Error(`API ${r.status} – ${bodyText || 'no details'}`);
+  }
+  return r.json();
 }
+
 
 // Chart daily separator
 const daySeparator = {
@@ -250,7 +264,7 @@ function wireExports(stationCode){
   const meta = full.meta || {};
   const startMs = Date.parse(meta.start_iso);
   const endMs   = Date.parse(meta.end_iso);
-  const baseNameFull = `${stationCode}_Tide_${fmtDDMMYY(startMs)}_${fmtDDMMYY(endMs)}`;
+  const baseNameFull = `${stationCode}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}`;
 
   document.getElementById('csv').onclick = ()=>{
     if(!full) return alert('Compute first.');
@@ -267,7 +281,7 @@ function wireExports(stationCode){
   document.getElementById('png').onclick = ()=>{
     if(!chart) return alert('Compute first.');
     const a=document.createElement('a'); a.href=document.getElementById('chart').toDataURL('image/png');
-    a.download = `${stationCode}_Tide_${fmtDDMMYY(todayMidnightMs())}_${fmtDDMMYY(todayMidnightMs()+viewDays*86400000-1)}.png`;
+    a.download = `${stationCode}_Tide_${fmtYYMMDD(todayMidnightMs())}_${fmtYYMMDD(todayMidnightMs()+viewDays*86400000-1)}.png`;
     document.body.appendChild(a); a.click(); a.remove();
   };
 }
@@ -317,7 +331,11 @@ async function runSelected(){
     viewDays = 1; setActiveSeg(viewDays); updateView();
     wireExports(code);
     highlightStation(code);
-  }catch(e){ msg('API error. Check CORS or params.'); console.error(e); }
+ } catch(e){
+  msg(String(e.message || e));
+  console.error(e);
+}
+
 }
 
 document.getElementById('run').addEventListener('click', runSelected);
