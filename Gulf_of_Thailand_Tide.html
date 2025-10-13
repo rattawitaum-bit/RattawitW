@@ -250,7 +250,7 @@ function wireExports(stationCode){
   const meta = full.meta || {};
   const startMs = Date.parse(meta.start_iso);
   const endMs   = Date.parse(meta.end_iso);
-  const baseNameFull = `${stationCode}_Tide_${fmtDDMMYY(startMs)}_${fmtDDMMYY(endMs)}`;
+  const baseNameFull = `${stationCode}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}`;
 
   document.getElementById('csv').onclick = ()=>{
     if(!full) return alert('Compute first.');
