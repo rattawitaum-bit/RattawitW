@@ -1,538 +1,812 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Catenary Studio – Phase 4 (No buoy) • Cleaned</title>
-  <style>
-    :root{ --bg:#0b1220; --panel:#0f172a; --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 system-ui,Segoe UI,Roboto,Arial,sans-serif}
-    h1{font-size:18px;margin:14px 16px}
-    .wrap{display:grid;grid-template-columns:400px 1fr;gap:14px;padding:12px}
-    .panel{background:var(--panel);border:1px solid #1f2937;border-radius:14px;padding:14px}
-    .controls .grid{display:grid;grid-template-columns:1fr;gap:10px}
-    .controls label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-    .controls input[type="number"], .controls input[type="text"], .controls select{width:100%;padding:8px 10px;border:1px solid #334155;border-radius:10px;background:#0b1628;color:#e2e8f0}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{background:var(--accent);color:#001b0a;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600}
-    .small{font-size:12px;color:#94a3b8}
-    canvas{width:100%;height:560px;display:block;background:#0b1628;border:1px solid #1f2937;border-radius:12px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:6px 8px;border-bottom:1px solid #1f2937}
-    th{color:#cbd5e1;text-align:left}
-    td{text-align:left}
-    .err{color:#fecaca}
-    @media (max-width:1100px){ .wrap{grid-template-columns:1fr} }
-    .group{border:1px dashed #23314a;padding:10px;border-radius:10px}
-    .helper-dd{margin-left:6px}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CatCal - Mooring Analysis (Cloud)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
 
-    .headerbar{display:flex;justify-content:space-between;align-items:center;margin:14px 16px}
-    .credit{font-size:12px;color:var(--muted)}
-  </style>
+    <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        gray: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            850: '#1f2937',
+                            900: '#111827',
+                            950: '#0B0F19', 
+                        },
+                        accent: {
+                            500: '#3b82f6', 
+                            600: '#2563eb',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f3f4f6; color: #1f2937; transition: background-color 0.3s, color 0.3s; }
+        .dark body { background-color: #0B0F19; color: #e5e7eb; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #374151; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        .cursor-wait { cursor: wait; }
+    </style>
 </head>
 <body>
-  <h1 class="headerbar"><span>⚓ Catenary Studio – Phase 4 (No buoy)</span><span class="credit">Developed by Rattawit W.</span></h1>
-  <div class="wrap">
-    <div class="panel controls">
-      <div class="grid">
-        <div><label>Water depth (m)</label><input id="WD" type="number" step="0.1" value="70"></div>
-        <div><label>Fairlead height df (m) <span class="small">(negative = above sea)</span></label><input id="df" type="number" step="0.1" value="-3.5"></div>
-        <div><label>Total line length include chain (m)</label><input id="Ltot" type="number" step="0.1" value="900"></div>
-        <div>
-          <label>Overlays tension (t)</label>
-          <input id="overlays" type="text" value="5, 10, 15">
-          <div class="small" style="margin-top:6px">
-            <label style="display:flex;gap:8px;align-items:center;">
-              <input id="chk_no_ground" type="checkbox"> <span>Calculate max overlay with <strong>Wire on ground = 0</strong> and <strong>Chain on ground = 0</strong> and append to list</span>
-            </label>
-          </div>
-        </div>
-      </div>
+    <div id="root"></div>
 
-      <div class="group">
-        <strong>Wire (from fairlead)</strong>
-        <div class="row">
-          <div style="flex:1">
-            <label>w_wire (kgf/m)</label>
-            <input id="w_wire" type="number" step="0.01" value="5.6">
-            <select id="wire_helper" class="helper-dd" title="Wire helper (kgf/m)">
-              <option value="">Wire helper</option>
-              <option value="1">1&quot;</option>
-              <option value="1.5">1.5&quot; (JU)</option>
-              <option value="2">2&quot;</option>
-              <option value="2.5">2.5&quot; (Tender)</option>
-            </select>
-          </div>
-          <div style="flex:1"><label>μ_wire</label><input id="mu_wire" type="number" step="0.01" value="0.4"></div>
-        </div>
-        <strong>Chain (at anchor - combined with total length )</strong>
-        <div class="row">
-          <div style="flex:1"><label>L_chain (m)</label><input id="L_chain" type="number" step="0.1" value="0"></div>
-          <div style="flex:1">
-            <label>w_chain (kgf/m)</label>
-            <input id="w_chain" type="number" step="0.01" value="18">
-            <select id="chain_helper" class="helper-dd" title="Chain helper (kgf/m)">
-              <option value="">Chain helper</option>
-              <option value="1">1&quot;</option>
-              <option value="1.5">1.5&quot;</option>
-              <option value="2">2&quot;</option>
-              <option value="2.5">2.5&quot;</option>
-            </select>
-          </div>
-          <div style="flex:1"><label>μ_chain</label><input id="mu_chain" type="number" step="0.01" value="0.6"></div>
-        </div>
-      </div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const Recharts = window.Recharts || {};
+        const { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } = Recharts;
 
+        // --- ICONS ---
+        const IconAnchor = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="5" r="3"/><line x1="12" x2="12" y1="22" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg> );
+        const IconLifeBuoy = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" x2="9.17" y1="4.93" y2="9.17"/><line x1="14.83" x2="19.07" y1="14.83" y2="19.07"/><line x1="14.83" x2="19.07" y1="9.17" y2="4.93"/><line x1="14.83" x2="9.17" y1="9.17" y2="14.83"/></svg> );
+        const IconWaves = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> );
+        const IconChevronDown = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6"/></svg> );
+        const IconPlus = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="M12 5v14"/></svg> );
+        const IconX = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg> );
+        const IconTrash2 = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg> );
+        const IconPlay = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="6 3 20 12 6 21 6 3"/></svg> );
+        const IconSettings2 = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg> );
+        const IconInfo = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> );
+        const IconSun = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> );
+        const IconMoon = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> );
+        const IconBox = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg> ); 
 
+        const Anchor = IconAnchor;
+        const AnchorIcon = IconLifeBuoy;
+        const Waves = IconWaves;
+        const ChevronDown = IconChevronDown;
+        const Plus = IconPlus;
+        const X = IconX;
+        const Trash2 = IconTrash2;
+        const Play = IconPlay;
+        const Settings2 = IconSettings2;
+        const Info = IconInfo;
+        const Sun = IconSun;
+        const Moon = IconMoon;
+        const Box = IconBox;
 
-      <div class="row" style="margin-top:12px">
-        <button id="run" class="btn">Update</button>
-        <span id="err" class="err"></span>
-      </div>
-    </div>
+        // Constants kept for UI (Drop downs etc)
+        const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
 
-    <div class="panel">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
-        <strong>Profile (X right, Y depth +down)</strong>
-        <span class="small" id="status"></span>
-      </div>
-      <canvas id="chart"></canvas>
-      <div id="report" class="small"></div>
-    </div>
-  </div>
+        const SEGMENT_PRESETS = {
+            [SegmentType.WIRE]: { w: 18.5, EA: 150000, frictionCoeff: 0.5 },
+            [SegmentType.CHAIN]: { w: 120, EA: 800000, frictionCoeff: 1.0 },
+            [SegmentType.FIBER]: { w: 3.5, EA: 25000, frictionCoeff: 0.4 }
+        };
 
-<script>
-(() => {
-  'use strict';
+        const SIZE_STANDARDS = {
+            [SegmentType.WIRE]: [
+                { label: '1.5 inch (38mm)', w: 6.35, ea: 77000 },
+                { label: '2.5 inch (64mm)', w: 17.0, ea: 214000 }
+            ],
+            [SegmentType.CHAIN]: [
+                { label: '1 inch (25mm)', w: 14.1, ea: 400000 },
+                { label: '1.5 inch (38mm)', w: 32.0, ea: 800000 },
+                { label: '2 inch (51mm)', w: 57.0, ea: 1400000 },
+                { label: '2.5 inch (64mm)', w: 89.0, ea: 2200000 },
+                { label: '3 inch (76mm)', w: 128.0, ea: 3200000 }
+            ],
+            [SegmentType.FIBER]: []
+        };
 
-  /** =====================
-   *  Configuration & DOM
-   *  ===================== */
-  const CONFIG = {
-    DISABLE_BUOYS: true,
-    DISABLE_ANCHOR: true,
-    SAMPLES: 480,
-    EPS_Y: 1e-6,
-    EPS_U: 1e-6
-  };
+        // --- COMPONENTS ---
 
-  const $ = (id) => document.getElementById(id);
-  const els = { err: $('err'), status: $('status'), report: $('report'), canvas: $('chart') };
+        const SectionHeader = ({ title, icon: Icon }) => (
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700/50">
+                {Icon && <Icon size={14} className="text-accent-600 dark:text-accent-500" />}
+                <h3 className="text-[11px] uppercase font-bold text-gray-500 dark:text-gray-400 tracking-wider">{title}</h3>
+            </div>
+        );
 
-  /** =====================
-   *  Helpers
-   *  ===================== */
-  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const round1 = (v) => Math.round(v * 10) / 10;
+        const ResultsDisplay = ({ results, waterDepth, theme, structures }) => {
+            const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-  function parseOverlays() {
-    const raw = $('overlays').value || '';
-    const list = raw.split(/[\s,]+/).map(s => parseFloat(s.trim())).filter(x => !isNaN(x) && x > 0);
-    // normalize to 0.1t and dedupe
-    return [...new Set(list.map(round1))].sort((a,b)=>a-b).slice(0, 8);
-  }
+            const chartData = useMemo(() => results.map((res, resIdx) => {
+                const color = res.isMaxTensionCase ? '#d946ef' : COLORS[resIdx % COLORS.length];
+                const xOffset = res.fairleadX;
 
-  function readBuoys(Ltot) {
-    if (CONFIG.DISABLE_BUOYS) return { buoys: [], warnings: [] };
-    const N = parseInt($('buoyN').value) || 0;
-    const B = []; const warnings = [];
-    const clampFair = (sFromAnchor) => {
-      if (sFromAnchor > Ltot) warnings.push(`Buoy arc from anchor ${sFromAnchor} m > Ltot ${Ltot} m - clamped to anchor.`);
-      return clamp(Ltot - sFromAnchor, 0, Ltot);
-    };
-    if (N >= 1) {
-      B.push({ uplift_t: (parseFloat($('b1_uplift').value)||0) * 1000, pennant: parseFloat($('b1_pennant').value)||0, s_from_anchor: parseFloat($('b1_s_from_anchor').value)||0 });
-    }
-    if (N >= 2) {
-      B.push({ uplift_t: (parseFloat($('b2_uplift').value)||0) * 1000, pennant: parseFloat($('b2_pennant').value)||0, s_from_anchor: parseFloat($('b2_s_from_anchor').value)||0 });
-    }
-    B.sort((a,b)=>a.s_from_anchor-b.s_from_anchor);
-    B.forEach((b, idx)=>{ b.idx = idx; b.s_from_fairlead = clampFair(b.s_from_anchor); });
-    return { buoys: B, warnings };
-  }
+                const transformedPoints = res.points.map(p => ({
+                    ...p,
+                    x: xOffset - p.x, 
+                    z: Math.min(p.z, waterDepth + 2), 
+                    caseTension: res.horizontalTension,
+                    isMax: res.isMaxTensionCase
+                }));
 
-  function readAnchor() {
-    if (CONFIG.DISABLE_ANCHOR) return { mode: 'seated', capacity_t: Infinity, weight_t: 0 };
-    return {
-      mode: $('anchor_mode').value || 'seated',
-      capacity_t: parseFloat($('anchor_capacity').value) || 0,
-      weight_t: parseFloat($('anchor_weight').value) || 0
-    };
-  }
+                const segments = {};
+                const buoys = [];
+                const transformedAnchor = transformedPoints[0];
 
-  function validate() {
-    const WD = parseFloat($('WD').value) || 0;
-    const df = parseFloat($('df').value) || 0;
-    const Ltot = parseFloat($('Ltot').value) || 0;
-    const wWire = parseFloat($('w_wire').value) || 0;
-    const wChain = parseFloat($('w_chain').value) || 0;
-    const Lchain = parseFloat($('L_chain').value) || 0;
-    const muWire = parseFloat($('mu_wire').value) || 0;
-    const muChain = parseFloat($('mu_chain').value) || 0;
+                transformedPoints.forEach((p) => {
+                    if (p.segmentId) {
+                        if (!segments[p.segmentId]) segments[p.segmentId] = [];
+                        segments[p.segmentId].push(p);
+                    }
+                    if (p.isBuoy) {
+                        const pennantLen = p.pennantLength || 0;
+                        const utilization = p.buoyUtilization !== undefined ? p.buoyUtilization : 1.0;
+                        let visualZ = p.z - pennantLen;
+                        if (visualZ < 0) visualZ = 0;
 
-    const errs = [];
-    if(!(WD > 0)) errs.push('WD > 0');
-    if(!(Ltot > 0)) errs.push('Ltot > 0');
-    if(!(wWire > 0)) errs.push('w_wire > 0');
-    if(!(wChain > 0)) errs.push('w_chain > 0');
-    if(!(Lchain >= 0 && Lchain <= Ltot)) errs.push('0 ≤ L_chain ≤ Ltot');
-    if(!(muWire >= 0 && muWire <= 1.5)) errs.push('0 ≤ μ_wire ≤ 1.5');
-    if(!(muChain >= 0 && muChain <= 1.5)) errs.push('0 ≤ μ_chain ≤ 1.5');
+                        buoys.push({ ...p, pennantBaseZ: p.z, pennantTopZ: visualZ, utilization });
+                    }
+                });
 
-    return {WD, df, Ltot, wWire, wChain, Lchain, muWire, muChain, errs};
-  }
+                return {
+                    id: resIdx,
+                    horizontalTension: res.horizontalTension,
+                    segments: Object.values(segments),
+                    buoys,
+                    anchor: transformedAnchor, 
+                    color,
+                    isMax: res.isMaxTensionCase,
+                    res 
+                };
+            }), [results, waterDepth]);
 
-  /** =====================
-   *  Physics (refactored, same math)
-   *  ===================== */
-  function suspendedWithBuoysToTD({ H, Lwire, Lchain, wWire, wChain, drop, buoys, samples = CONFIG.SAMPLES }) {
-    const Hs = Math.max(H, 1e-9); // horizontal tension
-    const Ltot = (Lwire||0) + (Lchain||0);
-    const maxIt = 64, maxSteps = 20000;
+            // Transform structures to chart coordinates
+            const structurePoints = useMemo(() => {
+                return structures.map((x, idx) => ({ x: x, z: waterDepth, id: `struct-${idx}` }));
+            }, [structures, waterDepth]);
 
-    // Events along s from fairlead
-    const events = (buoys||[]).map(b=>({ type: 'buoy', s: Math.max(0, b.s_from_fairlead||0), B: +b.uplift_t||0, idx: b.idx }));
-    events.push({ type: 'switch', s: Math.max(0, Lwire||0) });
-    events.push({ type: 'end', s: Infinity });
-    events.sort((a,b)=> a.s - b.s || ((a.type==='switch') - (b.type==='switch')));
+            // Grid calculation
+            const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
+            const maxDepthRaw = Math.max(waterDepth + 10, ...allZ); 
+            const minDepthRaw = -15; 
 
-    function integrate(u0, collect=true){
-      let s=0, x=0, y=0, u=u0; // y down +
-      let mat=1, w=wWire, iEvt=0; // 1=wire,2=chain
-      let LsWire=0, LsChain=0;
-      const plotDs = Math.max((Ltot||1)/(samples||300), 0.05);
-      let nextPlotS = 0;
-      const ptsWire=[], ptsChain=[], buoyMarks=[];
-      const pushPt = ()=>{ const pt={x,y}; (mat===1?ptsWire:ptsChain).push(pt); };
-      if (collect){ pushPt(); nextPlotS += plotDs; }
+            let yInterval = 10;
+            const depthRange = maxDepthRaw - minDepthRaw;
+            if (depthRange / yInterval > 25) yInterval = 25;
+            if (depthRange / yInterval > 25) yInterval = 50; 
+            
+            const minDepth = Math.floor(minDepthRaw / yInterval) * yInterval;
+            const maxDepth = Math.ceil(maxDepthRaw / yInterval) * yInterval;
+            
+            const yTicks = [];
+            for (let z = minDepth; z <= maxDepth + 0.1; z += yInterval) {
+                yTicks.push(Number(z.toFixed(1)));
+            }
 
-      let hitUZero=false, yAtUZero=y, xAtUZero=x, sAtUZero=s;
+            const allX = chartData.flatMap(d => d.segments.flat().map(p => p.x));
+            const anchorsX = chartData.map(d => d.anchor?.x || 0);
+            const structureX = structures;
+            const maxXRaw = Math.max(100, ...allX, ...anchorsX, ...structureX);
 
-      function step(ds){
-        const cu=Math.cosh(u), tu=Math.tanh(u);
-        const du=(w/(Hs*cu))*ds;
-        x += (1/cu)*ds; y += (-tu)*ds; u += du; s += ds;
-        if (mat===1) LsWire+=ds; else LsChain+=ds;
-      }
-      function pick_ds(nextSEvent, yTarget){
-        const remToEvent = nextSEvent - s;
-        const denom = Math.max(1e-6, Math.abs(Math.tanh(u)));
-        let ds_fromY = 0.05/denom; // ~5 cm y-step baseline
-        return Math.max(1e-5, Math.min(remToEvent*0.5, ds_fromY, 0.2));
-      }
+            let xInterval = 100;
+            if (maxXRaw / xInterval > 20) xInterval = 200;
+            if (maxXRaw / xInterval > 20) xInterval = 500;
 
-      let steps=0;
-      while (steps++ < maxSteps){
-        const next = events[iEvt];
-        const nextS = next.s;
-        const ds = pick_ds(nextS, drop);
-        const cu=Math.cosh(u); const du=(w/(Hs*cu))*ds; const u_next=u+du;
+            const maxX = Math.ceil(maxXRaw / xInterval) * xInterval;
+            const xTicks = [];
+            for (let x = 0; x <= maxX + 0.1; x += xInterval) {
+                xTicks.push(Number(x.toFixed(1)));
+            }
 
-        // hit event exactly
-        if (s + ds >= nextS){
-          const ds1 = Math.max(0, nextS - s);
-          if (ds1>0){ step(ds1); if (collect){ pushPt(); nextPlotS += plotDs; } }
-          if (next.type==='switch' && mat===1){ mat=2; w=wChain; }
-          else if (next.type==='buoy'){
-            const Vnew = Hs*Math.sinh(u) - next.B; u = Math.asinh(clamp(Vnew/Hs, -1e9, 1e9));
-            if (collect) buoyMarks.push({x,y,s_from_fairlead:next.s, idx:next.idx});
-          }
-          iEvt++; continue;
-        }
+            const isDark = theme === 'dark';
+            const buoyFill = isDark ? '#fef08a' : '#f59e0b'; 
+            const buoyStroke = isDark ? '#fff' : '#1f2937';
+            const pennantStroke = isDark ? '#fbbf24' : '#d97706';
+            const structFill = isDark ? '#6b7280' : '#4b5563'; 
+            
+            return (
+                <div className="flex flex-col h-full gap-4 transition-colors duration-300">
+                    <div className="flex-1 glass-panel rounded-lg p-1 relative min-h-[400px] flex flex-col">
+                        <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-3 py-1 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 className="text-gray-700 dark:text-gray-300 text-xs font-semibold flex items-center gap-2">
+                                <Settings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
+                            </h3>
+                        </div>
+                        
+                        <div className="flex-1 w-full h-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 40, right: 30, bottom: 40, left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} strokeOpacity={0.6} />
+                                    <XAxis 
+                                        dataKey="x" type="number" unit="m" 
+                                        ticks={xTicks} domain={[0, maxX]}
+                                        stroke={isDark ? "#9ca3af" : "#6b7280"} 
+                                        tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} 
+                                        tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}}
+                                        label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} 
+                                    />
+                                    <YAxis 
+                                        dataKey="z" type="number" unit="m" 
+                                        ticks={yTicks} domain={[minDepth, maxDepth]}
+                                        stroke={isDark ? "#9ca3af" : "#6b7280"} 
+                                        reversed={true} 
+                                        tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} 
+                                        tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}}
+                                        label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} 
+                                    />
+                                    
+                                    <Tooltip 
+                                        cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#9ca3af' : '#6b7280', strokeWidth: 1 }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const hoverPoint = payload[0].payload;
+                                                const currentX = hoverPoint.x;
 
-        // reach seabed drop y=drop inside step?
-        const dy_ds = -Math.tanh(u);
-        if (dy_ds > 0 && y < drop){
-          const ds_to_drop = (drop - y) / dy_ds;
-          if (ds_to_drop >= 0 && ds_to_drop <= ds){
-            step(ds_to_drop); if (collect){ pushPt(); nextPlotS += plotDs; }
-            // locate u=0 for residual (silent marching)
-            while (!hitUZero && steps++ < maxSteps){ step(0.05); if (u >= 0){ hitUZero=true; yAtUZero=y; xAtUZero=x; sAtUZero=s; break; } }
-            break;
-          }
-        }
+                                                const getInterpolatedData = (caseData) => {
+                                                    const allPoints = caseData.segments.flat().sort((a, b) => a.x - b.x);
+                                                    let p1 = allPoints[0];
+                                                    let p2 = allPoints[allPoints.length - 1];
+                                                    
+                                                    for (let i = 0; i < allPoints.length - 1; i++) {
+                                                        if (allPoints[i].x <= currentX && allPoints[i+1].x >= currentX) {
+                                                            p1 = allPoints[i];
+                                                            p2 = allPoints[i+1];
+                                                            break;
+                                                        }
+                                                    }
 
-        // cross u=0 inside step?
-        if (u < 0 && u_next >= 0){
-          const frac = (0 - u) / (u_next - u || 1e-9); step(ds*frac); if (collect){ pushPt(); nextPlotS += plotDs; }
-          hitUZero=true; yAtUZero=y; xAtUZero=x; sAtUZero=s; break;
-        }
+                                                    if (!p1 || !p2) return null;
+                                                    const ratio = (currentX - p1.x) / (p2.x - p1.x || 1);
+                                                    const interpZ = p1.z + (p2.z - p1.z) * ratio;
+                                                    
+                                                    return {
+                                                        z: interpZ,
+                                                        heightAboveSeabed: waterDepth - interpZ
+                                                    };
+                                                };
 
-        step(ds);
-        if (collect && s >= nextPlotS){ pushPt(); nextPlotS += plotDs; }
-        if (s >= Ltot + 1e-6) break; if (y >= drop + 5) break;
-      }
+                                                return (
+                                                    <div className={`p-3 rounded shadow-lg text-xs border z-50 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}>
+                                                        <div className="font-bold mb-2 border-b pb-1 border-gray-200 dark:border-gray-700">
+                                                            Distance from Fairlead: {currentX.toFixed(1)} m
+                                                        </div>
+                                                        
+                                                        <div className="flex flex-col gap-2">
+                                                            {chartData.map((res) => {
+                                                                const data = getInterpolatedData(res);
+                                                                if (!data) return null;
 
-      if (collect) pushPt();
-      const lastPt = (ptsChain.length ? ptsChain[ptsChain.length-1] : (ptsWire.length ? ptsWire[ptsWire.length-1] : {x:0,y:0}));
-      return { hitUZero, yAtUZero, xAtUZero, sAtUZero, ptsWire, ptsChain, buoyMarks, LsWire, LsChain, xEnd:lastPt.x, yEnd:lastPt.y };
-    }
+                                                                const tension = res.horizontalTension.toFixed(1);
+                                                                const label = res.isMax ? `Max (${tension}t)` : `Case ${tension}t`;
+                                                                
+                                                                return (
+                                                                    <div key={res.id} className="flex items-center justify-between gap-4">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="w-2 h-2 rounded-full" style={{backgroundColor: res.color}}></span>
+                                                                            <span className="font-mono">{label}</span>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <span className={`font-semibold ${data.heightAboveSeabed < 0.1 ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}`}>
+                                                                                {data.heightAboveSeabed <= 0.05 ? 'On Seabed' : `H: ${data.heightAboveSeabed.toFixed(1)}m`}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
 
-    function residual(u0){ const r=integrate(u0,false); return r.hitUZero ? (r.yAtUZero - drop) : 1e6; }
+                                    <ReferenceLine y={0} stroke="#3b82f6" strokeDasharray="4 2" strokeOpacity={0.7} label={{ position: 'insideTopRight', value: 'Sea Surface', fill: '#3b82f6', fontSize: 10 }} />
+                                    <ReferenceLine y={waterDepth} stroke={isDark ? "#9ca3af" : "#6b7280"} strokeWidth={2} strokeOpacity={0.5} label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 10 }} />
 
-    let umax=-1e-6, umin=-1.0, rmax=residual(umax), rmin=residual(umin), guard=0;
-    while ((rmin <= 0) && (guard++ < 40)){ umin *= 2; rmin = residual(umin); }
-    if (!(rmin > 0 && rmax < 0)){ umin=-8.0; rmin=residual(umin); }
-    if (!(rmin > 0 && rmax < 0)){
-      const f=integrate(umax,true); return { ok:false, reason:'Could not bracket u0; showing gentle-sag', ptsWire:f.ptsWire, ptsChain:f.ptsChain, LsWire:f.LsWire, LsChain:f.LsChain, xEnd:f.xEnd, yEnd:Math.min(drop,f.yEnd), buoyMarks:f.buoyMarks };
-    }
+                                    {structurePoints.length > 0 && (
+                                        <Scatter 
+                                            key="subsea-structures" 
+                                            data={structurePoints}
+                                            fill={structFill}
+                                            shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={structFill} stroke={buoyStroke} strokeWidth={1} />}
+                                            legendType="none"
+                                        />
+                                    )}
 
-    for (let it=0; it<maxIt; it++){
-      const mid=0.5*(umin+umax); const rmid=residual(mid);
-      if (Math.abs(rmid) < CONFIG.EPS_Y || Math.abs(umax-umin) < 1e-6){
-        const out = integrate(mid,true);
-        return { ok:true, ptsWire:out.ptsWire, ptsChain:out.ptsChain, LsWire:out.LsWire, LsChain:out.LsChain, xEnd:out.xEnd, yEnd:Math.min(drop,out.yEnd), buoyMarks:out.buoyMarks };
-      }
-      if (rmid > 0){ umin=mid; } else { umax=mid; }
-    }
-    const out = integrate(0.5*(umin+umax), true);
-    return { ok:false, reason:'Bisection did not converge', ptsWire:out.ptsWire, ptsChain:out.ptsChain, LsWire:out.LsWire, LsChain:out.LsChain, xEnd:out.xEnd, yEnd:Math.min(drop,out.yEnd), buoyMarks:out.buoyMarks };
-  }
+                                    {chartData.map((res) => (
+                                        <React.Fragment key={res.id}>
+                                            {res.segments.map((segPoints, sIdx) => {
+                                                const segType = segPoints[0].segmentType;
+                                                const isChain = segType === SegmentType.CHAIN;
+                                                
+                                                return (
+                                                    <Scatter 
+                                                        key={`seg-${res.id}-${sIdx}`} data={segPoints} 
+                                                        line={{ 
+                                                            stroke: res.color, 
+                                                            strokeWidth: isChain ? 3 : 2, 
+                                                            strokeDasharray: isChain ? '6 4' : '0' 
+                                                        }} 
+                                                        shape={<circle r={8} fill="transparent" stroke="none" />} 
+                                                        legendType="none" 
+                                                    />
+                                                );
+                                            })}
+                                            
+                                            {res.buoys.map((b, bIdx) => (
+                                                <Scatter key={`pennant-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} 
+                                                    line={{ stroke: pennantStroke, strokeWidth: 2, strokeDasharray: '2 2' }} shape={() => null} marker={null} legendType="none" />
+                                            ))}
+                                            
+                                            {res.buoys.length > 0 && (
+                                                <Scatter key={`buoys-${res.id}`} data={res.buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.utilization }))} 
+                                                    shape={({ cx, cy, payload }) => {
+                                                        const isFloating = payload.utilization < 0.99;
+                                                        return (
+                                                            <g transform={`translate(${cx},${cy})`}>
+                                                                <path d="M0,10 L-8,-4 L8,-4 Z" fill={buoyFill} stroke={buoyStroke} strokeWidth={1.5} />
+                                                                {isFloating && <circle cx={0} cy={0} r={2} fill="cyan" stroke={buoyStroke} strokeWidth={0.5} />}
+                                                            </g>
+                                                        );
+                                                    }} legendType="none" />
+                                            )}
+                                            
+                                            <Scatter key={`anchor-${res.id}`} data={[res.anchor]} 
+                                                shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={res.color} stroke={buoyStroke} strokeWidth={1} />} legendType="none" />
+                                        </React.Fragment>
+                                    ))}
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
 
-  function iterateSeabedFrictionWithBuoys({H_fair, Lwire, Lchain, wWire, wChain, muWire, muChain, drop, buoys}){
-    const H = Math.max(H_fair, 1e-8);
-    const p = suspendedWithBuoysToTD({H, Lwire, Lchain, wWire, wChain, drop, buoys, samples: CONFIG.SAMPLES});
-    const LgWire = Math.max(0, Lwire - p.LsWire);
-    const LgChain = Math.max(0, Lchain - p.LsChain);
-    const F = muWire * wWire * LgWire + muChain * wChain * LgChain; // kgf
-    const Hanchor = Math.max(0, H - F);
-    const LsTotal = p.LsWire + p.LsChain;
-    return { ok:true, HTD:H, Hanchor, p, LgWire, LgChain, LsTotal };
-  }
+                        <div className="absolute bottom-4 left-14 flex gap-4 text-[10px] bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg pointer-events-none select-none">
+                           <div className="flex items-center gap-2"><div className="w-6 h-0.5 bg-gray-500 dark:bg-gray-400"></div><span className="text-gray-600 dark:text-gray-400">Wire</span></div>
+                           <div className="flex items-center gap-2"><div className="w-6 h-1 bg-transparent border-b-4 border-dotted border-orange-500"></div><span className="text-gray-600 dark:text-gray-400">Chain</span></div>
+                           <div className="flex items-center gap-2"><div className="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[10px] border-l-transparent border-r-transparent border-b-yellow-400"></div><span className="text-gray-600 dark:text-gray-400">Buoy</span></div>
+                           <div className="flex items-center gap-2 ml-2 border-l border-gray-300 dark:border-gray-700 pl-3"><div className="w-6 h-0.5 bg-fuchsia-500"></div><span className="text-fuchsia-600 dark:text-fuchsia-400 font-medium">Max Tension (0m)</span></div>
+                        </div>
+                    </div>
 
-  function findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys}){
-    const tol_m = 0.05, maxIt = 60;
-    const deficitMeters = (tTon)=>{
-      const H = Math.max(tTon*1000, 1e-6);
-      const p = suspendedWithBuoysToTD({H, Lwire:Math.max(0,Lwire||0), Lchain:Math.max(0,Lchain||0), wWire, wChain, drop, buoys:buoys||[], samples: Math.min(CONFIG.SAMPLES, 360)});
-      return Math.max(0, Lwire - p.LsWire) + Math.max(0, Lchain - p.LsChain);
-    };
-    let tLo=0.1, dLo=deficitMeters(tLo); if (dLo <= tol_m) return {ok:true, t_crit:tLo};
-    let tHi=5.0, dHi=deficitMeters(tHi), guard=0;
-    while (dHi > tol_m && guard++ < 40){ tHi *= 2; dHi = deficitMeters(tHi); if (tHi > 1e5) break; }
-    if (dHi > tol_m) return {ok:false};
-    for (let it=0; it<maxIt; it++){
-      const tm=0.5*(tLo+tHi), dm=deficitMeters(tm);
-      if (dm <= tol_m){ tHi=tm; } else { tLo=tm; }
-      if (Math.abs(tHi - tLo) <= 1e-3) break;
-    }
-    return {ok:true, t_crit:tHi};
-  }
+                    {/* Results Table */}
+                    <div className="h-1/3 glass-panel rounded-lg overflow-hidden flex flex-col shadow-lg">
+                        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
+                           <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
+                                <Info size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results
+                           </h3>
+                        </div>
+                        <div className="overflow-auto flex-1 p-0">
+                            <table className="w-full text-left text-sm text-gray-700 dark:text-gray-300">
+                                <thead className="bg-gray-100 dark:bg-gray-850 text-[10px] uppercase font-bold text-gray-500 sticky top-0 shadow-sm">
+                                    <tr>
+                                        <th className="px-4 py-3 tracking-wider">Case (t)</th>
+                                        <th className="px-4 py-3 tracking-wider">Total Length (m)</th>
+                                        <th className="px-4 py-3 tracking-wider">Grounded (m)</th>
+                                        <th className="px-4 py-3 tracking-wider">Anch Ten (t)</th>
+                                        <th className="px-4 py-3 tracking-wider">Offset (m)</th>
+                                        <th className="px-4 py-3 tracking-wider">FL Depth (m)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800/50">
+                                    {results.map((res, idx) => (
+                                        <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${res.isMaxTensionCase ? 'bg-fuchsia-50 dark:bg-fuchsia-900/10' : ''}`}>
+                                            <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? '#d946ef' : COLORS[idx % COLORS.length]}}>
+                                                {res.isMaxTensionCase ? `${res.horizontalTension.toFixed(1)} (Max)` : res.horizontalTension.toFixed(1)}
+                                            </td>
+                                            <td className="px-4 py-2.5">{res.totalLength.toFixed(1)}</td>
+                                            <td className={`px-4 py-2.5 font-mono font-medium ${res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                {res.groundedLength.toFixed(1)}
+                                            </td>
+                                            <td className="px-4 py-2.5">{res.anchorTension.toFixed(2)}</td>
+                                            <td className="px-4 py-2.5">{res.fairleadX.toFixed(1)}</td>
+                                            <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400">{res.fairleadDepth.toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                    {results.length === 0 && (
+                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500 italic">No results calculated yet.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-  /** =====================
-   *  Rendering (Canvas)
-   *  ===================== */
-  const COLORS_SERIES = ['#ef4444','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#10b981','#f97316'];
+        const InputField = ({ label, value, onChange, unit, type="number", placeholder }) => (
+            <div className="group">
+                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
+                <div className="relative">
+                    <input 
+                        type={type} 
+                        value={value} 
+                        onChange={onChange} 
+                        placeholder={placeholder}
+                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded pl-2 pr-7 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none transition-all shadow-sm" 
+                    />
+                    {unit && <span className="absolute right-2 top-1.5 text-[10px] text-gray-500 dark:text-gray-400 pointer-events-none select-none">{unit}</span>}
+                </div>
+            </div>
+        );
 
-  function drawCanvasChart(datasets, canvasId, WD, df){
-    const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-    ctx.setTransform(1,0,0,1,0,0); // reset
-    ctx.scale(dpr, dpr);
-    const width = rect.width, height = rect.height;
+        const SelectField = ({ label, value, onChange, children }) => (
+            <div className="group">
+                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
+                <div className="relative">
+                    <select 
+                        value={value} 
+                        onChange={onChange} 
+                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm"
+                    >
+                        {children}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2 top-2 text-gray-400 pointer-events-none" />
+                </div>
+            </div>
+        );
 
-    // background
-    ctx.fillStyle = '#0b1628';
-    ctx.fillRect(0,0,width,height);
-    if (!datasets || !datasets.length) return;
+        const InputPanel = ({ waterDepth, setWaterDepth, fairleadElev, setFairleadElev, segments, setSegments, buoys, setBuoys, tensions, setTensions, calculate, showMaxTension, setShowMaxTension, subseaStructures, setSubseaStructures, loading }) => {
+            const handleTypeChange = (index, newType) => {
+                const defaults = SEGMENT_PRESETS[newType];
+                const newSegs = [...segments];
+                newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff };
+                setSegments(newSegs);
+            };
 
-    const allX = datasets.flatMap(d => (d.data||[]).map(p=>p.x));
-    const allY = datasets.flatMap(d => (d.data||[]).map(p=>p.y));
-    if (!allX.length){ return; }
+            const handleSizeChange = (index, sizeDataStr) => {
+                if (!sizeDataStr) return;
+                const sizeData = JSON.parse(sizeDataStr);
+                const newSegs = [...segments];
+                newSegs[index] = { ...newSegs[index], w: sizeData.w, EA: sizeData.ea };
+                setSegments(newSegs);
+            };
 
-    const minX = 0;
-    const maxX = Math.max(...allX, 1) * 1.05;
-    const minY = Math.min(df - 5, ...allY);
-    const maxY = Math.max(WD + 10, ...allY);
+            const updateSegment = (index, field, value) => {
+                const newSegs = [...segments];
+                newSegs[index] = { ...newSegs[index], [field]: value };
+                setSegments(newSegs);
+            };
 
-    const padding = 50;
-    const chartW = Math.max(1, width - 2*padding);
-    const chartH = Math.max(1, height - 2*padding);
-    const scaleX = (x)=> padding + (x - minX) / Math.max(1e-6, (maxX - minX)) * chartW;
-    const scaleY = (y)=> padding + (y - minY) / Math.max(1e-6, (maxY - minY)) * chartH;
+            const addSegment = () => {
+                const defaults = SEGMENT_PRESETS[SegmentType.WIRE];
+                setSegments([...segments, { id: `seg-${Date.now()}`, type: SegmentType.WIRE, length: 100, w: defaults.w, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff }]);
+            };
 
-    // grid
-    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 1;
-    for (let i=0;i<=10;i++){ const x = scaleX(minX + (maxX-minX)*i/10); ctx.beginPath(); ctx.moveTo(x,padding); ctx.lineTo(x,height-padding); ctx.stroke(); }
-    for (let i=0;i<=10;i++){ const y = scaleY(minY + (maxY-minY)*i/10); ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(width-padding,y); ctx.stroke(); }
+            const removeSegment = (index) => {
+                const newSegs = segments.filter((_, i) => i !== index);
+                setSegments(newSegs);
+            };
 
-    // water surface y=0
-    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.setLineDash([10,5]);
-    ctx.beginPath(); const waterY = scaleY(0); ctx.moveTo(padding, waterY); ctx.lineTo(width-padding, waterY); ctx.stroke(); ctx.setLineDash([]);
+            const updateBuoy = (index, field, value) => {
+                const newBuoys = [...buoys];
+                newBuoys[index] = { ...newBuoys[index], [field]: value };
+                setBuoys(newBuoys);
+            };
 
-    // axes
-    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(padding,padding); ctx.lineTo(padding,height-padding); ctx.lineTo(width-padding,height-padding); ctx.stroke();
+            const addBuoy = () => {
+                setBuoys([...buoys, { id: `buoy-${Date.now()}`, distanceFromAnchor: 100, netBuoyancy: 500, pennantLength: 10 }]);
+            };
 
-    // series
-    datasets.forEach((ds, i) => {
-      const color = ds.borderColor || COLORS_SERIES[i % COLORS_SERIES.length];
-      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = ds.borderWidth || 2;
-      ctx.setLineDash(ds.borderDash || []);
-      const data = ds.data || [];
-      if (ds.showLine !== false && data.length > 1){
-        ctx.beginPath();
-        data.forEach((pt, idx)=>{ const x=scaleX(pt.x), y=scaleY(Math.min(pt.y, WD)); if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
-        ctx.stroke();
-      }
-      if ((ds.pointRadius||0) > 0){
-        data.forEach(pt => { const x=scaleX(pt.x), y=scaleY(Math.min(pt.y, WD));
-          if (ds.pointStyle === 'rect'){ ctx.fillRect(x-ds.pointRadius, y-ds.pointRadius, ds.pointRadius*2, ds.pointRadius*2); }
-          else if (ds.pointStyle === 'triangle'){ ctx.beginPath(); ctx.moveTo(x, y-ds.pointRadius); ctx.lineTo(x-ds.pointRadius, y+ds.pointRadius); ctx.lineTo(x+ds.pointRadius, y+ds.pointRadius); ctx.closePath(); ctx.fill(); }
-          else if (ds.pointStyle === 'crossRot'){ ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-ds.pointRadius, y-ds.pointRadius); ctx.lineTo(x+ds.pointRadius, y+ds.pointRadius); ctx.moveTo(x+ds.pointRadius, y-ds.pointRadius); ctx.lineTo(x-ds.pointRadius, y+ds.pointRadius); ctx.stroke(); }
-          else { ctx.beginPath(); ctx.arc(x, y, ds.pointRadius, 0, Math.PI*2); ctx.fill(); }
-        });
-      }
-    });
+            const removeBuoy = (index) => {
+                const newBuoys = buoys.filter((_, i) => i !== index);
+                setBuoys(newBuoys);
+            };
 
-    // labels
-    ctx.fillStyle = '#cbd5e1'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
-    for (let i=0;i<=5;i++){ const val=minX+(maxX-minX)*i/5; const x=scaleX(val); ctx.fillText(Math.round(val)+'m', x, height - padding + 20); }
-    ctx.textAlign='right';
-    for (let i=0;i<=5;i++){ const val=minY+(maxY-minY)*i/5; const y=scaleY(val); ctx.fillText(Math.round(val)+'m', padding-10, y+4); }
-    ctx.textAlign='left'; ctx.fillStyle='#3b82f6'; ctx.fillText('Sea Surface', padding+10, waterY-5);
-    ctx.textAlign='center'; ctx.font='bold 16px system-ui'; ctx.fillStyle='#cbd5e1'; ctx.fillText('Catenary Profile Analysis', width/2, 25);
-  }
+            return (
+                <div className="h-full flex flex-col gap-6 overflow-y-auto pr-3 pb-24 custom-scrollbar">
+                    {/* Environment */}
+                    <section>
+                        <SectionHeader title="Environment" icon={Waves} />
+                        <div className="grid grid-cols-2 gap-3 p-3 glass-panel rounded-lg">
+                            <InputField label="Water Depth" value={waterDepth} onChange={e => setWaterDepth(parseFloat(e.target.value))} unit="m" />
+                            <InputField label="Fairlead Z" value={fairleadElev} onChange={e => setFairleadElev(parseFloat(e.target.value))} unit="m" />
+                            <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
+                                <InputField 
+                                    label="Subsea Structures (Dist from FL)" 
+                                    value={subseaStructures} 
+                                    onChange={e => setSubseaStructures(e.target.value)} 
+                                    type="text"
+                                    placeholder="e.g. 0, 150, 400"
+                                />
+                            </div>
+                        </div>
+                    </section>
 
-  /** =====================
-   *  Build & UI wiring
-   *  ===================== */
-  function build(){
-    const {WD, df, Ltot, wWire, wChain, Lchain, muWire, muChain, errs} = validate();
-    if (errs.length){ els.err.textContent = 'Input error: ' + errs.join(', '); return; }
-    els.err.textContent = ''; els.status.textContent = ''; els.report.innerHTML = '';
+                    {/* Line Segments */}
+                    <section>
+                        <div className="flex justify-between items-center mb-2">
+                            <SectionHeader title="Line Segments" icon={Anchor} />
+                            <button onClick={addSegment} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                                <Plus size={12} /> Add
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            <div className="text-[10px] text-gray-400 text-center pb-1 italic">Order: Fairlead (Top) &rarr; Anchor (Bot)</div>
+                            {segments.map((seg, idx) => (
+                                <div key={seg.id} className="glass-panel p-3 rounded-lg group relative transition-all hover:border-gray-400 dark:hover:border-gray-600">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                            <span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[10px] px-1.5 rounded">#{idx+1}</span>
+                                            {seg.type}
+                                        </span>
+                                        <button onClick={() => removeSegment(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="col-span-2">
+                                            <SelectField label="Type" value={seg.type} onChange={e => handleTypeChange(idx, e.target.value)}>
+                                                <option value={SegmentType.WIRE}>Wire (Steel)</option>
+                                                <option value={SegmentType.CHAIN}>Chain (Studless)</option>
+                                                <option value={SegmentType.FIBER}>Fiber (Polyester)</option>
+                                            </SelectField>
+                                        </div>
+                                        
+                                        {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
+                                            <div className="col-span-2">
+                                                <SelectField label="Standard Size (Auto-Fill)" onChange={e => handleSizeChange(idx, e.target.value)}>
+                                                    <option value="">-- Custom / Select Size --</option>
+                                                    {SIZE_STANDARDS[seg.type].map((size, sIdx) => (
+                                                        <option key={sIdx} value={JSON.stringify(size)}>{size.label} ({size.w} kg/m)</option>
+                                                    ))}
+                                                </SelectField>
+                                            </div>
+                                        )}
 
-    let overlays = parseOverlays();
-    const preMsgs = [];
+                                        <div className="col-span-2">
+                                            <InputField label="Length" value={seg.length} onChange={e => updateSegment(idx, 'length', parseFloat(e.target.value))} unit="m" />
+                                        </div>
+                                        
+                                        <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
+                                        
+                                        <InputField label="Weight" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
+                                        <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', parseFloat(e.target.value))} unit="kN" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
 
-    // Optional compute critical overlay and append
-    if (($('chk_no_ground')?.checked)){
-      const drop = WD - df; const Lwire = Math.max(0, Ltot - Lchain);
-      const res = findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys: []});
-      if (res && res.ok && isFinite(res.t_crit)){
-        const tRound = round1(res.t_crit);
-        if (!overlays.includes(tRound)) overlays = [...overlays, tRound].sort((a,b)=>a-b);
-        $('overlays').value = overlays.map(v => (Math.abs(v - Math.round(v)) < 1e-9) ? String(Math.round(v)) : v.toFixed(1)).join(', ');
-        preMsgs.push(`★ Added critical overlay (no grounded span): ${tRound.toFixed(1)} t`);
-      } else {
-        preMsgs.push('Could not bracket critical overlay (no-ground).');
-      }
-    }
-    if (!overlays.length){ els.err.textContent = 'Add at least one overlay (tonnes).'; return; }
+                    {/* Buoys */}
+                    <section>
+                        <div className="flex justify-between items-center mb-2">
+                            <SectionHeader title="Buoys" icon={AnchorIcon} />
+                            <button onClick={addBuoy} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                                <Plus size={12} /> Add
+                            </button>
+                        </div>
+                        {buoys.map((b, idx) => (
+                            <div key={b.id} className="glass-panel p-3 rounded-lg relative mb-2 border-l-2 border-l-yellow-500/50">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500">Buoy #{idx+1}</span>
+                                    <button onClick={() => removeBuoy(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
+                                        <Trash2 size={12} />
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    <InputField label="Dist from Anchor" value={b.distanceFromAnchor} onChange={e => updateBuoy(idx, 'distanceFromAnchor', parseFloat(e.target.value))} unit="m" />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputField label="Net Buoyancy" value={b.netBuoyancy} onChange={e => updateBuoy(idx, 'netBuoyancy', parseFloat(e.target.value))} unit="kg" />
+                                        <InputField label="Pennant Len" value={b.pennantLength} onChange={e => updateBuoy(idx, 'pennantLength', parseFloat(e.target.value))} unit="m" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </section>
 
-    const {buoys, warnings} = readBuoys(Ltot);
-    const anchor = readAnchor();
-    if (!CONFIG.DISABLE_ANCHOR && anchor.mode === 'hanging' && anchor.weight_t > 0) {
-      buoys.unshift({ uplift_t: -(anchor.weight_t*1000), pennant: 0, s_from_anchor: Ltot, s_from_fairlead: 0, idx: -1 });
-    }
+                    {/* Calculate Action */}
+                    <div className="sticky bottom-0 bg-gray-50/95 dark:bg-[#0B0F19]/95 backdrop-blur py-4 border-t border-gray-200 dark:border-gray-800">
+                        <div className="flex justify-between items-center mb-2 px-1">
+                            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target Tensions</label>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                    type="checkbox" 
+                                    checked={showMaxTension} 
+                                    onChange={e => setShowMaxTension(e.target.checked)} 
+                                    className="rounded bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-accent-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                                />
+                                <span className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-medium group-hover:text-fuchsia-500 transition-colors">Find Max (0m Grd)</span>
+                            </label>
+                        </div>
+                        <input 
+                            type="text" 
+                            value={tensions} 
+                            onChange={e => setTensions(e.target.value)} 
+                            className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-sm font-mono mb-3 focus:border-accent-500 outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200"
+                            placeholder="e.g. 5, 10, 15"
+                        />
+                        
+                        <button 
+                            onClick={calculate} 
+                            disabled={loading}
+                            className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}
+                        >
+                            {loading ? (
+                                <span>Processing...</span> 
+                            ) : (
+                                <>
+                                    <Play size={16} fill="currentColor" /> Calculate Profile
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
 
-    const drop = WD - df; const Lwire = Math.max(0, Ltot - Lchain);
-    const ds = [];
-    const rows = [['Overlay (t)','x_TD (m)','Lg_wire (m)','Lg_chain (m)','x_anchor (m)','H_anchor (t)']];
-    const msgs = [...warnings, ...preMsgs];
+        const App = () => {
+            // Theme state
+            const [theme, setTheme] = useState('light'); 
+            const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-    // fairlead + seabed
-    ds.push({ label:'Fairlead', data:[{x:0,y:df}], pointRadius:6, pointStyle:'rect', borderColor:'#cbd5e1', backgroundColor:'#cbd5e1', showLine:false, showInLegend:false });
-    ds.push({ label:'Seabed (y=WD)', data:[{x:0,y:WD},{x:Math.max(10,Ltot),y:WD}], showLine:true, borderColor:'#475569', borderDash:[6,6], borderWidth:1.5, pointRadius:0 });
+            // Update document class for tailwind dark mode
+            useEffect(() => {
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }, [theme]);
 
-    // cap overlays by critical no-ground (skip above)
-    let tMaxOverlay=null; try { const r=findNoGroundOverlay({Lwire, Lchain, wWire, wChain, drop, buoys: []}); if (r&&r.ok&&isFinite(r.t_crit)) tMaxOverlay=round1(r.t_crit); } catch(_){}
+            const [waterDepth, setWaterDepth] = useState(73);
+            const [fairleadElev, setFairleadElev] = useState(-3.52);
+            const [subseaStructuresStr, setSubseaStructuresStr] = useState("0");
+            
+            const [segments, setSegments] = useState([
+                { id: 'seg-wire-1', type: SegmentType.WIRE, length: 700, diameter: 38.1, w: 6.35, EA: 77000, frictionCoeff: 0.5 },
+                { id: 'seg-chain-2', type: SegmentType.CHAIN, length: 55, diameter: 38.1, w: 32.0, EA: 800000, frictionCoeff: 1.0 }
+            ]);
 
-    overlays.forEach((t, i)=>{
-      if (tMaxOverlay !== null && t > tMaxOverlay + 1e-9){ msgs.push(`${t.toFixed(1)} t → above calculated max overlay ${tMaxOverlay.toFixed(1)} t (Lg_wire + Lg_chain = 0). Skipped.`); return; }
-      const col = COLORS_SERIES[i % COLORS_SERIES.length];
-      const H_fair = t * 1000; // kgf
-      const it = iterateSeabedFrictionWithBuoys({H_fair, Lwire, Lchain, wWire, wChain, muWire, muChain, drop, buoys});
+            const [buoys, setBuoys] = useState([
+                { id: 'buoy-1', distanceFromAnchor: 500, netBuoyancy: 5000, pennantLength: 30 }
+            ]);
 
-      const addSuspended = (label, arr, dashed=false)=>{ if (!arr || !arr.length) return; ds.push({ label, data: arr.map(q=>({x:q.x, y: Math.min(q.y+df, WD)})), showLine:true, borderColor:col, borderDash: dashed?[2,2]:undefined, borderWidth:2, pointRadius:0 }); };
-      const addPoint = (label, x, y, style) => ds.push({ label, type:'scatter', data:[{x,y}], pointRadius: style==='crossRot'?4:6, pointStyle: style||'circle', borderColor: col, backgroundColor: col, showInLegend:false });
+            const [tensionsStr, setTensionsStr] = useState("5, 10, 15");
+            const [showMaxTension, setShowMaxTension] = useState(false);
+            const [results, setResults] = useState([]);
 
-      if (!it.ok){
-        const p = suspendedWithBuoysToTD({H:H_fair, Lwire, Lchain, wWire, wChain, drop, buoys, samples: Math.min(CONFIG.SAMPLES, 360)});
-        addSuspended(`${t.toFixed(1)} t - wire (to TD)`, p.ptsWire);
-        addSuspended(`${t.toFixed(1)} t - chain (to TD)`, p.ptsChain, true);
-        addPoint(`${t.toFixed(1)} t - TD`, p.xEnd, Math.min(df+p.yEnd, WD), 'crossRot');
-        // pennants
-        p.buoyMarks.forEach(mark => { const buoy = buoys.find(b=> b.idx===mark.idx); if (!buoy) return; const xa=mark.x, ya=Math.min(mark.y+df, WD), xb=xa, yb=Math.min(ya - buoy.pennant, WD);
-          addPoint(`${t.toFixed(1)} t - buoy ${buoy.idx+1}`, xb, yb, 'triangle');
-          ds.push({ label:`${t.toFixed(1)} t - pennant ${buoy.idx+1}`, data:[{x:xa,y:ya},{x:xb,y:yb}], showLine:true, borderColor:col, borderDash:[1,3], borderWidth:1, pointRadius:0, showInLegend:false });
-        });
-        rows.push([`${t.toFixed(1)}`, p.xEnd.toFixed(1), '—', '—', p.xEnd.toFixed(1), '—']);
-        msgs.push(`${t.toFixed(1)} t → too small vs friction (no equilibrium). Showing suspended to TD only.`);
-      } else {
-        const {p, LgWire, LgChain, Hanchor, LsTotal} = it; const xTD=p.xEnd; const xAnchor=xTD + LgWire + LgChain;
-        addSuspended(`${t.toFixed(1)} t - wire (susp)`, p.ptsWire);
-        addSuspended(`${t.toFixed(1)} t - chain (susp)`, p.ptsChain, true);
-        if (LgWire > 0) ds.push({ label:`${t.toFixed(1)} t - wire (grounded)`, data:[{x:xTD,y:WD},{x:xTD+LgWire,y:WD}], showLine:true, borderColor:col, borderDash:[6,6], borderWidth:2, pointRadius:0 });
-        if (LgChain > 0) ds.push({ label:`${t.toFixed(1)} t - chain (grounded)`, data:[{x:xTD+LgWire,y:WD},{x:xAnchor,y:WD}], showLine:true, borderColor:col, borderDash:[10,6], borderWidth:2, pointRadius:0 });
-        addPoint(`${t.toFixed(1)} t - TD`, xTD, WD, 'crossRot');
-        if ((LgWire+LgChain) > 0) addPoint(`${t.toFixed(1)} t - anchor`, xAnchor, WD, 'rect');
-        // buoys & pennants (flag seabed)
-        p.buoyMarks.forEach(mark => {
-          const buoy = buoys.find(b => Math.abs(b.s_from_fairlead - mark.s_from_fairlead) < 1e-6); if (!buoy) return;
-          const onSeabed = (buoy.s_from_fairlead > LsTotal);
-          const xa=mark.x, ya=Math.min(mark.y+df, WD), xb=xa, yb=Math.min(ya - buoy.pennant, WD);
-          const col2 = onSeabed ? '#94a3b8' : col;
-          ds.push({ label:`${t.toFixed(1)} t - buoy ${buoy.idx+1}`, type:'scatter', data:[{x:xb,y:yb}], pointRadius:6, pointStyle:'triangle', borderColor:col2, backgroundColor:col2, showInLegend:false });
-          ds.push({ label:`${t.toFixed(1)} t - pennant ${buoy.idx+1}`, data:[{x:xa,y:ya},{x:xb,y:yb}], showLine:true, borderColor:col2, borderDash:[1,3], borderWidth:1, pointRadius:0, showInLegend:false });
-          if (onSeabed) msgs.push(`Buoy ${buoy.idx + 1} at s_from_anchor ${buoy.s_from_anchor} m is on seabed at ${t} t overlay.`);
-        });
-        rows.push([`${t.toFixed(1)}`, xTD.toFixed(1), LgWire.toFixed(1), LgChain.toFixed(1), xAnchor.toFixed(1), (Hanchor/1000).toFixed(2)]);
-      }
-    });
+            // Loading & Error States
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
 
-    drawCanvasChart(ds, 'chart', WD, df);
+            // Cloudflare Worker Calculation Handler
+            const handleCalculate = async () => {
+                const tensions = tensionsStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
+                if (tensions.length === 0) return;
 
-    // table
-    let html = '<table><tr><th>Tension (t)</th><th>Fairlead-TD (m)</th><th>Wire on ground (m)</th><th>Chain on ground (m)</th><th>Hor. anchor dist (m)</th><th>Tension_anchor (t)</th></tr>';
-    rows.slice(1).forEach(r => { html += '<tr>' + r.map((c, j)=> (j===5?`<td style="text-align:right">${c}</td>`:`<td>${c}</td>`)).join('') + '</tr>'; });
-    html += '</table>';
-    if (msgs.length) html += `<div class="small" style="margin-top:8px;color:#fbbf24">${msgs.join('<br>')}</div>`;
-    els.report.innerHTML = html;
+                setLoading(true);
+                setError(null);
 
-    els.status.textContent = (CONFIG.DISABLE_BUOYS || CONFIG.DISABLE_ANCHOR) ? 'Buoys & anchor inputs disabled' : '';
-  }
+                // Prepare payload
+                const payload = {
+                    waterDepth,
+                    fairleadElev,
+                    segments,
+                    buoys,
+                    tensions,
+                    calculateMax: showMaxTension
+                };
 
-  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(null,args), ms); } }
+                try {
+                    // YOUR WORKER URL
+                    const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev";
+                    
+                    const response = await fetch(WORKER_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
 
-  function init(){
-    const inputIds = ['WD','df','Ltot','w_wire','mu_wire','w_chain','mu_chain','L_chain','overlays','buoyN','b1_uplift','b1_pennant','b1_s_from_anchor','b2_uplift','b2_pennant','b2_s_from_anchor','anchor_mode','anchor_capacity','anchor_weight'];
-    inputIds.forEach(id => { const el = $(id); if (el) el.addEventListener('input', build); });
-    $('run').addEventListener('click', build);
-    $('chk_no_ground').addEventListener('change', build);
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error || "Server calculation failed");
+                    }
 
-    // disable buoys & anchor controls when feature is off
-    (function(){ const ids = ['buoyN','b1_uplift','b1_pennant','b1_s_from_anchor','b2_uplift','b2_pennant','b2_s_from_anchor','anchor_mode','anchor_capacity','anchor_weight'];
-      ids.forEach(id => { const el=$(id); if (el) el.disabled = CONFIG.DISABLE_BUOYS || CONFIG.DISABLE_ANCHOR; });
-      const buoyN = $('buoyN'); if (buoyN) buoyN.value = '0';
-    })();
+                    const data = await response.json();
+                    setResults(data);
+                } catch (err) {
+                    console.error(err);
+                    setError("Error: " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            // Parse structures string into array of numbers
+            const structures = useMemo(() => {
+                if (!subseaStructuresStr) return [];
+                return subseaStructuresStr.split(',')
+                    .map(s => parseFloat(s.trim()))
+                    .filter(n => !isNaN(n));
+            }, [subseaStructuresStr]);
 
-    // size helpers
-    (function(){
-      const WIRE_HELPER_KGFM = {"1":2.4,"1.5":5.5,"2":8.5,"2.5":13.25};
-      const CHAIN_HELPER_KGFM = {"1":16.0,"1.5":38.0,"2":66.5,"2.5":107.5};
-      const wireSel=$('wire_helper'), chainSel=$('chain_helper');
-      const wWireEl=$('w_wire'), wChainEl=$('w_chain');
-      wireSel?.addEventListener('change', function(){ const k=this.value; if (k && WIRE_HELPER_KGFM[k]){ wWireEl.value = WIRE_HELPER_KGFM[k]; build(); } });
-      chainSel?.addEventListener('change', function(){ const k=this.value; if (k && CHAIN_HELPER_KGFM[k]){ wChainEl.value = CHAIN_HELPER_KGFM[k]; build(); } });
-    })();
+            const bgClass = theme === 'dark' ? 'bg-[#0B0F19] text-slate-200' : 'bg-gray-50 text-gray-800';
+            const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
+            const sidebarBg = theme === 'dark' ? 'bg-[#0e121e]' : 'bg-white';
 
-    // Re-render on resize
-    window.addEventListener('resize', debounce(build, 100));
+            return (
+                <div className={`flex h-screen w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
+                    {/* Left Sidebar */}
+                    <div className={`w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-colors duration-300`}>
+                        <div className={`p-4 border-b ${sidebarBorder} flex justify-between items-center`}>
+                            <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                                <Anchor className="text-accent-600 dark:text-accent-500" size={20} />
+                                <span>CatCal</span> 
+                                <span className="text-gray-400 dark:text-gray-500 font-normal text-xs">Cloud Engine</span>
+                            </h1>
+                            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
+                                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-hidden p-4">
+                            <InputPanel 
+                                waterDepth={waterDepth} setWaterDepth={setWaterDepth}
+                                fairleadElev={fairleadElev} setFairleadElev={setFairleadElev}
+                                segments={segments} setSegments={setSegments}
+                                buoys={buoys} setBuoys={setBuoys}
+                                tensions={tensionsStr} setTensions={setTensionsStr}
+                                calculate={handleCalculate}
+                                showMaxTension={showMaxTension} setShowMaxTension={setShowMaxTension}
+                                subseaStructures={subseaStructuresStr} setSubseaStructures={setSubseaStructuresStr}
+                                loading={loading}
+                            />
+                            
+                            {error && (
+                                <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] rounded border border-red-200 dark:border-red-800 text-center">
+                                    {error}
+                                </div>
+                            )}
+                        </div>
+                    </div>
 
-    build();
-  }
+                    {/* Main Content */}
+                    <div className={`flex-1 flex flex-col p-6 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-gray-50'}`}>
+                        {/* Background Grid Effect */}
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+                             style={{backgroundImage: 'linear-gradient(#6b7280 1px, transparent 1px), linear-gradient(90deg, #6b7280 1px, transparent 1px)', backgroundSize: '40px 40px'}}>
+                        </div>
+                        
+                        <div className="relative z-10 h-full">
+                            <ResultsDisplay results={results} waterDepth={waterDepth} theme={theme} structures={structures} />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-
-  // Safety if Chart.js present elsewhere
-  if (typeof Chart !== 'undefined' && Chart.defaults?.elements?.line){ try{ Chart.defaults.elements.line.tension = 0; }catch(e){} }
-})();
-</script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
