@@ -133,7 +133,6 @@
             [SegmentType.FIBER]: { w: 3.5, EA: 25000, frictionCoeff: 0.4, density: 1300 } 
         };
 
-        // FIXED: Added 'diameter' to standards so it auto-fills correctly
         const SIZE_STANDARDS = {
             [SegmentType.WIRE]: [
                 { label: '1.5 inch (38mm)', w: 6.35, ea: 77000, diameter: 38.1 },
@@ -630,11 +629,14 @@
                                         {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
                                             <div className="col-span-2">
                                                 <SelectField label="Standard Size (Auto-Fill)" onChange={e => handleSizeChange(idx, e.target.value)}>
-                                                    <option value="">-- Custom / Select Size --</option>
+                                                    <option value="">-- Custom / Manual Entry --</option>
                                                     {SIZE_STANDARDS[seg.type].map((size, sIdx) => (
                                                         <option key={sIdx} value={JSON.stringify(size)}>{size.label} ({size.w} kg/m)</option>
                                                     ))}
                                                 </SelectField>
+                                                <div className="text-[9px] text-gray-400 mt-1 ml-1 italic">
+                                                    * If size is not listed, manually enter Mass and Diameter below.
+                                                </div>
                                             </div>
                                         )}
 
