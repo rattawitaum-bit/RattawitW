@@ -72,6 +72,12 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
         }
         .cursor-wait { cursor: wait; }
+        
+        /* Animation for Modal */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
     </style>
 </head>
 <body>
@@ -96,6 +102,7 @@
         const IconSun = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> );
         const IconMoon = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> );
         const IconTarget = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> );
+        const IconHelp = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> );
 
         const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
 
@@ -118,6 +125,81 @@
                 { label: '3 inch (76mm)', w: 128.0, ea: 3200000, diameter: 76.2 }
             ],
             [SegmentType.FIBER]: []
+        };
+
+        // --- NEW: USER GUIDE MODAL COMPONENT ---
+        const UserGuideModal = ({ isOpen, onClose }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
+                    <div className="bg-white dark:bg-[#1f2937] w-full max-w-2xl max-h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slideUp border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                            <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                <IconInfo size={20} className="text-accent-600 dark:text-accent-500"/> User Guide
+                            </h2>
+                            <button onClick={onClose} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                                <IconX size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto text-sm text-gray-600 dark:text-gray-300 space-y-5">
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconWaves size={16}/> 1. Environment Setup
+                                </h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed (positive value).</li>
+                                    <li><strong>Fairlead Z:</strong> Vertical distance from water surface to the vessel connection point. Use <strong>negative</strong> values for submerged fairleads (e.g. -3.5).</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconAnchor size={16}/> 2. Line Segments
+                                </h3>
+                                <p className="mb-2">Build your mooring line from top (Fairlead) to bottom (Anchor).</p>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li>Use <strong>Add</strong> to create segments.</li>
+                                    <li>Select a type (Wire, Chain, Fiber).</li>
+                                    <li>Use the <strong>Auto-Fill</strong> dropdown for standard sizes, or select "Manual Entry" to type custom values.</li>
+                                    <li><strong>Important:</strong> Enter "Weight in Air". The system automatically calculates submerged weight based on material density.</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconLifeBuoy size={16}/> 3. Buoys
+                                </h3>
+                                <p>Add mid-line buoys to lift the line.</p>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li><strong>Dist from Anchor:</strong> Measured along the line length starting from the anchor.</li>
+                                    <li><strong>Net Buoyancy:</strong> The lifting force in kg (Volume * Seawater Density - Mass).</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconTarget size={16}/> 4. Calculation
+                                </h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li>Enter comma-separated <strong>Target Tensions</strong> (Horizontal load at fairlead) in Tonnes. Example: <code>5, 10, 50</code>.</li>
+                                    <li>Check <strong>Find Max</strong> to automatically find the tension where the line just touches the seabed (0m grounded length).</li>
+                                    <li>Click <strong>Calculate Profile</strong> to run the physics engine on the cloud.</li>
+                                </ul>
+                            </section>
+                        </div>
+                        
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
+                            <button onClick={onClose} className="px-4 py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-lg font-medium text-xs transition-colors shadow-sm">
+                                Close Guide
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         // --- COMPONENTS ---
@@ -694,6 +776,7 @@
         const App = () => {
             const [theme, setTheme] = useState('dark'); 
             const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+            const [showGuide, setShowGuide] = useState(false);
 
             useEffect(() => {
                 if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -774,6 +857,7 @@
             // RESPONSIVE LAYOUT CHANGE: flex-col on mobile, lg:flex-row on desktop
             return (
                 <div className={`flex flex-col lg:flex-row h-screen w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
+                    <UserGuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
                     
                     {/* Left Sidebar - Responsive Width */}
                     <div className={`w-full lg:w-[340px] flex-shrink-0 border-b lg:border-b-0 lg:border-r ${sidebarBorder} h-auto lg:h-full ${sidebarBg} flex flex-col transition-colors duration-300 z-20`}>
@@ -788,9 +872,14 @@
                                         <span className="text-[10px] font-normal text-gray-400 dark:text-gray-500 mt-0.5">Dev by RattawitW</span>
                                     </div>
                                 </h1>
-                                <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
-                                    {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="User Guide">
+                                        <IconHelp size={18} />
+                                    </button>
+                                    <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Toggle Theme">
+                                        {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-1">
                                 Catenary Analysis & Mooring Solver
