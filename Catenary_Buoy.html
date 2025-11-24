@@ -48,6 +48,7 @@
         body { background-color: #f3f4f6; color: #1f2937; transition: background-color 0.3s, color 0.3s; }
         .dark body { background-color: #0B0F19; color: #e5e7eb; }
         
+        /* Custom Scrollbar for Sidebar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -94,6 +95,7 @@
         const IconInfo = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> );
         const IconSun = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> );
         const IconMoon = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> );
+        const IconTarget = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> );
 
         const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
 
@@ -105,15 +107,15 @@
 
         const SIZE_STANDARDS = {
             [SegmentType.WIRE]: [
-                { label: '1.5 inch (38mm)', w: 6.35, ea: 77000 },
-                { label: '2.5 inch (64mm)', w: 17.0, ea: 214000 }
+                { label: '1.5 inch (38mm)', w: 6.35, ea: 77000, diameter: 38.1 },
+                { label: '2.5 inch (64mm)', w: 17.0, ea: 214000, diameter: 63.5 }
             ],
             [SegmentType.CHAIN]: [
-                { label: '1 inch (25mm)', w: 14.1, ea: 400000 },
-                { label: '1.5 inch (38mm)', w: 32.0, ea: 800000 },
-                { label: '2 inch (51mm)', w: 57.0, ea: 1400000 },
-                { label: '2.5 inch (64mm)', w: 89.0, ea: 2200000 },
-                { label: '3 inch (76mm)', w: 128.0, ea: 3200000 }
+                { label: '1 inch (25mm)', w: 14.1, ea: 400000, diameter: 25.4 },
+                { label: '1.5 inch (38mm)', w: 32.0, ea: 800000, diameter: 38.1 },
+                { label: '2 inch (51mm)', w: 57.0, ea: 1400000, diameter: 50.8 },
+                { label: '2.5 inch (64mm)', w: 89.0, ea: 2200000, diameter: 63.5 },
+                { label: '3 inch (76mm)', w: 128.0, ea: 3200000, diameter: 76.2 }
             ],
             [SegmentType.FIBER]: []
         };
@@ -173,12 +175,10 @@
                 };
             }), [results, waterDepth]);
 
-            // Transform structures to chart coordinates
             const structurePoints = useMemo(() => {
                 return structures.map((x, idx) => ({ x: x, z: waterDepth, id: `struct-${idx}` }));
             }, [structures, waterDepth]);
 
-            // --- GRID & AXIS CALCULATION ---
             const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
             const maxDepthRaw = Math.max(waterDepth + 10, ...allZ);
             const minDepthRaw = -15; 
@@ -218,8 +218,9 @@
             const structFill = isDark ? '#6b7280' : '#4b5563';
             
             return (
-                <div className="flex flex-col h-full gap-4 transition-colors duration-300">
-                    <div className="flex-1 glass-panel rounded-lg p-1 relative min-h-[400px] flex flex-col">
+                <div className="flex flex-col h-auto lg:h-full gap-4 transition-colors duration-300">
+                    {/* Chart Section - Increased minimum height for mobile */}
+                    <div className="flex-1 glass-panel rounded-lg p-1 relative min-h-[400px] lg:min-h-[500px] flex flex-col">
                         <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-3 py-1 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
                             <h3 className="text-gray-700 dark:text-gray-300 text-xs font-semibold flex items-center gap-2">
                                 <IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
@@ -382,15 +383,15 @@
                         </div>
                     </div>
 
-                    {/* Results Table - UPDATED COLUMNS */}
-                    <div className="h-1/3 glass-panel rounded-lg overflow-hidden flex flex-col shadow-lg">
+                    {/* Results Table - Mobile Optimized (Visible on Mobile) */}
+                    <div className="h-64 lg:h-1/3 glass-panel rounded-lg overflow-hidden flex flex-col shadow-lg shrink-0">
                         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
                            <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
                                 <IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results
                            </h3>
                         </div>
                         <div className="overflow-auto flex-1 p-0">
-                            <table className="w-full text-left text-sm text-gray-700 dark:text-gray-300">
+                            <table className="w-full text-left text-sm text-gray-700 dark:text-gray-300 min-w-[600px]">
                                 <thead className="bg-gray-100 dark:bg-gray-850 text-[10px] uppercase font-bold text-gray-500 sticky top-0 shadow-sm">
                                     <tr>
                                         <th className="px-4 py-3 tracking-wider">Case (t)</th>
@@ -398,7 +399,6 @@
                                         <th className="px-4 py-3 tracking-wider">Grounded (m)</th>
                                         <th className="px-4 py-3 tracking-wider">Anch Ten (t)</th>
                                         <th className="px-4 py-3 tracking-wider">Offset (m)</th>
-                                        {/* Removed FL Depth, Added Buoy Util */}
                                         <th className="px-4 py-3 tracking-wider">Buoy Util (%)</th>
                                     </tr>
                                 </thead>
@@ -414,7 +414,6 @@
                                             </td>
                                             <td className="px-4 py-2.5">{res.anchorTension.toFixed(2)}</td>
                                             <td className="px-4 py-2.5">{res.fairleadX.toFixed(1)}</td>
-                                            {/* BUOY UTILIZATION CELL */}
                                             <td className="px-4 py-2.5 text-xs">
                                                 {res.points.filter(p => p.isBuoy).length > 0 ? (
                                                     res.points.filter(p => p.isBuoy).map((b, i) => (
@@ -483,7 +482,12 @@
                 if (!sizeDataStr) return;
                 const sizeData = JSON.parse(sizeDataStr);
                 const newSegs = [...segments];
-                newSegs[index] = { ...newSegs[index], w: sizeData.w, EA: sizeData.ea };
+                newSegs[index] = { 
+                    ...newSegs[index], 
+                    w: sizeData.w, 
+                    EA: sizeData.ea, 
+                    diameter: sizeData.diameter 
+                };
                 setSegments(newSegs);
             };
 
@@ -519,13 +523,12 @@
             };
 
             return (
-                <div className="h-full flex flex-col gap-6 overflow-y-auto pr-3 pb-24 custom-scrollbar">
+                <div className="h-full flex flex-col gap-6 overflow-y-auto pr-3 pb-24 custom-scrollbar relative"> {/* Added relative */}
                     {/* Environment */}
                     <section>
                         <SectionHeader title="Environment" icon={IconWaves} />
                         <div className="grid grid-cols-2 gap-3 p-3 glass-panel rounded-lg">
                             <InputField label="Water Depth" value={waterDepth} onChange={e => setWaterDepth(parseFloat(e.target.value))} unit="m" />
-                            {/* FIX: Removed parseFloat here to allow negative typing */}
                             <InputField label="Fairlead Z" value={fairleadElev} onChange={e => setFairleadElev(e.target.value)} unit="m" />
                             <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
                                 <InputField 
@@ -551,7 +554,6 @@
                         <div className="space-y-3">
                             <div className="text-[10px] text-gray-400 text-center pb-1 italic">Order: Fairlead (Top) &rarr; Anchor (Bot)</div>
                             {segments.map((seg, idx) => {
-                                // NEW LOGIC: Check if current values match any standard preset
                                 const currentStandards = SIZE_STANDARDS[seg.type] || [];
                                 const isStandard = currentStandards.some(s => s.w === seg.w && s.ea === seg.EA);
 
@@ -579,11 +581,14 @@
                                         {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
                                             <div className="col-span-2">
                                                 <SelectField label="Standard Size (Auto-Fill)" onChange={e => handleSizeChange(idx, e.target.value)}>
-                                                    <option value="">-- Custom / Select Size --</option>
+                                                    <option value="">-- Custom / Manual Entry --</option>
                                                     {SIZE_STANDARDS[seg.type].map((size, sIdx) => (
                                                         <option key={sIdx} value={JSON.stringify(size)}>{size.label} ({size.w} kg/m)</option>
                                                     ))}
                                                 </SelectField>
+                                                <div className="text-[9px] text-gray-400 mt-1 ml-1 italic">
+                                                    * If size is not listed, manually enter Mass and Diameter below.
+                                                </div>
                                             </div>
                                         )}
 
@@ -593,22 +598,19 @@
                                         
                                         <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
                                         
-                                        <InputField label="Weight (Air)" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
-                                        <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', parseFloat(e.target.value))} unit="kN" />
-
-                                        {/* CONDITIONAL TIP: Only show if custom values are being used */}
-                                        {!isStandard && (
-                                            <div className="col-span-2 mt-2 p-2 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded text-[10px] text-gray-600 dark:text-gray-400">
-                                                <div className="flex gap-1.5 mb-1 items-center">
-                                                    <IconInfo size={12} className="text-accent-600" />
-                                                    <span className="font-semibold text-accent-700 dark:text-accent-400">Custom Input Tips</span>
-                                                </div>
-                                                <ul className="list-disc list-inside pl-1 space-y-0.5 opacity-80">
-                                                    <li><strong>Weight:</strong> Dry weight in air (kg/m)</li>
-                                                    <li><strong>EA:</strong> Axial Stiffness (kN) = E &times; A</li>
-                                                </ul>
-                                            </div>
+                                        <InputField label="Mass in Air (M_air)" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
+                                        
+                                        {/* CONDITIONAL DIAMETER INPUT */}
+                                        {(seg.type === SegmentType.WIRE || seg.type === SegmentType.FIBER) && (
+                                            <InputField 
+                                                label="Diameter (D)" 
+                                                value={seg.diameter} 
+                                                onChange={e => updateSegment(idx, 'diameter', parseFloat(e.target.value))} 
+                                                unit="mm" 
+                                            />
                                         )}
+
+                                        <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', parseFloat(e.target.value))} unit="kN" />
                                     </div>
                                 </div>
                                 );
@@ -616,7 +618,7 @@
                         </div>
                     </section>
 
-                    {/* Buoys - RE-ADDED SECTION */}
+                    {/* Buoys */}
                     <section>
                         <div className="flex justify-between items-center mb-2">
                             <SectionHeader title="Buoys" icon={IconLifeBuoy} />
@@ -643,10 +645,13 @@
                         ))}
                     </section>
 
-                    {/* Calculate Action - NOW WITH LOADING */}
-                    <div className="sticky bottom-0 bg-gray-50/95 dark:bg-[#0B0F19]/95 backdrop-blur py-4 border-t border-gray-200 dark:border-gray-800">
+                    {/* Calculate Action - IMPROVED STYLING, REMOVED STICKY */}
+                    <div className="mt-4 py-4 border-t border-gray-200 dark:border-gray-800">
                         <div className="flex justify-between items-center mb-2 px-1">
-                            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target Tensions</label>
+                            <div className="flex items-center gap-2">
+                                <IconTarget size={14} className="text-gray-500 dark:text-gray-400" />
+                                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target Tensions</label>
+                            </div>
                             <label className="flex items-center gap-2 cursor-pointer group">
                                 <input 
                                     type="checkbox" 
@@ -657,16 +662,23 @@
                                 <span className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-medium group-hover:text-fuchsia-500 transition-colors">Find Max (0m Grd)</span>
                             </label>
                         </div>
-                        <input 
-                            type="text" 
-                            value={tensions} 
-                            onChange={e => setTensions(e.target.value)} 
-                            className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-3 py-2 text-sm font-mono mb-3 focus:border-accent-500 outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200"
-                            placeholder="e.g. 5, 10, 15"
-                        />
                         
-                        <button onClick={calculate} disabled={loading} className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
-                            {loading ? <span>Processing...</span> : <><IconPlay size={16} fill="currentColor" /> Calculate Profile</>}
+                        {/* Styled Target Tensions Input */}
+                        <div className="relative mb-3 group">
+                            <input 
+                                type="text" 
+                                value={tensions} 
+                                onChange={e => setTensions(e.target.value)} 
+                                className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-sm font-mono tracking-wider text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 outline-none transition-all shadow-sm group-hover:border-gray-400 dark:group-hover:border-gray-600"
+                                placeholder="e.g. 5, 10, 15"
+                            />
+                            <div className="absolute right-3 top-3 text-[10px] text-gray-400 font-medium pointer-events-none">
+                                TONNES
+                            </div>
+                        </div>
+                        
+                        <button onClick={calculate} disabled={loading} className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-accent-500/30 active:scale-[0.98] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
+                            {loading ? <span>Processing...</span> : <><IconPlay size={18} fill="currentColor" /> Calculate Profile</>}
                         </button>
                         
                         {error && (
@@ -680,11 +692,9 @@
         };
 
         const App = () => {
-            // Theme state - default to DARK as requested
             const [theme, setTheme] = useState('dark'); 
             const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-            // Update document class for tailwind dark mode
             useEffect(() => {
                 if (theme === 'dark') document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');
@@ -706,8 +716,6 @@
             const [tensionsStr, setTensionsStr] = useState("5, 10, 15");
             const [showMaxTension, setShowMaxTension] = useState(false);
             const [results, setResults] = useState([]);
-            
-            // --- Loading & Error State ---
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState(null);
 
@@ -718,10 +726,9 @@
                 setLoading(true);
                 setError(null);
 
-                // Prepare payload
                 const payload = {
                     waterDepth,
-                    fairleadElev: parseFloat(fairleadElev), // Parse float for safety
+                    fairleadElev: parseFloat(fairleadElev), 
                     segments,
                     buoys,
                     tensions,
@@ -729,7 +736,7 @@
                 };
 
                 try {
-                    // YOUR WORKER URL (Replace this with your actual Worker URL from Step 1)
+                    // YOUR WORKER URL
                     const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev";
                     
                     const response = await fetch(WORKER_URL, {
@@ -753,7 +760,6 @@
                 }
             };
             
-            // Parse structures string into array of numbers
             const structures = useMemo(() => {
                 if (!subseaStructuresStr) return [];
                 return subseaStructuresStr.split(',')
@@ -765,10 +771,12 @@
             const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
             const sidebarBg = theme === 'dark' ? 'bg-[#0e121e]' : 'bg-white';
 
+            // RESPONSIVE LAYOUT CHANGE: flex-col on mobile, lg:flex-row on desktop
             return (
-                <div className={`flex h-screen w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
-                    {/* Left Sidebar */}
-                    <div className={`w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-colors duration-300`}>
+                <div className={`flex flex-col lg:flex-row h-screen w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
+                    
+                    {/* Left Sidebar - Responsive Width */}
+                    <div className={`w-full lg:w-[340px] flex-shrink-0 border-b lg:border-b-0 lg:border-r ${sidebarBorder} h-auto lg:h-full ${sidebarBg} flex flex-col transition-colors duration-300 z-20`}>
                         <div className={`p-4 border-b ${sidebarBorder}`}>
                             <div className="flex justify-between items-center mb-1">
                                 <h1 className="text-xl font-bold tracking-tight flex items-center gap-3">
@@ -788,7 +796,9 @@
                                 Catenary Analysis & Mooring Solver
                             </p>
                         </div>
-                        <div className="flex-1 overflow-hidden p-4">
+                        
+                        {/* Sidebar Content */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 max-h-[40vh] lg:max-h-full">
                             <InputPanel 
                                 waterDepth={waterDepth} setWaterDepth={setWaterDepth}
                                 fairleadElev={fairleadElev} setFairleadElev={setFairleadElev}
@@ -805,13 +815,13 @@
                     </div>
 
                     {/* Main Content */}
-                    <div className={`flex-1 flex flex-col p-6 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-gray-50'}`}>
+                    <div className={`flex-1 flex flex-col p-4 lg:p-6 h-full overflow-y-auto lg:overflow-hidden relative ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-gray-50'}`}>
                         {/* Background Grid Effect */}
                         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
                              style={{backgroundImage: 'linear-gradient(#6b7280 1px, transparent 1px), linear-gradient(90deg, #6b7280 1px, transparent 1px)', backgroundSize: '40px 40px'}}>
                         </div>
                         
-                        <div className="relative z-10 h-full">
+                        <div className="relative z-10 h-full flex flex-col">
                             <ResultsDisplay results={results} waterDepth={waterDepth} theme={theme} structures={structures} />
                         </div>
                     </div>
