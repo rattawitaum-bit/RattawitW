@@ -133,17 +133,18 @@
             [SegmentType.FIBER]: { w: 3.5, EA: 25000, frictionCoeff: 0.4, density: 1300 } 
         };
 
+        // FIXED: Added 'diameter' to standards so it auto-fills correctly
         const SIZE_STANDARDS = {
             [SegmentType.WIRE]: [
-                { label: '1.5 inch (38mm)', w: 6.35, ea: 77000 },
-                { label: '2.5 inch (64mm)', w: 17.0, ea: 214000 }
+                { label: '1.5 inch (38mm)', w: 6.35, ea: 77000, diameter: 38.1 },
+                { label: '2.5 inch (64mm)', w: 17.0, ea: 214000, diameter: 63.5 }
             ],
             [SegmentType.CHAIN]: [
-                { label: '1 inch (25mm)', w: 14.1, ea: 400000 },
-                { label: '1.5 inch (38mm)', w: 32.0, ea: 800000 },
-                { label: '2 inch (51mm)', w: 57.0, ea: 1400000 },
-                { label: '2.5 inch (64mm)', w: 89.0, ea: 2200000 },
-                { label: '3 inch (76mm)', w: 128.0, ea: 3200000 }
+                { label: '1 inch (25mm)', w: 14.1, ea: 400000, diameter: 25.4 },
+                { label: '1.5 inch (38mm)', w: 32.0, ea: 800000, diameter: 38.1 },
+                { label: '2 inch (51mm)', w: 57.0, ea: 1400000, diameter: 50.8 },
+                { label: '2.5 inch (64mm)', w: 89.0, ea: 2200000, diameter: 63.5 },
+                { label: '3 inch (76mm)', w: 128.0, ea: 3200000, diameter: 76.2 }
             ],
             [SegmentType.FIBER]: []
         };
@@ -532,7 +533,14 @@
                 if (!sizeDataStr) return;
                 const sizeData = JSON.parse(sizeDataStr);
                 const newSegs = [...segments];
-                newSegs[index] = { ...newSegs[index], w: sizeData.w, EA: sizeData.ea };
+                
+                // FIXED: Update diameter correctly from the selected standard size
+                newSegs[index] = { 
+                    ...newSegs[index], 
+                    w: sizeData.w, 
+                    EA: sizeData.ea, 
+                    diameter: sizeData.diameter // Added this line to fix the issue
+                };
                 setSegments(newSegs);
             };
 
