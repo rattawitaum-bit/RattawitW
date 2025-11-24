@@ -3,19 +3,25 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CatCal - Mooring Analysis (Rattawit W)</title>
+    <title>CatCal - Mooring Analysis (Cloud Engine)</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
+    <!-- Prop Types -->
     <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
 
+    <!-- Recharts -->
     <script src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
     
+    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- Font: Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -113,13 +119,18 @@
         const Moon = IconMoon;
         const Box = IconBox;
 
-        // Constants kept for UI (Drop downs etc)
+        // --- CONSTANTS & HELPERS FOR CALCULATION ---
         const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
+        
+        const SEA_WATER_DENSITY = 1025; // kg/m^3
+        const STEEL_DENSITY = 7850;     // kg/m^3
 
+        // NOTE: The 'w' values here are MASS IN AIR (kg/m)
+        // Density is used to estimate volume if not standard cylinder
         const SEGMENT_PRESETS = {
-            [SegmentType.WIRE]: { w: 18.5, EA: 150000, frictionCoeff: 0.5 },
-            [SegmentType.CHAIN]: { w: 120, EA: 800000, frictionCoeff: 1.0 },
-            [SegmentType.FIBER]: { w: 3.5, EA: 25000, frictionCoeff: 0.4 }
+            [SegmentType.WIRE]: { w: 18.5, EA: 150000, frictionCoeff: 0.5, density: STEEL_DENSITY },
+            [SegmentType.CHAIN]: { w: 120, EA: 800000, frictionCoeff: 1.0, density: STEEL_DENSITY },
+            [SegmentType.FIBER]: { w: 3.5, EA: 25000, frictionCoeff: 0.4, density: 1300 } 
         };
 
         const SIZE_STANDARDS = {
@@ -136,6 +147,38 @@
             ],
             [SegmentType.FIBER]: []
         };
+
+        // Calculates Submerged Mass (Effective Weight / g)
+        const calculateSubmergedMass = (segment) => {
+            const { type, w, diameter } = segment;
+            
+            // 1. Get Mass in Air per length (kg/m)
+            const M_air_L = w; 
+            
+            // 2. Estimate Volume per length (m^3/m)
+            let V_L = 0;
+            
+            if (type === SegmentType.CHAIN) {
+                // Chain volume estimation via density ratio
+                const density = SEGMENT_PRESETS[SegmentType.CHAIN].density || STEEL_DENSITY;
+                V_L = M_air_L / density; 
+
+            } else if (type === SegmentType.WIRE || type === SegmentType.FIBER) {
+                // Cylindrical volume: V/L = pi * (D/2)^2
+                if (diameter && diameter > 0) {
+                    const radius_m = (diameter / 1000) / 2; // mm to m
+                    V_L = Math.PI * radius_m * radius_m;
+                }
+            }
+
+            // 3. Calculate Buoyancy Mass per length (kg/m)
+            const M_buoyancy_L = SEA_WATER_DENSITY * V_L;
+            
+            // 4. Calculate Submerged Mass
+            const M_submerged_L = M_air_L - M_buoyancy_L;
+            return M_submerged_L;
+        };
+
 
         // --- COMPONENTS ---
 
@@ -593,7 +636,18 @@
                                         
                                         <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
                                         
-                                        <InputField label="Weight" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
+                                        <InputField label="Mass in Air (M_air)" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
+                                        
+                                        {/* CONDITIONAL DIAMETER INPUT */}
+                                        {(seg.type === SegmentType.WIRE || seg.type === SegmentType.FIBER) && (
+                                            <InputField 
+                                                label="Diameter (D)" 
+                                                value={seg.diameter} 
+                                                onChange={e => updateSegment(idx, 'diameter', parseFloat(e.target.value))} 
+                                                unit="mm" 
+                                            />
+                                        )}
+
                                         <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', parseFloat(e.target.value))} unit="kN" />
                                     </div>
                                 </div>
@@ -708,11 +762,23 @@
                 setLoading(true);
                 setError(null);
 
+                // --- NEW CONVERSION STEP ---
+                const segmentsForWorker = segments.map(seg => {
+                    const M_eff_L = calculateSubmergedMass(seg);
+                    
+                    // Clone the segment and overwrite 'w' with the submerged mass
+                    return {
+                        ...seg,
+                        w: M_eff_L // This is the calculated Submerged Mass (kg/m)
+                    };
+                });
+                // --- END NEW CONVERSION STEP ---
+
                 // Prepare payload
                 const payload = {
                     waterDepth,
                     fairleadElev,
-                    segments,
+                    segments: segmentsForWorker, // Use the converted segments
                     buoys,
                     tensions,
                     calculateMax: showMaxTension
@@ -763,7 +829,7 @@
                             <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
                                 <Anchor className="text-accent-600 dark:text-accent-500" size={20} />
                                 <span>CatCal</span> 
-                                <span className="text-gray-400 dark:text-gray-500 font-normal text-xs">Dev:Rattawit W</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-normal text-xs">Cloud Engine</span>
                             </h1>
                             <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
                                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
