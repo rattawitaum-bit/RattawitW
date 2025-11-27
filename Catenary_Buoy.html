@@ -102,6 +102,10 @@
         const IconMoon = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> );
         const IconTarget = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> );
         const IconHelp = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> );
+        const IconMove = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m5 9-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="m19 9 3 3-3 3"/><path d="M15 19l-3 3-3-3"/><path d="M2 12h20"/><path d="M12 2v20"/></svg> );
+        const IconBook = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> );
+        const IconAlert = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> );
+        const IconTable = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg> );
 
         const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
 
@@ -130,7 +134,7 @@
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
-                    <div className="bg-white dark:bg-[#1f2937] w-full max-w-2xl max-h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slideUp border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-[#1f2937] w-full max-w-2xl max-h-[85vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slideUp border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                                 <IconInfo size={20} className="text-accent-600 dark:text-accent-500"/> User Guide
@@ -140,25 +144,40 @@
                             </button>
                         </div>
                         <div className="p-6 overflow-y-auto text-sm text-gray-600 dark:text-gray-300 space-y-5">
+                            
+                            <section className="bg-accent-50 dark:bg-accent-900/10 p-3 rounded-lg border border-accent-100 dark:border-accent-800/50">
+                                <h3 className="font-bold text-accent-700 dark:text-accent-400 mb-1 flex items-center gap-2">
+                                    <IconBook size={16}/> What is SLACK?
+                                </h3>
+                                <p className="text-xs leading-relaxed">
+                                    SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. 
+                                    It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber) 
+                                    under various horizontal loads. Ideally suited for quick pre-engineering and feasibility checks.
+                                </p>
+                            </section>
+
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <IconWaves size={16}/> 1. Environment Setup
                                 </h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed.</li>
-                                    <li><strong>Fairlead Z:</strong> Vertical distance from surface. Use negative values for submerged.</li>
+                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed (positive value).</li>
+                                    <li><strong>Fairlead Z:</strong> Vertical distance from water surface. Use <strong>negative</strong> values for submerged fairleads.</li>
+                                    <li><strong>Subsea Structures:</strong> Comma-separated X-coordinates (from fairlead) to visualize seabed markers (e.g., pipelines).</li>
                                 </ul>
                             </section>
+
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <IconAnchor size={16}/> 2. Line Segments
                                 </h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
                                     <li>Add segments from top (Fairlead) to bottom (Anchor).</li>
-                                    <li><strong>Weight:</strong> Enter "Weight in Air" (kg/m).</li>
+                                    <li><strong>Weight:</strong> Enter "Weight in Air" (kg/m). The system automatically calculates submerged weight based on material density.</li>
                                     <li><strong>Stiffness (EA):</strong> Optional. If left blank or 0, the line is treated as inextensible (rigid).</li>
                                 </ul>
                             </section>
+
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <IconLifeBuoy size={16}/> 3. Buoys
@@ -168,14 +187,43 @@
                                     <li><strong>Net Buoyancy:</strong> The effective lifting force in kg (Total Volume &times; Seawater Density - Mass).</li>
                                 </ul>
                             </section>
+
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <IconTarget size={16}/> 4. Calculation
                                 </h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li>Enter comma-separated <strong>Target Tensions</strong> (Tonnes).</li>
-                                    <li><strong>Find Max:</strong> Finds tension for 0m grounded length.</li>
+                                    <li>Enter comma-separated <strong>Target Tensions</strong> (Tonnes). Example: <code>5, 10, 50</code>.</li>
+                                    <li><strong>Find Max:</strong> Finds tension for 0m grounded length (just touching seabed).</li>
                                 </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconMove size={16}/> 5. Friction Model
+                                </h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li><strong>Coefficients:</strong> Chain (1.0), Wire (0.5), Fiber (0.4).</li>
+                                    <li><strong>Weight Effect:</strong> Heavily weighted lines (Chain/Wire) generate more friction than light lines (Fiber).</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                    <IconTable size={16}/> 6. Results Legend
+                                </h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1">
+                                    <li><strong>Offset:</strong> Horizontal distance from Anchor to Fairlead.</li>
+                                    <li><strong>Anch Ten:</strong> Tension at the anchor point.</li>
+                                    <li><strong>Buoy Util:</strong> % of buoyancy used. >100% means fully submerged.</li>
+                                </ul>
+                            </section>
+
+                            <section className="text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
+                                <h4 className="font-bold flex items-center gap-1 mb-1"><IconAlert size={12}/> Note: Data Persistence</h4>
+                                <p className="mb-1">This tool does not save input data between sessions. Refreshing the page will reset all inputs.</p>
+                                <h4 className="font-bold flex items-center gap-1 mb-1 mt-2"><IconAlert size={12}/> Assumptions</h4>
+                                <p>Static analysis only. Assumes flat seabed. Environmental loads must be pre-calculated as static tension. 2D vertical plane analysis.</p>
                             </section>
                         </div>
                         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
