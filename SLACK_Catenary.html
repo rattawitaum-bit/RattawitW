@@ -87,6 +87,12 @@
         const Recharts = window.Recharts || {};
         const { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } = Recharts;
 
+        // --- HELPER: Safe Float Parsing ---
+        const safeFloat = (val, defaultVal = 0) => {
+            const num = parseFloat(val);
+            return isNaN(num) ? defaultVal : num;
+        };
+
         // --- ICONS ---
         const IconAnchor = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="5" r="3"/><line x1="12" x2="12" y1="22" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg> );
         const IconLifeBuoy = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" x2="9.17" y1="4.93" y2="9.17"/><line x1="14.83" x2="19.07" y1="14.83" y2="19.07"/><line x1="14.83" x2="19.07" y1="9.17" y2="4.93"/><line x1="14.83" x2="9.17" y1="9.17" y2="14.83"/></svg> );
@@ -107,6 +113,7 @@
         const IconAlert = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> );
         const IconTable = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg> );
         const IconMail = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> );
+        const IconRefresh = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg> );
 
         const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
 
@@ -131,11 +138,13 @@
             [SegmentType.FIBER]: []
         };
 
+        // --- USER GUIDE MODAL ---
         const UserGuideModal = ({ isOpen, onClose }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
                     <div className="bg-white dark:bg-[#1f2937] w-full max-w-2xl max-h-[85vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slideUp border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
                                 <IconInfo size={20} className="text-accent-600 dark:text-accent-500"/> User Guide
@@ -144,89 +153,49 @@
                                 <IconX size={20} className="text-gray-500" />
                             </button>
                         </div>
+                        {/* Content */}
                         <div className="p-6 overflow-y-auto text-sm text-gray-600 dark:text-gray-300 space-y-5">
-                            
                             <section className="bg-accent-50 dark:bg-accent-900/10 p-3 rounded-lg border border-accent-100 dark:border-accent-800/50">
                                 <h3 className="font-bold text-accent-700 dark:text-accent-400 mb-1 flex items-center gap-2">
                                     <IconBook size={16}/> What is SLACK?
                                 </h3>
-                                <p className="text-xs leading-relaxed">
-                                    SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. 
-                                    It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber) 
-                                    under various horizontal loads. Ideally suited for quick pre-engineering and feasibility checks.
-                                </p>
+                                <p className="text-xs leading-relaxed">SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber) under various horizontal loads.</p>
                             </section>
-
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconWaves size={16}/> 1. Environment Setup
-                                </h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconWaves size={16}/> 1. Environment</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed (positive value).</li>
-                                    <li><strong>Fairlead Z:</strong> Vertical distance from water surface. Use <strong>negative</strong> values for submerged fairleads.</li>
-                                    <li><strong>Subsea Structures:</strong> Comma-separated X-coordinates (from fairlead) to visualize seabed markers (e.g., pipelines).</li>
+                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed.</li>
+                                    <li><strong>Fairlead Z:</strong> Vertical distance from water surface (Negative for submerged).</li>
                                 </ul>
                             </section>
-
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconAnchor size={16}/> 2. Line Segments
-                                </h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconAnchor size={16}/> 2. Segments</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
                                     <li>Add segments from top (Fairlead) to bottom (Anchor).</li>
-                                    <li><strong>Weight:</strong> Enter "Weight in Air" (kg/m). The system automatically calculates submerged weight based on material density.</li>
-                                    <li><strong>Stiffness (EA):</strong> Optional. If left blank or 0, the line is treated as inextensible (rigid).</li>
+                                    <li><strong>Weight:</strong> Weight in Air (kg/m).</li>
+                                    <li><strong>Stiffness (EA):</strong> Optional. Leave empty for inextensible.</li>
                                 </ul>
                             </section>
-
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconLifeBuoy size={16}/> 3. Buoys
-                                </h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconLifeBuoy size={16}/> 3. Buoys</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Dist from Anchor:</strong> Position along the mooring line, measured from the anchor point.</li>
-                                    <li><strong>Net Buoyancy:</strong> The effective lifting force in kg (Total Volume &times; Seawater Density - Mass).</li>
+                                    <li><strong>Dist from Anchor:</strong> Position along line from anchor.</li>
+                                    <li><strong>Net Buoyancy:</strong> Lifting force in kg.</li>
                                 </ul>
                             </section>
-
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconTarget size={16}/> 4. Calculation
-                                </h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconTarget size={16}/> 4. Calculation</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li>Enter comma-separated <strong>Target Tensions</strong> (Tonnes). Example: <code>5, 10, 50</code>.</li>
-                                    <li><strong>Find Max:</strong> Finds tension for 0m grounded length (just touching seabed).</li>
+                                    <li><strong>Modes:</strong> Switch between Tension (input horizontal load) or Offset (input horizontal distance).</li>
+                                    <li><strong>Find Max:</strong> Finds tension for 0m grounded length.</li>
                                 </ul>
                             </section>
-
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconMove size={16}/> 5. Friction Model
-                                </h3>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconMove size={16}/> 5. Friction</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Coefficients:</strong> Chain (1.0), Wire (0.5), Fiber (0.4).</li>
-                                    <li><strong>Weight Effect:</strong> Heavily weighted lines (Chain/Wire) generate more friction than light lines (Fiber).</li>
+                                    <li>Chain (1.0), Wire (0.5), Fiber (0.4). Friction reduces anchor tension.</li>
                                 </ul>
                             </section>
-
-                            <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                    <IconTable size={16}/> 6. Results Legend
-                                </h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Offset:</strong> Horizontal distance from Anchor to Fairlead.</li>
-                                    <li><strong>Anch Ten:</strong> Tension at the anchor point.</li>
-                                    <li><strong>Buoy Util:</strong> % of buoyancy used. >100% means fully submerged.</li>
-                                </ul>
-                            </section>
-
-                            <section className="text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
-                                <h4 className="font-bold flex items-center gap-1 mb-1"><IconAlert size={12}/> Note: Data Persistence</h4>
-                                <p className="mb-1">This tool does not save input data between sessions. Refreshing the page will reset all inputs.</p>
-                                <h4 className="font-bold flex items-center gap-1 mb-1 mt-2"><IconAlert size={12}/> Assumptions</h4>
-                                <p>Static analysis only. Assumes flat seabed. Environmental loads must be pre-calculated as static tension. 2D vertical plane analysis.</p>
-                            </section>
-
                             <section className="flex items-center justify-center pt-2 pb-1">
                                 <a href="mailto:Rattawit.aum@gmail.com" className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-accent-500 transition-colors">
                                     <IconMail size={14}/> Contact Developer: Rattawit.aum@gmail.com
@@ -234,9 +203,7 @@
                             </section>
                         </div>
                         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end">
-                            <button onClick={onClose} className="px-4 py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-lg font-medium text-xs transition-colors shadow-sm">
-                                Close Guide
-                            </button>
+                            <button onClick={onClose} className="px-4 py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-lg font-medium text-xs transition-colors shadow-sm">Close Guide</button>
                         </div>
                     </div>
                 </div>
@@ -529,14 +496,22 @@
                                     {results.map((res, idx) => (
                                         <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${res.isMaxTensionCase ? 'bg-fuchsia-50 dark:bg-fuchsia-900/10' : ''}`}>
                                             <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? '#d946ef' : COLORS[idx % COLORS.length]}}>
-                                                {res.isMaxTensionCase ? `${res.horizontalTension.toFixed(1)} (Max)` : res.horizontalTension.toFixed(1)}
+                                                {res.isMaxTensionCase ? `${res.horizontalTension?.toFixed(1)} (Max)` : res.horizontalTension?.toFixed(1)}
                                             </td>
-                                            <td className="px-4 py-2.5">{res.totalLength.toFixed(1)}</td>
-                                            <td className={`px-4 py-2.5 font-mono font-medium ${res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                {res.groundedLength.toFixed(1)}
+                                            <td className="px-4 py-2.5">{res.totalLength?.toFixed(1)}</td>
+                                            <td className={`px-4 py-2.5 font-mono font-medium ${res.isAnchorUplift ? 'text-red-600 dark:text-red-400 font-bold' : (res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400')}`}>
+                                                {res.groundedLength?.toFixed(1)}
                                             </td>
-                                            <td className="px-4 py-2.5">{res.anchorTension.toFixed(2)}</td>
-                                            <td className="px-4 py-2.5">{res.fairleadX.toFixed(1)}</td>
+                                            <td className="px-4 py-2.5">
+                                                {res.isAnchorUplift ? (
+                                                    <div className="flex items-center text-red-600 dark:text-red-400 font-bold gap-1" title={`Uplift Force: ${res.anchorUpliftForce?.toFixed(2)} t`}>
+                                                        {res.anchorTension?.toFixed(2)} ⚠
+                                                    </div>
+                                                ) : (
+                                                    res.anchorTension?.toFixed(2)
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2.5">{res.fairleadX?.toFixed(1)}</td>
                                             <td className="px-4 py-2.5 text-xs">
                                                 {res.points.filter(p => p.isBuoy).length > 0 ? (
                                                     res.points.filter(p => p.isBuoy).map((b, i) => (
@@ -593,7 +568,7 @@
             </div>
         );
 
-        const InputPanel = ({ waterDepth, setWaterDepth, fairleadElev, setFairleadElev, segments, setSegments, buoys, setBuoys, tensions, setTensions, calculate, showMaxTension, setShowMaxTension, subseaStructures, setSubseaStructures, loading, error }) => {
+        const InputPanel = ({ waterDepth, setWaterDepth, fairleadElev, setFairleadElev, segments, setSegments, buoys, setBuoys, tensions, setTensions, calculate, showMaxTension, setShowMaxTension, subseaStructures, setSubseaStructures, loading, error, calcMode, setCalcMode }) => {
             const handleTypeChange = (index, newType) => {
                 const defaults = SEGMENT_PRESETS[newType];
                 const newSegs = [...segments];
@@ -843,6 +818,20 @@
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState(null);
 
+            // Add calcMode and setCalcMode here
+            const [calcMode, setCalcMode] = useState('tension'); // Add this state
+
+            const handleCalcModeChange = (newMode) => {
+                 if (newMode === calcMode) return;
+                 setCalcMode(newMode);
+                 if (newMode === 'offset') {
+                     const totalLen = segments.reduce((acc, s) => acc + s.length, 0);
+                     setTensionsStr(totalLen.toFixed(1));
+                 } else {
+                     setTensionsStr("5, 20, 40");
+                 }
+             };
+
             const handleCalculate = async () => {
                 const tensions = tensionsStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
                 if (tensions.length === 0) return;
@@ -946,6 +935,8 @@
                                 subseaStructures={subseaStructuresStr} setSubseaStructures={setSubseaStructuresStr}
                                 loading={loading}
                                 error={error}
+                                calcMode={calcMode}
+                                setCalcMode={handleCalcModeChange} 
                             />
                         </div>
                     </div>
