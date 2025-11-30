@@ -847,16 +847,17 @@
 
                 const payload = {
                     waterDepth,
-                    fairleadElev: parseFloat(fairleadElev), 
+                    targetZ: -1 * safeFloat(fairleadElev), // Use targetZ for worker
                     segments: processedSegments, // Use the processed segments
                     buoys,
-                    tensions,
+                    targets: tensions, // Send as 'targets'
+                    calcMode, // Send mode
                     calculateMax: showMaxTension
                 };
 
                 try {
                     // YOUR WORKER URL
-                    const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev";
+                    const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
                     
                     const response = await fetch(WORKER_URL, {
                         method: "POST",
