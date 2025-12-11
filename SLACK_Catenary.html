@@ -145,8 +145,7 @@
 
         // --- COMPONENTS ---
 
-        const UserGuideModal = ({ isOpen, onClose }) => {
-            if (!isOpen) return null;
+        const UserGuideModal = ({ onClose }) => {
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn" onClick={onClose}>
                     <div className="bg-white dark:bg-[#1f2937] w-full max-w-2xl max-h-[85vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slideUp border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
@@ -167,42 +166,53 @@
                                 </h3>
                                 <p className="text-xs leading-relaxed">SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber).</p>
                             </section>
-                            <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconWaves size={16}/> 1. Environment</h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Water Depth:</strong> Total depth from surface to seabed.</li>
-                                    <li><strong>Fairlead Z:</strong> Vertical distance from water surface (Negative = Submerged).</li>
-                                </ul>
-                            </section>
-                            <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconAnchor size={16}/> 2. Segments</h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li>Add segments from top (Fairlead) to bottom (Anchor).</li>
-                                    <li><strong>Weight:</strong> Weight in Air (kg/m).</li>
-                                    <li><strong>Stiffness (EA):</strong> Optional. Leave empty for inextensible.</li>
-                                </ul>
-                            </section>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <section>
+                                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconWaves size={16}/> 1. Environment</h3>
+                                    <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                                        <li><strong>Water Depth:</strong> Total depth (Surface to Seabed).</li>
+                                        <li><strong>Fairlead Z:</strong> Height above surface (Positive) or depth below (Negative).</li>
+                                        <li><strong>Subsea Structures:</strong> Add X-distances (e.g., "100, 350") to visualize seabed obstacles.</li>
+                                    </ul>
+                                </section>
+                                <section>
+                                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconAnchor size={16}/> 2. Segments</h3>
+                                    <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                                        <li><strong>Order:</strong> Define from Fairlead (Top) to Anchor (Bottom).</li>
+                                        <li><strong>Standard Size:</strong> Use the dropdown to auto-fill properties for common chains/wires.</li>
+                                        <li><strong>Weights:</strong> Input Dry Weight. Wet weight is auto-calculated but can be overridden manually.</li>
+                                    </ul>
+                                </section>
+                            </div>
+
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconLifeBuoy size={16}/> 3. Buoys</h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Dist from Anchor:</strong> Position along line from anchor.</li>
-                                    <li><strong>Net Buoyancy:</strong> Lifting force in <strong>Tonnes</strong>.</li>
+                                <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                                    <li><strong>Dist from Anchor:</strong> Arc length along the line starting from the anchor.</li>
+                                    <li><strong>Net Buoyancy:</strong> Upward lifting force (Tonnes).</li>
+                                    <li><strong>Pennant:</strong> Define length and weight of the vertical wire connecting buoy to main line.</li>
                                 </ul>
                             </section>
+
                             <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconTarget size={16}/> 4. Calculation</h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li><strong>Modes:</strong> Switch between Tension (input horizontal load) or Offset (input horizontal distance).</li>
-                                    <li><strong>Find Max:</strong> Finds tension for 0m grounded length.</li>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconTarget size={16}/> 4. Calculation Modes</h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                                    <li><strong>Tension Mode:</strong> Input horizontal tension targets (e.g. "10, 50") to find the resulting geometry.</li>
+                                    <li><strong>Offset Mode:</strong> Input horizontal distances (Fairlead to Anchor) to find required tensions.</li>
+                                    <li><strong>Find Max:</strong> Automatically calculates the tension required for the line to be fully lifted (0m grounded).</li>
                                 </ul>
                             </section>
-                            <section>
-                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconMove size={16}/> 5. Friction</h3>
-                                <ul className="list-disc list-inside space-y-1 ml-1">
-                                    <li>Chain (1.0), Wire (0.5), Fiber (0.4). Friction reduces anchor tension.</li>
+                            
+                             <section>
+                                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconInfo size={16}/> 5. Interpreting Results</h3>
+                                <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                                    <li><strong>Grounded Length:</strong> <span className="text-emerald-500">Green</span> = Good. <span className="text-red-500">Red (0m)</span> = Anchor Uplift risk.</li>
+                                    <li><strong>Buoy Util:</strong> Percentage of buoyancy used. >100% means the buoy is fully submerged/sinking.</li>
                                 </ul>
                             </section>
-                            <section className="flex items-center justify-center pt-2 pb-1">
+
+                            <section className="flex items-center justify-center pt-2 pb-1 border-t border-gray-100 dark:border-gray-800 mt-2">
                                 <a href="mailto:Rattawit.aum@gmail.com" className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-accent-500 transition-colors">
                                     <IconMail size={14}/> Contact Developer: Rattawit.aum@gmail.com
                                 </a>
