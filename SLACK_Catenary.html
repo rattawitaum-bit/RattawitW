@@ -31,8 +31,14 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
-                    colors: { gray: { 50: '#f9fafb', 100: '#f3f4f6', 850: '#1f2937', 900: '#111827', 950: '#0B0F19' }, accent: { 500: '#3b82f6', 600: '#2563eb' } }
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        gray: { 50: '#f9fafb', 100: '#f3f4f6', 850: '#1f2937', 900: '#111827', 950: '#0B0F19' },
+                        accent: { 500: '#3b82f6', 600: '#2563eb' }
+                    }
                 }
             }
         }
@@ -41,17 +47,32 @@
     <style>
         body { background-color: #f3f4f6; color: #1f2937; transition: background-color 0.3s, color 0.3s; }
         .dark body { background-color: #0B0F19; color: #e5e7eb; }
+        
+        /* Custom Scrollbar for Sidebar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb { background: #374151; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .dark .glass-panel { background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(55, 65, 81, 0.5); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
         .cursor-wait { cursor: wait; }
+        
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
@@ -65,12 +86,12 @@
         const { useState, useEffect, useMemo } = React;
         const Recharts = window.Recharts || {};
         const { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } = Recharts;
-        const safeFloat = (val, defaultVal = 0) => { const num = parseFloat(val); return isNaN(num) ? defaultVal : num; };
-        
-        // --- CONSTANTS ---
-        const SEAWATER_DENSITY = 1025; 
-        const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
-        const MATERIAL_DENSITIES = { [SegmentType.WIRE]: 7850, [SegmentType.CHAIN]: 7850, [SegmentType.FIBER]: 1400 };
+
+        // --- HELPER: Safe Float Parsing ---
+        const safeFloat = (val, defaultVal = 0) => {
+            const num = parseFloat(val);
+            return isNaN(num) ? defaultVal : num;
+        };
 
         // --- ICONS ---
         const IconAnchor = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="5" r="3"/><line x1="12" x2="12" y1="22" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg> );
@@ -96,6 +117,8 @@
         const IconWarning = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> );
         const IconLock = (props) => ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> );
 
+        const SegmentType = { WIRE: 'WIRE', CHAIN: 'CHAIN', FIBER: 'FIBER' };
+
         const SEGMENT_PRESETS = {
             [SegmentType.WIRE]: { w: 18.5, w_wet: 15.5, EA: 150000, frictionCoeff: 0.5 },
             [SegmentType.CHAIN]: { w: 120, w_wet: 104, EA: 800000, frictionCoeff: 1.0 },
@@ -117,6 +140,9 @@
             [SegmentType.FIBER]: []
         };
 
+        const SEAWATER_DENSITY = 1025; 
+        const MATERIAL_DENSITIES = { [SegmentType.WIRE]: 7850, [SegmentType.CHAIN]: 7850, [SegmentType.FIBER]: 1400 };
+
         // --- COMPONENTS ---
 
         const UserGuideModal = ({ isOpen, onClose }) => {
@@ -135,17 +161,12 @@
                         </div>
                         {/* Content */}
                         <div className="p-6 overflow-y-auto text-sm text-gray-600 dark:text-gray-300 space-y-5">
-                            
                             <section className="bg-accent-50 dark:bg-accent-900/10 p-3 rounded-lg border border-accent-100 dark:border-accent-800/50">
                                 <h3 className="font-bold text-accent-700 dark:text-accent-400 mb-1 flex items-center gap-2">
                                     <IconBook size={16}/> What is SLACK?
                                 </h3>
-                                <p className="text-xs leading-relaxed">
-                                    SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. 
-                                    It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber).
-                                </p>
+                                <p className="text-xs leading-relaxed">SLACK is a secure, cloud-powered tool for <strong>static catenary analysis</strong> of mooring lines. It calculates 2D line profiles, anchor tensions, and grounded lengths for multi-segment systems (Wire, Chain, Fiber).</p>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconWaves size={16}/> 1. Environment</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
@@ -153,7 +174,6 @@
                                     <li><strong>Fairlead Z:</strong> Vertical distance from water surface (Negative = Submerged).</li>
                                 </ul>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconAnchor size={16}/> 2. Segments</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
@@ -162,7 +182,6 @@
                                     <li><strong>Stiffness (EA):</strong> Optional. Leave empty for inextensible.</li>
                                 </ul>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconLifeBuoy size={16}/> 3. Buoys</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
@@ -170,7 +189,6 @@
                                     <li><strong>Net Buoyancy:</strong> Lifting force in <strong>Tonnes</strong>.</li>
                                 </ul>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconTarget size={16}/> 4. Calculation</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
@@ -178,14 +196,12 @@
                                     <li><strong>Find Max:</strong> Finds tension for 0m grounded length.</li>
                                 </ul>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2"><IconMove size={16}/> 5. Friction</h3>
                                 <ul className="list-disc list-inside space-y-1 ml-1">
                                     <li>Chain (1.0), Wire (0.5), Fiber (0.4). Friction reduces anchor tension.</li>
                                 </ul>
                             </section>
-                            
                             <section className="flex items-center justify-center pt-2 pb-1">
                                 <a href="mailto:Rattawit.aum@gmail.com" className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-accent-500 transition-colors">
                                     <IconMail size={14}/> Contact Developer: Rattawit.aum@gmail.com
@@ -256,128 +272,69 @@
             }, [structures, waterDepth]);
 
             const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
-            const maxDepthRaw = Math.max(waterDepth + 10, ...allZ); 
+            const maxDepthRaw = allZ.length > 0 ? Math.max(waterDepth + 10, ...allZ) : waterDepth + 10;
             const minDepthRaw = -15; 
-
             let yInterval = 10;
             const depthRange = maxDepthRaw - minDepthRaw;
-            if (depthRange / yInterval > 25) yInterval = 25;
-            if (depthRange / yInterval > 25) yInterval = 50; 
-            
+            if (depthRange / yInterval > 25) yInterval = 25; if (depthRange / yInterval > 25) yInterval = 50; 
             const minDepth = Math.floor(minDepthRaw / yInterval) * yInterval;
             const maxDepth = Math.ceil(maxDepthRaw / yInterval) * yInterval;
-            
-            const yTicks = [];
-            for (let z = minDepth; z <= maxDepth + 0.1; z += yInterval) {
-                yTicks.push(Number(z.toFixed(1)));
-            }
+            const yTicks = []; for (let z = minDepth; z <= maxDepth + 0.1; z += yInterval) yTicks.push(Number(z.toFixed(1)));
 
             const allX = chartData.flatMap(d => d.segments.flat().map(p => p.x));
             const anchorsX = chartData.map(d => d.anchor?.x || 0);
-            const maxXRaw = Math.max(100, ...allX, ...anchorsX, ...structurePoints.map(s => s.x));
+            const maxXRaw = allX.length > 0 ? Math.max(100, ...allX, ...anchorsX, ...structurePoints.map(s => s.x)) : 100;
             let xInterval = 100;
-            if (maxXRaw / xInterval > 20) xInterval = 200;
-            if (maxXRaw / xInterval > 20) xInterval = 500;
-
+            if (maxXRaw / xInterval > 20) xInterval = 200; if (maxXRaw / xInterval > 20) xInterval = 500;
             const maxX = Math.ceil(maxXRaw / xInterval) * xInterval;
-            const xTicks = [];
-            for (let x = 0; x <= maxX + 0.1; x += xInterval) {
-                xTicks.push(Number(x.toFixed(1)));
-            }
+            const xTicks = []; for (let x = 0; x <= maxX + 0.1; x += xInterval) xTicks.push(Number(x.toFixed(1)));
 
             const isDark = theme === 'dark';
             const buoyFill = isDark ? '#fef08a' : '#f59e0b'; 
             const buoyStroke = isDark ? '#fff' : '#1f2937';
             const pennantStroke = isDark ? '#fbbf24' : '#d97706';
-            const structFill = isDark ? '#6b7280' : '#4b5563'; 
+            const structFill = isDark ? '#6b7280' : '#4b5563';
             
             return (
-                <div className="flex flex-col h-full gap-4 transition-colors duration-300">
-                    <div className="flex-1 glass-panel rounded-lg p-1 relative min-h-[400px] flex flex-col">
+                <div className="flex flex-col h-auto lg:h-full gap-4 transition-colors duration-300">
+                    <div className="flex-1 glass-panel rounded-lg p-1 relative min-h-[400px] lg:min-h-[500px] flex flex-col">
                         <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-3 py-1 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
                             <h3 className="text-gray-700 dark:text-gray-300 text-xs font-semibold flex items-center gap-2">
                                 <IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
                             </h3>
                         </div>
-                        
                         <div className="flex-1 w-full h-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <ScatterChart margin={{ top: 40, right: 30, bottom: 40, left: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} strokeOpacity={0.6} />
-                                    <XAxis 
-                                        dataKey="x" type="number" unit="m" 
-                                        ticks={xTicks} domain={[0, maxX]}
-                                        stroke={isDark ? "#9ca3af" : "#6b7280"} 
-                                        tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} 
-                                        tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}}
-                                        label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} 
-                                    />
-                                    <YAxis 
-                                        dataKey="z" type="number" unit="m" 
-                                        ticks={yTicks} domain={[minDepth, maxDepth]}
-                                        stroke={isDark ? "#9ca3af" : "#6b7280"} 
-                                        reversed={true} 
-                                        tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} 
-                                        tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}}
-                                        label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} 
-                                    />
-                                    
-                                    <Tooltip 
-                                        cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#9ca3af' : '#6b7280', strokeWidth: 1 }}
-                                        content={({ active, payload }) => {
+                                    <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} stroke={isDark ? "#9ca3af" : "#6b7280"} tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} />
+                                    <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#9ca3af" : "#6b7280"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} />
+                                    <Tooltip cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#9ca3af' : '#6b7280', strokeWidth: 1 }} content={({ active, payload }) => {
                                             if (active && payload && payload.length) {
                                                 const hoverPoint = payload[0].payload;
                                                 const currentX = hoverPoint.x;
-
                                                 const getInterpolatedData = (caseData) => {
                                                     const allPoints = caseData.segments.flat().sort((a, b) => a.x - b.x);
-                                                    let p1 = allPoints[0];
-                                                    let p2 = allPoints[allPoints.length - 1];
-                                                    
-                                                    for (let i = 0; i < allPoints.length - 1; i++) {
-                                                        if (allPoints[i].x <= currentX && allPoints[i+1].x >= currentX) {
-                                                            p1 = allPoints[i];
-                                                            p2 = allPoints[i+1];
-                                                            break;
-                                                        }
-                                                    }
-
+                                                    let p1 = allPoints[0], p2 = allPoints[allPoints.length - 1];
+                                                    for (let i = 0; i < allPoints.length - 1; i++) { if (allPoints[i].x <= currentX && allPoints[i+1].x >= currentX) { p1 = allPoints[i]; p2 = allPoints[i+1]; break; } }
                                                     if (!p1 || !p2) return null;
-
                                                     const ratio = (currentX - p1.x) / (p2.x - p1.x || 1); 
                                                     const interpZ = p1.z + (p2.z - p1.z) * ratio;
-                                                    
-                                                    return {
-                                                        z: interpZ,
-                                                        heightAboveSeabed: waterDepth - interpZ
-                                                    };
+                                                    return { z: interpZ, heightAboveSeabed: waterDepth - interpZ };
                                                 };
-
                                                 return (
                                                     <div className={`p-3 rounded shadow-lg text-xs border z-50 ${isDark ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}>
-                                                        <div className="font-bold mb-2 border-b pb-1 border-gray-200 dark:border-gray-700">
-                                                            Distance from Fairlead: {currentX.toFixed(1)} m
-                                                        </div>
-                                                        
+                                                        <div className="font-bold mb-2 border-b pb-1 border-gray-200 dark:border-gray-700">Distance: {currentX.toFixed(1)} m</div>
                                                         <div className="flex flex-col gap-2">
                                                             {chartData.map((res) => {
                                                                 const data = getInterpolatedData(res);
                                                                 if (!data) return null;
-
                                                                 const tension = res.horizontalTension.toFixed(1);
                                                                 const label = res.isMax ? `Max (${tension}t)` : `Case ${tension}t`;
-                                                                
                                                                 return (
                                                                     <div key={res.id} className="flex items-center justify-between gap-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="w-2 h-2 rounded-full" style={{backgroundColor: res.color}}></span>
-                                                                            <span className="font-mono">{label}</span>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <span className={`font-semibold ${data.heightAboveSeabed < 0.1 ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}`}>
-                                                                                {data.heightAboveSeabed <= 0.05 ? 'On Seabed' : `H: ${data.heightAboveSeabed.toFixed(1)}m`}
-                                                                            </span>
-                                                                        </div>
+                                                                        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{backgroundColor: res.color}}></span><span className="font-mono">{label}</span></div>
+                                                                        <div className="text-right"><span className={`font-semibold ${data.heightAboveSeabed < 0.1 ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}`}>{data.heightAboveSeabed <= 0.05 ? 'On Seabed' : `H: ${data.heightAboveSeabed.toFixed(1)}m`}</span></div>
                                                                     </div>
                                                                 );
                                                             })}
@@ -388,66 +345,24 @@
                                             return null;
                                         }}
                                     />
-
                                     <ReferenceLine y={0} stroke="#3b82f6" strokeDasharray="4 2" strokeOpacity={0.7} label={{ position: 'insideTopRight', value: 'Sea Surface', fill: '#3b82f6', fontSize: 10 }} />
                                     <ReferenceLine y={waterDepth} stroke={isDark ? "#9ca3af" : "#6b7280"} strokeWidth={2} strokeOpacity={0.5} label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 10 }} />
-
-                                    {structurePoints.length > 0 && (
-                                        <Scatter 
-                                            key="subsea-structures" 
-                                            data={structurePoints}
-                                            fill={structFill}
-                                            shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={structFill} stroke={buoyStroke} strokeWidth={1} />}
-                                            legendType="none"
-                                        />
-                                    )}
-
+                                    {structurePoints.length > 0 && ( <Scatter key="subsea-structures" data={structurePoints} fill={structFill} shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={structFill} stroke={buoyStroke} strokeWidth={1} />} legendType="none" /> )}
                                     {chartData.map((res) => (
                                         <React.Fragment key={res.id}>
                                             {res.segments.map((segPoints, sIdx) => {
                                                 const segType = segPoints[0].segmentType;
                                                 const isChain = segType === SegmentType.CHAIN;
-                                                
-                                                return (
-                                                    <Scatter 
-                                                        key={`seg-${res.id}-${sIdx}`} data={segPoints} 
-                                                        line={{ 
-                                                            stroke: res.color, 
-                                                            strokeWidth: isChain ? 3 : 2, 
-                                                            strokeDasharray: isChain ? '6 4' : '0' 
-                                                        }} 
-                                                        shape={<circle r={8} fill="transparent" stroke="none" />} 
-                                                        legendType="none" 
-                                                    />
-                                                );
+                                                return ( <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: isChain ? 3 : 2, strokeDasharray: isChain ? '6 4' : '0' }} shape={<circle r={8} fill="transparent" stroke="none" />} legendType="none" /> );
                                             })}
-                                            
-                                            {res.buoys.map((b, bIdx) => (
-                                                <Scatter key={`pennant-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} 
-                                                    line={{ stroke: pennantStroke, strokeWidth: 2, strokeDasharray: '2 2' }} shape={() => null} marker={null} legendType="none" />
-                                            ))}
-                                            
-                                            {res.buoys.length > 0 && (
-                                                <Scatter key={`buoys-${res.id}`} data={res.buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.utilization }))} 
-                                                    shape={({ cx, cy, payload }) => {
-                                                        const isFloating = payload.utilization < 0.99;
-                                                        return (
-                                                            <g transform={`translate(${cx},${cy})`}>
-                                                                <path d="M0,10 L-8,-4 L8,-4 Z" fill={buoyFill} stroke={buoyStroke} strokeWidth={1.5} />
-                                                                {isFloating && <circle cx={0} cy={0} r={2} fill="cyan" stroke={buoyStroke} strokeWidth={0.5} />}
-                                                            </g>
-                                                        );
-                                                    }} legendType="none" />
-                                            )}
-                                            
-                                            <Scatter key={`anchor-${res.id}`} data={[res.anchor]} 
-                                                shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={res.color} stroke={buoyStroke} strokeWidth={1} />} legendType="none" />
+                                            {res.buoys.map((b, bIdx) => ( <Scatter key={`pennant-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke: pennantStroke, strokeWidth: 2, strokeDasharray: '2 2' }} shape={() => null} marker={null} legendType="none" /> ))}
+                                            {res.buoys.length > 0 && ( <Scatter key={`buoys-${res.id}`} data={res.buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.utilization }))} shape={({ cx, cy, payload }) => { const isFloating = payload.utilization < 0.99; return ( <g transform={`translate(${cx},${cy})`}> <path d="M0,10 L-8,-4 L8,-4 Z" fill={buoyFill} stroke={buoyStroke} strokeWidth={1.5} /> {isFloating && <circle cx={0} cy={0} r={2} fill="cyan" stroke={buoyStroke} strokeWidth={0.5} />} </g> ); }} legendType="none" /> )}
+                                            <Scatter key={`anchor-${res.id}`} data={[res.anchor]} shape={({ cx, cy }) => <rect x={cx-5} y={cy-5} width={10} height={10} fill={res.color} stroke={buoyStroke} strokeWidth={1} />} legendType="none" />
                                         </React.Fragment>
                                     ))}
                                 </ScatterChart>
                             </ResponsiveContainer>
                         </div>
-
                         <div className="absolute bottom-4 left-14 flex gap-4 text-[10px] bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg pointer-events-none select-none">
                            <div className="flex items-center gap-2"><div className="w-6 h-0.5 bg-gray-500 dark:bg-gray-400"></div><span className="text-gray-600 dark:text-gray-400">Wire</span></div>
                            <div className="flex items-center gap-2"><div className="w-6 h-1 bg-transparent border-b-4 border-dotted border-orange-500"></div><span className="text-gray-600 dark:text-gray-400">Chain</span></div>
@@ -455,16 +370,12 @@
                            <div className="flex items-center gap-2 ml-2 border-l border-gray-300 dark:border-gray-700 pl-3"><div className="w-6 h-0.5 bg-fuchsia-500"></div><span className="text-fuchsia-600 dark:text-fuchsia-400 font-medium">Max Tension (0m)</span></div>
                         </div>
                     </div>
-
-                    {/* Results Table */}
-                    <div className="h-1/3 glass-panel rounded-lg overflow-hidden flex flex-col shadow-lg">
+                    <div className="h-64 lg:h-1/3 glass-panel rounded-lg overflow-hidden flex flex-col shadow-lg shrink-0">
                         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
-                           <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2">
-                                <IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results
-                           </h3>
+                           <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2"><IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results</h3>
                         </div>
                         <div className="overflow-auto flex-1 p-0">
-                            <table className="w-full text-left text-sm text-gray-700 dark:text-gray-300">
+                            <table className="w-full text-left text-sm text-gray-700 dark:text-gray-300 min-w-[600px]">
                                 <thead className="bg-gray-100 dark:bg-gray-850 text-[10px] uppercase font-bold text-gray-500 sticky top-0 shadow-sm">
                                     <tr>
                                         <th className="px-4 py-3 tracking-wider">Case (t)</th>
@@ -472,119 +383,107 @@
                                         <th className="px-4 py-3 tracking-wider">Grounded (m)</th>
                                         <th className="px-4 py-3 tracking-wider">Anch Ten (t)</th>
                                         <th className="px-4 py-3 tracking-wider">Offset (m)</th>
-                                        <th className="px-4 py-3 tracking-wider">FL Depth (m)</th>
+                                        <th className="px-4 py-3 tracking-wider">Buoy Util (%)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800/50">
                                     {results.map((res, idx) => (
                                         <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${res.isMaxTensionCase ? 'bg-fuchsia-50 dark:bg-fuchsia-900/10' : ''}`}>
-                                            <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? '#d946ef' : COLORS[idx % COLORS.length]}}>
-                                                {res.isMaxTensionCase ? `${res.horizontalTension.toFixed(1)} (Max)` : res.horizontalTension.toFixed(1)}
+                                            <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? '#d946ef' : COLORS[idx % COLORS.length]}}>{res.isMaxTensionCase ? `${res.horizontalTension?.toFixed(1)} (Max)` : res.horizontalTension?.toFixed(1)}</td>
+                                            <td className="px-4 py-2.5">{res.totalLength?.toFixed(1)}</td>
+                                            <td className={`px-4 py-2.5 font-mono font-medium ${res.isAnchorUplift ? 'text-red-600 dark:text-red-400 font-bold' : (res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400')}`}>{res.groundedLength?.toFixed(1)}</td>
+                                            <td className="px-4 py-2.5">{res.isAnchorUplift ? (<div className="flex items-center text-red-600 dark:text-red-400 font-bold gap-1" title={`Uplift Force: ${res.anchorUpliftForce?.toFixed(2)} t`}>{res.anchorTension?.toFixed(2)} ⚠</div>) : (res.anchorTension?.toFixed(2))}</td>
+                                            <td className="px-4 py-2.5">{res.fairleadX?.toFixed(1)}</td>
+                                            <td className="px-4 py-2.5 text-xs">
+                                                {res.points.filter(p => p.isBuoy).length > 0 ? (
+                                                    res.points.filter(p => p.isBuoy).map((b, i) => (
+                                                        <span key={i} className="mr-2 whitespace-nowrap">B{i+1}: <span className={b.buoyUtilization < 1 ? "text-fuchsia-500 font-bold" : "text-green-600 dark:text-green-400"}>{(b.buoyUtilization * 100).toFixed(0)}%</span></span>
+                                                    ))
+                                                ) : <span className="text-gray-400">-</span>}
                                             </td>
-                                            <td className="px-4 py-2.5">{res.totalLength.toFixed(1)}</td>
-                                            <td className={`px-4 py-2.5 font-mono font-medium ${res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                {res.groundedLength.toFixed(1)}
-                                            </td>
-                                            <td className="px-4 py-2.5">{res.anchorTension.toFixed(2)}</td>
-                                            <td className="px-4 py-2.5">{res.fairleadX.toFixed(1)}</td>
-                                            <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400">{res.fairleadDepth.toFixed(2)}</td>
                                         </tr>
                                     ))}
-                                    {results.length === 0 && (
-                                        <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500 italic">No results calculated yet.</td></tr>
-                                    )}
+                                    {results.length === 0 && ( <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500 italic">No results calculated yet.</td></tr> )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             );
-        };
+        }
 
-        const InputField = ({ label, value, onChange, unit, type="number", placeholder }) => (
-            <div className="group">
-                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
-                <div className="relative">
-                    <input 
-                        type={type} 
-                        value={value} 
-                        onChange={onChange} 
-                        placeholder={placeholder}
-                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded pl-2 pr-7 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none transition-all shadow-sm" 
-                    />
-                    {unit && <span className="absolute right-2 top-1.5 text-[10px] text-gray-500 dark:text-gray-400 pointer-events-none select-none">{unit}</span>}
-                </div>
-            </div>
-        );
-
-        const SelectField = ({ label, value, onChange, children }) => (
-            <div className="group">
-                <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
-                <div className="relative">
-                    <select 
-                        value={value} 
-                        onChange={onChange} 
-                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm"
-                    >
+        function InputField({ label, value, onChange, unit, type="number", placeholder, children, highlight, min }) {
+            return (
+                <div className="group">
+                    <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors flex justify-between">
+                        {label}
+                        {highlight && <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold bg-amber-100 dark:bg-amber-900/30 px-1 rounded flex items-center gap-1">MANUAL</span>}
+                    </label>
+                    <div className="relative">
+                        <input type={type} value={value} onChange={onChange} placeholder={placeholder} min={min} className={`w-full bg-white dark:bg-gray-900 border rounded pl-2 pr-7 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:ring-1 outline-none transition-all shadow-sm ${highlight ? 'border-amber-400 ring-amber-400/20 focus:border-amber-500 focus:ring-amber-500 bg-amber-50 dark:bg-amber-900/10' : 'border-gray-300 dark:border-gray-700 focus:border-accent-500 focus:ring-accent-500'}`} />
+                        {unit && <span className="absolute right-2 top-1.5 text-[10px] text-gray-500 dark:text-gray-400 pointer-events-none select-none">{unit}</span>}
                         {children}
-                    </select>
-                    <IconChevronDown size={12} className="absolute right-2 top-2 text-gray-400 pointer-events-none" />
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        }
 
-        const InputPanel = ({ waterDepth, setWaterDepth, fairleadElev, setFairleadElev, segments, setSegments, buoys, setBuoys, tensions, setTensions, calculate, showMaxTension, setShowMaxTension, subseaStructures, setSubseaStructures, loading, error, calcMode, setCalcMode }) => { // Added calcMode, setCalcMode
+        function SelectField({ label, value, onChange, children }) {
+            return (
+                <div className="group">
+                    <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
+                    <div className="relative">
+                        <select value={value} onChange={onChange} className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm">
+                            {children}
+                        </select>
+                        <IconChevronDown size={12} className="absolute right-2 top-2 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
+            );
+        }
+
+        // --- UPDATED InputPanel Component ---
+        function InputPanel({ waterDepth, setWaterDepth, fairleadElev, setFairleadElev, segments, setSegments, buoys, setBuoys, tensions, setTensions, calculate, showMaxTension, setShowMaxTension, subseaStructures, setSubseaStructures, loading, error, calcMode, setCalcMode }) {
             const handleTypeChange = (index, newType) => {
                 const defaults = SEGMENT_PRESETS[newType];
                 const newSegs = [...segments];
-                newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff };
+                newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff };
                 setSegments(newSegs);
             };
-
             const handleSizeChange = (index, sizeDataStr) => {
                 if (!sizeDataStr) return;
                 const sizeData = JSON.parse(sizeDataStr);
                 const newSegs = [...segments];
-                newSegs[index] = { 
-                    ...newSegs[index], 
-                    w: sizeData.w, 
-                    EA: sizeData.ea, 
-                    diameter: sizeData.diameter 
-                };
+                newSegs[index] = { ...newSegs[index], w: sizeData.w, w_wet: sizeData.w_wet, EA: sizeData.ea };
                 setSegments(newSegs);
             };
-
             const updateSegment = (index, field, value) => {
                 const newSegs = [...segments];
                 newSegs[index] = { ...newSegs[index], [field]: value };
+                if (field === 'w') { newSegs[index].w_wet = ''; }
                 setSegments(newSegs);
             };
-
             const addSegment = () => {
                 const defaults = SEGMENT_PRESETS[SegmentType.WIRE];
-                setSegments([...segments, { id: `seg-${Date.now()}`, type: SegmentType.WIRE, length: 100, w: defaults.w, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff }]);
+                setSegments([...segments, { id: `seg-${Date.now()}`, type: SegmentType.WIRE, length: 100, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff }]);
             };
-
             const removeSegment = (index) => {
+                if (segments.length <= 1) return;
                 const newSegs = segments.filter((_, i) => i !== index);
                 setSegments(newSegs);
             };
-
             const updateBuoy = (index, field, value) => {
                 const newBuoys = [...buoys];
                 newBuoys[index] = { ...newBuoys[index], [field]: value };
                 setBuoys(newBuoys);
             };
-
             const addBuoy = () => {
-                setBuoys([...buoys, { id: `buoy-${Date.now()}`, distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 10 }]);
+                setBuoys([...buoys, { id: `buoy-${Date.now()}`, distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 10, pennantWeight: 0.2, height: 2.0 }]);
             };
-
             const removeBuoy = (index) => {
                 const newBuoys = buoys.filter((_, i) => i !== index);
                 setBuoys(newBuoys);
             };
-
             const handleCalcModeChange = (newMode) => {
                 if (newMode === calcMode) return;
                 setCalcMode(newMode);
@@ -597,190 +496,134 @@
             };
 
             return (
-                <div className="h-full flex flex-col gap-6 overflow-y-auto pr-3 pb-24 custom-scrollbar relative"> {/* Added relative */}
-                    {/* Environment */}
-                    <section>
-                        <SectionHeader title="Environment" icon={IconWaves} />
-                        <div className="grid grid-cols-2 gap-3 p-3 glass-panel rounded-lg">
-                            <InputField label="Water Depth" value={waterDepth} onChange={e => setWaterDepth(parseFloat(e.target.value))} unit="m" />
-                            <InputField label="Fairlead Z" value={fairleadElev} onChange={e => setFairleadElev(e.target.value)} unit="m" />
-                            <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
-                                <InputField 
-                                    label="Subsea Structures (Dist from FL)" 
-                                    value={subseaStructures} 
-                                    onChange={e => setSubseaStructures(e.target.value)} 
-                                    type="text"
-                                    placeholder="e.g. 0, 150, 400"
-                                />
+                <div className="flex flex-col h-full relative">
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-4 space-y-6">
+                        <section>
+                            <SectionHeader title="Environment" icon={IconWaves} />
+                            <div className="grid grid-cols-2 gap-3 p-3 glass-panel rounded-lg">
+                                <InputField label="Water Depth" value={waterDepth} onChange={e => setWaterDepth(safeFloat(e.target.value))} unit="m" />
+                                <InputField label="Fairlead Z" value={fairleadElev} onChange={e => setFairleadElev(e.target.value)} unit="m" />
+                                <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
+                                    <InputField label="Subsea Structures (Dist from FL)" value={subseaStructures} onChange={e => setSubseaStructures(e.target.value)} type="text" placeholder="e.g. 0, 150, 400" />
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                        <section>
+                            <div className="flex justify-between items-center mb-2">
+                                <SectionHeader title="Line Segments" icon={IconAnchor} />
+                                <button onClick={addSegment} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors"><IconPlus size={12} /> Add</button>
+                            </div>
+                            <div className="space-y-3">
+                                {segments.map((seg, idx) => {
+                                    const currentStandards = SIZE_STANDARDS[seg.type] || [];
+                                    const isStandard = currentStandards.some(s => s.w === seg.w && s.ea === seg.EA);
+                                    const density = MATERIAL_DENSITIES[seg.type] || 7850;
+                                    const factor = (density - SEAWATER_DENSITY) / density;
+                                    const dryVal = parseFloat(seg.w);
+                                    const autoWet = (isNaN(dryVal) ? 0 : dryVal) * factor;
+                                    const hasManualWet = seg.w_wet !== undefined && seg.w_wet !== null && !isNaN(parseFloat(seg.w_wet)) && parseFloat(seg.w_wet) !== 0;
 
-                    {/* Line Segments */}
-                    <section>
-                        <div className="flex justify-between items-center mb-2">
-                            <SectionHeader title="Line Segments" icon={IconAnchor} />
-                            <button onClick={addSegment} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
-                                <IconPlus size={12} /> Add
-                            </button>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <div className="text-[10px] text-gray-400 text-center pb-1 italic">Order: Fairlead (Top) &rarr; Anchor (Bot)</div>
-                            {segments.map((seg, idx) => {
-                                const currentStandards = SIZE_STANDARDS[seg.type] || [];
-                                const isStandard = currentStandards.some(s => s.w === seg.w && s.ea === seg.EA);
-
-                                return (
-                                <div key={seg.id} className="glass-panel p-3 rounded-lg group relative transition-all hover:border-gray-400 dark:hover:border-gray-600">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                            <span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[10px] px-1.5 rounded">#{idx+1}</span>
-                                            {seg.type}
-                                        </span>
-                                        <button onClick={() => removeSegment(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
-                                            <IconX size={14} />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="col-span-2">
-                                            <SelectField label="Type" value={seg.type} onChange={e => handleTypeChange(idx, e.target.value)}>
-                                                <option value={SegmentType.WIRE}>Wire (Steel)</option>
-                                                <option value={SegmentType.CHAIN}>Chain (Studless)</option>
-                                                <option value={SegmentType.FIBER}>Fiber (Polyester)</option>
-                                            </SelectField>
+                                    return (
+                                    <div key={seg.id} className="glass-panel p-3 rounded-lg group relative transition-all hover:border-gray-400 dark:hover:border-gray-600">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[10px] px-1.5 rounded">#{idx+1}</span>{seg.type}</span>
+                                            <button onClick={() => removeSegment(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconX size={14} /></button>
                                         </div>
-                                        
-                                        {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
+                                        <div className="grid grid-cols-2 gap-3">
                                             <div className="col-span-2">
-                                                <SelectField label="Standard Size (Auto-Fill)" onChange={e => handleSizeChange(idx, e.target.value)}>
-                                                    <option value="">-- Custom / Manual Entry --</option>
-                                                    {SIZE_STANDARDS[seg.type].map((size, sIdx) => (
-                                                        <option key={sIdx} value={JSON.stringify(size)}>{size.label} ({size.w} kg/m)</option>
-                                                    ))}
+                                                <SelectField label="Type" value={seg.type} onChange={e => handleTypeChange(idx, e.target.value)}>
+                                                    <option value={SegmentType.WIRE}>Wire (Steel)</option>
+                                                    <option value={SegmentType.CHAIN}>Chain (Studless)</option>
+                                                    <option value={SegmentType.FIBER}>Fiber (Polyester)</option>
                                                 </SelectField>
-                                                <div className="text-[9px] text-gray-400 mt-1 ml-1 italic">
-                                                    * If size is not listed, manually enter Mass and Diameter below.
-                                                </div>
                                             </div>
-                                        )}
-
-                                        <div className="col-span-2">
-                                            <InputField label="Length" value={seg.length} onChange={e => updateSegment(idx, 'length', parseFloat(e.target.value))} unit="m" />
+                                            {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
+                                                <div className="col-span-2">
+                                                    <SelectField label="Standard Size (Auto-Fill)" onChange={e => handleSizeChange(idx, e.target.value)}>
+                                                        <option value="">-- Custom / Select Size --</option>
+                                                        {SIZE_STANDARDS[seg.type].map((size, sIdx) => ( <option key={sIdx} value={JSON.stringify(size)}>{size.label} ({size.w} kg/m)</option> ))}
+                                                    </SelectField>
+                                                </div>
+                                            )}
+                                            <div className="col-span-2"><InputField label="Length" value={seg.length} onChange={e => { const val = parseFloat(e.target.value); if (isNaN(val) || val >= 0) { updateSegment(idx, 'length', e.target.value) } }} min="0" unit="m" /></div>
+                                            <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
+                                            <InputField label="Weight (Dry)" value={seg.w} onChange={e => updateSegment(idx, 'w', e.target.value)} unit="kg/m" />
+                                            <InputField label="Weight (Wet)" value={seg.w_wet || ''} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} unit="kg/m" placeholder={`Auto: ${autoWet.toFixed(2)}`} highlight={hasManualWet}>
+                                                {hasManualWet && ( <button onClick={() => updateSegment(idx, 'w_wet', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button> )}
+                                            </InputField>
+                                            <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', e.target.value)} unit="kN" placeholder="Empty = Infinite" />
+                                            <InputField label="Friction Coeff" value={seg.frictionCoeff} onChange={e => updateSegment(idx, 'frictionCoeff', e.target.value)} unit="" />
                                         </div>
-                                        
-                                        <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
-                                        
-                                        <InputField label="Mass in Air (M_air)" value={seg.w} onChange={e => updateSegment(idx, 'w', parseFloat(e.target.value))} unit="kg/m" />
-                                        
-                                        {/* CONDITIONAL DIAMETER INPUT */}
-                                        {(seg.type === SegmentType.WIRE || seg.type === SegmentType.FIBER) && (
-                                            <InputField 
-                                                label="Diameter (D)" 
-                                                value={seg.diameter} 
-                                                onChange={e => updateSegment(idx, 'diameter', parseFloat(e.target.value))} 
-                                                unit="mm" 
-                                            />
-                                        )}
-
-                                        <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => updateSegment(idx, 'EA', parseFloat(e.target.value))} unit="kN" placeholder="(Optional, infinite if empty)" />
+                                    </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                        <section>
+                            <div className="flex justify-between items-center mb-2">
+                                <SectionHeader title="Buoys" icon={IconLifeBuoy} />
+                                <button onClick={addBuoy} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors"><IconPlus size={12} /> Add</button>
+                            </div>
+                            {buoys.map((b, idx) => {
+                                const totalLength = segments.reduce((acc, s) => acc + (parseFloat(s.length) || 0), 0);
+                                const isOutOfBounds = b.distanceFromAnchor > totalLength;
+                                return (
+                                <div key={b.id} className="glass-panel p-3 rounded-lg relative mb-2 border-l-2 border-l-yellow-500/50">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500">Buoy #{idx+1}</span>
+                                        <button onClick={() => removeBuoy(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconTrash2 size={12} /></button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <InputField label="Dist from Anchor" value={b.distanceFromAnchor} onChange={e => updateBuoy(idx, 'distanceFromAnchor', parseFloat(e.target.value))} unit="m" />
+                                        {isOutOfBounds && <div className="text-[10px] text-red-500 font-bold mt-1 -mb-1">⚠ Warning: Buoy beyond line length ({totalLength.toFixed(1)}m)</div>}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <InputField label="Net Buoyancy" value={b.netBuoyancy} onChange={e => updateBuoy(idx, 'netBuoyancy', parseFloat(e.target.value))} unit="ton" />
+                                            <InputField label="Pennant Weight (t)" value={b.pennantWeight} onChange={e => updateBuoy(idx, 'pennantWeight', parseFloat(e.target.value))} unit="ton" />
+                                            <InputField label="Pennant (Length)" value={b.pennantLength} onChange={e => updateBuoy(idx, 'pennantLength', parseFloat(e.target.value))} unit="m" />
+                                            <InputField label="Buoy Height" value={b.height} onChange={e => updateBuoy(idx, 'height', parseFloat(e.target.value))} unit="m" />
+                                        </div>
                                     </div>
                                 </div>
                                 );
                             })}
-                        </div>
-                    </section>
-
-                    {/* Buoys */}
-                    <section>
-                        <div className="flex justify-between items-center mb-2">
-                            <SectionHeader title="Buoys" icon={IconLifeBuoy} />
-                            <button onClick={addBuoy} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
-                                <IconPlus size={12} /> Add
-                            </button>
-                        </div>
-                        {buoys.map((b, idx) => (
-                            <div key={b.id} className="glass-panel p-3 rounded-lg relative mb-2 border-l-2 border-l-yellow-500/50">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500">Buoy #{idx+1}</span>
-                                    <button onClick={() => removeBuoy(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1">
-                                        <IconTrash2 size={12} />
-                                    </button>
-                                </div>
-                                <div className="space-y-3">
-                                    <InputField label="Dist from Anchor" value={b.distanceFromAnchor} onChange={e => updateBuoy(idx, 'distanceFromAnchor', parseFloat(e.target.value))} unit="m" />
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <InputField label="Net Buoyancy" value={b.netBuoyancy} onChange={e => updateBuoy(idx, 'netBuoyancy', parseFloat(e.target.value))} unit="kg" />
-                                        <InputField label="Pennant Len" value={b.pennantLength} onChange={e => updateBuoy(idx, 'pennantLength', parseFloat(e.target.value))} unit="m" />
-                                    </div>
-                                </div>
+                        </section>
+                    </div>
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0e121e] shrink-0">
+                        {calcMode === 'offset' && (
+                            <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded flex gap-2 items-start">
+                                <IconWarning size={14} className="text-amber-500 shrink-0 mt-0.5"/>
+                                <p className="text-[10px] text-amber-700 dark:text-amber-200 leading-tight"><strong>Check Payout:</strong> Ensure 'Segment Length' matches the actual paid-out length, NOT the total reel capacity.</p>
                             </div>
-                        ))}
-                    </section>
-
-                    {/* Calculate Action - IMPROVED STYLING, REMOVED STICKY */}
-                    <div className="mt-4 py-4 border-t border-gray-200 dark:border-gray-800">
+                        )}
                         <div className="flex justify-between items-center mb-2 px-1">
-                            <div className="flex items-center gap-2">
-                                <IconTarget size={14} className="text-gray-500 dark:text-gray-400" />
-                                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Target Tensions</label>
+                            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded p-0.5">
+                                <button onClick={() => handleCalcModeChange('tension')} className={`text-[9px] px-2 py-1 rounded font-bold transition-all ${calcMode==='tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION</button>
+                                <button onClick={() => handleCalcModeChange('offset')} className={`text-[9px] px-2 py-1 rounded font-bold transition-all ${calcMode==='offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET</button>
                             </div>
                             <label className="flex items-center gap-2 cursor-pointer group">
-                                <input 
-                                    type="checkbox" 
-                                    checked={showMaxTension} 
-                                    onChange={e => setShowMaxTension(e.target.checked)} 
-                                    className="rounded bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-accent-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
-                                />
+                                <input type="checkbox" checked={showMaxTension} onChange={e => setShowMaxTension(e.target.checked)} className="rounded bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-accent-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer" />
                                 <span className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-medium group-hover:text-fuchsia-500 transition-colors">Find Max (0m Grd)</span>
                             </label>
                         </div>
-                        
-                        {/* Styled Target Tensions Input */}
-                        <div className="relative mb-3 group">
-                            <label className="absolute -top-2 left-2 px-1 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-accent-600 dark:text-accent-500 uppercase tracking-wider z-10">
-                                {calcMode === 'tension' ? 'Target Tensions' : 'Target Offsets'}
+                        <div className="relative">
+                            <label className="absolute -top-2 left-2 px-1 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-accent-600 dark:text-accent-500 uppercase tracking-wider">
+                                {calcMode === 'tension' ? 'Target Tensions (t)' : 'Target Offsets (m)'}
                             </label>
-                            <input 
-                                type="text" 
-                                value={tensions} 
-                                onChange={e => setTensions(e.target.value)} 
-                                className={`w-full bg-white dark:bg-gray-900 border-2 rounded-lg px-4 py-3 text-sm font-mono tracking-wider mb-1 focus:outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`}
-                                placeholder={calcMode === 'tension' ? "e.g. 10, 50, 100" : "e.g. 50, 100, 200"} 
-                            />
-                            <div className="absolute right-3 top-3 text-[10px] text-gray-400 font-medium pointer-events-none">
-                                {calcMode === 'tension' ? 'TONNES' : 'METERS'}
-                            </div>
+                            <input type="text" value={tensions} onChange={e => setTensions(e.target.value)} className={`w-full bg-white dark:bg-gray-900 border-2 rounded px-3 py-2 text-sm font-mono mb-3 focus:outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`} placeholder={calcMode === 'tension' ? "e.g. 10, 50, 100" : "e.g. 50, 100, 200"} />
                         </div>
-
-                        {/* Mode Switcher - MOVED HERE */}
-                        <div className="flex justify-center items-center mb-3">
-                            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded p-0.5">
-                                <button onClick={() => handleCalcModeChange('tension')} className={`text-[10px] px-3 py-1.5 rounded font-bold transition-all ${calcMode==='tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION MODE</button>
-                                <button onClick={() => handleCalcModeChange('offset')} className={`text-[10px] px-3 py-1.5 rounded font-bold transition-all ${calcMode==='offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET MODE</button>
-                            </div>
-                        </div>
-
-                        <button onClick={calculate} disabled={loading} className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-accent-500/30 active:scale-[0.98] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
-                            {loading ? <span>Processing...</span> : <>{calcMode === 'tension' ? <IconPlay size={18} fill="currentColor" /> : <IconRefresh size={18} />} {calcMode === 'tension' ? 'Calculate Profile' : 'Find Tensions'}</>}
+                        <button onClick={calculate} disabled={loading} className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
+                            {loading ? <span>Processing...</span> : <>{calcMode === 'tension' ? <IconPlay size={16} fill="currentColor" /> : <IconRefresh size={16} />} {calcMode === 'tension' ? 'Calculate Profile' : 'Find Tensions'}</>}
                         </button>
-                        
-                        {/* Error handling - passing 'error' prop */}
-                         {error && ( // Access error from props
-                            <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] rounded border border-red-200 dark:border-red-800 text-center">
-                                {error}
-                            </div>
-                        )}
+                        {error && ( <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] rounded border border-red-200 dark:border-red-800 text-center">{error}</div> )}
                     </div>
                 </div>
             );
-        };
+        }
 
         const App = () => {
             const [theme, setTheme] = useState('dark'); 
-            const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
             const [showGuide, setShowGuide] = useState(false);
+            const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
             useEffect(() => {
                 if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -788,37 +631,24 @@
             }, [theme]);
 
             const [waterDepth, setWaterDepth] = useState(73);
-            const [fairleadElev, setFairleadElev] = useState("-3.52");
+            const [fairleadElev, setFairleadElev] = useState("3");
             const [subseaStructuresStr, setSubseaStructuresStr] = useState("0");
             
             const [segments, setSegments] = useState([
-                { id: 'seg-wire-1', type: SegmentType.WIRE, length: 700, diameter: 38.1, w: 6.35, EA: 77000, frictionCoeff: 0.5 },
-                { id: 'seg-chain-2', type: SegmentType.CHAIN, length: 55, diameter: 38.1, w: 32.0, EA: 800000, frictionCoeff: 1.0 }
+                { id: 'seg-wire-1', type: SegmentType.WIRE, length: 700, diameter: 38.1, w: 6.35, w_wet: 5.38, EA: 77000, frictionCoeff: 0.5 },
+                { id: 'seg-chain-2', type: SegmentType.CHAIN, length: 55, diameter: 38.1, w: 32.0, w_wet: 27.8, EA: 800000, frictionCoeff: 1.0 }
             ]);
 
             const [buoys, setBuoys] = useState([
-                { id: 'buoy-1', distanceFromAnchor: 500, netBuoyancy: 5000, pennantLength: 30 }
+                { id: 'buoy-1', distanceFromAnchor: 500, netBuoyancy: 5, pennantLength: 30, pennantWeight: 0.2, height: 2.0 }
             ]);
 
-            const [tensionsStr, setTensionsStr] = useState("5, 10, 15");
+            const [tensionsStr, setTensionsStr] = useState("5, 20, 40");
+            const [calcMode, setCalcMode] = useState('tension'); 
             const [showMaxTension, setShowMaxTension] = useState(false);
             const [results, setResults] = useState([]);
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState(null);
-
-            // Add calcMode and setCalcMode here
-            const [calcMode, setCalcMode] = useState('tension'); // Add this state
-
-            const handleCalcModeChange = (newMode) => {
-                 if (newMode === calcMode) return;
-                 setCalcMode(newMode);
-                 if (newMode === 'offset') {
-                     const totalLen = segments.reduce((acc, s) => acc + s.length, 0);
-                     setTensionsStr(totalLen.toFixed(1));
-                 } else {
-                     setTensionsStr("5, 20, 40");
-                 }
-             };
 
             const handleCalculate = async () => {
                 const tensions = tensionsStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
@@ -835,16 +665,17 @@
 
                 const payload = {
                     waterDepth,
-                    fairleadElev: parseFloat(fairleadElev), 
+                    targetZ: -1 * safeFloat(fairleadElev), // Use targetZ for worker
                     segments: processedSegments, // Use the processed segments
                     buoys,
-                    tensions,
+                    targets: tensions, // Send as 'targets'
+                    calcMode, // Send mode
                     calculateMax: showMaxTension
                 };
 
                 try {
-                    // YOUR WORKER URL
-                    const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev";
+                    // Update this to your real worker URL
+                    const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
                     
                     const response = await fetch(WORKER_URL, {
                         method: "POST",
@@ -867,50 +698,40 @@
                 }
             };
             
-            const structures = useMemo(() => {
-                if (!subseaStructuresStr) return [];
-                return subseaStructuresStr.split(',')
-                    .map(s => parseFloat(s.trim()))
-                    .filter(n => !isNaN(n));
-            }, [subseaStructuresStr]);
+            const handleCalcModeChange = (newMode) => {
+                if (newMode === calcMode) return;
+                setCalcMode(newMode);
+                if (newMode === 'offset') {
+                    const totalLen = segments.reduce((acc, s) => acc + (parseFloat(s.length)||0), 0);
+                    setTensionsStr(totalLen.toFixed(1));
+                } else {
+                    setTensionsStr("5, 20, 40");
+                }
+            };
+
+            const structures = useMemo(() => { if (!subseaStructuresStr) return []; return subseaStructuresStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n)); }, [subseaStructuresStr]);
 
             const bgClass = theme === 'dark' ? 'bg-[#0B0F19] text-slate-200' : 'bg-gray-50 text-gray-800';
             const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
             const sidebarBg = theme === 'dark' ? 'bg-[#0e121e]' : 'bg-white';
 
-            // RESPONSIVE LAYOUT CHANGE: flex-col on mobile, lg:flex-row on desktop
             return (
                 <div className={`flex flex-col lg:flex-row h-screen w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
-                    <UserGuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
-                    
-                    {/* Left Sidebar - Responsive Width */}
+                    {showGuide && <UserGuideModal onClose={() => setShowGuide(false)} />}
                     <div className={`w-full lg:w-[340px] flex-shrink-0 border-b lg:border-b-0 lg:border-r ${sidebarBorder} h-auto lg:h-full ${sidebarBg} flex flex-col transition-colors duration-300 z-20`}>
                         <div className={`p-4 border-b ${sidebarBorder}`}>
                             <div className="flex justify-between items-center mb-1">
                                 <h1 className="text-xl font-bold tracking-tight flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-lg bg-[#1f2937] flex items-center justify-center text-[#f59e0b] font-black text-xl shadow-sm border border-gray-700">
-                                        S
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="leading-none tracking-wider">SLACK</span>
-                                        <span className="text-[10px] font-normal text-gray-400 dark:text-gray-500 mt-0.5">Dev by RattawitW</span>
-                                    </div>
+                                    <div className="w-9 h-9 rounded-lg bg-[#1f2937] flex items-center justify-center text-[#f59e0b] font-black text-xl shadow-sm border border-gray-700">S</div>
+                                    <div className="flex flex-col"><span className="leading-none tracking-wider">SLACK</span><span className="text-[10px] font-normal text-gray-400 dark:text-gray-500 mt-0.5">Dev by RattawitW</span></div>
                                 </h1>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="User Guide">
-                                        <IconHelp size={18} />
-                                    </button>
-                                    <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Toggle Theme">
-                                        {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-                                    </button>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"><IconHelp size={18} /></button>
+                                    <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">{theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}</button>
                                 </div>
                             </div>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-1">
-                                Catenary Analysis & Mooring Solver
-                            </p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-1">Catenary Analysis & Mooring Solver</p>
                         </div>
-                        
-                        {/* Sidebar Content */}
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 max-h-[40vh] lg:max-h-full">
                             <InputPanel 
                                 waterDepth={waterDepth} setWaterDepth={setWaterDepth}
@@ -928,14 +749,8 @@
                             />
                         </div>
                     </div>
-
-                    {/* Main Content */}
                     <div className={`flex-1 flex flex-col p-4 lg:p-6 h-full overflow-y-auto lg:overflow-hidden relative ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-gray-50'}`}>
-                        {/* Background Grid Effect */}
-                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-                             style={{backgroundImage: 'linear-gradient(#6b7280 1px, transparent 1px), linear-gradient(90deg, #6b7280 1px, transparent 1px)', backgroundSize: '40px 40px'}}>
-                        </div>
-                        
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: 'linear-gradient(#6b7280 1px, transparent 1px), linear-gradient(90deg, #6b7280 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
                         <div className="relative z-10 h-full flex flex-col">
                             <ResultsDisplay results={results} waterDepth={waterDepth} theme={theme} structures={structures} />
                         </div>
