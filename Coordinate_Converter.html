@@ -4,7 +4,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v3.12</title>
+    <title>Coordinate Converter v3.13</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -307,7 +307,7 @@ background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bott
 </style>
 
 <div id="build-banner">
-  <span class="v">GOT - Coordinate Converter — Version 3.12</span>
+  <span class="v">GOT - Coordinate Converter — Version 3.13</span>
   <div>
     <b>Indian 1975 (Everest 1830):</b>
     <code>a=6377276.345</code>,
@@ -1032,16 +1032,42 @@ function clearSection1() {
             document.body.removeChild(link);
         }
 
-        function exportTableToKML(tableId, filename) {
+		function exportTableToKML(tableId, filename) {
             const table = document.getElementById(tableId);
             const rows = table.getElementsByTagName('tr');
             const isSection1 = tableId === 'table1';
             const format = isSection1 ? document.getElementById('section1InputFormat').value : 'dm';
+            
+            // กำหนดสี: Section 1 (Blue) = ffff0000, Section 2 (Red) = ff0000ff
+            // KML color format: AABBGGRR (Alpha, Blue, Green, Red)
+            const colorHex = isSection1 ? 'ffff0000' : 'ff0000ff'; 
+
             let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+            
+            // --- ส่วนที่เพิ่ม: กำหนด Style รูปวงกลมและสี ---
+            kml += `
+            <Style id="pointStyle">
+                <IconStyle>
+                    <color>${colorHex}</color>
+                    <scale>0.8</scale>
+                    <Icon>
+                        <href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>
+                    </Icon>
+                </IconStyle>
+                <LabelStyle>
+                    <scale>0.8</scale>
+                </LabelStyle>
+            </Style>
+            `;
+            // ---------------------------------------------
+
             kml += `<name>${isSection1 ? 'Section 1' : 'Section 2'} Coordinates</name>\n`;
+            
             for (let i = 1; i < rows.length; i++) {
                 const cells = rows[i].getElementsByTagName('td');
                 let lat, lon;
+                
+                // (Logic เดิมในการดึงค่า Lat/Lon)
                 if (isSection1) {
                     if (format === 'dm') {
                         const latDeg = parseFloat(cells[1].querySelector('span').innerText);
@@ -1070,16 +1096,23 @@ function clearSection1() {
                         continue;
                     }
                 }
+
                 const pointId = cells[0].innerText;
                 const offset = isSection1 && format === 'dm' ? 0 : -2;
+                
+                // (Logic เดิมในการสร้าง Description)
                 const description = isSection1 ?
                     format === 'dm' ?
                     `PointID: ${pointId}, WGS84 Latitude: ${cells[1].querySelector('span').innerText}°${cells[2].querySelector('span').innerText}’N, WGS84 Longitude: ${cells[3].querySelector('span').innerText}°${cells[4].querySelector('span').innerText}’E, Indian UTM Easting: ${cells[5].innerText}, Indian UTM Northing: ${cells[6].innerText}, Indian Latitude: ${cells[7].innerText}, Indian Longitude: ${cells[8].innerText}` :
                     `PointID: ${pointId}, WGS84 Latitude: ${cells[1].querySelector('span').innerText}°N, WGS84 Longitude: ${cells[2].querySelector('span').innerText}°E, Indian UTM Easting: ${cells[3].innerText}, Indian UTM Northing: ${cells[4].innerText}, Indian Latitude: ${cells[5].innerText}, Indian Longitude: ${cells[6].innerText}` :
                     `PointID: ${pointId}, WGS84 Latitude: ${cells[1].innerText}, WGS84 Longitude: ${cells[2].innerText}, Indian UTM Easting: ${cells[3].querySelector('span').innerText}, Indian UTM Northing: ${cells[4].querySelector('span').innerText}, Indian Latitude: ${cells[5].innerText}, Indian Longitude: ${cells[6].innerText}`;
-                kml += `<Placemark>\n<name>${pointId}</name>\n<description>${description.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</description>\n<Point>\n<coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates>\n</Point>\n</Placemark>\n`;
+                
+                // --- ส่วนที่แก้ไข: เพิ่ม <styleUrl>#pointStyle</styleUrl> ---
+                kml += `<Placemark>\n<name>${pointId}</name>\n<styleUrl>#pointStyle</styleUrl>\n<description>${description.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</description>\n<Point>\n<coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates>\n</Point>\n</Placemark>\n`;
+                // --------------------------------------------------------
             }
             kml += '</Document>\n</kml>';
+            
             const kmlContent = 'data:text/xml;charset=utf-8,' + encodeURIComponent(kml);
             const link = document.createElement('a');
             link.setAttribute('href', kmlContent);
@@ -2138,7 +2171,7 @@ function validateSection1Coordinates() {
 </script>
 
 <script>
-// === DISPLAY PRECISION POLICY (v3.12) ===
+// === DISPLAY PRECISION POLICY (v3.13) ===
 (function(){
   window.__PREC_CFG__ = { decdeg_dp:6, dms_sec_dp:3, dm_min_dp:5, utm_dp:2 };
   function toFixedSafe(x, dp){ return (Math.round(Number(x) * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp); }
@@ -2166,7 +2199,7 @@ function validateSection1Coordinates() {
 </html>
 
 <script>
-// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.12)
+// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.13)
 (function(){
   const A = 6377276.345;            // Everest 1830 (Indian 1975)
   const F = 1/300.8017;
