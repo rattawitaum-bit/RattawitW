@@ -4,7 +4,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v3.13</title>
+    <title>Coordinate Converter v3.13+</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -307,7 +307,7 @@ background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bott
 </style>
 
 <div id="build-banner">
-  <span class="v">GOT - Coordinate Converter — Version 3.13</span>
+  <span class="v">GOT - Coordinate Converter — Version 3.13+</span>
   <div>
     <b>Indian 1975 (Everest 1830):</b>
     <code>a=6377276.345</code>,
@@ -428,6 +428,7 @@ background:#0f172a;color:#e2e8f0;padding:12px 16px;margin:0 0 12px 0;border-bott
 		<button class="btn-sm" onclick="copyTable('table2', true)" title="Copy Section 2 as TSV (with headers)">
 			Copy Section 2 (TSV)
 		</button>
+        <button class="btn-sm" onclick="exportTowRouteKML()" style="background-color: #9b59b6; color: white;" title="Export KML: Route, 1NM/2NM Buffers, and Bearing/Dist">TowRoute (KML)</button>
         </div>
     <hr class="soft-sep">
     <div class="container section">
@@ -2195,169 +2196,208 @@ function validateSection1Coordinates() {
 })();
 </script>
 
-</body>
-</html>
-
+<!-- === ฟังก์ชัน TowRoute สร้าง 2 ไฟล์แยกกัน (Buffer และ Route) และปรับแก้ Graphics แบบอ้างอิง CAD === -->
 <script>
-// === SAFE PATCH: Adds Indian1975-specific TM functions without changing existing ones. (v3.13)
-(function(){
-  const A = 6377276.345;            // Everest 1830 (Indian 1975)
-  const F = 1/300.8017;
-  const K0 = 0.9996, FE=500000.0, FN=0.0;
-  function lambda0FromZone(zone){ return (6*zone - 183) * Math.PI/180; }
+function exportTowRouteKML() {
+    const table = document.getElementById('table2');
+    const rows = table.getElementsByTagName('tr');
+    const pts = [];
 
-  function utmToLatLon_Indian1975(E, N, zone=47){
-    const L0 = lambda0FromZone(zone);
-    const e2 = F*(2 - F), e4 = e2*e2, e6 = e4*e2, ep2 = e2/(1-e2);
-    const M = (N - FN)/K0;
-    const alpha = 1 - e2/4 - 3*e4/64 - 5*e6/256;
-    const mu = M/(A*alpha);
-    const e1 = (1 - Math.sqrt(1-e2))/(1 + Math.sqrt(1-e2));
-    const phi1 = mu
-      + (3*e1/2 - 27*Math.pow(e1,3)/32)*Math.sin(2*mu)
-      + (21*Math.pow(e1,2)/16 - 55*Math.pow(e1,4)/32)*Math.sin(4*mu)
-      + (151*Math.pow(e1,3)/96)*Math.sin(6*mu)
-      + (1097*Math.pow(e1,4)/512)*Math.sin(8*mu);
-    const sin1=Math.sin(phi1), cos1=Math.cos(phi1), tan1=Math.tan(phi1);
-    const N1 = A/Math.sqrt(1 - e2*sin1*sin1);
-    const R1 = A*(1 - e2)/Math.pow(1 - e2*sin1*sin1, 1.5);
-    const T1 = tan1*tan1, C1 = ep2*cos1*cos1;
-    const D = (E - FE)/(N1*K0);
-    const phi = phi1 - (N1*tan1/R1) * ( (D*D)/2
-      - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*ep2)*Math.pow(D,4)/24
-      + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*ep2 - 3*C1*C1)*Math.pow(D,6)/720 );
-    const lam = L0 + ( D - (1 + 2*T1 + C1)*Math.pow(D,3)/6
-      + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*ep2 + 24*T1*T1)*Math.pow(D,5)/120 )/cos1;
-    return [phi*180/Math.PI, lam*180/Math.PI];
-  }
+    // ดึงข้อมูลพิกัดจาก Section 2 ที่มีค่า Easting, Northing ครบถ้วน
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (!cells || cells.length < 5) continue;
+        const id = (cells[0].innerText || String(i)).trim();
+        const east = parseFloat(cells[3].querySelector('input')?.value || cells[3].querySelector('span')?.innerText);
+        const north = parseFloat(cells[4].querySelector('input')?.value || cells[4].querySelector('span')?.innerText);
+        
+        if (Number.isFinite(east) && Number.isFinite(north)) {
+            const wgs = typeof indian1975UTMToWGS84 === 'function' ? indian1975UTMToWGS84(east, north) : window.indian1975UTMToWGS84(east, north);
+            if (wgs && Number.isFinite(wgs[0]) && Number.isFinite(wgs[1])) {
+                pts.push({ id, e: east, n: north, lat: wgs[0], lon: wgs[1] });
+            }
+        }
+    }
 
-  function latLonToUTM_Indian1975(lat, lon, zone=47){
-    const L0 = lambda0FromZone(zone);
-    const phi = Number(lat)*Math.PI/180, lam = Number(lon)*Math.PI/180;
-    const e2 = F*(2 - F), e4=e2*e2, e6=e4*e2, ep2=e2/(1-e2);
-    const nu = A/Math.sqrt(1 - e2*Math.sin(phi)**2);
-    const t = Math.tan(phi), eta2 = ep2*Math.cos(phi)**2;
-    const l = lam - L0, A1 = l*Math.cos(phi);
-    const a1 = 1 - e2/4 - 3*e4/64 - 5*e6/256;
-    const a2 = 3*e2/8 + 3*e4/32 + 45*e6/1024;
-    const a3 = 15*e4/256 + 45*e6/1024;
-    const a4 = 35*e6/3072;
-    const M = A*(a1*phi - a2*Math.sin(2*phi) + a3*Math.sin(4*phi) - a4*Math.sin(6*phi));
-    const E = FE + K0*nu*( A1 + (1 - t*t + eta2)*Math.pow(A1,3)/6
-      + (5 - 18*t*t + t**4 + 14*eta2 - 58*eta2*t*t)*Math.pow(A1,5)/120 );
-    const N = FN + K0*( M + nu*t*( A1*A1/2
-      + (5 - t*t + 9*eta2 + 4*eta2**2)*Math.pow(A1,4)/24
-      + (61 - 58*t*t + t**4 + 270*eta2 - 330*eta2*t*t)*Math.pow(A1,6)/720 ) );
-    return [E, N];
-  }
+    if (pts.length < 2) {
+        alert("ต้องการพิกัดอย่างน้อย 2 จุด (ใน Section 2) เพื่อสร้างเส้น Route");
+        return;
+    }
 
-  window.utmToLatLon_Indian1975 = utmToLatLon_Indian1975;
-  window.latLonToUTM_Indian1975 = latLonToUTM_Indian1975;
-})();
+    // ฟังก์ชันช่วยหาจุดตัดของเส้นขนาน (สำหรับการทำมุมตัด Miter Join ของ Buffer)
+    function intersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+        const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        if (Math.abs(denom) < 0.001) return null; 
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+        return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
+    }
+
+    // ฟังก์ชันสร้าง Polygon Buffer จากเส้น UTM
+    function getBufferPolygonWGS84(points, radius) {
+        const L = [], R = [];
+        const segs = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const dx = points[i+1].e - points[i].e;
+            const dy = points[i+1].n - points[i].n;
+            const len = Math.hypot(dx, dy);
+            const nx = -dy / len; 
+            const ny = dx / len;  
+            segs.push({
+                x1: points[i].e + radius*nx,   y1: points[i].n + radius*ny,
+                x2: points[i+1].e + radius*nx, y2: points[i+1].n + radius*ny,
+                rx1: points[i].e - radius*nx,  ry1: points[i].n - radius*ny,
+                rx2: points[i+1].e - radius*nx,ry2: points[i+1].n - radius*ny
+            });
+        }
+
+        L.push({ x: segs[0].x1, y: segs[0].y1 });
+        R.push({ x: segs[0].rx1, y: segs[0].ry1 });
+
+        for (let i = 0; i < segs.length - 1; i++) {
+            const s1 = segs[i], s2 = segs[i+1];
+            let intL = intersect(s1.x1, s1.y1, s1.x2, s1.y2, s2.x1, s2.y1, s2.x2, s2.y2);
+            let intR = intersect(s1.rx1, s1.ry1, s1.rx2, s1.ry2, s2.rx1, s2.ry1, s2.rx2, s2.ry2);
+            L.push(intL ? intL : { x: s1.x2, y: s1.y2 });
+            R.push(intR ? intR : { x: s1.rx2, y: s1.ry2 });
+        }
+
+        const lastSeg = segs[segs.length - 1];
+        L.push({ x: lastSeg.x2, y: lastSeg.y2 });
+        R.push({ x: lastSeg.rx2, y: lastSeg.ry2 });
+
+        const polyWGS = [];
+        const addWGS = (pt) => {
+            const wgs = typeof indian1975UTMToWGS84 === 'function' ? indian1975UTMToWGS84(pt.x, pt.y) : window.indian1975UTMToWGS84(pt.x, pt.y);
+            polyWGS.push(`${wgs[1].toFixed(7)},${wgs[0].toFixed(7)},0`);
+        };
+        for (let i = 0; i < L.length; i++) addWGS(L[i]);
+        for (let i = R.length - 1; i >= 0; i--) addWGS(R[i]);
+        addWGS(L[0]); 
+
+        return polyWGS.join(' ');
+    }
+
+    const escapeXML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // ==========================================
+    // ไฟล์ที่ 1: ไฟล์สำหรับ Layer ของ Buffer
+    // (ซ่อนเส้นขอบ outline=0, สีพาสเทลโปร่งแสง)
+    // ==========================================
+    let kmlBuffers = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>TowRoute Buffers</name>
+    <Style id="poly1NMStyle"><PolyStyle><color>66ffcc99</color><outline>0</outline></PolyStyle></Style> <!-- Pastel Blue 40%, No Outline -->
+    <Style id="poly2NMStyle"><PolyStyle><color>33ffcc99</color><outline>0</outline></PolyStyle></Style> <!-- Pastel Blue 20%, No Outline -->
+
+    <Folder>
+        <name>1 NM Buffer</name>
+        <Placemark>
+            <name>1 NM Clearance</name>
+            <styleUrl>#poly1NMStyle</styleUrl>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+                ${getBufferPolygonWGS84(pts, 1852)}
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+        </Placemark>
+    </Folder>
+
+    <Folder>
+        <name>2 NM Buffer</name>
+        <Placemark>
+            <name>2 NM Clearance</name>
+            <styleUrl>#poly2NMStyle</styleUrl>
+            <Polygon><outerBoundaryIs><LinearRing><coordinates>
+                ${getBufferPolygonWGS84(pts, 3704)}
+            </coordinates></LinearRing></outerBoundaryIs></Polygon>
+        </Placemark>
+    </Folder>
+</Document>
+</kml>`;
+
+    // ==========================================
+    // ไฟล์ที่ 2: ไฟล์สำหรับ Layer ของเส้นและข้อความ
+    // ==========================================
+    let kmlLines = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>TowRoute Lines and Points</name>
+    <!-- เปลี่ยนสี Label ทั้งหมดเป็นสีขาว (ffffffff) เพื่อสู้กับกรอบดำออโต้ของ ArcPro -->
+    <Style id="pointStyle"><IconStyle><color>ff993300</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle><LabelStyle><scale>0.85</scale><color>ffffffff</color></LabelStyle></Style>
+    <Style id="lineStyle"><LineStyle><color>ff993300</color><width>3</width></LineStyle></Style> <!-- Dark Blue Line -->
+    <Style id="dummyLabelStyle"><IconStyle><scale>0</scale></IconStyle><LabelStyle><scale>0.75</scale><color>ffffffff</color></LabelStyle></Style> <!-- White Text for better contrast in ArcPro -->
+
+    <Folder>
+        <name>Waypoints</name>\n`;
+    
+    pts.forEach(p => {
+        kmlLines += `        <Placemark><name>${escapeXML(p.id)}</name><styleUrl>#pointStyle</styleUrl><Point><coordinates>${p.lon.toFixed(7)},${p.lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+    });
+    
+    kmlLines += `    </Folder>
+    <Folder>
+        <name>Route Line</name>
+        <Placemark>
+            <name>Tow Route</name>
+            <styleUrl>#lineStyle</styleUrl>
+            <LineString><coordinates>\n`;
+    pts.forEach(p => { kmlLines += `${p.lon.toFixed(7)},${p.lat.toFixed(7)},0 `; });
+    kmlLines += `            </coordinates></LineString>
+        </Placemark>
+    </Folder>
+    <Folder>
+        <name>Bearing &amp; Distance</name>\n`;
+
+    // คำนวณจุดกึ่งกลาง หา Bearing และ Dist
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i+1];
+        
+        const midE = (p1.e + p2.e) / 2;
+        const midN = (p1.n + p2.n) / 2;
+        const midWGS = typeof indian1975UTMToWGS84 === 'function' ? indian1975UTMToWGS84(midE, midN) : window.indian1975UTMToWGS84(midE, midN);
+        
+        const dx = p2.e - p1.e;
+        const dy = p2.n - p1.n;
+        const distNM = Math.hypot(dx, dy) / 1852;
+        
+        let bearing = Math.atan2(dx, dy) * (180 / Math.PI);
+        if (bearing < 0) bearing += 360;
+        
+        const labelText = `Brg: ${bearing.toFixed(1)}° | Dist: ${distNM.toFixed(2)} NM`;
+
+        kmlLines += `        <Placemark>
+            <name>${escapeXML(labelText)}</name>
+            <styleUrl>#dummyLabelStyle</styleUrl>
+            <Point><coordinates>${midWGS[1].toFixed(7)},${midWGS[0].toFixed(7)},0</coordinates></Point>
+        </Placemark>\n`;
+    }
+
+    kmlLines += `    </Folder>
+</Document>
+</kml>`;
+
+    // ==========================================
+    // ฟังก์ชันช่วยดาวน์โหลด
+    // ==========================================
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'application/vnd.google-earth.kml+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // ดาวน์โหลดแยก 2 ไฟล์โดยหน่วงเวลาสั้นๆ (ป้องกัน Browser หยุดโหลดอัตโนมัติ)
+    downloadFile('TowRoute_Buffers.kml', kmlBuffers);
+    setTimeout(() => {
+        downloadFile('TowRoute_Lines_Points.kml', kmlLines);
+    }, 500);
+}
 </script>
 
-
-
-<!-- BEGIN SELF-QC PATCH (minimal-impact, additive) -->
-<script>(function(){'use strict';
-  /* ---------------- Section 1: Prefill (DM & D) ---------------- */
-  var DM_SAMPLES=[
-    {latDeg:9,latMin:39.535,lonDeg:101,lonMin:21.718},
-    {latDeg:7,latMin:54.807,lonDeg:102,lonMin:49.359}
-  ];
-  function setCell(td,val){
-    if(!td) return;
-    var inp=td.querySelector('input'), span=td.querySelector('span');
-    if(inp) inp.value=val;
-    if(span) span.textContent=(inp&&inp.value!==undefined)?inp.value:String(val);
-    if(typeof window.updateDisplay==='function') window.updateDisplay(td);
-  }
-  function seedDMRow(tr,s){var c=tr.cells||[]; setCell(c[1],s.latDeg); setCell(c[2],s.latMin); setCell(c[3],s.lonDeg); setCell(c[4],s.lonMin);}
-  function seedDRow(tr,s){
-    var lat=(s.latDeg<0?-1:1)*(Math.abs(s.latDeg)+s.latMin/60);
-    var lon=(s.lonDeg<0?-1:1)*(Math.abs(s.lonDeg)+s.lonMin/60);
-    var fmt=(typeof window.formatDecimalDegrees==='function')?window.formatDecimalDegrees:(x=>Number(x).toFixed(6));
-    var c=tr.cells||[]; setCell(c[1],fmt(lat)); setCell(c[2],fmt(lon));
-  }
-  function rowIsEmpty(tr){
-    var inps=tr?tr.querySelectorAll('input'):[];
-    for(var i=0;i<inps.length;i++){ if(String(inps[i].value||'').trim()!=='') return false; }
-    return true;
-  }
-  function seedSection1(){
-    var sel=document.getElementById('section1InputFormat'), tbl=document.getElementById('table1');
-    if(!sel||!tbl||!tbl.tBodies[0]) return;
-    var isDM=String(sel.value||'dm').toLowerCase()==='dm', rows=tbl.tBodies[0].rows;
-    for(var i=0;i<Math.min(2,rows.length);i++){ if(rowIsEmpty(rows[i])) (isDM?seedDMRow:seedDRow)(rows[i],DM_SAMPLES[i]); }
-  }
-  var _updateS1=window.updateSection1Table;
-  window.updateSection1Table=function(){ if(typeof _updateS1==='function') _updateS1(); setTimeout(seedSection1,0); };
-  window.addEventListener('DOMContentLoaded',function(){ setTimeout(seedSection1,0); });
-
-  /* ---------------- Section 1: QC + wrapper ---------------- */
-  function numify(x){ try{ if(typeof window.toNumber==='function') return window.toNumber(x); return Number(String(x).replace(/,/g,'')); }catch(e){ return NaN; } }
-  function s1QC(){
-    var msgs=[], sel=document.getElementById('section1InputFormat'), tbl=document.getElementById('table1');
-    if(!sel||!tbl) return msgs;
-    var fmt=String(sel.value||'dm').toLowerCase(), rows=tbl.rows;
-    for(var i=1;i<rows.length;i++){
-      var c=rows[i].cells;
-      if(fmt==='dm'){
-        var latD=numify(c[1].querySelector('input').value), latM=numify(c[2].querySelector('input').value),
-            lonD=numify(c[3].querySelector('input').value), lonM=numify(c[4].querySelector('input').value);
-        var empty=[latD,latM,lonD,lonM].every(function(v){return isNaN(v);}); if(empty) continue;
-        if([latD,latM,lonD,lonM].some(function(v){return isNaN(v);})){ msgs.push('Row '+i+': all four DM fields must be numbers'); continue; }
-        if(latM<0||latM>=60||lonM<0||lonM>=60) msgs.push('Row '+i+': minutes must be 0–<60');
-        if(latD<-90||latD>90) msgs.push('Row '+i+': latitude degrees must be −90..90');
-        if(lonD<-180||lonD>180) msgs.push('Row '+i+': longitude degrees must be −180..180');
-      }else{
-        var lat=numify(c[1].querySelector('input').value), lon=numify(c[2].querySelector('input').value);
-        var bothEmpty=isNaN(lat)&&isNaN(lon); if(bothEmpty) continue;
-        if(isNaN(lat)||isNaN(lon)){ msgs.push('Row '+i+': provide both Lat and Lon (D)'); continue; }
-        if(lat<-90||lat>90) msgs.push('Row '+i+': latitude must be −90..90');
-        if(lon<-180||lon>180) msgs.push('Row '+i+': longitude must be −180..180');
-      }
-    }
-    return msgs;
-  }
-  (function(){ var _calc1=window.calculateSection1;
-    window.safeCalculateSection1=function(){
-      var el=document.getElementById('section1Status'), msgs=s1QC();
-      if(msgs.length){ if(el){ el.textContent=msgs.join(' | '); el.className='status err'; } alert(msgs.join('\n')); return; }
-      if(typeof _calc1==='function') _calc1();
-      if(el){ el.textContent=''; el.className='status ok'; }
-    };
-  })();
-
-  /* ---------------- Section 2: QC (ignore empty rows) ---------------- */
-  (function(){
-    var EAST_MIN=500000, EAST_MAX=960000, NORTH_MIN=800000, NORTH_MAX=1200000;
-    function parseCell(td){
-      var inp=td&&td.querySelector('input'); var raw=inp?inp.value:'';
-      var s=String(raw||'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[\s\u00A0]/g,'').replace(/,/g,'');
-      if(s==='') return {empty:true,num:NaN};
-      var n=Number(s); return {empty:false,num:(isFinite(n)?n:NaN)};
-    }
-    function s2QC(){
-      var msgs=[], table=document.getElementById('table2'); if(!table) return msgs;
-      for(var i=1;i<table.rows.length;i++){
-        var c=table.rows[i].cells; if(!c||c.length<5) continue;
-        var east=parseCell(c[3]), north=parseCell(c[4]);
-        if(east.empty && north.empty) continue;
-        if(isNaN(east.num)||isNaN(north.num)){ msgs.push('Row '+i+': Easting and Northing must be numbers (both required)'); continue; }
-        if(east.num<EAST_MIN||east.num>EAST_MAX) msgs.push('Row '+i+': Easting must be in 500000–960000 m');
-        if(north.num<NORTH_MIN||north.num>NORTH_MAX) msgs.push('Row '+i+': Northing must be in 800000–1200000 m');
-      }
-      return msgs;
-    }
-    var _calc2=window.calculateSection2;
-    window.calculateSection2=function(){
-      var el=document.getElementById('section2Status'), msgs=s2QC();
-      if(msgs.length){ if(el){ el.textContent=msgs.join(' | '); el.className='status err'; } alert(msgs.join('\n')); return; }
-      if(typeof _calc2==='function') _calc2();
-      if(el){ el.textContent=''; el.className='status ok'; }
-    };
-  })();
-
-})();</script>
-<!-- END SELF-QC PATCH -->
+</body>
+</html>
