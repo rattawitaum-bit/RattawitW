@@ -571,7 +571,7 @@ async function safeCalculateSection1() {
             if (resRow.errKeys) target.errMsgs = resRow.errKeys.map(key => t(key, payloadData[idx].originalIdx + 1));
         });
         renderTable1();
-    } catch (e) { alert(t('API Connection Error')); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s1'); }
+    } catch (e) { alert("API Connection Error"); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s1'); }
 }
 
 async function safeCalculateSection2() {
@@ -606,7 +606,7 @@ async function safeCalculateSection2() {
             if (resRow.errKeys) target.errMsgs = resRow.errKeys.map(key => t(key, payloadData[idx].originalIdx + 1));
         });
         renderTable2();
-    } catch (e) { alert(t('API Connection Error')); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s2'); }
+    } catch (e) { alert("API Connection Error"); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s2'); }
 }
 
 // ==========================================
@@ -698,16 +698,27 @@ function plotOnLeaflet() {
         } else {
             lat = toNumber(tr.cells[1].querySelector('input').value); lon = toNumber(tr.cells[2].querySelector('input').value);
         }
-        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'blue'}).addTo(window._lmarkers);
+        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'blue', radius: 8, weight: 2, fillOpacity: 0.8}).addTo(window._lmarkers);
     });
     document.querySelectorAll('#table2 tbody tr').forEach(tr => {
         const lat = parseCoordString(tr.cells[1].innerText), lon = parseCoordString(tr.cells[2].innerText);
-        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'red'}).addTo(window._lmarkers);
+        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'red', radius: 8, weight: 2, fillOpacity: 0.8}).addTo(window._lmarkers);
     });
-    setTimeout(() => { window._lmap.invalidateSize(); if(window._lmarkers.getLayers().length) window._lmap.fitBounds(window._lmarkers.getBounds()); }, 400);
+
+    // --- FIX: ป้องกันแผนที่พังเมื่อมีพิกัดเดียวหรือจุดใกล้กันเกินไป ---
+    setTimeout(() => { 
+        window._lmap.invalidateSize(); 
+        if(window._lmarkers.getLayers().length > 0) {
+            // ใช้ maxZoom เพื่ออั้นความลึกไม่ให้ซูมจนแผนที่หาย (แนะนำ 16-17 สำหรับภาพดาวเทียม)
+            window._lmap.fitBounds(window._lmarkers.getBounds(), { 
+                maxZoom: 16, 
+                padding: [50, 50] 
+            }); 
+        }
+    }, 400);
 }
 
-// REST: Paste, File Load, Export logic remains consistent but adapted to use AppState & Render
+// REST Logic
 function clearAllInputs() { resetAppState(); renderTable1(); renderTable2(); document.getElementById('map').classList.remove('map-visible'); }
 function clearSection1() { AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1)); renderTable1(); }
 function clearSection2() { AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1)); renderTable2(); }
@@ -787,7 +798,7 @@ function exportTableToKML(id, fn) {
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fn; link.click();
 }
 
-function exportDXFR12_Strict() { alert("Exporting DXF based on computed Indian 1975 UTM values..."); }
+function exportDXFR12_Strict() { alert("Exporting DXF based on pre-calculated table values..."); }
 
 window.addEventListener('DOMContentLoaded', () => {
     resetAppState();
