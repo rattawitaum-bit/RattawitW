@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <title>Coordinate Converter v5.0</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background-color: #f5f6fa; color: #222222; }
+        .header { background-color: #fff; padding: 10px 15px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 20px; color: #1b3556; }
+        .header p { margin: 5px 0; font-size: 12px; color: #34495e; }
+        
+        .control-panel { background: #eef2f5; padding: 12px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #dcdde1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .control-panel .settings-group { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .control-panel label { font-size: 13px; font-weight: bold; color: #2c3e50; }
+        .control-panel select { padding: 6px 10px; font-size: 13px; border-radius: 4px; border: 1px solid #bdc3c7; background: #fff; cursor: pointer; }
+        .lang-btn { background-color: #2c3e50; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s; }
+        .lang-btn:hover { background-color: #1a252f; }
+
+        .container { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 12px; margin-bottom: 12px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+        .container h2 { color: #1b3556; font-size: 18px; margin-top: 0; }
+        
+        table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
+        th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: right; font-size: 12px; color: #2b2b2b; }
+        th { background-color: #2e6da4; color: #ffffff; text-align: center; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f3f5; }
+        
+        input { width: 100%; box-sizing: border-box; text-align: right; border: none; background: transparent; font-size: 12px; color: #111111; }
+        button, select.btn-sm { padding: 6px 10px; border: none; border-radius: 4px; background-color: #3498db; color: #fff; cursor: pointer; font-size: 12px; transition: background-color 0.2s; margin-right: 6px; margin-bottom: 6px; }
+        button:hover, select.btn-sm:hover { background-color: #2980b9; }
+        button:active, select.btn-sm:active { background-color: #1f6391; }
+        button.clear-all { background-color: transparent; color: #e74c3c; border: 2px solid #e74c3c; font-weight: bold; }
+        button.clear-all:hover { background-color: #e74c3c; color: #fff; }
+        
+        button[title], select[title] { position: relative; overflow: visible; }
+        button[title]:hover::after, select[title]:hover::after { content: attr(title); position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background-color: #2c3e50; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; z-index: 1000; pointer-events: none; }
+        
+        .section { margin-top: 12px; }
+        .input-cell { position: relative; background-color: #fff9e6; }
+        .input-cell input { position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%; background: #fff; z-index: 1; }
+        .input-cell:focus-within span { opacity: 0; }
+        .input-cell input:focus { opacity: 1; border: 2px solid #3498db; }
+        .input-cell span { display: inline-block; width: 100%; }
+        
+        /* Inline Error Highlighting */
+        .input-cell.has-error { background-color: #ffebeb; }
+        .input-cell.has-error input { opacity: 1; border: 2px solid #e74c3c !important; color: #c0392b; font-weight: bold; background: transparent; }
+        
+        .instructions ul { margin-top: 8px; padding-left: 20px; font-size: 12px; }
+        svg { border: 1px solid #e0e0e0; border-radius: 4px; display: block; margin: 15px auto 0; background: #fff; }
+        .legend { margin-top: 8px; font-size: 12px; text-align: center; }
+        .legend span { display: inline-block; margin: 0 10px; }
+        .legend .section1 { color: #0057ff; font-weight: bold; }
+        .legend .section2 { color: #ff2b2b; font-weight: bold; }
+        
+        .help-tip { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #e9ecef; color: #2c3e50; font-weight: 700; cursor: help; margin-left: 6px; user-select: none; position: relative; }
+        .help-tip:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: 130%; transform: translateX(-50%); background: #2c3e50; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px; line-height: 1.35; white-space: pre-line; min-width: 220px; max-width: 360px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,.18); text-align: left; }
+        .help-tip:hover::before { content: ""; position: absolute; left: 50%; bottom: 120%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #2c3e50; }
+        
+        .status { margin-top: 6px; font-size: 12px; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.err { color: #c0392b; background: #fdf0ed; padding: 8px; border-radius: 4px; border: 1px solid #f5c6cb; max-height: 120px; overflow-y: auto; line-height: 1.5; font-weight: normal; }
+        .inline-field { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-right: 15px; }
+        .controls-row { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 8px; gap: 10px; }
+        .soft-sep { border: 0; height: 1px; background: #e9ecef; margin: 10px 0; }
+        
+        .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #f8f9fa; color: #4a4a4a; text-align: center; padding: 8px 0; border-top: 1px solid #ddd; font-size: 14px; font-family: sans-serif; z-index: 1000; }
+        body { margin-bottom: 40px; }
+        
+        #build-banner { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 12px 16px; margin: 0 0 12px 0; border-bottom: 2px solid #334155; display:flex; justify-content: space-between; align-items: center;}
+        #build-banner .v { font-weight: 700; margin-right: 8px; font-size: 16px; }
+        #build-banner code { background: #111827; color: #e5e7eb; padding: 2px 6px; border-radius: 6px; font-size: 12px;}
+        .banner-details { font-size: 12px; line-height: 1.5; }
+        
+        button.map-btn { background-color: #27ae60; font-weight: bold; }
+        button.map-btn:hover { background-color: #219150; }
+        
+        #map {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            border-radius: 0;
+            overflow: hidden;
+            /* hidden state — use height:0 not display:none so Leaflet can measure */
+            height: 0;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            border: none;
+            transition: opacity 0.2s;
+        }
+        #map.map-visible {
+            height: 500px;
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            border: 1px solid #ddd;
+            margin: 10px auto 15px auto;
+        }
+
+        /* Leaflet tile z-index fix */
+        .leaflet-pane { z-index: 400; }
+        .leaflet-top, .leaflet-bottom { z-index: 500; }
+        .leaflet-container {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            will-change: transform;
+        }
+        .leaflet-tile-container {
+            will-change: transform;
+        }
+
+        #sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 1100;
+            background: #f5f6fa;
+            padding-bottom: 4px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            margin: -10px -10px 0 -10px;
+            padding: 10px 10px 6px 10px;
+        }
+
+        /* Push page content down so first container is not hidden under sticky header */
+        body > .container:first-of-type,
+        hr.soft-sep:first-of-type {
+            margin-top: 8px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+</head>
+<body>
+
+<div id="sticky-header">
+    <div id="build-banner">
+        <div>
+            <span class="v" data-i18n="app_title">Coordinate Converter v5.0</span>
+            <div class="banner-details">
+                <b data-i18n="lbl_datum">Datum Shift (Indian 1975 ↔ WGS84):</b> 
+                <span id="displayParams"><code>dx= -204.5</code>, <code>dy= -837.9</code>, <code>dz= -294.8</code></span>
+                <br>
+                <b data-i18n="lbl_zone">Current Zone:</b> <span id="displayZone"><code>47N (CM=99°E)</code></span>
+            </div>
+        </div>
+        <button class="lang-btn" onclick="toggleLang()" id="langBtn">🇹🇭 EN / TH</button>
+    </div>
+
+    <div class="control-panel">
+        <div class="settings-group">
+            <label data-i18n="sel_zone">UTM Zone:</label>
+            <select id="zoneSelect" onchange="applySettings()">
+                <option value="47">47N (CM 99°E)</option>
+                <option value="48">48N (CM 105°E)</option>
+            </select>
+            
+            <label data-i18n="sel_datum">Transformation Params:</label>
+            <select id="datumSelect" onchange="applySettings()">
+                <option value="dol" data-i18n="opt_dol">มาตรฐาน กมร. (dx: -204.5, dy: -837.9, dz: -294.8)</option>
+                <option value="survey" data-i18n="opt_survey">รังวัดขั้นสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)</option>
+                <option value="legacy" data-i18n="opt_legacy">แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)</option>
+            </select>
+        </div>
+        <button class="clear-all" onclick="clearAllInputs()" data-i18n="btn_clear_all">Clear All Inputs</button>
+    </div>
+</div>
+
+<div class="container mb-2 p-2">
+    <h2 data-i18n="s1_title">Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long</h2>
+    
+    <div class="controls-row">
+        <div class="inline-field">
+            <label data-i18n="lbl_format">Input Format:</label>
+            <select id="section1InputFormat" class="select-sm btn-sm" onchange="switchSection1InputFormat()">
+                <option value="dm" data-i18n="opt_fmt_dm">Degrees & Decimal Minutes (DM)</option>
+                <option value="d" data-i18n="opt_fmt_d">Decimal Degrees (D)</option>
+            </select>
+        </div>
+        <div class="inline-field">
+            <label data-i18n="lbl_out_format">Output Format:</label>
+            <select id="section1OutputFormat" class="select-sm btn-sm" onchange="safeCalculateSection1()">
+                <option value="dms" data-i18n="opt_fmt_dms">Degrees, Minutes, Seconds (DMS)</option>
+                <option value="dm" data-i18n="opt_fmt_dm">Degrees & Decimal Minutes (DM)</option>
+                <option value="d" data-i18n="opt_fmt_d">Decimal Degrees (D)</option>
+            </select>
+        </div>
+    </div>
+    
+    <p style="font-size:12px; margin-bottom:5px;" data-i18n="s1_import_hint">Import .txt or .csv file (format: PointID LatDeg LatMin LonDeg LonMin or PointID Lat Lon):</p>
+    <input type="file" id="fileInputSection1" accept=".txt,.csv" style="margin-bottom:8px;">
+    
+    <button class="btn-sm" onclick="loadFileSection1()" data-i18n="btn_load_file">Load TXT/CSV</button>
+    <button class="btn-sm" onclick="downloadSample('s1_csv')" data-i18n="btn_samp_csv">Sample (CSV)</button>
+    <button class="btn-sm" onclick="downloadSample('s1_txt')" data-i18n="btn_samp_txt">Sample (TXT)</button>
+    <span class="help-tip" id="s1_tooltip" data-tip="">?</span>
+    <div id="section1Status" class="status"></div>
+    
+    <table id="table1">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+    
+    <button class="btn-sm" onclick="safeCalculateSection1()" data-i18n="btn_calc_s1">Calculate Section 1</button>
+    <button class="btn-sm" onclick="clearSection1()" data-i18n="btn_clear_s1">Clear Section 1</button>
+    <button class="btn-sm" onclick="exportTableToCSV('table1', 'Convert_WGS84-Indian_1975.csv')" data-i18n="btn_exp_csv_s1">Export CSV</button>
+    <button class="btn-sm" onclick="exportTableToKML('table1', 'Convert_WGS84-Indian_1975.kml')" data-i18n="btn_exp_kml_s1">Export KML</button>
+    <button class="btn-sm" onclick="copyTable('table1', true)" data-i18n="btn_copy_tsv_s1">Copy (TSV)</button>
+</div>
+
+<hr class="soft-sep">
+
+<div class="container section">
+    <h2 data-i18n="s2_title">Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long</h2>
+    <div class="controls-row">
+        <div class="inline-field">
+            <label data-i18n="lbl_out_format">Output Format:</label>
+            <select id="section2OutputFormat" class="select-sm btn-sm" onchange="safeCalculateSection2()">
+                <option value="dms" data-i18n="opt_fmt_dms">Degrees, Minutes, Seconds (DMS)</option>
+                <option value="dm" data-i18n="opt_fmt_dm">Degrees & Decimal Minutes (DM)</option>
+                <option value="d" data-i18n="opt_fmt_d">Decimal Degrees (D)</option>
+            </select>
+        </div>
+    </div>
+    <p style="font-size:12px; margin-bottom:5px;" data-i18n="s2_import_hint">Import .txt or .csv file (format: PointID X Y):</p>
+    <input type="file" id="fileInputSection2" accept=".txt,.csv" style="margin-bottom:8px;">
+    
+    <button class="btn-sm" onclick="loadFileSection2()" data-i18n="btn_load_file">Load TXT/CSV</button>
+    <button class="btn-sm" onclick="downloadSample('s2_csv')" data-i18n="btn_samp_csv">Sample (CSV)</button>
+    <button class="btn-sm" onclick="downloadSample('s2_txt')" data-i18n="btn_samp_txt">Sample (TXT)</button>
+    <span class="help-tip" id="s2_tooltip" data-tip="">?</span>
+    <div id="section2Status" class="status"></div>
+    
+    <table id="table2">
+        <thead>
+            <tr>
+                <th data-i18n="th_pt">Point ID</th>
+                <th data-i18n="th_wgs_lat_out">WGS84 Latitude</th>
+                <th data-i18n="th_wgs_lon_out">WGS84 Longitude</th>
+                <th data-i18n="th_ind_e">Indian UTM Easting</th>
+                <th data-i18n="th_ind_n">Indian UTM Northing</th>
+                <th data-i18n="th_ind_lat">Indian Latitude</th>
+                <th data-i18n="th_ind_lon">Indian Longitude</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    
+    <button class="btn-sm" onclick="safeCalculateSection2()" data-i18n="btn_calc_s2">Calculate Section 2</button>
+    <button class="btn-sm" onclick="clearSection2()" data-i18n="btn_clear_s2">Clear Section 2</button>
+    <button class="btn-sm" onclick="exportTableToCSV('table2', 'Convert_Indian_1975-WGS84.csv')" data-i18n="btn_exp_csv_s2">Export CSV</button>
+    <button class="btn-sm" onclick="exportTableToKML('table2', 'Convert_Indian_1975-WGS84.kml')" data-i18n="btn_exp_kml_s2">Export KML</button>
+    <button class="btn-sm" onclick="copyTable('table2', true)" data-i18n="btn_copy_tsv_s2">Copy (TSV)</button>
+</div>
+
+<hr class="soft-sep">
+
+<div class="container section">
+    <h2 data-i18n="vis_title">Coordinate Visualization</h2>
+    <select class="btn-sm select-sm" id="canvasMode">
+        <option value="wgs84" data-i18n="opt_vis_wgs">WGS84 Lat/Long</option>
+        <option value="utm" data-i18n="opt_vis_utm">Indian 1975 UTM</option>
+    </select>
+    <button class="btn-sm" onclick="drawPointsOnSVG()" data-i18n="btn_show_svg">Show Points on SVG</button>
+    <button class="btn-sm map-btn" onclick="plotOnLeaflet()" data-i18n="btn_show_map">📍 Show on Google Satellite</button>
+    <button class="btn-sm" onclick="exportDXFR12_Strict()" data-i18n="btn_exp_dxf">Export DXF (R12)</button>
+    <svg id="coordinateSVG" width="750" height="500"></svg>
+    <div class="legend">
+        <span class="section1" data-i18n="lgd_s1">Section 1: Blue</span>
+        <span class="section2" data-i18n="lgd_s2">Section 2: Red</span>
+    </div>
+</div>
+<div id="map"></div>
+
+<footer class="fixed-footer">
+  Developed by Rattawit Wongprasert 😄😄😄
+</footer>
+
+<script>
+// ==========================================
+// 1. Language & i18n Dictionary
+// ==========================================
+let currentLang = 'th';
+const dict = {
+    en: {
+        app_title: "Coordinate Converter v5.0 (API Secured)",
+        lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):",
+        lbl_zone: "Current Zone:",
+        sel_zone: "UTM Zone:",
+        sel_datum: "Transformation Params:",
+        opt_dol: "DOL Standard (dx: -204.5, dy: -837.9, dz: -294.8)",
+        opt_survey: "High-Precision Survey (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
+        opt_legacy: "Legacy GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        btn_clear_all: "Clear All Inputs",
+        s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long",
+        s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
+        lbl_format: "Input Format:",
+        lbl_out_format: "Output Format:",
+        opt_fmt_dm: "Degrees & Decimal Minutes (DM)",
+        opt_fmt_d: "Decimal Degrees (D)",
+        opt_fmt_dms: "Degrees, Minutes, Seconds (DMS)",
+        s1_import_hint: "Import .txt or .csv file (format: PointID LatDeg LatMin LonDeg LonMin or PointID Lat Lon):",
+        s2_import_hint: "Import .txt or .csv file (format: PointID X Y):",
+        btn_load_file: "Load TXT/CSV",
+        btn_samp_csv: "Sample (CSV)",
+        btn_samp_txt: "Sample (TXT)",
+        btn_calc_s1: "Calculate Section 1",
+        btn_clear_s1: "Clear Section 1",
+        btn_exp_csv_s1: "Export Section 1 CSV",
+        btn_exp_kml_s1: "Export Section 1 KML",
+        btn_copy_tsv_s1: "Copy Section 1 (TSV)",
+        btn_calc_s2: "Calculate Section 2",
+        btn_clear_s2: "Clear Section 2",
+        btn_exp_csv_s2: "Export Section 2 CSV",
+        btn_exp_kml_s2: "Export Section 2 KML",
+        btn_copy_tsv_s2: "Copy Section 2 (TSV)",
+        vis_title: "Coordinate Visualization",
+        opt_vis_wgs: "WGS84 Lat/Long",
+        opt_vis_utm: "Indian 1975 UTM",
+        btn_show_svg: "Show Points on SVG",
+        btn_exp_dxf: "Export DXF (R12)",
+        btn_show_map: "📍 Show on Google Satellite",
+        lgd_s1: "Section 1: Blue",
+        lgd_s2: "Section 2: Red",
+        th_pt: "Point ID",
+        th_wgs_lat_d: "WGS84 Lat Deg",
+        th_wgs_lat_m: "WGS84 Lat Min",
+        th_wgs_lon_d: "WGS84 Lon Deg",
+        th_wgs_lon_m: "WGS84 Lon Min",
+        th_wgs_lat_dec: "WGS84 Latitude (°N)",
+        th_wgs_lon_dec: "WGS84 Longitude (°E)",
+        th_ind_e: "Indian UTM Easting",
+        th_ind_n: "Indian UTM Northing",
+        th_ind_lat: "Indian Latitude",
+        th_ind_lon: "Indian Longitude",
+        th_wgs_lat_out: "WGS84 Latitude",
+        th_wgs_lon_out: "WGS84 Longitude",
+        tooltip_s1: "Expected (DM): PointID LatDeg LatMin LonDeg LonMin\nExpected (D): PointID Lat Lon\nAccepted: .txt or .csv",
+        tooltip_s2: "Expected: PointID X Y\nAccepted: .txt (tab/space) or .csv (comma)",
+        err_s1_empty: "Row {0}: Provide all required coordinates.",
+        err_s1_min: "Row {0}: Minutes must be 0-59.",
+        err_s1_deg: "Row {0}: Lat Deg (-90 to 90) or Lon Deg (-180 to 180) invalid.",
+        err_s2_both: "Row {0}: Both Easting and Northing are required.",
+        err_s2_utm: "Row {0}: Easting or Northing invalid for UTM zone.",
+        err_invalid_num: "Row {0}: Invalid coordinate number.",
+        err_lat_range: "Row {0}: Latitude must be between -90° and 90°.",
+        err_lon_range: "Row {0}: Longitude must be between -180° and 180°.",
+        err_out_th: "Row {0}: Coordinates appear outside Thailand / valid UTM region.",
+        err_out_zone: "Row {0}: Longitude is too far from the selected UTM zone's Central Meridian. Try switching to the other Zone (47N/48N)."
+    },
+    th: {
+        app_title: "โปรแกรมแปลงค่าพิกัด v5.0 (API Secured)",
+        lbl_datum: "พารามิเตอร์แปลงพิกัด (Indian 1975 ↔ WGS84):",
+        lbl_zone: "โซนปัจจุบัน:",
+        sel_zone: "พิกัด UTM Zone:",
+        sel_datum: "เลือกชุดพารามิเตอร์:",
+        opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)",
+        opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
+        opt_legacy: "แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        btn_clear_all: "ล้างข้อมูลทั้งหมด",
+        s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975",
+        s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
+        lbl_format: "รูปแบบการกรอก:",
+        lbl_out_format: "รูปแบบผลลัพธ์:",
+        opt_fmt_dm: "องศา และ ลิปดาทศนิยม (DM)",
+        opt_fmt_d: "ทศนิยมองศา (D)",
+        opt_fmt_dms: "องศา ลิปดา พิลิปดา (DMS)",
+        s1_import_hint: "นำเข้าไฟล์ .txt หรือ .csv (คอลัมน์: ชื่อจุด องศาเหนือ ลิปดาเหนือ องศาตะวันออก ลิปดาตะวันออก หรือ ชื่อจุด ละติจูด ลองจิจูด):",
+        s2_import_hint: "นำเข้าไฟล์ .txt หรือ .csv (คอลัมน์: ชื่อจุด ค่าX ค่าY):",
+        btn_load_file: "โหลดไฟล์ TXT/CSV",
+        btn_samp_csv: "ไฟล์ตัวอย่าง (CSV)",
+        btn_samp_txt: "ไฟล์ตัวอย่าง (TXT)",
+        btn_calc_s1: "คำนวณส่วนที่ 1",
+        btn_clear_s1: "ล้างค่าส่วนที่ 1",
+        btn_exp_csv_s1: "ส่งออก CSV",
+        btn_exp_kml_s1: "ส่งออก KML",
+        btn_copy_tsv_s1: "คัดลอกตาราง (TSV)",
+        btn_calc_s2: "คำนวณส่วนที่ 2",
+        btn_clear_s2: "ล้างค่าส่วนที่ 2",
+        btn_exp_csv_s2: "ส่งออก CSV",
+        btn_exp_kml_s2: "ส่งออก KML",
+        btn_copy_tsv_s2: "คัดลอกตาราง (TSV)",
+        vis_title: "ระบบวาดกราฟิกพิกัด",
+        opt_vis_wgs: "พิกัดภูมิศาสตร์ WGS84",
+        opt_vis_utm: "พิกัดฉาก Indian 1975 UTM",
+        btn_show_svg: "แสดงจุดพิกัด",
+        btn_exp_dxf: "ส่งออก CAD (DXF)",
+        btn_show_map: "📍 แสดงบนแผนที่ดาวเทียม",
+        lgd_s1: "ส่วนที่ 1: สีน้ำเงิน",
+        lgd_s2: "ส่วนที่ 2: สีแดง",
+        th_pt: "ชื่อจุด",
+        th_wgs_lat_d: "WGS84 องศา (N)",
+        th_wgs_lat_m: "WGS84 ลิปดา (N)",
+        th_wgs_lon_d: "WGS84 องศา (E)",
+        th_wgs_lon_m: "WGS84 ลิปดา (E)",
+        th_wgs_lat_dec: "WGS84 Latitude (°N)",
+        th_wgs_lon_dec: "WGS84 Longitude (°E)",
+        th_ind_e: "Indian UTM Easting (X)",
+        th_ind_n: "Indian UTM Northing (Y)",
+        th_ind_lat: "Indian Latitude",
+        th_ind_lon: "Indian Longitude",
+        th_wgs_lat_out: "WGS84 Latitude",
+        th_wgs_lon_out: "WGS84 Longitude",
+        tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv",
+        tooltip_s2: "รูปแบบที่รองรับ: ชื่อจุด ค่าEasting ค่าNorthing\nรับไฟล์: .txt (เคาะวรรค) หรือ .csv (จุลภาค)",
+        err_s1_empty: "แถว {0}: กรุณากรอกพิกัดให้ครบถ้วน",
+        err_s1_min: "แถว {0}: ค่าลิปดาต้องอยู่ระหว่าง 0 ถึง 59",
+        err_s1_deg: "แถว {0}: องศาละติจูด/ลองจิจูด ไม่ถูกต้องตามหลักสากล",
+        err_s2_both: "แถว {0}: ต้องกรอกค่าทั้ง Easting และ Northing",
+        err_s2_utm: "แถว {0}: ค่า Easting หรือ Northing อยู่นอกขอบเขตพิกัด UTM",
+        err_invalid_num: "แถว {0}: รูปแบบตัวเลขพิกัดไม่ถูกต้อง",
+        err_lat_range: "แถว {0}: ละติจูดต้องอยู่ระหว่าง -90 ถึง 90 องศา",
+        err_lon_range: "แถว {0}: ลองจิจูดต้องอยู่ระหว่าง -180 ถึง 180 องศา",
+        err_out_th: "แถว {0}: พิกัดอยู่นอกขอบเขตประเทศไทย/ขอบเขตที่รองรับ",
+        err_out_zone: "แถว {0}: ลองจิจูดอยู่นอกขอบเขตของ UTM Zone ที่เลือก (ลองเปลี่ยนไปใช้โซน 47N หรือ 48N ดูครับ)"
+    }
+};
+
+function t(key, param) { 
+    let text = dict[currentLang][key] || key;
+    if(param !== undefined) text = text.replace('{0}', param);
+    return text;
+}
+
+function translateUI() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (el.tagName === 'OPTION') el.text = t(key);
+        else if (el.tagName === 'INPUT') el.placeholder = t(key);
+        else el.innerText = t(key);
+    });
+    document.getElementById('s1_tooltip').setAttribute('data-tip', dict[currentLang]['tooltip_s1']);
+    document.getElementById('s2_tooltip').setAttribute('data-tip', dict[currentLang]['tooltip_s2']);
+}
+
+function toggleLang() {
+    currentLang = currentLang === 'th' ? 'en' : 'th';
+    translateUI();
+}
+
+// ==========================================
+// 2. Robust Number Parsing
+// ==========================================
+function toNumber(v) {
+    if (v == null) return NaN;
+    if (typeof v !== 'string') return Number(v);
+    const mapThai = {'๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','−':'-'};
+    let s = v.replace(/[\u00A0\s]/g,'').replace(/[°'″”″"’]/g,'').replace(',', '.');
+    s = s.replace(/[๐-๙−]/g, ch => mapThai[ch] || ch);
+    if (s === '') return NaN;
+    return Number(s);
+}
+
+// ฟังก์ชันสำหรับแกะ String พิกัด (DMS, DM, D) กลับมาเป็นทศนิยมเพื่อใช้ปักหมุดแผนที่
+// (ทำให้เราสามารถอ่านค่าจากตารางได้โดยไม่ต้องคำนวณสมการซ้ำใน Frontend)
+function parseCoordString(str) {
+    if (!str || typeof str !== 'string') return NaN;
+    let isNeg = (str.includes('S') || str.includes('W') || str.includes('-'));
+    let nums = str.match(/\d+(\.\d+)?/g);
+    if (!nums) return NaN;
+    let val = 0;
+    if (nums.length >= 3) {
+        val = parseFloat(nums[0]) + parseFloat(nums[1])/60 + parseFloat(nums[2])/3600;
+    } else if (nums.length >= 2) {
+        val = parseFloat(nums[0]) + parseFloat(nums[1])/60;
+    } else if (nums.length >= 1) {
+        val = parseFloat(nums[0]);
+    }
+    return isNeg ? -val : val;
+}
+
+// ==========================================
+// 3. Dynamic Settings & Variables
+// ==========================================
+let dx = -204.5;
+let dy = -837.9;
+let dz = -294.8;
+let zone = 47;
+
+function applySettings() {
+    zone = parseInt(document.getElementById('zoneSelect').value);
+    let cm = 6 * zone - 183;
+    const datum = document.getElementById('datumSelect').value;
+    if (datum === 'survey') {
+        dx = -204.4798; dy = -837.8940; dz = -294.7765;
+    } else if (datum === 'legacy') {
+        dx = -204.64; dy = -834.74; dz = -293.80;
+    } else {
+        dx = -204.5; dy = -837.9; dz = -294.8;
+    }
+    document.getElementById('displayParams').innerHTML = `<code>dx= ${dx}</code>, <code>dy= ${dy}</code>, <code>dz= ${dz}</code>`;
+    document.getElementById('displayZone').innerHTML = `<code>${zone}N (CM=${cm}°E)</code>`;
+
+    safeCalculateSection1();
+    safeCalculateSection2();
+    if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
+    if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
+}
+
+// ==========================================
+// 4. UI & State Management (Decoupled)
+// ==========================================
+const AppState = { s1: [], s2: [] };
+
+function getEmptyS1(id) { return { id, latD:'', latM:'', lonD:'', lonM:'', latDec:'', lonDec:'', utmE:'', utmN:'', outLat:'', outLon:'', hasErr:false, errMsgs:[] }; }
+function getEmptyS2(id) { return { id, e:'', n:'', outLat:'', outLon:'', ilat:'', ilon:'', hasErr:false, errMsgs:[] }; }
+
+function resetAppState() {
+    AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1));
+    AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
+}
+
+function switchSection1InputFormat() {
+    renderTable1();
+    safeCalculateSection1();
+}
+
+function updateDisplay(cell) {
+    const input = cell.querySelector('input');
+    const span = cell.querySelector('span');
+    if(span && input) span.innerText = input.value || '';
+}
+
+function renderTable1() {
+    const tbody = document.querySelector('#table1 tbody');
+    const format = document.getElementById('section1InputFormat').value;
+    const thead = document.querySelector('#table1 thead');
+    
+    thead.innerHTML = format === 'dm' ? `
+        <tr>
+            <th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_d">WGS84 Lat Deg</th><th data-i18n="th_wgs_lat_m">WGS84 Lat Min</th>
+            <th data-i18n="th_wgs_lon_d">WGS84 Lon Deg</th><th data-i18n="th_wgs_lon_m">WGS84 Lon Min</th>
+            <th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th>
+            <th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th>
+        </tr>
+    ` : `
+        <tr>
+            <th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_dec">WGS84 Latitude (°N)</th><th data-i18n="th_wgs_lon_dec">WGS84 Longitude (°E)</th>
+            <th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th>
+            <th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th>
+        </tr>
+    `;
+
+    let html = '';
+    AppState.s1.forEach((row, i) => {
+        let ec = row.hasErr ? 'has-error' : '';
+        if (format === 'dm') {
+            html += `<tr>
+                <td>${row.id}</td>
+                <td class="input-cell ${ec}"><span>${row.latD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="latD" value="${row.latD}"></td>
+                <td class="input-cell ${ec}"><span>${row.latM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="latM" value="${row.latM}"></td>
+                <td class="input-cell ${ec}"><span>${row.lonD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="lonD" value="${row.lonD}"></td>
+                <td class="input-cell ${ec}"><span>${row.lonM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="lonM" value="${row.lonM}"></td>
+                <td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td>
+            </tr>`;
+        } else {
+            html += `<tr>
+                <td>${row.id}</td>
+                <td class="input-cell ${ec}"><span>${row.latDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="latDec" value="${row.latDec}"></td>
+                <td class="input-cell ${ec}"><span>${row.lonDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="lonDec" value="${row.lonDec}"></td>
+                <td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td>
+            </tr>`;
+        }
+    });
+    tbody.innerHTML = html;
+    updateStatus1();
+    translateUI();
+}
+
+function renderTable2() {
+    const tbody = document.querySelector('#table2 tbody');
+    let html = '';
+    AppState.s2.forEach((row, i) => {
+        let ec = row.hasErr ? 'has-error' : '';
+        html += `<tr>
+            <td>${row.id}</td>
+            <td>${row.outLat}</td><td>${row.outLon}</td>
+            <td class="input-cell ${ec}"><span>${row.e}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="e" value="${row.e}"></td>
+            <td class="input-cell ${ec}"><span>${row.n}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="n" value="${row.n}"></td>
+            <td>${row.ilat}</td><td>${row.ilon}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+    updateStatus2();
+    translateUI();
+}
+
+function updateStatus1() {
+    const st = document.getElementById('section1Status');
+    const msgs = AppState.s1.flatMap(r => r.errMsgs);
+    if(msgs.length > 0) { st.innerHTML = [...new Set(msgs)].join('<br>'); st.className = 'status err'; }
+    else { st.textContent = ''; st.className = 'status ok'; }
+}
+
+function updateStatus2() {
+    const st = document.getElementById('section2Status');
+    const msgs = AppState.s2.flatMap(r => r.errMsgs);
+    if(msgs.length > 0) { st.innerHTML = [...new Set(msgs)].join('<br>'); st.className = 'status err'; }
+    else { st.textContent = ''; st.className = 'status ok'; }
+}
+
+// 5. Input Listeners (NO AUTO-CALCULATE DEBOUNCE - FORCE USER TO CLICK CALCULATE)
+document.addEventListener('input', function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.hasAttribute('data-idx')) {
+        const sec = e.target.dataset.sec;
+        const idx = parseInt(e.target.dataset.idx);
+        const key = e.target.dataset.key;
+        
+        if (sec === '1') {
+            AppState.s1[idx][key] = e.target.value;
+            if(e.target.previousElementSibling) e.target.previousElementSibling.innerText = e.target.value;
+        } else if (sec === '2') {
+            AppState.s2[idx][key] = e.target.value;
+            if(e.target.previousElementSibling) e.target.previousElementSibling.innerText = e.target.value;
+        }
+    }
+});
+
+// ==========================================
+// 6. API Calls (Cloudflare Worker)
+// ==========================================
+const API_URL = 'https://coordinateapiworker.rattawit-aum.workers.dev/';
+
+async function safeCalculateSection1() {
+    const format = document.getElementById('section1InputFormat').value;
+    const outFormat = document.getElementById('section1OutputFormat').value;
+    
+    const payloadData = AppState.s1
+        .map((row, i) => ({ originalIdx: i, row: row }))
+        .filter(item => {
+            const r = item.row;
+            return format === 'dm' ? 
+                (r.latD !== '' || r.latM !== '' || r.lonD !== '' || r.lonM !== '') : 
+                (r.latDec !== '' || r.lonDec !== '');
+        })
+        .map(item => ({
+            id: item.row.id,
+            originalIdx: item.originalIdx,
+            latD: toNumber(item.row.latD),
+            latM: toNumber(item.row.latM),
+            lonD: toNumber(item.row.lonD),
+            lonM: toNumber(item.row.lonM),
+            latDec: toNumber(item.row.latDec),
+            lonDec: toNumber(item.row.lonDec)
+        }));
+
+    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
+    if (payloadData.length === 0) {
+        AppState.s1.forEach(row => { row.utmE=''; row.utmN=''; row.outLat=''; row.outLon=''; row.hasErr=false; row.errMsgs=[]; });
+        renderTable1();
+        return;
+    }
+
+    const btn = document.querySelector('button[onclick="safeCalculateSection1()"]');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = currentLang === 'th' ? "กำลังคำนวณ..." : "Calculating...";
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 's1',
+                format: format,
+                outFormat: outFormat,
+                dx: dx, dy: dy, dz: dz, zone: zone,
+                data: payloadData
+            })
+        });
+
+        if (!response.ok) throw new Error('API Error');
+        const result = await response.json();
+        
+        // Reset all targeted rows before applying results
+        payloadData.forEach(p => {
+            AppState.s1[p.originalIdx].errMsgs = [];
+            AppState.s1[p.originalIdx].hasErr = false;
+            AppState.s1[p.originalIdx].utmE = '';
+            AppState.s1[p.originalIdx].utmN = '';
+            AppState.s1[p.originalIdx].outLat = '';
+            AppState.s1[p.originalIdx].outLon = '';
+        });
+
+        result.results.forEach((resRow, idx) => {
+            const targetIndex = payloadData[idx].originalIdx;
+            AppState.s1[targetIndex].utmE = resRow.utmE != null ? resRow.utmE : '';
+            AppState.s1[targetIndex].utmN = resRow.utmN != null ? resRow.utmN : '';
+            AppState.s1[targetIndex].outLat = resRow.outLat || '';
+            AppState.s1[targetIndex].outLon = resRow.outLon || '';
+            AppState.s1[targetIndex].hasErr = resRow.hasErr;
+            if (resRow.errKeys && resRow.errKeys.length > 0) {
+                AppState.s1[targetIndex].errMsgs = resRow.errKeys.map(key => t(key, targetIndex + 1));
+            }
+        });
+
+        renderTable1();
+    } catch (error) {
+        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+
+async function safeCalculateSection2() {
+    const outFormat = document.getElementById('section2OutputFormat').value;
+    
+    const payloadData = AppState.s2
+        .map((row, i) => ({ originalIdx: i, row: row }))
+        .filter(item => item.row.e !== '' || item.row.n !== '')
+        .map(item => ({
+            id: item.row.id,
+            originalIdx: item.originalIdx,
+            e: toNumber(item.row.e),
+            n: toNumber(item.row.n)
+        }));
+
+    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
+    if (payloadData.length === 0) {
+        AppState.s2.forEach(row => { row.outLat=''; row.outLon=''; row.ilat=''; row.ilon=''; row.hasErr=false; row.errMsgs=[]; });
+        renderTable2();
+        return;
+    }
+
+    const btn = document.querySelector('button[onclick="safeCalculateSection2()"]');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = currentLang === 'th' ? "กำลังคำนวณ..." : "Calculating...";
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 's2',
+                outFormat: outFormat,
+                dx: dx, dy: dy, dz: dz, zone: zone,
+                data: payloadData
+            })
+        });
+
+        if (!response.ok) throw new Error('API Error');
+        const result = await response.json();
+        
+        // Reset all targeted rows before applying results
+        payloadData.forEach(p => {
+            AppState.s2[p.originalIdx].errMsgs = [];
+            AppState.s2[p.originalIdx].hasErr = false;
+            AppState.s2[p.originalIdx].outLat = '';
+            AppState.s2[p.originalIdx].outLon = '';
+            AppState.s2[p.originalIdx].ilat = '';
+            AppState.s2[p.originalIdx].ilon = '';
+        });
+
+        result.results.forEach((resRow, idx) => {
+            const targetIndex = payloadData[idx].originalIdx;
+            AppState.s2[targetIndex].outLat = resRow.outLat || '';
+            AppState.s2[targetIndex].outLon = resRow.outLon || '';
+            AppState.s2[targetIndex].ilat = resRow.ilat || '';
+            AppState.s2[targetIndex].ilon = resRow.ilon || '';
+            AppState.s2[targetIndex].hasErr = resRow.hasErr;
+            if (resRow.errKeys && resRow.errKeys.length > 0) {
+                AppState.s2[targetIndex].errMsgs = resRow.errKeys.map(key => t(key, targetIndex + 1));
+            }
+        });
+
+        renderTable2();
+    } catch (error) {
+        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+
+// ==========================================
+// 7. Smart Paste & Import (State-Driven)
+// ==========================================
+document.getElementById('table1').addEventListener('paste', function(e) {
+    const target = e.target;
+    if (target.tagName !== 'INPUT' || !target.hasAttribute('data-idx')) return;
+    const clip = (e.clipboardData || window.clipboardData); if (!clip) return;
+    const text = clip.getData('text');
+    if (!text || !/\n/.test(text)) return; 
+    e.preventDefault();
+
+    const fmt = document.getElementById('section1InputFormat').value;
+    let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    
+    if (lines.length > 500) {
+        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+        lines = lines.slice(0, 500);
+    }
+    
+    let startIndex = parseInt(target.dataset.idx);
+    while (AppState.s1.length < startIndex + lines.length) AppState.s1.push(getEmptyS1(AppState.s1.length + 1));
+
+    lines.forEach((line, i) => {
+        const row = AppState.s1[startIndex + i];
+        const parts = line.split(/,|\s+/);
+        if (fmt === 'dm') {
+            if (parts.length >= 4) { row.latD = parts[0]; row.latM = parts[1]; row.lonD = parts[2]; row.lonM = parts[3]; }
+        } else {
+            if (parts.length >= 2) { row.latDec = parts[0]; row.lonDec = parts[1]; }
+        }
+    });
+    renderTable1(); // Let user press Calculate
+});
+
+document.getElementById('table2').addEventListener('paste', function(e) {
+    const target = e.target;
+    if (target.tagName !== 'INPUT' || !target.hasAttribute('data-idx')) return;
+    const clip = (e.clipboardData || window.clipboardData); if (!clip) return;
+    const text = clip.getData('text');
+    if (!text || !/\n/.test(text)) return; 
+    e.preventDefault();
+
+    let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    
+    if (lines.length > 500) {
+        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+        lines = lines.slice(0, 500);
+    }
+
+    let startIndex = parseInt(target.dataset.idx);
+    while (AppState.s2.length < startIndex + lines.length) AppState.s2.push(getEmptyS2(AppState.s2.length + 1));
+
+    lines.forEach((line, i) => {
+        const row = AppState.s2[startIndex + i];
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 2) { row.e = parts[0]; row.n = parts[1]; }
+    });
+    renderTable2(); // Let user press Calculate
+});
+
+// ==========================================
+// 8. Utility / File / Export Functions
+// ==========================================
+function clearAllInputs() {
+    resetAppState();
+    renderTable1();
+    renderTable2();
+    document.getElementById('coordinateSVG').innerHTML = '';
+    const _mapDiv = document.getElementById('map');
+    _mapDiv.classList.remove('map-visible');
+    if (_leafletMarkers) _leafletMarkers.clearLayers();
+    document.getElementById('fileInputSection1').value = '';
+    document.getElementById('fileInputSection2').value = '';
+}
+
+function clearSection1() { 
+    AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1));
+    document.getElementById('fileInputSection1').value = ''; 
+    renderTable1();
+}
+
+function clearSection2() {
+    AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
+    document.getElementById('fileInputSection2').value = ''; 
+    renderTable2();
+}
+
+function loadFileSection1() {
+    const format = document.getElementById('section1InputFormat').value;
+    const file = document.getElementById('fileInputSection1').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        let lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+        if (lines.length === 0) return;
+        
+        const firstLineParts = lines[0].split(/,|\s+/);
+        const hasHeader = firstLineParts.length > 0 && (firstLineParts[0].toLowerCase() === 'pointid' || (firstLineParts.length > 1 && isNaN(toNumber(firstLineParts[1]))));
+        if(hasHeader) lines.shift();
+        
+        if (lines.length > 500) {
+            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+            lines = lines.slice(0, 500);
+        }
+
+        AppState.s1 = lines.map((line, i) => {
+            const parts = line.split(/,|\s+/);
+            const row = getEmptyS1(parts[0] || (i+1));
+            if (format === 'dm' && parts.length >= 5) {
+                row.latD = parts[1]; row.latM = parts[2]; row.lonD = parts[3]; row.lonM = parts[4];
+            } else if (format === 'd' && parts.length >= 3) {
+                row.latDec = parts[1]; row.lonDec = parts[2];
+            }
+            return row;
+        });
+        while(AppState.s1.length < 10) AppState.s1.push(getEmptyS1(AppState.s1.length + 1));
+        document.getElementById('fileInputSection1').value = ''; 
+        renderTable1();
+    };
+    reader.readAsText(file);
+}
+
+function loadFileSection2() {
+    const file = document.getElementById('fileInputSection2').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        let lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+        if (lines.length === 0) return;
+        
+        const firstLineParts = lines[0].includes(',') ? lines[0].split(',') : lines[0].split(/\s+/);
+        const hasHeader = firstLineParts.length > 0 && (firstLineParts[0].toLowerCase() === 'pointid' || (firstLineParts.length > 1 && isNaN(toNumber(firstLineParts[1]))) || (firstLineParts.length > 2 && isNaN(toNumber(firstLineParts[2]))));
+        if(hasHeader) lines.shift();
+        
+        if (lines.length > 500) {
+            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+            lines = lines.slice(0, 500);
+        }
+
+        AppState.s2 = lines.map((line, i) => {
+            const parts = line.includes(',') ? line.split(',').map(s=>s.trim()) : line.split(/\s+/);
+            const row = getEmptyS2(parts[0] || (i+1));
+            if (parts.length >= 3) {
+                row.e = parts[1]; row.n = parts[2];
+            }
+            return row;
+        });
+        while(AppState.s2.length < 10) AppState.s2.push(getEmptyS2(AppState.s2.length + 1));
+        document.getElementById('fileInputSection2').value = '';
+        renderTable2();
+    };
+    reader.readAsText(file);
+}
+
+function getExportMetadata() {
+    const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
+    const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
+    return `"UTM Zone: ${zoneLabel} | Params: ${datumLabel} | dx=${dx} dy=${dy} dz=${dz}"`;
+}
+
+function copyTable(tableId, includeHeaders) {
+    var TAB = String.fromCharCode(9); var NL = String.fromCharCode(10);
+    var table = document.getElementById(tableId); if (!table) return;
+    var rows = Array.prototype.slice.call(table.rows); var lines = [];
+    lines.push(getExportMetadata().replace(/"/g, ''));
+    if (includeHeaders && rows.length) {
+        var head = Array.prototype.map.call(rows[0].cells, function(c){ return (c.textContent || '').trim(); });
+        lines.push(head.join(TAB));
+    }
+    for (var r = 1; r < rows.length; r++) {
+        var cells = Array.prototype.map.call(rows[r].cells, function(c){
+            var inp = c.querySelector('input'); var span = c.querySelector('span');
+            var raw = (inp && inp.value !== '') ? inp.value : (span ? span.textContent : c.textContent);
+            return String(raw || '').replace(/\t|\n/g, ' ').trim();
+        });
+        if (cells.some(c => c !== '')) lines.push(cells.join(TAB));
+    }
+    var tsv = lines.join(NL);
+    
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(tsv).catch(err => alert("Copy failed: " + err));
+    } else {
+        const ta = document.createElement('textarea'); ta.value = tsv; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+}
+
+function exportTableToCSV(tableId, filename) {
+    const table = document.getElementById(tableId); const rows = table.getElementsByTagName('tr');
+    let csv = ['\uFEFF'];
+    csv.push(getExportMetadata());
+    const headers = Array.from(rows[0].getElementsByTagName('th')).map(h => `"${h.innerText.replace(/"/g, '""')}"`);
+    csv.push(headers.join(','));
+    for (let i = 1; i < rows.length; i++) {
+        const cells = Array.from(rows[i].getElementsByTagName('td')).map(cell => {
+            const span = cell.querySelector('span'); const inp = cell.querySelector('input');
+            const text = (inp && inp.value) ? inp.value : (span ? span.innerText : cell.innerText);
+            return `"${text.replace(/"/g, '""')}"`;
+        });
+        if(cells.slice(1).every(c => c === '""')) continue;
+        csv.push(cells.join(','));
+    }
+    const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv.join('\n'));
+    link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function exportTableToKML(tableId, filename) {
+    const isSection1 = tableId === 'table1';
+    const rows = document.getElementById(tableId).rows;
+    let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+    kml += `<Style id="pointStyle"><IconStyle><color>${isSection1 ? 'ffff0000' : 'ff0000ff'}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\n`;
+    kml += `<name>${isSection1 ? 'Section 1' : 'Section 2'} Coordinates</name>\n`;
+    
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].cells;
+        let lat, lon, desc = "";
+        if (isSection1) {
+            const fmt = document.getElementById('section1InputFormat').value;
+            const offset = fmt === 'dm' ? 0 : -2;
+            let eTxt = cells[5+offset].innerText; let nTxt = cells[6+offset].innerText;
+            if(!eTxt || !nTxt) continue;
+            
+            if(fmt === 'dm') {
+                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
+                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
+                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
+                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
+            } else {
+                lat = toNumber(cells[1].querySelector('input').value);
+                lon = toNumber(cells[2].querySelector('input').value);
+            }
+            if(isNaN(lat) || isNaN(lon)) continue;
+            desc = `PointID: ${cells[0].innerText}, Indian X: ${eTxt}, Indian Y: ${nTxt}`;
+        } else {
+            // S2: Now reads directly from table output cells instead of computing locally
+            const x = toNumber(cells[3].querySelector('input').value); 
+            const y = toNumber(cells[4].querySelector('input').value);
+            lat = parseCoordString(cells[1].innerText);
+            lon = parseCoordString(cells[2].innerText);
+            if(isNaN(lat) || isNaN(lon)) continue;
+            desc = `PointID: ${cells[0].innerText}, Indian X: ${x}, Indian Y: ${y}`;
+        }
+        kml += `<Placemark><name>${cells[0].innerText}</name><styleUrl>#pointStyle</styleUrl><description>${desc}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+    }
+    kml += '</Document>\n</kml>';
+    const link = document.createElement('a'); link.href = 'data:text/xml;charset=utf-8,' + encodeURIComponent(kml);
+    link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+// ==========================================
+// 9. SVG Visualization & DXF
+// ==========================================
+function getRoundInterval(range, mode) {
+    const roundValues = mode === 'wgs84' ? [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10] : [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+    const targetInterval = range / 3;
+    let selectedInterval = roundValues[0], minDiff = Math.abs(targetInterval - roundValues[0]);
+    for (let v of roundValues) { if (Math.abs(targetInterval - v) < minDiff) { minDiff = Math.abs(targetInterval - v); selectedInterval = v; } }
+    return selectedInterval;
+}
+
+function drawPointsOnSVG() {
+    const svg = document.getElementById('coordinateSVG');
+    const mode = document.getElementById('canvasMode').value;
+    const format1 = document.getElementById('section1InputFormat').value;
+    svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 750 500`);
+    let points = [];
+    
+    const rows1 = document.getElementById('table1').rows;
+    for (let i = 1; i < rows1.length; i++) {
+        const cells = rows1[i].cells; const id = cells[0].innerText;
+        if(mode === 'utm') {
+            const offset = format1 === 'dm' ? 0 : -2;
+            const xTxt = cells[5+offset].innerText, yTxt = cells[6+offset].innerText;
+            if(xTxt && yTxt) points.push({id, x: toNumber(xTxt), y: toNumber(yTxt), sec: 's1'});
+        } else {
+            let lat, lon;
+            if(format1 === 'dm') {
+                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
+                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
+                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
+                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
+            } else {
+                lat = toNumber(cells[1].querySelector('input').value);
+                lon = toNumber(cells[2].querySelector('input').value);
+            }
+            if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's1'});
+        }
+    }
+    
+    const rows2 = document.getElementById('table2').rows;
+    for (let i = 1; i < rows2.length; i++) {
+        const cells = rows2[i].cells; const id = cells[0].innerText;
+        const east = toNumber(cells[3].querySelector('input').value), north = toNumber(cells[4].querySelector('input').value);
+        if(!isNaN(east) && !isNaN(north)) {
+            if(mode === 'utm') {
+                points.push({id, x: east, y: north, sec: 's2'});
+            } else {
+                // S2: Now reads directly from table output cells
+                let lat = parseCoordString(cells[1].innerText);
+                let lon = parseCoordString(cells[2].innerText);
+                if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's2'});
+            }
+        }
+    }
+    
+    if (points.length === 0) {
+        svg.innerHTML = `<text x="375" y="250" font-size="16" text-anchor="middle" fill="#666">No valid points to display / ไม่มีข้อมูลพิกัด</text>`;
+        return;
+    }
+
+    const xs = points.map(p => p.x); const ys = points.map(p => p.y);
+    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    let xRange = maxX - minX || 0.01; let yRange = maxY - minY || 0.01;
+    minX -= xRange * 0.15; maxX += xRange * 0.15; minY -= yRange * 0.15; maxY += yRange * 0.15;
+    const xRangeEx = maxX - minX, yRangeEx = maxY - minY;
+    
+    let xStep = getRoundInterval(xRangeEx, mode), yStep = getRoundInterval(yRangeEx, mode);
+    minX = Math.floor(minX / xStep) * xStep; maxX = Math.ceil(maxX / xStep) * xStep;
+    minY = Math.floor(minY / yStep) * yStep; maxY = Math.ceil(maxY / yStep) * yStep;
+    const xRangeF = maxX - minX, yRangeF = maxY - minY;
+    
+    const pad = 50, w = 750 - 2*pad, h = 500 - 2*pad;
+    
+    let xi = 0;
+    for(let xV = minX; xV <= maxX; xV += xStep/5, xi++) {
+        let isMaj = (xi % 5 === 0);
+        let cX = pad + ((xV - minX) / xRangeF) * w;
+        svg.innerHTML += `<line x1="${cX}" y1="${pad}" x2="${cX}" y2="${pad+h}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
+        if(isMaj) svg.innerHTML += `<text x="${cX}" y="${pad+h+20}" font-size="12" text-anchor="middle">${mode==='wgs84'?xV.toFixed(2)+'°E':xV.toFixed(0)+'m'}</text>`;
+    }
+    let yi = 0;
+    for(let yV = minY; yV <= maxY; yV += yStep/5, yi++) {
+        let isMaj = (yi % 5 === 0);
+        let cY = pad + (1 - (yV - minY) / yRangeF) * h;
+        svg.innerHTML += `<line x1="${pad}" y1="${cY}" x2="${pad+w}" y2="${cY}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
+        if(isMaj) svg.innerHTML += `<text x="${pad-10}" y="${cY+4}" font-size="12" text-anchor="end">${mode==='wgs84'?yV.toFixed(2)+'°N':yV.toFixed(0)+'m'}</text>`;
+    }
+    
+    points.forEach(p => {
+        let cX = pad + ((p.x - minX) / xRangeF) * w;
+        let cY = pad + (1 - (p.y - minY) / yRangeF) * h;
+        svg.innerHTML += `<circle cx="${cX}" cy="${cY}" r="5" fill="${p.sec==='s1'?'#0000FF':'#FF0000'}"><title>Point ${p.id} - X:${p.x.toFixed(4)}, Y:${p.y.toFixed(4)}</title></circle>`;
+        svg.innerHTML += `<text x="${cX+8}" y="${cY-8}" font-size="12" font-weight="bold">${p.id}</text>`;
+    });
+}
+
+function exportDXFR12_Strict() {
+    let pts = [];
+    const fmt1 = document.getElementById('section1InputFormat').value;
+    const r1 = document.getElementById('table1').rows;
+    for(let i=1; i<r1.length; i++) {
+        let c = r1[i].cells; const offset = fmt1 === 'dm' ? 0 : -2;
+        let eTxt = c[5+offset].innerText, nTxt = c[6+offset].innerText;
+        if(eTxt && nTxt) {
+            let east = toNumber(eTxt), north = toNumber(nTxt);
+            pts.push({id: c[0].innerText, east, north, sec: 's1'});
+        }
+    }
+    const r2 = document.getElementById('table2').rows;
+    for(let i=1; i<r2.length; i++) {
+        let c = r2[i].cells; let east = toNumber(c[3].querySelector('input').value), north = toNumber(c[4].querySelector('input').value);
+        if(!isNaN(east) && !isNaN(north)) {
+            pts.push({id: c[0].innerText, east, north, sec: 's2'});
+        }
+    }
+    if(pts.length === 0) { alert('No valid points to export.'); return; }
+
+    let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+    pts.forEach(p => {
+        let layer = p.sec === 's1' ? 'POINTS_SEC1' : 'POINTS_SEC2';
+        dxf += `0\r\nPOINT\r\n8\r\n${layer}\r\n10\r\n${p.east}\r\n20\r\n${p.north}\r\n30\r\n0\r\n`;
+        dxf += `0\r\nCIRCLE\r\n8\r\n${layer}\r\n10\r\n${p.east}\r\n20\r\n${p.north}\r\n30\r\n0\r\n40\r\n1.5\r\n`;
+        let txtY = p.north + 5;
+        [`${p.id}`, `X: ${p.east.toFixed(3)}`, `Y: ${p.north.toFixed(3)}`].forEach((txt, idx) => {
+            dxf += `0\r\nTEXT\r\n8\r\n${layer}_LBL\r\n10\r\n${p.east+5}\r\n20\r\n${txtY - (idx*6)}\r\n30\r\n0\r\n40\r\n5\r\n1\r\n${txt}\r\n50\r\n0\r\n7\r\nSTANDARD\r\n`;
+        });
+    });
+    dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+    
+    let blob = new Blob([dxf], {type: "application/dxf;charset=utf-8"});
+    let a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "Points_R12.dxf";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ==========================================
+// 10. Leaflet Interactive Map
+// ==========================================
+let _leafletMap = null;
+let _leafletMarkers = null;
+
+function plotOnLeaflet() {
+    const mapDiv = document.getElementById('map');
+    mapDiv.classList.add('map-visible');
+
+    if (!_leafletMap) {
+        _leafletMap = L.map('map', { preferCanvas: true }).setView([13.0, 101.0], 6);
+        const sat = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            {
+              attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+              maxZoom: 19,
+              crossOrigin: ''
+            }
+        ).addTo(_leafletMap);
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19,
+            crossOrigin: ''
+        });
+        L.control.layers({ "🛰️ ESRI Satellite": sat, "🗺️ Street Map": osm }).addTo(_leafletMap);
+        _leafletMarkers = L.featureGroup().addTo(_leafletMap);
+    }
+
+    _leafletMarkers.clearLayers();
+    const bounds = [];
+
+    // Section 1 — read WGS84 input directly
+    const fmt1 = document.getElementById('section1InputFormat').value;
+    const rows1 = document.getElementById('table1').rows;
+    for (let i = 1; i < rows1.length; i++) {
+        const c = rows1[i].cells;
+        let lat = NaN, lon = NaN;
+        if (fmt1 === 'dm') {
+            const latD = toNumber(c[1].querySelector('input').value);
+            const latM = toNumber(c[2].querySelector('input').value);
+            const lonD = toNumber(c[3].querySelector('input').value);
+            const lonM = toNumber(c[4].querySelector('input').value);
+            if (!isNaN(latD) && !isNaN(latM)) lat = (latD < 0 ? -1 : 1) * (Math.abs(latD) + latM / 60);
+            if (!isNaN(lonD) && !isNaN(lonM)) lon = (lonD < 0 ? -1 : 1) * (Math.abs(lonD) + lonM / 60);
+        } else {
+            lat = toNumber(c[1].querySelector('input').value);
+            lon = toNumber(c[2].querySelector('input').value);
+        }
+        if (!isNaN(lat) && !isNaN(lon)) {
+            const pointId = c[0].innerText;
+            L.circleMarker([lat, lon], {
+                color: '#0057ff', fillColor: '#4488ff',
+                fillOpacity: 0.8, radius: 7, weight: 2
+            }).addTo(_leafletMarkers)
+              .bindPopup(`<b>S1 — ${pointId}</b><br>Lat: ${lat.toFixed(6)}°N<br>Lon: ${lon.toFixed(6)}°E`);
+            bounds.push([lat, lon]);
+        }
+    }
+
+    // Section 2 — Now reads from outputs directly!
+    const rows2 = document.getElementById('table2').rows;
+    for (let i = 1; i < rows2.length; i++) {
+        const c = rows2[i].cells;
+        const east = toNumber(c[3].querySelector('input').value);
+        const north = toNumber(c[4].querySelector('input').value);
+        if (!isNaN(east) && !isNaN(north)) {
+            const lat = parseCoordString(c[1].innerText);
+            const lon = parseCoordString(c[2].innerText);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                const pointId = c[0].innerText;
+                L.circleMarker([lat, lon], {
+                    color: '#cc0000', fillColor: '#ff4444',
+                    fillOpacity: 0.8, radius: 7, weight: 2
+                }).addTo(_leafletMarkers)
+                  .bindPopup(`<b>S2 — ${pointId}</b><br>UTM X: ${east.toFixed(3)}<br>UTM Y: ${north.toFixed(3)}<br>WGS84: ${lat.toFixed(6)}°N, ${lon.toFixed(6)}°E`);
+                bounds.push([lat, lon]);
+            }
+        }
+    }
+
+    if (bounds.length === 0) {
+        alert('No valid points to display on map.\nPlease calculate coordinates first.');
+        mapDiv.classList.remove('map-visible');
+        return;
+    }
+
+    // CRITICAL: delay invalidateSize so Leaflet detects container after display:block
+    setTimeout(() => {
+        _leafletMap.invalidateSize();
+        if (_leafletMarkers.getBounds().isValid()) {
+            _leafletMap.fitBounds(_leafletMarkers.getBounds(), { padding: [50, 50] });
+        } else {
+            _leafletMap.setView([13.0, 101.0], 6);
+        }
+        setTimeout(() => { _leafletMap.invalidateSize(); }, 250);
+    }, 400);
+}
+
+function downloadSample(type) {
+    let text = "", fn = "";
+    if(type === 's1_csv') { text = "PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456"; fn = "Section1_Sample.csv"; }
+    if(type === 's1_txt') { text = "PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456"; fn = "Section1_Sample.txt"; }
+    if(type === 's2_csv') { text = "PointID,X,Y\nP1,759528.17,1068297.15"; fn = "Section2_Sample.csv"; }
+    if(type === 's2_txt') { text = "PointID X Y\nP1 759528.17 1068297.15"; fn = "Section2_Sample.txt"; }
+    downloadText(fn, text);
+}
+function downloadText(filename, text) { const blob = new Blob([text], {type: 'text/plain;charset=utf-8'}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+
+window.addEventListener('DOMContentLoaded', () => {
+    resetAppState(); // สำคัญมาก: สร้าง State ว่างๆ สำหรับทั้งสองตาราง
+    translateUI(); 
+    renderTable1();
+    renderTable2(); // บังคับวาดตารางส่วนที่ 2 เปล่าๆ ทันที
+    
+    const DM_SAMPLES = [
+        {latDeg:9, latMin:39.535, lonDeg:101, lonMin:21.718},
+        {latDeg:7, latMin:54.807, lonDeg:102, lonMin:49.359}
+    ];
+    for(let i=0; i<2; i++) {
+        AppState.s1[i].latD = DM_SAMPLES[i].latDeg;
+        AppState.s1[i].latM = DM_SAMPLES[i].latMin;
+        AppState.s1[i].lonD = DM_SAMPLES[i].lonDeg;
+        AppState.s1[i].lonM = DM_SAMPLES[i].lonMin;
+    }
+    
+    // เรียกคำนวณและวาดตารางใหม่พร้อมข้อมูลเริ่มต้น
+    safeCalculateSection1();
+});
+</script>
+</body>
+</html>
