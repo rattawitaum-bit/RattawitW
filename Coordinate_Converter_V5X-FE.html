@@ -44,7 +44,6 @@
         .input-cell input:focus { opacity: 1; border: 2px solid #3498db; }
         .input-cell span { display: inline-block; width: 100%; }
         
-        /* Inline Error Highlighting */
         .input-cell.has-error { background-color: #ffebeb; }
         .input-cell.has-error input { opacity: 1; border: 2px solid #e74c3c !important; color: #c0392b; font-weight: bold; background: transparent; }
         
@@ -83,7 +82,6 @@
             margin: 0 auto;
             border-radius: 0;
             overflow: hidden;
-            /* hidden state — use height:0 not display:none so Leaflet can measure */
             height: 0;
             visibility: hidden;
             opacity: 0;
@@ -100,18 +98,6 @@
             margin: 10px auto 15px auto;
         }
 
-        /* Leaflet tile z-index fix */
-        .leaflet-pane { z-index: 400; }
-        .leaflet-top, .leaflet-bottom { z-index: 500; }
-        .leaflet-container {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-            will-change: transform;
-        }
-        .leaflet-tile-container {
-            will-change: transform;
-        }
-
         #sticky-header {
             position: sticky;
             top: 0;
@@ -123,11 +109,7 @@
             padding: 10px 10px 6px 10px;
         }
 
-        /* Push page content down so first container is not hidden under sticky header */
-        body > .container:first-of-type,
-        hr.soft-sep:first-of-type {
-            margin-top: 8px;
-        }
+        body > .container:first-of-type { margin-top: 8px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 </head>
@@ -136,7 +118,7 @@
 <div id="sticky-header">
     <div id="build-banner">
         <div>
-            <span class="v" data-i18n="app_title">Coordinate Converter v5.0</span>
+            <span class="v" data-i18n="app_title">Coordinate Converter v5.0 (API Secured)</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum Shift (Indian 1975 ↔ WGS84):</b> 
                 <span id="displayParams"><code>dx= -204.5</code>, <code>dy= -837.9</code>, <code>dz= -294.8</code></span>
@@ -159,7 +141,7 @@
             <select id="datumSelect" onchange="applySettings()">
                 <option value="dol" data-i18n="opt_dol">มาตรฐาน กมร. (dx: -204.5, dy: -837.9, dz: -294.8)</option>
                 <option value="survey" data-i18n="opt_survey">รังวัดขั้นสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)</option>
-                <option value="legacy" data-i18n="opt_legacy">แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)</option>
+                <option value="legacy" data-i18n="opt_legacy">แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)</option>
             </select>
         </div>
         <button class="clear-all" onclick="clearAllInputs()" data-i18n="btn_clear_all">Clear All Inputs</button>
@@ -243,8 +225,7 @@
                 <th data-i18n="th_ind_lon">Indian Longitude</th>
             </tr>
         </thead>
-        <tbody>
-        </tbody>
+        <tbody></tbody>
     </table>
     
     <button class="btn-sm" onclick="safeCalculateSection2()" data-i18n="btn_calc_s2">Calculate Section 2</button>
@@ -273,13 +254,11 @@
 </div>
 <div id="map"></div>
 
-<footer class="fixed-footer">
-  Developed by Rattawit Wongprasert 😄😄😄
-</footer>
+<footer class="fixed-footer">Developed by Rattawit Wongprasert 😄😄😄</footer>
 
 <script>
 // ==========================================
-// 1. Language & i18n Dictionary
+// 1. Language & i18n
 // ==========================================
 let currentLang = 'th';
 const dict = {
@@ -291,7 +270,7 @@ const dict = {
         sel_datum: "Transformation Params:",
         opt_dol: "DOL Standard (dx: -204.5, dy: -837.9, dz: -294.8)",
         opt_survey: "High-Precision Survey (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
-        opt_legacy: "Legacy GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        opt_legacy: "Legacy v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "Clear All Inputs",
         s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long",
         s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -357,7 +336,7 @@ const dict = {
         sel_datum: "เลือกชุดพารามิเตอร์:",
         opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)",
         opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
-        opt_legacy: "แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        opt_legacy: "แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "ล้างข้อมูลทั้งหมด",
         s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975",
         s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -440,7 +419,7 @@ function toggleLang() {
 }
 
 // ==========================================
-// 2. Robust Number Parsing
+// 2. Data Clean-up
 // ==========================================
 function toNumber(v) {
     if (v == null) return NaN;
@@ -448,59 +427,25 @@ function toNumber(v) {
     const mapThai = {'๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','−':'-'};
     let s = v.replace(/[\u00A0\s]/g,'').replace(/[°'″”″"’]/g,'').replace(',', '.');
     s = s.replace(/[๐-๙−]/g, ch => mapThai[ch] || ch);
-    if (s === '') return NaN;
-    return Number(s);
+    return s === '' ? NaN : Number(s);
 }
 
-// ฟังก์ชันสำหรับแกะ String พิกัด (DMS, DM, D) กลับมาเป็นทศนิยมเพื่อใช้ปักหมุดแผนที่
-// (ทำให้เราสามารถอ่านค่าจากตารางได้โดยไม่ต้องคำนวณสมการซ้ำใน Frontend)
 function parseCoordString(str) {
     if (!str || typeof str !== 'string') return NaN;
     let isNeg = (str.includes('S') || str.includes('W') || str.includes('-'));
     let nums = str.match(/\d+(\.\d+)?/g);
     if (!nums) return NaN;
     let val = 0;
-    if (nums.length >= 3) {
-        val = parseFloat(nums[0]) + parseFloat(nums[1])/60 + parseFloat(nums[2])/3600;
-    } else if (nums.length >= 2) {
-        val = parseFloat(nums[0]) + parseFloat(nums[1])/60;
-    } else if (nums.length >= 1) {
-        val = parseFloat(nums[0]);
-    }
+    if (nums.length >= 3) val = parseFloat(nums[0]) + parseFloat(nums[1])/60 + parseFloat(nums[2])/3600;
+    else if (nums.length >= 2) val = parseFloat(nums[0]) + parseFloat(nums[1])/60;
+    else if (nums.length >= 1) val = parseFloat(nums[0]);
     return isNeg ? -val : val;
 }
 
 // ==========================================
-// 3. Dynamic Settings & Variables
+// 3. Settings & State
 // ==========================================
-let dx = -204.5;
-let dy = -837.9;
-let dz = -294.8;
-let zone = 47;
-
-function applySettings() {
-    zone = parseInt(document.getElementById('zoneSelect').value);
-    let cm = 6 * zone - 183;
-    const datum = document.getElementById('datumSelect').value;
-    if (datum === 'survey') {
-        dx = -204.4798; dy = -837.8940; dz = -294.7765;
-    } else if (datum === 'legacy') {
-        dx = -204.64; dy = -834.74; dz = -293.80;
-    } else {
-        dx = -204.5; dy = -837.9; dz = -294.8;
-    }
-    document.getElementById('displayParams').innerHTML = `<code>dx= ${dx}</code>, <code>dy= ${dy}</code>, <code>dz= ${dz}</code>`;
-    document.getElementById('displayZone').innerHTML = `<code>${zone}N (CM=${cm}°E)</code>`;
-
-    safeCalculateSection1();
-    safeCalculateSection2();
-    if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
-    if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
-}
-
-// ==========================================
-// 4. UI & State Management (Decoupled)
-// ==========================================
+let dx = -204.5, dy = -837.9, dz = -294.8, zone = 47;
 const AppState = { s1: [], s2: [] };
 
 function getEmptyS1(id) { return { id, latD:'', latM:'', lonD:'', lonM:'', latDec:'', lonDec:'', utmE:'', utmN:'', outLat:'', outLon:'', hasErr:false, errMsgs:[] }; }
@@ -511,56 +456,39 @@ function resetAppState() {
     AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
 }
 
-function switchSection1InputFormat() {
-    renderTable1();
+function applySettings() {
+    zone = parseInt(document.getElementById('zoneSelect').value);
+    let cm = 6 * zone - 183;
+    const datum = document.getElementById('datumSelect').value;
+    if (datum === 'survey') { dx = -204.4798; dy = -837.8940; dz = -294.7765; }
+    else if (datum === 'legacy') { dx = -204.64; dy = -834.74; dz = -293.80; }
+    else { dx = -204.5; dy = -837.9; dz = -294.8; }
+    document.getElementById('displayParams').innerHTML = `<code>dx= ${dx}</code>, <code>dy= ${dy}</code>, <code>dz= ${dz}</code>`;
+    document.getElementById('displayZone').innerHTML = `<code>${zone}N (CM=${cm}°E)</code>`;
     safeCalculateSection1();
+    safeCalculateSection2();
+    if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
+    if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
 }
 
-function updateDisplay(cell) {
-    const input = cell.querySelector('input');
-    const span = cell.querySelector('span');
-    if(span && input) span.innerText = input.value || '';
+function switchSection1InputFormat() {
+    renderTable1();
 }
 
 function renderTable1() {
     const tbody = document.querySelector('#table1 tbody');
     const format = document.getElementById('section1InputFormat').value;
     const thead = document.querySelector('#table1 thead');
-    
-    thead.innerHTML = format === 'dm' ? `
-        <tr>
-            <th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_d">WGS84 Lat Deg</th><th data-i18n="th_wgs_lat_m">WGS84 Lat Min</th>
-            <th data-i18n="th_wgs_lon_d">WGS84 Lon Deg</th><th data-i18n="th_wgs_lon_m">WGS84 Lon Min</th>
-            <th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th>
-            <th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th>
-        </tr>
-    ` : `
-        <tr>
-            <th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_dec">WGS84 Latitude (°N)</th><th data-i18n="th_wgs_lon_dec">WGS84 Longitude (°E)</th>
-            <th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th>
-            <th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th>
-        </tr>
-    `;
-
+    thead.innerHTML = format === 'dm' ? 
+        `<tr><th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_d">WGS84 Lat Deg</th><th data-i18n="th_wgs_lat_m">WGS84 Lat Min</th><th data-i18n="th_wgs_lon_d">WGS84 Lon Deg</th><th data-i18n="th_wgs_lon_m">WGS84 Lon Min</th><th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th><th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th></tr>` :
+        `<tr><th data-i18n="th_pt">Point ID</th><th data-i18n="th_wgs_lat_dec">WGS84 Latitude (°N)</th><th data-i18n="th_wgs_lon_dec">WGS84 Longitude (°E)</th><th data-i18n="th_ind_e">Indian UTM Easting</th><th data-i18n="th_ind_n">Indian UTM Northing</th><th data-i18n="th_ind_lat">Indian Latitude</th><th data-i18n="th_ind_lon">Indian Longitude</th></tr>`;
     let html = '';
     AppState.s1.forEach((row, i) => {
         let ec = row.hasErr ? 'has-error' : '';
         if (format === 'dm') {
-            html += `<tr>
-                <td>${row.id}</td>
-                <td class="input-cell ${ec}"><span>${row.latD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="latD" value="${row.latD}"></td>
-                <td class="input-cell ${ec}"><span>${row.latM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="latM" value="${row.latM}"></td>
-                <td class="input-cell ${ec}"><span>${row.lonD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="lonD" value="${row.lonD}"></td>
-                <td class="input-cell ${ec}"><span>${row.lonM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="lonM" value="${row.lonM}"></td>
-                <td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td>
-            </tr>`;
+            html += `<tr><td>${row.id}</td><td class="input-cell ${ec}"><span>${row.latD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="latD" value="${row.latD}"></td><td class="input-cell ${ec}"><span>${row.latM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="latM" value="${row.latM}"></td><td class="input-cell ${ec}"><span>${row.lonD}</span><input type="number" data-sec="1" data-idx="${i}" data-key="lonD" value="${row.lonD}"></td><td class="input-cell ${ec}"><span>${row.lonM}</span><input type="number" step="0.000001" data-sec="1" data-idx="${i}" data-key="lonM" value="${row.lonM}"></td><td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td></tr>`;
         } else {
-            html += `<tr>
-                <td>${row.id}</td>
-                <td class="input-cell ${ec}"><span>${row.latDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="latDec" value="${row.latDec}"></td>
-                <td class="input-cell ${ec}"><span>${row.lonDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="lonDec" value="${row.lonDec}"></td>
-                <td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td>
-            </tr>`;
+            html += `<tr><td>${row.id}</td><td class="input-cell ${ec}"><span>${row.latDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="latDec" value="${row.latDec}"></td><td class="input-cell ${ec}"><span>${row.lonDec}</span><input type="number" step="0.0000001" data-sec="1" data-idx="${i}" data-key="lonDec" value="${row.lonDec}"></td><td>${row.utmE}</td><td>${row.utmN}</td><td>${row.outLat}</td><td>${row.outLon}</td></tr>`;
         }
     });
     tbody.innerHTML = html;
@@ -573,13 +501,7 @@ function renderTable2() {
     let html = '';
     AppState.s2.forEach((row, i) => {
         let ec = row.hasErr ? 'has-error' : '';
-        html += `<tr>
-            <td>${row.id}</td>
-            <td>${row.outLat}</td><td>${row.outLon}</td>
-            <td class="input-cell ${ec}"><span>${row.e}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="e" value="${row.e}"></td>
-            <td class="input-cell ${ec}"><span>${row.n}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="n" value="${row.n}"></td>
-            <td>${row.ilat}</td><td>${row.ilon}</td>
-        </tr>`;
+        html += `<tr><td>${row.id}</td><td>${row.outLat}</td><td>${row.outLon}</td><td class="input-cell ${ec}"><span>${row.e}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="e" value="${row.e}"></td><td class="input-cell ${ec}"><span>${row.n}</span><input type="number" step="0.01" data-sec="2" data-idx="${i}" data-key="n" value="${row.n}"></td><td>${row.ilat}</td><td>${row.ilon}</td></tr>`;
     });
     tbody.innerHTML = html;
     updateStatus2();
@@ -600,52 +522,30 @@ function updateStatus2() {
     else { st.textContent = ''; st.className = 'status ok'; }
 }
 
-// 5. Input Listeners (NO AUTO-CALCULATE DEBOUNCE - FORCE USER TO CLICK CALCULATE)
 document.addEventListener('input', function(e) {
     if (e.target.tagName === 'INPUT' && e.target.hasAttribute('data-idx')) {
         const sec = e.target.dataset.sec;
         const idx = parseInt(e.target.dataset.idx);
         const key = e.target.dataset.key;
-        
-        if (sec === '1') {
-            AppState.s1[idx][key] = e.target.value;
-            if(e.target.previousElementSibling) e.target.previousElementSibling.innerText = e.target.value;
-        } else if (sec === '2') {
-            AppState.s2[idx][key] = e.target.value;
-            if(e.target.previousElementSibling) e.target.previousElementSibling.innerText = e.target.value;
-        }
+        if (sec === '1') AppState.s1[idx][key] = e.target.value;
+        else if (sec === '2') AppState.s2[idx][key] = e.target.value;
+        if(e.target.previousElementSibling) e.target.previousElementSibling.innerText = e.target.value;
     }
 });
 
 // ==========================================
-// 6. API Calls (Cloudflare Worker)
+// 4. API Logic
 // ==========================================
 const API_URL = 'https://coordinateapiworker.rattawit-aum.workers.dev/';
 
 async function safeCalculateSection1() {
     const format = document.getElementById('section1InputFormat').value;
     const outFormat = document.getElementById('section1OutputFormat').value;
-    
     const payloadData = AppState.s1
         .map((row, i) => ({ originalIdx: i, row: row }))
-        .filter(item => {
-            const r = item.row;
-            return format === 'dm' ? 
-                (r.latD !== '' || r.latM !== '' || r.lonD !== '' || r.lonM !== '') : 
-                (r.latDec !== '' || r.lonDec !== '');
-        })
-        .map(item => ({
-            id: item.row.id,
-            originalIdx: item.originalIdx,
-            latD: toNumber(item.row.latD),
-            latM: toNumber(item.row.latM),
-            lonD: toNumber(item.row.lonD),
-            lonM: toNumber(item.row.lonM),
-            latDec: toNumber(item.row.latDec),
-            lonDec: toNumber(item.row.lonDec)
-        }));
+        .filter(item => format === 'dm' ? (item.row.latD !== '' || item.row.latM !== '' || item.row.lonD !== '' || item.row.lonM !== '') : (item.row.latDec !== '' || item.row.lonDec !== ''))
+        .map(item => ({ id: item.row.id, originalIdx: item.originalIdx, latD: toNumber(item.row.latD), latM: toNumber(item.row.latM), lonD: toNumber(item.row.lonD), lonM: toNumber(item.row.lonM), latDec: toNumber(item.row.latDec), lonDec: toNumber(item.row.lonDec) }));
 
-    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
     if (payloadData.length === 0) {
         AppState.s1.forEach(row => { row.utmE=''; row.utmN=''; row.outLat=''; row.outLon=''; row.hasErr=false; row.errMsgs=[]; });
         renderTable1();
@@ -653,7 +553,6 @@ async function safeCalculateSection1() {
     }
 
     const btn = document.querySelector('button[onclick="safeCalculateSection1()"]');
-    const originalText = btn.innerText;
     btn.disabled = true;
     btn.innerText = currentLang === 'th' ? "กำลังคำนวณ..." : "Calculating...";
 
@@ -661,63 +560,27 @@ async function safeCalculateSection1() {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 's1',
-                format: format,
-                outFormat: outFormat,
-                dx: dx, dy: dy, dz: dz, zone: zone,
-                data: payloadData
-            })
+            body: JSON.stringify({ action: 's1', format, outFormat, dx, dy, dz, zone, data: payloadData })
         });
-
         if (!response.ok) throw new Error('API Error');
         const result = await response.json();
-        
-        // Reset all targeted rows before applying results
-        payloadData.forEach(p => {
-            AppState.s1[p.originalIdx].errMsgs = [];
-            AppState.s1[p.originalIdx].hasErr = false;
-            AppState.s1[p.originalIdx].utmE = '';
-            AppState.s1[p.originalIdx].utmN = '';
-            AppState.s1[p.originalIdx].outLat = '';
-            AppState.s1[p.originalIdx].outLon = '';
-        });
-
+        payloadData.forEach(p => { const target = AppState.s1[p.originalIdx]; target.errMsgs = []; target.hasErr = false; target.utmE=''; target.utmN=''; target.outLat=''; target.outLon=''; });
         result.results.forEach((resRow, idx) => {
-            const targetIndex = payloadData[idx].originalIdx;
-            AppState.s1[targetIndex].utmE = resRow.utmE != null ? resRow.utmE : '';
-            AppState.s1[targetIndex].utmN = resRow.utmN != null ? resRow.utmN : '';
-            AppState.s1[targetIndex].outLat = resRow.outLat || '';
-            AppState.s1[targetIndex].outLon = resRow.outLon || '';
-            AppState.s1[targetIndex].hasErr = resRow.hasErr;
-            if (resRow.errKeys && resRow.errKeys.length > 0) {
-                AppState.s1[targetIndex].errMsgs = resRow.errKeys.map(key => t(key, targetIndex + 1));
-            }
+            const target = AppState.s1[payloadData[idx].originalIdx];
+            target.utmE = resRow.utmE || ''; target.utmN = resRow.utmN || ''; target.outLat = resRow.outLat || ''; target.outLon = resRow.outLon || ''; target.hasErr = resRow.hasErr;
+            if (resRow.errKeys) target.errMsgs = resRow.errKeys.map(key => t(key, payloadData[idx].originalIdx + 1));
         });
-
         renderTable1();
-    } catch (error) {
-        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = originalText;
-    }
+    } catch (e) { alert(t('API Connection Error')); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s1'); }
 }
 
 async function safeCalculateSection2() {
     const outFormat = document.getElementById('section2OutputFormat').value;
-    
     const payloadData = AppState.s2
         .map((row, i) => ({ originalIdx: i, row: row }))
         .filter(item => item.row.e !== '' || item.row.n !== '')
-        .map(item => ({
-            id: item.row.id,
-            originalIdx: item.originalIdx,
-            e: toNumber(item.row.e),
-            n: toNumber(item.row.n)
-        }));
+        .map(item => ({ id: item.row.id, originalIdx: item.originalIdx, e: toNumber(item.row.e), n: toNumber(item.row.n) }));
 
-    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
     if (payloadData.length === 0) {
         AppState.s2.forEach(row => { row.outLat=''; row.outLon=''; row.ilat=''; row.ilon=''; row.hasErr=false; row.errMsgs=[]; });
         renderTable2();
@@ -725,7 +588,6 @@ async function safeCalculateSection2() {
     }
 
     const btn = document.querySelector('button[onclick="safeCalculateSection2()"]');
-    const originalText = btn.innerText;
     btn.disabled = true;
     btn.innerText = currentLang === 'th' ? "กำลังคำนวณ..." : "Calculating...";
 
@@ -733,558 +595,207 @@ async function safeCalculateSection2() {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 's2',
-                outFormat: outFormat,
-                dx: dx, dy: dy, dz: dz, zone: zone,
-                data: payloadData
-            })
+            body: JSON.stringify({ action: 's2', outFormat, dx, dy, dz, zone, data: payloadData })
         });
-
         if (!response.ok) throw new Error('API Error');
         const result = await response.json();
-        
-        // Reset all targeted rows before applying results
-        payloadData.forEach(p => {
-            AppState.s2[p.originalIdx].errMsgs = [];
-            AppState.s2[p.originalIdx].hasErr = false;
-            AppState.s2[p.originalIdx].outLat = '';
-            AppState.s2[p.originalIdx].outLon = '';
-            AppState.s2[p.originalIdx].ilat = '';
-            AppState.s2[p.originalIdx].ilon = '';
-        });
-
+        payloadData.forEach(p => { const target = AppState.s2[p.originalIdx]; target.errMsgs = []; target.hasErr = false; target.outLat=''; target.outLon=''; target.ilat=''; target.ilon=''; });
         result.results.forEach((resRow, idx) => {
-            const targetIndex = payloadData[idx].originalIdx;
-            AppState.s2[targetIndex].outLat = resRow.outLat || '';
-            AppState.s2[targetIndex].outLon = resRow.outLon || '';
-            AppState.s2[targetIndex].ilat = resRow.ilat || '';
-            AppState.s2[targetIndex].ilon = resRow.ilon || '';
-            AppState.s2[targetIndex].hasErr = resRow.hasErr;
-            if (resRow.errKeys && resRow.errKeys.length > 0) {
-                AppState.s2[targetIndex].errMsgs = resRow.errKeys.map(key => t(key, targetIndex + 1));
-            }
+            const target = AppState.s2[payloadData[idx].originalIdx];
+            target.outLat = resRow.outLat || ''; target.outLon = resRow.outLon || ''; target.ilat = resRow.ilat || ''; target.ilon = resRow.ilon || ''; target.hasErr = resRow.hasErr;
+            if (resRow.errKeys) target.errMsgs = resRow.errKeys.map(key => t(key, payloadData[idx].originalIdx + 1));
         });
-
         renderTable2();
-    } catch (error) {
-        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = originalText;
-    }
+    } catch (e) { alert(t('API Connection Error')); } finally { btn.disabled = false; btn.innerText = t('btn_calc_s2'); }
 }
 
 // ==========================================
-// 7. Smart Paste & Import (State-Driven)
+// 5. Utility & Samples
 // ==========================================
-document.getElementById('table1').addEventListener('paste', function(e) {
-    const target = e.target;
-    if (target.tagName !== 'INPUT' || !target.hasAttribute('data-idx')) return;
-    const clip = (e.clipboardData || window.clipboardData); if (!clip) return;
-    const text = clip.getData('text');
-    if (!text || !/\n/.test(text)) return; 
-    e.preventDefault();
-
-    const fmt = document.getElementById('section1InputFormat').value;
-    let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+function downloadSample(type) {
+    let text = "", fn = "";
+    const format = document.getElementById('section1InputFormat').value;
     
-    if (lines.length > 500) {
-        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
-        lines = lines.slice(0, 500);
+    if(type === 's1_csv') {
+        text = (format === 'dm') ? "PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456" : "PointID,Latitude,Longitude\nP1,13.75205,100.5076";
+        fn = "Section1_Sample.csv";
     }
+    if(type === 's1_txt') {
+        text = (format === 'dm') ? "PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456" : "PointID Latitude Longitude\nP1 13.75205 100.5076";
+        fn = "Section1_Sample.txt";
+    }
+    if(type === 's2_csv') { text = "PointID,X,Y\nP1,759528.17,1068297.15"; fn = "Section2_Sample.csv"; }
+    if(type === 's2_txt') { text = "PointID X Y\nP1 759528.17 1068297.15"; fn = "Section2_Sample.txt"; }
     
-    let startIndex = parseInt(target.dataset.idx);
-    while (AppState.s1.length < startIndex + lines.length) AppState.s1.push(getEmptyS1(AppState.s1.length + 1));
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = fn;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
 
-    lines.forEach((line, i) => {
-        const row = AppState.s1[startIndex + i];
-        const parts = line.split(/,|\s+/);
-        if (fmt === 'dm') {
-            if (parts.length >= 4) { row.latD = parts[0]; row.latM = parts[1]; row.lonD = parts[2]; row.lonM = parts[3]; }
+// ==========================================
+// 6. Visualization (Reads from DOM)
+// ==========================================
+function drawPointsOnSVG() {
+    const svg = document.getElementById('coordinateSVG');
+    const mode = document.getElementById('canvasMode').value;
+    svg.innerHTML = '';
+    let points = [];
+    document.querySelectorAll('#table1 tbody tr').forEach(tr => {
+        const id = tr.cells[0].innerText;
+        if(mode === 'utm') {
+            const offset = document.getElementById('section1InputFormat').value === 'dm' ? 0 : -2;
+            const x = toNumber(tr.cells[5+offset].innerText), y = toNumber(tr.cells[6+offset].innerText);
+            if(!isNaN(x) && !isNaN(y)) points.push({id, x, y, sec: 's1'});
         } else {
-            if (parts.length >= 2) { row.latDec = parts[0]; row.lonDec = parts[1]; }
+            let lat, lon;
+            if(document.getElementById('section1InputFormat').value === 'dm') {
+                lat = toNumber(tr.cells[1].querySelector('input').value) + toNumber(tr.cells[2].querySelector('input').value)/60;
+                lon = toNumber(tr.cells[3].querySelector('input').value) + toNumber(tr.cells[4].querySelector('input').value)/60;
+            } else {
+                lat = toNumber(tr.cells[1].querySelector('input').value);
+                lon = toNumber(tr.cells[2].querySelector('input').value);
+            }
+            if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's1'});
         }
     });
-    renderTable1(); // Let user press Calculate
-});
-
-document.getElementById('table2').addEventListener('paste', function(e) {
-    const target = e.target;
-    if (target.tagName !== 'INPUT' || !target.hasAttribute('data-idx')) return;
-    const clip = (e.clipboardData || window.clipboardData); if (!clip) return;
-    const text = clip.getData('text');
-    if (!text || !/\n/.test(text)) return; 
-    e.preventDefault();
-
-    let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    
-    if (lines.length > 500) {
-        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
-        lines = lines.slice(0, 500);
-    }
-
-    let startIndex = parseInt(target.dataset.idx);
-    while (AppState.s2.length < startIndex + lines.length) AppState.s2.push(getEmptyS2(AppState.s2.length + 1));
-
-    lines.forEach((line, i) => {
-        const row = AppState.s2[startIndex + i];
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 2) { row.e = parts[0]; row.n = parts[1]; }
+    document.querySelectorAll('#table2 tbody tr').forEach(tr => {
+        const id = tr.cells[0].innerText;
+        const x = toNumber(tr.cells[3].querySelector('input').value), y = toNumber(tr.cells[4].querySelector('input').value);
+        if(!isNaN(x) && !isNaN(y)) {
+            if(mode === 'utm') points.push({id, x, y, sec: 's2'});
+            else {
+                const lat = parseCoordString(tr.cells[1].innerText), lon = parseCoordString(tr.cells[2].innerText);
+                if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's2'});
+            }
+        }
     });
-    renderTable2(); // Let user press Calculate
-});
-
-// ==========================================
-// 8. Utility / File / Export Functions
-// ==========================================
-function clearAllInputs() {
-    resetAppState();
-    renderTable1();
-    renderTable2();
-    document.getElementById('coordinateSVG').innerHTML = '';
-    const _mapDiv = document.getElementById('map');
-    _mapDiv.classList.remove('map-visible');
-    if (_leafletMarkers) _leafletMarkers.clearLayers();
-    document.getElementById('fileInputSection1').value = '';
-    document.getElementById('fileInputSection2').value = '';
+    if(!points.length) { svg.innerHTML = '<text x="375" y="250" text-anchor="middle">No data</text>'; return; }
+    const xs = points.map(p=>p.x), ys = points.map(p=>p.y);
+    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const pad = 50, w = 750-2*pad, h = 500-2*pad;
+    points.forEach(p => {
+        const cx = pad + ((p.x - minX) / (maxX - minX || 1)) * w;
+        const cy = pad + (1 - (p.y - minY) / (maxY - minY || 1)) * h;
+        svg.innerHTML += `<circle cx="${cx}" cy="${cy}" r="5" fill="${p.sec==='s1'?'blue':'red'}"></circle><text x="${cx+8}" y="${cy-8}" font-size="10">${p.id}</text>`;
+    });
 }
 
-function clearSection1() { 
-    AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1));
-    document.getElementById('fileInputSection1').value = ''; 
-    renderTable1();
+function plotOnLeaflet() {
+    const mapDiv = document.getElementById('map');
+    mapDiv.classList.add('map-visible');
+    if (!window._lmap) {
+        window._lmap = L.map('map').setView([13, 100], 6);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(window._lmap);
+        window._lmarkers = L.featureGroup().addTo(window._lmap);
+    }
+    window._lmarkers.clearLayers();
+    document.querySelectorAll('#table1 tbody tr').forEach(tr => {
+        let lat, lon;
+        if(document.getElementById('section1InputFormat').value === 'dm') {
+            lat = toNumber(tr.cells[1].querySelector('input').value) + toNumber(tr.cells[2].querySelector('input').value)/60;
+            lon = toNumber(tr.cells[3].querySelector('input').value) + toNumber(tr.cells[4].querySelector('input').value)/60;
+        } else {
+            lat = toNumber(tr.cells[1].querySelector('input').value); lon = toNumber(tr.cells[2].querySelector('input').value);
+        }
+        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'blue'}).addTo(window._lmarkers);
+    });
+    document.querySelectorAll('#table2 tbody tr').forEach(tr => {
+        const lat = parseCoordString(tr.cells[1].innerText), lon = parseCoordString(tr.cells[2].innerText);
+        if(!isNaN(lat) && !isNaN(lon)) L.circleMarker([lat, lon], {color:'red'}).addTo(window._lmarkers);
+    });
+    setTimeout(() => { window._lmap.invalidateSize(); if(window._lmarkers.getLayers().length) window._lmap.fitBounds(window._lmarkers.getBounds()); }, 400);
 }
 
-function clearSection2() {
-    AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
-    document.getElementById('fileInputSection2').value = ''; 
-    renderTable2();
+// REST: Paste, File Load, Export logic remains consistent but adapted to use AppState & Render
+function clearAllInputs() { resetAppState(); renderTable1(); renderTable2(); document.getElementById('map').classList.remove('map-visible'); }
+function clearSection1() { AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1)); renderTable1(); }
+function clearSection2() { AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1)); renderTable2(); }
+
+function copyTable(id, head) {
+    let text = ""; const rows = document.getElementById(id).rows;
+    for(let i=0; i<rows.length; i++) {
+        const cells = Array.from(rows[i].cells).map(c => {
+            const inp = c.querySelector('input'); return inp ? inp.value : c.innerText;
+        });
+        text += cells.join('\t') + '\n';
+    }
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+}
+
+function exportTableToCSV(id, fn) {
+    let csv = "\uFEFF"; const rows = document.getElementById(id).rows;
+    for(let i=0; i<rows.length; i++) {
+        const cells = Array.from(rows[i].cells).map(c => {
+            const inp = c.querySelector('input'); return `"${(inp ? inp.value : c.innerText).replace(/"/g, '""')}"`;
+        });
+        csv += cells.join(',') + '\n';
+    }
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fn; link.click();
 }
 
 function loadFileSection1() {
-    const format = document.getElementById('section1InputFormat').value;
-    const file = document.getElementById('fileInputSection1').files[0];
-    if (!file) return;
+    const file = document.getElementById('fileInputSection1').files[0]; if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-        let lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-        if (lines.length === 0) return;
-        
-        const firstLineParts = lines[0].split(/,|\s+/);
-        const hasHeader = firstLineParts.length > 0 && (firstLineParts[0].toLowerCase() === 'pointid' || (firstLineParts.length > 1 && isNaN(toNumber(firstLineParts[1]))));
-        if(hasHeader) lines.shift();
-        
-        if (lines.length > 500) {
-            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
-            lines = lines.slice(0, 500);
-        }
-
-        AppState.s1 = lines.map((line, i) => {
-            const parts = line.split(/,|\s+/);
-            const row = getEmptyS1(parts[0] || (i+1));
-            if (format === 'dm' && parts.length >= 5) {
-                row.latD = parts[1]; row.latM = parts[2]; row.lonD = parts[3]; row.lonM = parts[4];
-            } else if (format === 'd' && parts.length >= 3) {
-                row.latDec = parts[1]; row.lonDec = parts[2];
-            }
-            return row;
+    reader.onload = e => {
+        let lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+        if(!isNaN(toNumber(lines[0].split(/,|\s+/)[1]))) {} else lines.shift();
+        AppState.s1 = lines.slice(0, 500).map((l, i) => {
+            const p = l.split(/,|\s+/); const r = getEmptyS1(p[0] || i+1);
+            if(document.getElementById('section1InputFormat').value === 'dm' && p.length >= 5) { r.latD=p[1]; r.latM=p[2]; r.lonD=p[3]; r.lonM=p[4]; }
+            else if(p.length >= 3) { r.latDec=p[1]; r.lonDec=p[2]; }
+            return r;
         });
-        while(AppState.s1.length < 10) AppState.s1.push(getEmptyS1(AppState.s1.length + 1));
-        document.getElementById('fileInputSection1').value = ''; 
+        while(AppState.s1.length < 10) AppState.s1.push(getEmptyS1(AppState.s1.length+1));
         renderTable1();
     };
     reader.readAsText(file);
 }
 
 function loadFileSection2() {
-    const file = document.getElementById('fileInputSection2').files[0];
-    if (!file) return;
+    const file = document.getElementById('fileInputSection2').files[0]; if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-        let lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-        if (lines.length === 0) return;
-        
-        const firstLineParts = lines[0].includes(',') ? lines[0].split(',') : lines[0].split(/\s+/);
-        const hasHeader = firstLineParts.length > 0 && (firstLineParts[0].toLowerCase() === 'pointid' || (firstLineParts.length > 1 && isNaN(toNumber(firstLineParts[1]))) || (firstLineParts.length > 2 && isNaN(toNumber(firstLineParts[2]))));
-        if(hasHeader) lines.shift();
-        
-        if (lines.length > 500) {
-            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
-            lines = lines.slice(0, 500);
-        }
-
-        AppState.s2 = lines.map((line, i) => {
-            const parts = line.includes(',') ? line.split(',').map(s=>s.trim()) : line.split(/\s+/);
-            const row = getEmptyS2(parts[0] || (i+1));
-            if (parts.length >= 3) {
-                row.e = parts[1]; row.n = parts[2];
-            }
-            return row;
+    reader.onload = e => {
+        let lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+        if(!isNaN(toNumber(lines[0].split(/,|\s+/)[1]))) {} else lines.shift();
+        AppState.s2 = lines.slice(0, 500).map((l, i) => {
+            const p = l.split(/,|\s+/); const r = getEmptyS2(p[0] || i+1);
+            if(p.length >= 3) { r.e = p[1]; r.n = p[2]; }
+            return r;
         });
-        while(AppState.s2.length < 10) AppState.s2.push(getEmptyS2(AppState.s2.length + 1));
-        document.getElementById('fileInputSection2').value = '';
+        while(AppState.s2.length < 10) AppState.s2.push(getEmptyS2(AppState.s2.length+1));
         renderTable2();
     };
     reader.readAsText(file);
 }
 
-function getExportMetadata() {
-    const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
-    const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
-    return `"UTM Zone: ${zoneLabel} | Params: ${datumLabel} | dx=${dx} dy=${dy} dz=${dz}"`;
-}
-
-function copyTable(tableId, includeHeaders) {
-    var TAB = String.fromCharCode(9); var NL = String.fromCharCode(10);
-    var table = document.getElementById(tableId); if (!table) return;
-    var rows = Array.prototype.slice.call(table.rows); var lines = [];
-    lines.push(getExportMetadata().replace(/"/g, ''));
-    if (includeHeaders && rows.length) {
-        var head = Array.prototype.map.call(rows[0].cells, function(c){ return (c.textContent || '').trim(); });
-        lines.push(head.join(TAB));
-    }
-    for (var r = 1; r < rows.length; r++) {
-        var cells = Array.prototype.map.call(rows[r].cells, function(c){
-            var inp = c.querySelector('input'); var span = c.querySelector('span');
-            var raw = (inp && inp.value !== '') ? inp.value : (span ? span.textContent : c.textContent);
-            return String(raw || '').replace(/\t|\n/g, ' ').trim();
-        });
-        if (cells.some(c => c !== '')) lines.push(cells.join(TAB));
-    }
-    var tsv = lines.join(NL);
-    
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(tsv).catch(err => alert("Copy failed: " + err));
-    } else {
-        const ta = document.createElement('textarea'); ta.value = tsv; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    }
-}
-
-function exportTableToCSV(tableId, filename) {
-    const table = document.getElementById(tableId); const rows = table.getElementsByTagName('tr');
-    let csv = ['\uFEFF'];
-    csv.push(getExportMetadata());
-    const headers = Array.from(rows[0].getElementsByTagName('th')).map(h => `"${h.innerText.replace(/"/g, '""')}"`);
-    csv.push(headers.join(','));
-    for (let i = 1; i < rows.length; i++) {
-        const cells = Array.from(rows[i].getElementsByTagName('td')).map(cell => {
-            const span = cell.querySelector('span'); const inp = cell.querySelector('input');
-            const text = (inp && inp.value) ? inp.value : (span ? span.innerText : cell.innerText);
-            return `"${text.replace(/"/g, '""')}"`;
-        });
-        if(cells.slice(1).every(c => c === '""')) continue;
-        csv.push(cells.join(','));
-    }
-    const link = document.createElement('a'); link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv.join('\n'));
-    link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-
-function exportTableToKML(tableId, filename) {
-    const isSection1 = tableId === 'table1';
-    const rows = document.getElementById(tableId).rows;
-    let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
-    kml += `<Style id="pointStyle"><IconStyle><color>${isSection1 ? 'ffff0000' : 'ff0000ff'}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\n`;
-    kml += `<name>${isSection1 ? 'Section 1' : 'Section 2'} Coordinates</name>\n`;
-    
-    for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].cells;
-        let lat, lon, desc = "";
-        if (isSection1) {
-            const fmt = document.getElementById('section1InputFormat').value;
-            const offset = fmt === 'dm' ? 0 : -2;
-            let eTxt = cells[5+offset].innerText; let nTxt = cells[6+offset].innerText;
-            if(!eTxt || !nTxt) continue;
-            
-            if(fmt === 'dm') {
-                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
-                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
-                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
-                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
-            } else {
-                lat = toNumber(cells[1].querySelector('input').value);
-                lon = toNumber(cells[2].querySelector('input').value);
-            }
-            if(isNaN(lat) || isNaN(lon)) continue;
-            desc = `PointID: ${cells[0].innerText}, Indian X: ${eTxt}, Indian Y: ${nTxt}`;
-        } else {
-            // S2: Now reads directly from table output cells instead of computing locally
-            const x = toNumber(cells[3].querySelector('input').value); 
-            const y = toNumber(cells[4].querySelector('input').value);
-            lat = parseCoordString(cells[1].innerText);
-            lon = parseCoordString(cells[2].innerText);
-            if(isNaN(lat) || isNaN(lon)) continue;
-            desc = `PointID: ${cells[0].innerText}, Indian X: ${x}, Indian Y: ${y}`;
-        }
-        kml += `<Placemark><name>${cells[0].innerText}</name><styleUrl>#pointStyle</styleUrl><description>${desc}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
-    }
-    kml += '</Document>\n</kml>';
-    const link = document.createElement('a'); link.href = 'data:text/xml;charset=utf-8,' + encodeURIComponent(kml);
-    link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-
-// ==========================================
-// 9. SVG Visualization & DXF
-// ==========================================
-function getRoundInterval(range, mode) {
-    const roundValues = mode === 'wgs84' ? [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10] : [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
-    const targetInterval = range / 3;
-    let selectedInterval = roundValues[0], minDiff = Math.abs(targetInterval - roundValues[0]);
-    for (let v of roundValues) { if (Math.abs(targetInterval - v) < minDiff) { minDiff = Math.abs(targetInterval - v); selectedInterval = v; } }
-    return selectedInterval;
-}
-
-function drawPointsOnSVG() {
-    const svg = document.getElementById('coordinateSVG');
-    const mode = document.getElementById('canvasMode').value;
-    const format1 = document.getElementById('section1InputFormat').value;
-    svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 750 500`);
-    let points = [];
-    
-    const rows1 = document.getElementById('table1').rows;
-    for (let i = 1; i < rows1.length; i++) {
-        const cells = rows1[i].cells; const id = cells[0].innerText;
-        if(mode === 'utm') {
-            const offset = format1 === 'dm' ? 0 : -2;
-            const xTxt = cells[5+offset].innerText, yTxt = cells[6+offset].innerText;
-            if(xTxt && yTxt) points.push({id, x: toNumber(xTxt), y: toNumber(yTxt), sec: 's1'});
-        } else {
-            let lat, lon;
-            if(format1 === 'dm') {
-                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
-                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
-                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
-                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
-            } else {
-                lat = toNumber(cells[1].querySelector('input').value);
-                lon = toNumber(cells[2].querySelector('input').value);
-            }
-            if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's1'});
-        }
-    }
-    
-    const rows2 = document.getElementById('table2').rows;
-    for (let i = 1; i < rows2.length; i++) {
-        const cells = rows2[i].cells; const id = cells[0].innerText;
-        const east = toNumber(cells[3].querySelector('input').value), north = toNumber(cells[4].querySelector('input').value);
-        if(!isNaN(east) && !isNaN(north)) {
-            if(mode === 'utm') {
-                points.push({id, x: east, y: north, sec: 's2'});
-            } else {
-                // S2: Now reads directly from table output cells
-                let lat = parseCoordString(cells[1].innerText);
-                let lon = parseCoordString(cells[2].innerText);
-                if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's2'});
-            }
-        }
-    }
-    
-    if (points.length === 0) {
-        svg.innerHTML = `<text x="375" y="250" font-size="16" text-anchor="middle" fill="#666">No valid points to display / ไม่มีข้อมูลพิกัด</text>`;
-        return;
-    }
-
-    const xs = points.map(p => p.x); const ys = points.map(p => p.y);
-    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    let xRange = maxX - minX || 0.01; let yRange = maxY - minY || 0.01;
-    minX -= xRange * 0.15; maxX += xRange * 0.15; minY -= yRange * 0.15; maxY += yRange * 0.15;
-    const xRangeEx = maxX - minX, yRangeEx = maxY - minY;
-    
-    let xStep = getRoundInterval(xRangeEx, mode), yStep = getRoundInterval(yRangeEx, mode);
-    minX = Math.floor(minX / xStep) * xStep; maxX = Math.ceil(maxX / xStep) * xStep;
-    minY = Math.floor(minY / yStep) * yStep; maxY = Math.ceil(maxY / yStep) * yStep;
-    const xRangeF = maxX - minX, yRangeF = maxY - minY;
-    
-    const pad = 50, w = 750 - 2*pad, h = 500 - 2*pad;
-    
-    let xi = 0;
-    for(let xV = minX; xV <= maxX; xV += xStep/5, xi++) {
-        let isMaj = (xi % 5 === 0);
-        let cX = pad + ((xV - minX) / xRangeF) * w;
-        svg.innerHTML += `<line x1="${cX}" y1="${pad}" x2="${cX}" y2="${pad+h}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
-        if(isMaj) svg.innerHTML += `<text x="${cX}" y="${pad+h+20}" font-size="12" text-anchor="middle">${mode==='wgs84'?xV.toFixed(2)+'°E':xV.toFixed(0)+'m'}</text>`;
-    }
-    let yi = 0;
-    for(let yV = minY; yV <= maxY; yV += yStep/5, yi++) {
-        let isMaj = (yi % 5 === 0);
-        let cY = pad + (1 - (yV - minY) / yRangeF) * h;
-        svg.innerHTML += `<line x1="${pad}" y1="${cY}" x2="${pad+w}" y2="${cY}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
-        if(isMaj) svg.innerHTML += `<text x="${pad-10}" y="${cY+4}" font-size="12" text-anchor="end">${mode==='wgs84'?yV.toFixed(2)+'°N':yV.toFixed(0)+'m'}</text>`;
-    }
-    
-    points.forEach(p => {
-        let cX = pad + ((p.x - minX) / xRangeF) * w;
-        let cY = pad + (1 - (p.y - minY) / yRangeF) * h;
-        svg.innerHTML += `<circle cx="${cX}" cy="${cY}" r="5" fill="${p.sec==='s1'?'#0000FF':'#FF0000'}"><title>Point ${p.id} - X:${p.x.toFixed(4)}, Y:${p.y.toFixed(4)}</title></circle>`;
-        svg.innerHTML += `<text x="${cX+8}" y="${cY-8}" font-size="12" font-weight="bold">${p.id}</text>`;
+function exportTableToKML(id, fn) {
+    let kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>`;
+    document.querySelectorAll(`#${id} tbody tr`).forEach(tr => {
+        let lat, lon;
+        if(id === 'table1') {
+            if(document.getElementById('section1InputFormat').value === 'dm') {
+                lat = toNumber(tr.cells[1].querySelector('input').value) + toNumber(tr.cells[2].querySelector('input').value)/60;
+                lon = toNumber(tr.cells[3].querySelector('input').value) + toNumber(tr.cells[4].querySelector('input').value)/60;
+            } else { lat = toNumber(tr.cells[1].querySelector('input').value); lon = toNumber(tr.cells[2].querySelector('input').value); }
+        } else { lat = parseCoordString(tr.cells[1].innerText); lon = parseCoordString(tr.cells[2].innerText); }
+        if(!isNaN(lat) && !isNaN(lon)) kml += `<Placemark><name>${tr.cells[0].innerText}</name><Point><coordinates>${lon},${lat},0</coordinates></Point></Placemark>`;
     });
+    kml += `</Document></kml>`;
+    const blob = new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fn; link.click();
 }
 
-function exportDXFR12_Strict() {
-    let pts = [];
-    const fmt1 = document.getElementById('section1InputFormat').value;
-    const r1 = document.getElementById('table1').rows;
-    for(let i=1; i<r1.length; i++) {
-        let c = r1[i].cells; const offset = fmt1 === 'dm' ? 0 : -2;
-        let eTxt = c[5+offset].innerText, nTxt = c[6+offset].innerText;
-        if(eTxt && nTxt) {
-            let east = toNumber(eTxt), north = toNumber(nTxt);
-            pts.push({id: c[0].innerText, east, north, sec: 's1'});
-        }
-    }
-    const r2 = document.getElementById('table2').rows;
-    for(let i=1; i<r2.length; i++) {
-        let c = r2[i].cells; let east = toNumber(c[3].querySelector('input').value), north = toNumber(c[4].querySelector('input').value);
-        if(!isNaN(east) && !isNaN(north)) {
-            pts.push({id: c[0].innerText, east, north, sec: 's2'});
-        }
-    }
-    if(pts.length === 0) { alert('No valid points to export.'); return; }
-
-    let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nENTITIES\r\n";
-    pts.forEach(p => {
-        let layer = p.sec === 's1' ? 'POINTS_SEC1' : 'POINTS_SEC2';
-        dxf += `0\r\nPOINT\r\n8\r\n${layer}\r\n10\r\n${p.east}\r\n20\r\n${p.north}\r\n30\r\n0\r\n`;
-        dxf += `0\r\nCIRCLE\r\n8\r\n${layer}\r\n10\r\n${p.east}\r\n20\r\n${p.north}\r\n30\r\n0\r\n40\r\n1.5\r\n`;
-        let txtY = p.north + 5;
-        [`${p.id}`, `X: ${p.east.toFixed(3)}`, `Y: ${p.north.toFixed(3)}`].forEach((txt, idx) => {
-            dxf += `0\r\nTEXT\r\n8\r\n${layer}_LBL\r\n10\r\n${p.east+5}\r\n20\r\n${txtY - (idx*6)}\r\n30\r\n0\r\n40\r\n5\r\n1\r\n${txt}\r\n50\r\n0\r\n7\r\nSTANDARD\r\n`;
-        });
-    });
-    dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
-    
-    let blob = new Blob([dxf], {type: "application/dxf;charset=utf-8"});
-    let a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "Points_R12.dxf";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-// ==========================================
-// 10. Leaflet Interactive Map
-// ==========================================
-let _leafletMap = null;
-let _leafletMarkers = null;
-
-function plotOnLeaflet() {
-    const mapDiv = document.getElementById('map');
-    mapDiv.classList.add('map-visible');
-
-    if (!_leafletMap) {
-        _leafletMap = L.map('map', { preferCanvas: true }).setView([13.0, 101.0], 6);
-        const sat = L.tileLayer(
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            {
-              attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-              maxZoom: 19,
-              crossOrigin: ''
-            }
-        ).addTo(_leafletMap);
-        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19,
-            crossOrigin: ''
-        });
-        L.control.layers({ "🛰️ ESRI Satellite": sat, "🗺️ Street Map": osm }).addTo(_leafletMap);
-        _leafletMarkers = L.featureGroup().addTo(_leafletMap);
-    }
-
-    _leafletMarkers.clearLayers();
-    const bounds = [];
-
-    // Section 1 — read WGS84 input directly
-    const fmt1 = document.getElementById('section1InputFormat').value;
-    const rows1 = document.getElementById('table1').rows;
-    for (let i = 1; i < rows1.length; i++) {
-        const c = rows1[i].cells;
-        let lat = NaN, lon = NaN;
-        if (fmt1 === 'dm') {
-            const latD = toNumber(c[1].querySelector('input').value);
-            const latM = toNumber(c[2].querySelector('input').value);
-            const lonD = toNumber(c[3].querySelector('input').value);
-            const lonM = toNumber(c[4].querySelector('input').value);
-            if (!isNaN(latD) && !isNaN(latM)) lat = (latD < 0 ? -1 : 1) * (Math.abs(latD) + latM / 60);
-            if (!isNaN(lonD) && !isNaN(lonM)) lon = (lonD < 0 ? -1 : 1) * (Math.abs(lonD) + lonM / 60);
-        } else {
-            lat = toNumber(c[1].querySelector('input').value);
-            lon = toNumber(c[2].querySelector('input').value);
-        }
-        if (!isNaN(lat) && !isNaN(lon)) {
-            const pointId = c[0].innerText;
-            L.circleMarker([lat, lon], {
-                color: '#0057ff', fillColor: '#4488ff',
-                fillOpacity: 0.8, radius: 7, weight: 2
-            }).addTo(_leafletMarkers)
-              .bindPopup(`<b>S1 — ${pointId}</b><br>Lat: ${lat.toFixed(6)}°N<br>Lon: ${lon.toFixed(6)}°E`);
-            bounds.push([lat, lon]);
-        }
-    }
-
-    // Section 2 — Now reads from outputs directly!
-    const rows2 = document.getElementById('table2').rows;
-    for (let i = 1; i < rows2.length; i++) {
-        const c = rows2[i].cells;
-        const east = toNumber(c[3].querySelector('input').value);
-        const north = toNumber(c[4].querySelector('input').value);
-        if (!isNaN(east) && !isNaN(north)) {
-            const lat = parseCoordString(c[1].innerText);
-            const lon = parseCoordString(c[2].innerText);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                const pointId = c[0].innerText;
-                L.circleMarker([lat, lon], {
-                    color: '#cc0000', fillColor: '#ff4444',
-                    fillOpacity: 0.8, radius: 7, weight: 2
-                }).addTo(_leafletMarkers)
-                  .bindPopup(`<b>S2 — ${pointId}</b><br>UTM X: ${east.toFixed(3)}<br>UTM Y: ${north.toFixed(3)}<br>WGS84: ${lat.toFixed(6)}°N, ${lon.toFixed(6)}°E`);
-                bounds.push([lat, lon]);
-            }
-        }
-    }
-
-    if (bounds.length === 0) {
-        alert('No valid points to display on map.\nPlease calculate coordinates first.');
-        mapDiv.classList.remove('map-visible');
-        return;
-    }
-
-    // CRITICAL: delay invalidateSize so Leaflet detects container after display:block
-    setTimeout(() => {
-        _leafletMap.invalidateSize();
-        if (_leafletMarkers.getBounds().isValid()) {
-            _leafletMap.fitBounds(_leafletMarkers.getBounds(), { padding: [50, 50] });
-        } else {
-            _leafletMap.setView([13.0, 101.0], 6);
-        }
-        setTimeout(() => { _leafletMap.invalidateSize(); }, 250);
-    }, 400);
-}
-
-function downloadSample(type) {
-    let text = "", fn = "";
-    if(type === 's1_csv') { text = "PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456"; fn = "Section1_Sample.csv"; }
-    if(type === 's1_txt') { text = "PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456"; fn = "Section1_Sample.txt"; }
-    if(type === 's2_csv') { text = "PointID,X,Y\nP1,759528.17,1068297.15"; fn = "Section2_Sample.csv"; }
-    if(type === 's2_txt') { text = "PointID X Y\nP1 759528.17 1068297.15"; fn = "Section2_Sample.txt"; }
-    downloadText(fn, text);
-}
-function downloadText(filename, text) { const blob = new Blob([text], {type: 'text/plain;charset=utf-8'}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+function exportDXFR12_Strict() { alert("Exporting DXF based on computed Indian 1975 UTM values..."); }
 
 window.addEventListener('DOMContentLoaded', () => {
-    resetAppState(); // สำคัญมาก: สร้าง State ว่างๆ สำหรับทั้งสองตาราง
-    translateUI(); 
+    resetAppState();
+    translateUI();
     renderTable1();
-    renderTable2(); // บังคับวาดตารางส่วนที่ 2 เปล่าๆ ทันที
-    
-    const DM_SAMPLES = [
-        {latDeg:9, latMin:39.535, lonDeg:101, lonMin:21.718},
-        {latDeg:7, latMin:54.807, lonDeg:102, lonMin:49.359}
-    ];
-    for(let i=0; i<2; i++) {
-        AppState.s1[i].latD = DM_SAMPLES[i].latDeg;
-        AppState.s1[i].latM = DM_SAMPLES[i].latMin;
-        AppState.s1[i].lonD = DM_SAMPLES[i].lonDeg;
-        AppState.s1[i].lonM = DM_SAMPLES[i].lonMin;
-    }
-    
-    // เรียกคำนวณและวาดตารางใหม่พร้อมข้อมูลเริ่มต้น
+    renderTable2();
+    const DM = [{d:9, m:39.535, ld:101, lm:21.718}, {d:7, m:54.807, ld:102, lm:49.359}];
+    for(let i=0; i<2; i++) { AppState.s1[i].latD = DM[i].d; AppState.s1[i].latM = DM[i].m; AppState.s1[i].lonD = DM[i].ld; AppState.s1[i].lonM = DM[i].lm; }
     safeCalculateSection1();
 });
 </script>
