@@ -251,14 +251,18 @@
             lastPos: null,
             lastTime: null,
             speedBuffer: [],
-            currentPos: null
+            currentPos: null,
+            // เพิ่ม Anchor State
+            anchorPos: null,
+            stillCount: 0
         };
 
         const FLYING_START_SPEED = 150; 
         const FLYING_STOP_SPEED = 80;   
         const MOVING_START_SPEED = 45;  
         const MOVING_STOP_SPEED = 15;   
-        const MAX_VALID_SPEED = 1200;   
+        const MAX_VALID_SPEED = 1200;
+        const ANCHOR_STILL_COUNT = 3;   
 
         function init() {
             const select = document.getElementById('airportSelect');
@@ -308,6 +312,20 @@
             if (!state.isMoving && smoothedSpeed > MOVING_START_SPEED) state.isMoving = true;
             if (state.isMoving && smoothedSpeed < MOVING_STOP_SPEED) state.isMoving = false;
 
+            // --- Logic: Position Anchoring ---
+            if (smoothedSpeed < MOVING_STOP_SPEED) {
+                // ถ้าอยู่นิ่ง ให้นับจำนวนครั้ง
+                state.stillCount++;
+                if (state.stillCount >= ANCHOR_STILL_COUNT && !state.anchorPos) {
+                    // ล็อคพิกัดเป็น Anchor เมื่อนิ่งครบกำหนด
+                    state.anchorPos = { lat: coords.latitude, lon: coords.longitude };
+                }
+            } else {
+                // ถ้าเริ่มขยับ (ความเร็ว > 15 km/h) ปลด Anchor ทิ้ง
+                state.stillCount = 0;
+                state.anchorPos = null;
+            }
+
             state.lastPos = { lat: coords.latitude, lon: coords.longitude };
             state.lastTime = now;
             
@@ -325,8 +343,12 @@
 
             if (!dest) return;
 
-            const dist = haversine(pos.latitude, pos.longitude, dest.lat, dest.lon);
-            const bearing = getBearing(pos.latitude, pos.longitude, dest.lat, dest.lon);
+            // ใช้ anchorPos ถ้ามี เพื่อล็อคพิกัดไม่ให้แกว่งตอนจอด
+            const calcLat = state.anchorPos ? state.anchorPos.lat : pos.latitude;
+            const calcLon = state.anchorPos ? state.anchorPos.lon : pos.longitude;
+
+            const dist = haversine(calcLat, calcLon, dest.lat, dest.lon);
+            const bearing = getBearing(calcLat, calcLon, dest.lat, dest.lon);
 
             const dot = document.getElementById('gpsDot');
             const statusTxt = document.getElementById('statusText');
@@ -375,6 +397,7 @@
             else speedEl.classList.remove('stale');
 
             document.getElementById('bearingValue').innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
+            // ค่า Accuracy และ Altitude ยังคงแสดงผลแบบ Real-time จาก GPS จริง
             document.getElementById('accuValue').innerText = Math.round(pos.accuracy) + "m";
             document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
         }
