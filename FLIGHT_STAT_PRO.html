@@ -157,13 +157,29 @@
         .tech-details.active { display: grid; }
         .tech-item { text-align: center; }
         .tech-val { font-weight: 600; font-size: 0.8rem; display: block; }
+
+        /* Tips Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-box {
+            background: var(--card-bg); padding: 20px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-close-btn {
+            margin-top: 15px; background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.9rem;
+        }
     </style>
 </head>
 <body data-theme="dark">
 
     <div class="container">
         <div class="header">
-            <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub);">FLIGHT STAT PRO V1.0</h3>
+            <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
+                FLIGHT STAT PRO V1.0 
+                <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
+            </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
         </div>
 
@@ -220,6 +236,19 @@
         </div>
     </div>
 
+    <!-- Tips Modal -->
+    <div id="tipsModal" class="modal-overlay">
+        <div class="modal-box">
+            <h4 style="margin-bottom: 12px; color: var(--text-main);">💡 How It Works</h4>
+            <ul style="text-align: left; font-size: 0.75rem; color: var(--text-sub); padding-left: 15px; display: flex; flex-direction: column; gap: 10px; line-height: 1.4;">
+                <li><b>Parked at airport:</b> Distance calculation is temporarily locked to prevent numbers from jumping due to GPS drift.</li>
+                <li><b>Weak/No Signal:</b> Airplane cabins block GPS. Place your device close to a window. Data won't update if there's no signal.</li>
+                <li><b>Blinking Numbers:</b> The app is using estimated math (Synthetic Speed) because the hardware stopped sending speed data.</li>
+            </ul>
+            <button onclick="toggleTips()" class="modal-close-btn">Got it</button>
+        </div>
+    </div>
+
     <script>
         const AIRPORTS = {
             "BKK": { name: "Suvarnabhumi", lat: 13.6925, lon: 100.7500 },
@@ -252,7 +281,6 @@
             lastTime: null,
             speedBuffer: [],
             currentPos: null,
-            // เพิ่ม Anchor State
             anchorPos: null,
             stillCount: 0
         };
@@ -312,16 +340,12 @@
             if (!state.isMoving && smoothedSpeed > MOVING_START_SPEED) state.isMoving = true;
             if (state.isMoving && smoothedSpeed < MOVING_STOP_SPEED) state.isMoving = false;
 
-            // --- Logic: Position Anchoring ---
             if (smoothedSpeed < MOVING_STOP_SPEED) {
-                // ถ้าอยู่นิ่ง ให้นับจำนวนครั้ง
                 state.stillCount++;
                 if (state.stillCount >= ANCHOR_STILL_COUNT && !state.anchorPos) {
-                    // ล็อคพิกัดเป็น Anchor เมื่อนิ่งครบกำหนด
                     state.anchorPos = { lat: coords.latitude, lon: coords.longitude };
                 }
             } else {
-                // ถ้าเริ่มขยับ (ความเร็ว > 15 km/h) ปลด Anchor ทิ้ง
                 state.stillCount = 0;
                 state.anchorPos = null;
             }
@@ -343,7 +367,6 @@
 
             if (!dest) return;
 
-            // ใช้ anchorPos ถ้ามี เพื่อล็อคพิกัดไม่ให้แกว่งตอนจอด
             const calcLat = state.anchorPos ? state.anchorPos.lat : pos.latitude;
             const calcLon = state.anchorPos ? state.anchorPos.lon : pos.longitude;
 
@@ -397,7 +420,6 @@
             else speedEl.classList.remove('stale');
 
             document.getElementById('bearingValue').innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
-            // ค่า Accuracy และ Altitude ยังคงแสดงผลแบบ Real-time จาก GPS จริง
             document.getElementById('accuValue').innerText = Math.round(pos.accuracy) + "m";
             document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
         }
@@ -438,6 +460,11 @@
             const b = document.querySelector('.tech-toggle-btn');
             p.classList.toggle('active');
             b.innerText = p.classList.contains('active') ? "Hide Technical Details" : "Show Technical Details";
+        }
+
+        function toggleTips() {
+            const m = document.getElementById('tipsModal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
         }
 
         function updateDest() {
