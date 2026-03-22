@@ -167,11 +167,12 @@
             background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100;
         }
         .modal-box {
-            background: var(--card-bg); padding: 20px; border-radius: 16px; width: 85%; max-width: 350px; text-align: center;
+            background: var(--card-bg); padding: 20px; border-radius: 16px; width: 90%; max-width: 380px; text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            max-height: 85vh; overflow-y: auto; /* Allow scrolling if content is too long on small screens */
         }
         .modal-close-btn {
-            margin-top: 15px; background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.9rem;
+            margin-top: 15px; background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.95rem;
         }
     </style>
 </head>
@@ -233,6 +234,7 @@
             </div>
         </div>
 
+        <!-- Developer Credit -->
         <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto; padding-top: 15px; padding-bottom: 5px;">
             Dev by Rattawit W.
         </div>
@@ -241,13 +243,34 @@
     <!-- Tips Modal -->
     <div id="tipsModal" class="modal-overlay">
         <div class="modal-box">
-            <h4 style="margin-bottom: 12px; color: var(--text-main);">💡 How It Works</h4>
-            <ul style="text-align: left; font-size: 0.75rem; color: var(--text-sub); padding-left: 15px; display: flex; flex-direction: column; gap: 10px; line-height: 1.4;">
-                <li><b>Parked at airport:</b> Distance calculation is temporarily locked to prevent numbers from jumping due to GPS drift.</li>
-                <li><b>Weak/No Signal:</b> Airplane cabins block GPS. Place your device close to a window. Data won't update if there's no signal.</li>
-                <li><b>Blinking Numbers:</b> The app is using estimated math (Synthetic Speed) because the hardware stopped sending speed data.</li>
-            </ul>
-            <button onclick="toggleTips()" class="modal-close-btn">Got it</button>
+            <h4 style="margin-bottom: 12px; color: var(--text-main);">📌 How to Use & Offline Setup</h4>
+            
+            <div style="text-align: left; font-size: 0.8rem; color: var(--text-sub); line-height: 1.4;">
+                <p style="color: var(--danger); font-weight: bold; margin-bottom: 5px;">❌ WHAT DOES NOT WORK:</p>
+                <ul style="padding-left: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+                    <li>Do <u style="text-underline-offset: 2px;">NOT</u> "Save Page As" or download as a file.</li>
+                    <li>Do <u style="text-underline-offset: 2px;">NOT</u> just leave the browser tab open. It will crash without internet.</li>
+                </ul>
+
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ HOW TO SAVE FOR OFFLINE:</p>
+                <p style="font-size: 0.75rem; margin-bottom: 8px;">While you still have internet connection:</p>
+                <ul style="padding-left: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 4px;">
+                    <li><b>iOS (Safari):</b> Tap the Share icon (square with up arrow) -> scroll down -> tap <b>"Add to Home Screen"</b>.</li>
+                    <li><b>Android (Chrome):</b> Tap the 3-dots menu -> tap <b>"Add to Home screen"</b> or "Install app".</li>
+                </ul>
+                <p style="font-size: 0.75rem; color: var(--accent); margin-bottom: 10px;"><i>Always launch the app from the new Home Screen icon, not the browser.</i></p>
+
+                <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
+
+                <p style="color: var(--text-main); font-weight: bold; margin-bottom: 5px;">✈️ Flight Status Info:</p>
+                <ul style="padding-left: 15px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 6px;">
+                    <li><b>Parked at airport:</b> Distance calculation locks so numbers don't jump around.</li>
+                    <li><b>Searching/Weak Signal:</b> Put device near a window. No GPS signal = No updates.</li>
+                    <li><b>Blinking Numbers:</b> Estimated mode. Hardware lost speed data, so the app is calculating it manually.</li>
+                </ul>
+            </div>
+            
+            <button onclick="toggleTips()" class="modal-close-btn">I Understand</button>
         </div>
     </div>
 
