@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLIGHT STAT PRO V1.0</title>
     
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Flight Stat">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
 
@@ -36,10 +39,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            min-height: 100vh; /* แก้ไข: ให้หน้าจอขยายได้ตามเนื้อหา */
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden; /* ป้องกันการเลื่อนซ้ายขวา แต่ยอมให้เลื่อนขึ้นลงได้ */
+            overflow-x: hidden;
             transition: background 0.3s;
         }
 
@@ -48,7 +51,7 @@
             flex-direction: column;
             padding: 12px;
             gap: 8px;
-            flex: 1; /* แก้ไข: ให้คอนเทนเนอร์ขยายเต็มพื้นที่ที่เหลือยืดหยุ่นได้ */
+            flex: 1; 
         }
 
         .header {
@@ -230,7 +233,6 @@
             </div>
         </div>
 
-        <!-- Developer Credit -->
         <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto; padding-top: 15px; padding-bottom: 5px;">
             Dev by Rattawit W.
         </div>
@@ -293,6 +295,15 @@
         const ANCHOR_STILL_COUNT = 3;   
 
         function init() {
+            // Service Worker Registration for Offline PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').then(function(reg) {
+                    console.log('Service Worker Registered!', reg);
+                }).catch(function(err) {
+                    console.log('Service Worker Failed!', err);
+                });
+            }
+
             const select = document.getElementById('airportSelect');
             Object.keys(AIRPORTS).sort().forEach(code => {
                 const opt = document.createElement('option');
@@ -420,7 +431,7 @@
             else speedEl.classList.remove('stale');
 
             document.getElementById('bearingValue').innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
-            document.getElementById('accuValue').innerText = Math.round(pos.accuracy) + "m";
+            document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
         }
 
