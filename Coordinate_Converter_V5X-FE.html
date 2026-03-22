@@ -42,13 +42,11 @@
         .input-cell input { position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: 100%; background: #fff; z-index: 1; }
         .input-cell:focus-within span { opacity: 0; }
         .input-cell input:focus { opacity: 1; border: 2px solid #3498db; }
-        .input-cell span { display: inline-block; width: 100%; }
+        .input-cell span { display: inline-block; width: 100%; min-height: 14px;}
         
-        /* Inline Error Highlighting */
         .input-cell.has-error { background-color: #ffebeb; }
         .input-cell.has-error input { opacity: 1; border: 2px solid #e74c3c !important; color: #c0392b; font-weight: bold; background: transparent; }
         
-        .instructions ul { margin-top: 8px; padding-left: 20px; font-size: 12px; }
         svg { border: 1px solid #e0e0e0; border-radius: 4px; display: block; margin: 15px auto 0; background: #fff; }
         .legend { margin-top: 8px; font-size: 12px; text-align: center; }
         .legend span { display: inline-block; margin: 0 10px; }
@@ -77,57 +75,14 @@
         button.map-btn { background-color: #27ae60; font-weight: bold; }
         button.map-btn:hover { background-color: #219150; }
         
-        #map {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            border-radius: 0;
-            overflow: hidden;
-            /* hidden state — use height:0 not display:none so Leaflet can measure */
-            height: 0;
-            visibility: hidden;
-            opacity: 0;
-            pointer-events: none;
-            border: none;
-            transition: opacity 0.2s;
-        }
-        #map.map-visible {
-            height: 500px;
-            visibility: visible;
-            opacity: 1;
-            pointer-events: auto;
-            border: 1px solid #ddd;
-            margin: 10px auto 15px auto;
-        }
-
-        /* Leaflet tile z-index fix */
+        #map { width: 100%; max-width: 1200px; margin: 0 auto; border-radius: 0; overflow: hidden; height: 0; visibility: hidden; opacity: 0; pointer-events: none; border: none; transition: opacity 0.2s; }
+        #map.map-visible { height: 500px; visibility: visible; opacity: 1; pointer-events: auto; border: 1px solid #ddd; margin: 10px auto 15px auto; }
+        
         .leaflet-pane { z-index: 400; }
         .leaflet-top, .leaflet-bottom { z-index: 500; }
-        .leaflet-container {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-            will-change: transform;
-        }
-        .leaflet-tile-container {
-            will-change: transform;
-        }
 
-        #sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 1100;
-            background: #f5f6fa;
-            padding-bottom: 4px;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-            margin: -10px -10px 0 -10px;
-            padding: 10px 10px 6px 10px;
-        }
-
-        /* Push page content down so first container is not hidden under sticky header */
-        body > .container:first-of-type,
-        hr.soft-sep:first-of-type {
-            margin-top: 8px;
-        }
+        #sticky-header { position: sticky; top: 0; z-index: 1100; background: #f5f6fa; padding-bottom: 4px; box-shadow: 0 3px 8px rgba(0,0,0,0.12); margin: -10px -10px 0 -10px; padding: 10px 10px 6px 10px; }
+        body > .container:first-of-type { margin-top: 8px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 </head>
@@ -159,7 +114,7 @@
             <select id="datumSelect" onchange="applySettings()">
                 <option value="dol" data-i18n="opt_dol">มาตรฐาน กมร. (dx: -204.5, dy: -837.9, dz: -294.8)</option>
                 <option value="survey" data-i18n="opt_survey">รังวัดขั้นสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)</option>
-                <option value="legacy" data-i18n="opt_legacy">แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)</option>
+                <option value="legacy" data-i18n="opt_legacy">แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)</option>
             </select>
         </div>
         <button class="clear-all" onclick="clearAllInputs()" data-i18n="btn_clear_all">Clear All Inputs</button>
@@ -284,14 +239,14 @@
 let currentLang = 'th';
 const dict = {
     en: {
-        app_title: "Coordinate Converter v5.0 (API Secured)",
+        app_title: "Coordinate Converter v5.0",
         lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):",
         lbl_zone: "Current Zone:",
         sel_zone: "UTM Zone:",
         sel_datum: "Transformation Params:",
         opt_dol: "DOL Standard (dx: -204.5, dy: -837.9, dz: -294.8)",
         opt_survey: "High-Precision Survey (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
-        opt_legacy: "Legacy GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        opt_legacy: "Legacy v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "Clear All Inputs",
         s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long",
         s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -350,14 +305,14 @@ const dict = {
         err_out_zone: "Row {0}: Longitude is too far from the selected UTM zone's Central Meridian. Try switching to the other Zone (47N/48N)."
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v5.0 (API Secured)",
+        app_title: "โปรแกรมแปลงค่าพิกัด v5.0",
         lbl_datum: "พารามิเตอร์แปลงพิกัด (Indian 1975 ↔ WGS84):",
         lbl_zone: "โซนปัจจุบัน:",
         sel_zone: "พิกัด UTM Zone:",
         sel_datum: "เลือกชุดพารามิเตอร์:",
         opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)",
         opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)",
-        opt_legacy: "แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        opt_legacy: "แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "ล้างข้อมูลทั้งหมด",
         s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975",
         s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -440,7 +395,7 @@ function toggleLang() {
 }
 
 // ==========================================
-// 2. Robust Number Parsing
+// 2. Data Cleaning & Parsing (No Core Math)
 // ==========================================
 function toNumber(v) {
     if (v == null) return NaN;
@@ -452,55 +407,34 @@ function toNumber(v) {
     return Number(s);
 }
 
-// ฟังก์ชันสำหรับแกะ String พิกัด (DMS, DM, D) กลับมาเป็นทศนิยมเพื่อใช้ปักหมุดแผนที่
-// (ทำให้เราสามารถอ่านค่าจากตารางได้โดยไม่ต้องคำนวณสมการซ้ำใน Frontend)
 function parseCoordString(str) {
     if (!str || typeof str !== 'string') return NaN;
     let isNeg = (str.includes('S') || str.includes('W') || str.includes('-'));
     let nums = str.match(/\d+(\.\d+)?/g);
     if (!nums) return NaN;
     let val = 0;
-    if (nums.length >= 3) {
-        val = parseFloat(nums[0]) + parseFloat(nums[1])/60 + parseFloat(nums[2])/3600;
-    } else if (nums.length >= 2) {
-        val = parseFloat(nums[0]) + parseFloat(nums[1])/60;
-    } else if (nums.length >= 1) {
-        val = parseFloat(nums[0]);
-    }
+    if (nums.length >= 3) val = parseFloat(nums[0]) + parseFloat(nums[1])/60 + parseFloat(nums[2])/3600;
+    else if (nums.length >= 2) val = parseFloat(nums[0]) + parseFloat(nums[1])/60;
+    else if (nums.length >= 1) val = parseFloat(nums[0]);
     return isNeg ? -val : val;
 }
 
-// ==========================================
-// 3. Dynamic Settings & Variables
-// ==========================================
-let dx = -204.5;
-let dy = -837.9;
-let dz = -294.8;
-let zone = 47;
-
-function applySettings() {
-    zone = parseInt(document.getElementById('zoneSelect').value);
-    let cm = 6 * zone - 183;
-    const datum = document.getElementById('datumSelect').value;
-    if (datum === 'survey') {
-        dx = -204.4798; dy = -837.8940; dz = -294.7765;
-    } else if (datum === 'legacy') {
-        dx = -204.64; dy = -834.74; dz = -293.80;
+function getS1DecDeg(r, fmt) {
+    if (fmt === 'dm') {
+        let d = toNumber(r.latD), m = toNumber(r.latM);
+        let lat = (d < 0 || Object.is(d, -0) ? -1 : 1) * (Math.abs(d) + (isNaN(m)?0:m)/60);
+        let ld = toNumber(r.lonD), lm = toNumber(r.lonM);
+        let lon = (ld < 0 || Object.is(ld, -0) ? -1 : 1) * (Math.abs(ld) + (isNaN(lm)?0:lm)/60);
+        return {lat, lon};
     } else {
-        dx = -204.5; dy = -837.9; dz = -294.8;
+        return {lat: toNumber(r.latDec), lon: toNumber(r.lonDec)};
     }
-    document.getElementById('displayParams').innerHTML = `<code>dx= ${dx}</code>, <code>dy= ${dy}</code>, <code>dz= ${dz}</code>`;
-    document.getElementById('displayZone').innerHTML = `<code>${zone}N (CM=${cm}°E)</code>`;
-
-    safeCalculateSection1();
-    safeCalculateSection2();
-    if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
-    if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
 }
 
 // ==========================================
-// 4. UI & State Management (Decoupled)
+// 3. Dynamic Settings & State
 // ==========================================
+let dx = -204.5, dy = -837.9, dz = -294.8, zone = 47;
 const AppState = { s1: [], s2: [] };
 
 function getEmptyS1(id) { return { id, latD:'', latM:'', lonD:'', lonM:'', latDec:'', lonDec:'', utmE:'', utmN:'', outLat:'', outLon:'', hasErr:false, errMsgs:[] }; }
@@ -511,17 +445,28 @@ function resetAppState() {
     AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
 }
 
+function applySettings() {
+    zone = parseInt(document.getElementById('zoneSelect').value);
+    let cm = 6 * zone - 183;
+    const datum = document.getElementById('datumSelect').value;
+    if (datum === 'survey') { dx = -204.4798; dy = -837.8940; dz = -294.7765; } 
+    else if (datum === 'legacy') { dx = -204.64; dy = -834.74; dz = -293.80; } 
+    else { dx = -204.5; dy = -837.9; dz = -294.8; }
+    
+    document.getElementById('displayParams').innerHTML = `<code>dx= ${dx}</code>, <code>dy= ${dy}</code>, <code>dz= ${dz}</code>`;
+    document.getElementById('displayZone').innerHTML = `<code>${zone}N (CM=${cm}°E)</code>`;
+
+    safeCalculateSection1();
+    safeCalculateSection2();
+}
+
 function switchSection1InputFormat() {
     renderTable1();
-    safeCalculateSection1();
 }
 
-function updateDisplay(cell) {
-    const input = cell.querySelector('input');
-    const span = cell.querySelector('span');
-    if(span && input) span.innerText = input.value || '';
-}
-
+// ==========================================
+// 4. Rendering & DOM Events
+// ==========================================
 function renderTable1() {
     const tbody = document.querySelector('#table1 tbody');
     const format = document.getElementById('section1InputFormat').value;
@@ -600,7 +545,6 @@ function updateStatus2() {
     else { st.textContent = ''; st.className = 'status ok'; }
 }
 
-// 5. Input Listeners (NO AUTO-CALCULATE DEBOUNCE - FORCE USER TO CLICK CALCULATE)
 document.addEventListener('input', function(e) {
     if (e.target.tagName === 'INPUT' && e.target.hasAttribute('data-idx')) {
         const sec = e.target.dataset.sec;
@@ -618,7 +562,7 @@ document.addEventListener('input', function(e) {
 });
 
 // ==========================================
-// 6. API Calls (Cloudflare Worker)
+// 5. API Fetching
 // ==========================================
 const API_URL = 'https://coordinateapiworker.rattawit-aum.workers.dev/';
 
@@ -645,7 +589,6 @@ async function safeCalculateSection1() {
             lonDec: toNumber(item.row.lonDec)
         }));
 
-    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
     if (payloadData.length === 0) {
         AppState.s1.forEach(row => { row.utmE=''; row.utmN=''; row.outLat=''; row.outLon=''; row.hasErr=false; row.errMsgs=[]; });
         renderTable1();
@@ -662,18 +605,13 @@ async function safeCalculateSection1() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 's1',
-                format: format,
-                outFormat: outFormat,
-                dx: dx, dy: dy, dz: dz, zone: zone,
-                data: payloadData
+                action: 's1', format: format, outFormat: outFormat, dx: dx, dy: dy, dz: dz, zone: zone, data: payloadData
             })
         });
 
         if (!response.ok) throw new Error('API Error');
         const result = await response.json();
         
-        // Reset all targeted rows before applying results
         payloadData.forEach(p => {
             AppState.s1[p.originalIdx].errMsgs = [];
             AppState.s1[p.originalIdx].hasErr = false;
@@ -696,8 +634,11 @@ async function safeCalculateSection1() {
         });
 
         renderTable1();
+        if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
+        if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
+
     } catch (error) {
-        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
+        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ API" : "API Connection Error");
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
@@ -711,13 +652,9 @@ async function safeCalculateSection2() {
         .map((row, i) => ({ originalIdx: i, row: row }))
         .filter(item => item.row.e !== '' || item.row.n !== '')
         .map(item => ({
-            id: item.row.id,
-            originalIdx: item.originalIdx,
-            e: toNumber(item.row.e),
-            n: toNumber(item.row.n)
+            id: item.row.id, originalIdx: item.originalIdx, e: toNumber(item.row.e), n: toNumber(item.row.n)
         }));
 
-    // FIXED: If user cleared all inputs, clean up the outputs and stop without calling API
     if (payloadData.length === 0) {
         AppState.s2.forEach(row => { row.outLat=''; row.outLon=''; row.ilat=''; row.ilon=''; row.hasErr=false; row.errMsgs=[]; });
         renderTable2();
@@ -734,17 +671,13 @@ async function safeCalculateSection2() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 's2',
-                outFormat: outFormat,
-                dx: dx, dy: dy, dz: dz, zone: zone,
-                data: payloadData
+                action: 's2', outFormat: outFormat, dx: dx, dy: dy, dz: dz, zone: zone, data: payloadData
             })
         });
 
         if (!response.ok) throw new Error('API Error');
         const result = await response.json();
         
-        // Reset all targeted rows before applying results
         payloadData.forEach(p => {
             AppState.s2[p.originalIdx].errMsgs = [];
             AppState.s2[p.originalIdx].hasErr = false;
@@ -767,8 +700,11 @@ async function safeCalculateSection2() {
         });
 
         renderTable2();
+        if(document.getElementById('coordinateSVG').innerHTML !== '') drawPointsOnSVG();
+        if (document.getElementById('map').classList.contains('map-visible')) plotOnLeaflet();
+
     } catch (error) {
-        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" : "API Connection Error");
+        alert(currentLang === 'th' ? "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ API" : "API Connection Error");
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
@@ -776,7 +712,7 @@ async function safeCalculateSection2() {
 }
 
 // ==========================================
-// 7. Smart Paste & Import (State-Driven)
+// 6. Smart Paste & Import
 // ==========================================
 document.getElementById('table1').addEventListener('paste', function(e) {
     const target = e.target;
@@ -790,7 +726,7 @@ document.getElementById('table1').addEventListener('paste', function(e) {
     let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     
     if (lines.length > 500) {
-        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง' : 'Max 500 points per batch.');
         lines = lines.slice(0, 500);
     }
     
@@ -806,7 +742,7 @@ document.getElementById('table1').addEventListener('paste', function(e) {
             if (parts.length >= 2) { row.latDec = parts[0]; row.lonDec = parts[1]; }
         }
     });
-    renderTable1(); // Let user press Calculate
+    renderTable1();
 });
 
 document.getElementById('table2').addEventListener('paste', function(e) {
@@ -820,7 +756,7 @@ document.getElementById('table2').addEventListener('paste', function(e) {
     let lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     
     if (lines.length > 500) {
-        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+        alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง' : 'Max 500 points per batch.');
         lines = lines.slice(0, 500);
     }
 
@@ -832,35 +768,8 @@ document.getElementById('table2').addEventListener('paste', function(e) {
         const parts = line.trim().split(/\s+/);
         if (parts.length >= 2) { row.e = parts[0]; row.n = parts[1]; }
     });
-    renderTable2(); // Let user press Calculate
+    renderTable2();
 });
-
-// ==========================================
-// 8. Utility / File / Export Functions
-// ==========================================
-function clearAllInputs() {
-    resetAppState();
-    renderTable1();
-    renderTable2();
-    document.getElementById('coordinateSVG').innerHTML = '';
-    const _mapDiv = document.getElementById('map');
-    _mapDiv.classList.remove('map-visible');
-    if (_leafletMarkers) _leafletMarkers.clearLayers();
-    document.getElementById('fileInputSection1').value = '';
-    document.getElementById('fileInputSection2').value = '';
-}
-
-function clearSection1() { 
-    AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1));
-    document.getElementById('fileInputSection1').value = ''; 
-    renderTable1();
-}
-
-function clearSection2() {
-    AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1));
-    document.getElementById('fileInputSection2').value = ''; 
-    renderTable2();
-}
 
 function loadFileSection1() {
     const format = document.getElementById('section1InputFormat').value;
@@ -876,7 +785,7 @@ function loadFileSection1() {
         if(hasHeader) lines.shift();
         
         if (lines.length > 500) {
-            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+            alert(currentLang === 'th' ? 'ระบบรองรับสูงสุด 500 จุด ข้อมูลส่วนเกินถูกตัดออก' : 'Max 500 points limit.');
             lines = lines.slice(0, 500);
         }
 
@@ -910,7 +819,7 @@ function loadFileSection2() {
         if(hasHeader) lines.shift();
         
         if (lines.length > 500) {
-            alert(currentLang === 'th' ? 'ระบบรองรับการคำนวณสูงสุด 500 จุดต่อครั้ง ข้อมูลส่วนที่เกินจะถูกตัดออก' : 'Max 500 points per batch. Extra rows ignored.');
+            alert(currentLang === 'th' ? 'ระบบรองรับสูงสุด 500 จุด ข้อมูลส่วนเกินถูกตัดออก' : 'Max 500 points limit.');
             lines = lines.slice(0, 500);
         }
 
@@ -928,6 +837,21 @@ function loadFileSection2() {
     };
     reader.readAsText(file);
 }
+
+// ==========================================
+// 7. Utility, Download & Export Functions
+// ==========================================
+function clearAllInputs() {
+    resetAppState(); renderTable1(); renderTable2();
+    document.getElementById('coordinateSVG').innerHTML = '';
+    document.getElementById('map').classList.remove('map-visible');
+    if (_leafletMarkers) _leafletMarkers.clearLayers();
+    document.getElementById('fileInputSection1').value = '';
+    document.getElementById('fileInputSection2').value = '';
+}
+
+function clearSection1() { AppState.s1 = Array.from({length: 10}, (_, i) => getEmptyS1(i + 1)); renderTable1(); }
+function clearSection2() { AppState.s2 = Array.from({length: 10}, (_, i) => getEmptyS2(i + 1)); renderTable2(); }
 
 function getExportMetadata() {
     const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
@@ -980,166 +904,77 @@ function exportTableToCSV(tableId, filename) {
     link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+// BUG FIXED: format download sample based on selected Input Format
+function downloadSample(type) {
+    let text = "", fn = "";
+    const format1 = document.getElementById('section1InputFormat').value;
+    
+    if(type === 's1_csv') { 
+        if (format1 === 'dm') text = "PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456";
+        else text = "PointID,Latitude,Longitude\nP1,13.75205,100.5076";
+        fn = "Section1_Sample.csv"; 
+    }
+    if(type === 's1_txt') { 
+        if (format1 === 'dm') text = "PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456";
+        else text = "PointID Latitude Longitude\nP1 13.75205 100.5076";
+        fn = "Section1_Sample.txt"; 
+    }
+    if(type === 's2_csv') { text = "PointID,X,Y\nP1,759528.17,1068297.15"; fn = "Section2_Sample.csv"; }
+    if(type === 's2_txt') { text = "PointID X Y\nP1 759528.17 1068297.15"; fn = "Section2_Sample.txt"; }
+    
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'}); 
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); 
+    link.download = fn; document.body.appendChild(link); link.click(); document.body.removeChild(link); 
+}
+
+// ==========================================
+// 8. Graphic, KML, DXF & Map Functions (Reads from AppState API results)
+// ==========================================
 function exportTableToKML(tableId, filename) {
     const isSection1 = tableId === 'table1';
-    const rows = document.getElementById(tableId).rows;
     let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
     kml += `<Style id="pointStyle"><IconStyle><color>${isSection1 ? 'ffff0000' : 'ff0000ff'}</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\n`;
     kml += `<name>${isSection1 ? 'Section 1' : 'Section 2'} Coordinates</name>\n`;
     
-    for (let i = 1; i < rows.length; i++) {
-        const cells = rows[i].cells;
-        let lat, lon, desc = "";
-        if (isSection1) {
-            const fmt = document.getElementById('section1InputFormat').value;
-            const offset = fmt === 'dm' ? 0 : -2;
-            let eTxt = cells[5+offset].innerText; let nTxt = cells[6+offset].innerText;
-            if(!eTxt || !nTxt) continue;
-            
-            if(fmt === 'dm') {
-                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
-                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
-                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
-                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
-            } else {
-                lat = toNumber(cells[1].querySelector('input').value);
-                lon = toNumber(cells[2].querySelector('input').value);
-            }
-            if(isNaN(lat) || isNaN(lon)) continue;
-            desc = `PointID: ${cells[0].innerText}, Indian X: ${eTxt}, Indian Y: ${nTxt}`;
-        } else {
-            // S2: Now reads directly from table output cells instead of computing locally
-            const x = toNumber(cells[3].querySelector('input').value); 
-            const y = toNumber(cells[4].querySelector('input').value);
-            lat = parseCoordString(cells[1].innerText);
-            lon = parseCoordString(cells[2].innerText);
-            if(isNaN(lat) || isNaN(lon)) continue;
-            desc = `PointID: ${cells[0].innerText}, Indian X: ${x}, Indian Y: ${y}`;
-        }
-        kml += `<Placemark><name>${cells[0].innerText}</name><styleUrl>#pointStyle</styleUrl><description>${desc}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+    if (isSection1) {
+        const fmt1 = document.getElementById('section1InputFormat').value;
+        AppState.s1.forEach(r => {
+            if (r.utmE === '' || r.utmN === '') return;
+            const degs = getS1DecDeg(r, fmt1);
+            if (isNaN(degs.lat) || isNaN(degs.lon)) return;
+            let desc = `PointID: ${r.id}, Indian X: ${r.utmE}, Indian Y: ${r.utmN}`;
+            kml += `<Placemark><name>${r.id}</name><styleUrl>#pointStyle</styleUrl><description>${desc}</description><Point><coordinates>${degs.lon.toFixed(7)},${degs.lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+        });
+    } else {
+        AppState.s2.forEach(r => {
+            if (r.outLat === '' || r.outLon === '') return;
+            const x = toNumber(r.e), y = toNumber(r.n);
+            const lat = parseCoordString(r.outLat), lon = parseCoordString(r.outLon);
+            if (isNaN(lat) || isNaN(lon)) return;
+            let desc = `PointID: ${r.id}, Indian X: ${x}, Indian Y: ${y}`;
+            kml += `<Placemark><name>${r.id}</name><styleUrl>#pointStyle</styleUrl><description>${desc}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+        });
     }
     kml += '</Document>\n</kml>';
-    const link = document.createElement('a'); link.href = 'data:text/xml;charset=utf-8,' + encodeURIComponent(kml);
-    link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-
-// ==========================================
-// 9. SVG Visualization & DXF
-// ==========================================
-function getRoundInterval(range, mode) {
-    const roundValues = mode === 'wgs84' ? [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10] : [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
-    const targetInterval = range / 3;
-    let selectedInterval = roundValues[0], minDiff = Math.abs(targetInterval - roundValues[0]);
-    for (let v of roundValues) { if (Math.abs(targetInterval - v) < minDiff) { minDiff = Math.abs(targetInterval - v); selectedInterval = v; } }
-    return selectedInterval;
-}
-
-function drawPointsOnSVG() {
-    const svg = document.getElementById('coordinateSVG');
-    const mode = document.getElementById('canvasMode').value;
-    const format1 = document.getElementById('section1InputFormat').value;
-    svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 750 500`);
-    let points = [];
-    
-    const rows1 = document.getElementById('table1').rows;
-    for (let i = 1; i < rows1.length; i++) {
-        const cells = rows1[i].cells; const id = cells[0].innerText;
-        if(mode === 'utm') {
-            const offset = format1 === 'dm' ? 0 : -2;
-            const xTxt = cells[5+offset].innerText, yTxt = cells[6+offset].innerText;
-            if(xTxt && yTxt) points.push({id, x: toNumber(xTxt), y: toNumber(yTxt), sec: 's1'});
-        } else {
-            let lat, lon;
-            if(format1 === 'dm') {
-                let latD = toNumber(cells[1].querySelector('input').value); let latM = toNumber(cells[2].querySelector('input').value);
-                let lonD = toNumber(cells[3].querySelector('input').value); let lonM = toNumber(cells[4].querySelector('input').value);
-                lat = (latD<0?-1:1) * (Math.abs(latD) + latM / 60);
-                lon = (lonD<0?-1:1) * (Math.abs(lonD) + lonM / 60);
-            } else {
-                lat = toNumber(cells[1].querySelector('input').value);
-                lon = toNumber(cells[2].querySelector('input').value);
-            }
-            if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's1'});
-        }
-    }
-    
-    const rows2 = document.getElementById('table2').rows;
-    for (let i = 1; i < rows2.length; i++) {
-        const cells = rows2[i].cells; const id = cells[0].innerText;
-        const east = toNumber(cells[3].querySelector('input').value), north = toNumber(cells[4].querySelector('input').value);
-        if(!isNaN(east) && !isNaN(north)) {
-            if(mode === 'utm') {
-                points.push({id, x: east, y: north, sec: 's2'});
-            } else {
-                // S2: Now reads directly from table output cells
-                let lat = parseCoordString(cells[1].innerText);
-                let lon = parseCoordString(cells[2].innerText);
-                if(!isNaN(lat) && !isNaN(lon)) points.push({id, x: lon, y: lat, sec: 's2'});
-            }
-        }
-    }
-    
-    if (points.length === 0) {
-        svg.innerHTML = `<text x="375" y="250" font-size="16" text-anchor="middle" fill="#666">No valid points to display / ไม่มีข้อมูลพิกัด</text>`;
-        return;
-    }
-
-    const xs = points.map(p => p.x); const ys = points.map(p => p.y);
-    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    let xRange = maxX - minX || 0.01; let yRange = maxY - minY || 0.01;
-    minX -= xRange * 0.15; maxX += xRange * 0.15; minY -= yRange * 0.15; maxY += yRange * 0.15;
-    const xRangeEx = maxX - minX, yRangeEx = maxY - minY;
-    
-    let xStep = getRoundInterval(xRangeEx, mode), yStep = getRoundInterval(yRangeEx, mode);
-    minX = Math.floor(minX / xStep) * xStep; maxX = Math.ceil(maxX / xStep) * xStep;
-    minY = Math.floor(minY / yStep) * yStep; maxY = Math.ceil(maxY / yStep) * yStep;
-    const xRangeF = maxX - minX, yRangeF = maxY - minY;
-    
-    const pad = 50, w = 750 - 2*pad, h = 500 - 2*pad;
-    
-    let xi = 0;
-    for(let xV = minX; xV <= maxX; xV += xStep/5, xi++) {
-        let isMaj = (xi % 5 === 0);
-        let cX = pad + ((xV - minX) / xRangeF) * w;
-        svg.innerHTML += `<line x1="${cX}" y1="${pad}" x2="${cX}" y2="${pad+h}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
-        if(isMaj) svg.innerHTML += `<text x="${cX}" y="${pad+h+20}" font-size="12" text-anchor="middle">${mode==='wgs84'?xV.toFixed(2)+'°E':xV.toFixed(0)+'m'}</text>`;
-    }
-    let yi = 0;
-    for(let yV = minY; yV <= maxY; yV += yStep/5, yi++) {
-        let isMaj = (yi % 5 === 0);
-        let cY = pad + (1 - (yV - minY) / yRangeF) * h;
-        svg.innerHTML += `<line x1="${pad}" y1="${cY}" x2="${pad+w}" y2="${cY}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
-        if(isMaj) svg.innerHTML += `<text x="${pad-10}" y="${cY+4}" font-size="12" text-anchor="end">${mode==='wgs84'?yV.toFixed(2)+'°N':yV.toFixed(0)+'m'}</text>`;
-    }
-    
-    points.forEach(p => {
-        let cX = pad + ((p.x - minX) / xRangeF) * w;
-        let cY = pad + (1 - (p.y - minY) / yRangeF) * h;
-        svg.innerHTML += `<circle cx="${cX}" cy="${cY}" r="5" fill="${p.sec==='s1'?'#0000FF':'#FF0000'}"><title>Point ${p.id} - X:${p.x.toFixed(4)}, Y:${p.y.toFixed(4)}</title></circle>`;
-        svg.innerHTML += `<text x="${cX+8}" y="${cY-8}" font-size="12" font-weight="bold">${p.id}</text>`;
-    });
+    const blob = new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
 }
 
 function exportDXFR12_Strict() {
     let pts = [];
-    const fmt1 = document.getElementById('section1InputFormat').value;
-    const r1 = document.getElementById('table1').rows;
-    for(let i=1; i<r1.length; i++) {
-        let c = r1[i].cells; const offset = fmt1 === 'dm' ? 0 : -2;
-        let eTxt = c[5+offset].innerText, nTxt = c[6+offset].innerText;
-        if(eTxt && nTxt) {
-            let east = toNumber(eTxt), north = toNumber(nTxt);
-            pts.push({id: c[0].innerText, east, north, sec: 's1'});
+    AppState.s1.forEach(r => {
+        if (r.utmE !== '' && r.utmN !== '') {
+            pts.push({id: r.id, east: toNumber(r.utmE), north: toNumber(r.utmN), sec: 's1'});
         }
-    }
-    const r2 = document.getElementById('table2').rows;
-    for(let i=1; i<r2.length; i++) {
-        let c = r2[i].cells; let east = toNumber(c[3].querySelector('input').value), north = toNumber(c[4].querySelector('input').value);
-        if(!isNaN(east) && !isNaN(north)) {
-            pts.push({id: c[0].innerText, east, north, sec: 's2'});
+    });
+    AppState.s2.forEach(r => {
+        const x = toNumber(r.e), y = toNumber(r.n);
+        if (!isNaN(x) && !isNaN(y)) {
+            pts.push({id: r.id, east: x, north: y, sec: 's2'});
         }
-    }
-    if(pts.length === 0) { alert('No valid points to export.'); return; }
+    });
+    
+    if(pts.length === 0) { alert(currentLang === 'th' ? 'ไม่มีข้อมูลพิกัด (โปรดคำนวณก่อน)' : 'No valid points to export. Please calculate first.'); return; }
 
     let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nENTITIES\r\n";
     pts.forEach(p => {
@@ -1158,9 +993,80 @@ function exportDXFR12_Strict() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ==========================================
-// 10. Leaflet Interactive Map
-// ==========================================
+function getRoundInterval(range, mode) {
+    const roundValues = mode === 'wgs84' ? [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10] : [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
+    const targetInterval = range / 3;
+    let selectedInterval = roundValues[0], minDiff = Math.abs(targetInterval - roundValues[0]);
+    for (let v of roundValues) { if (Math.abs(targetInterval - v) < minDiff) { minDiff = Math.abs(targetInterval - v); selectedInterval = v; } }
+    return selectedInterval;
+}
+
+function drawPointsOnSVG() {
+    const svg = document.getElementById('coordinateSVG');
+    const mode = document.getElementById('canvasMode').value;
+    const format1 = document.getElementById('section1InputFormat').value;
+    svg.innerHTML = ''; svg.setAttribute('viewBox', `0 0 750 500`);
+    let points = [];
+    
+    AppState.s1.forEach(r => {
+        if(mode === 'utm') {
+            if (r.utmE !== '' && r.utmN !== '') points.push({id: r.id, x: toNumber(r.utmE), y: toNumber(r.utmN), sec: 's1'});
+        } else {
+            const degs = getS1DecDeg(r, format1);
+            if(!isNaN(degs.lat) && !isNaN(degs.lon)) points.push({id: r.id, x: degs.lon, y: degs.lat, sec: 's1'});
+        }
+    });
+    
+    AppState.s2.forEach(r => {
+        const east = toNumber(r.e), north = toNumber(r.n);
+        if(!isNaN(east) && !isNaN(north)) {
+            if(mode === 'utm') {
+                points.push({id: r.id, x: east, y: north, sec: 's2'});
+            } else {
+                if (r.outLat !== '' && r.outLon !== '') {
+                    const lat = parseCoordString(r.outLat), lon = parseCoordString(r.outLon);
+                    if(!isNaN(lat) && !isNaN(lon)) points.push({id: r.id, x: lon, y: lat, sec: 's2'});
+                }
+            }
+        }
+    });
+    
+    if (points.length === 0) {
+        svg.innerHTML = `<text x="375" y="250" font-size="16" text-anchor="middle" fill="#666">No valid points to display (Please Calculate) / ไม่มีข้อมูล</text>`;
+        return;
+    }
+
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    let xRange = maxX - minX || 0.01, yRange = maxY - minY || 0.01;
+    minX -= xRange * 0.15; maxX += xRange * 0.15; minY -= yRange * 0.15; maxY += yRange * 0.15;
+    const xRangeEx = maxX - minX, yRangeEx = maxY - minY;
+    
+    let xStep = getRoundInterval(xRangeEx, mode), yStep = getRoundInterval(yRangeEx, mode);
+    minX = Math.floor(minX / xStep) * xStep; maxX = Math.ceil(maxX / xStep) * xStep;
+    minY = Math.floor(minY / yStep) * yStep; maxY = Math.ceil(maxY / yStep) * yStep;
+    const xRangeF = maxX - minX, yRangeF = maxY - minY;
+    
+    const pad = 50, w = 750 - 2*pad, h = 500 - 2*pad;
+    
+    for(let xi=0, xV=minX; xV<=maxX; xV+=xStep/5, xi++) {
+        let isMaj = (xi % 5 === 0); let cX = pad + ((xV - minX) / xRangeF) * w;
+        svg.innerHTML += `<line x1="${cX}" y1="${pad}" x2="${cX}" y2="${pad+h}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
+        if(isMaj) svg.innerHTML += `<text x="${cX}" y="${pad+h+20}" font-size="12" text-anchor="middle">${mode==='wgs84'?xV.toFixed(2)+'°E':xV.toFixed(0)+'m'}</text>`;
+    }
+    for(let yi=0, yV=minY; yV<=maxY; yV+=yStep/5, yi++) {
+        let isMaj = (yi % 5 === 0); let cY = pad + (1 - (yV - minY) / yRangeF) * h;
+        svg.innerHTML += `<line x1="${pad}" y1="${cY}" x2="${pad+w}" y2="${cY}" stroke="${isMaj?'#666':'#e0e0e0'}" stroke-width="${isMaj?2:1}"/>`;
+        if(isMaj) svg.innerHTML += `<text x="${pad-10}" y="${cY+4}" font-size="12" text-anchor="end">${mode==='wgs84'?yV.toFixed(2)+'°N':yV.toFixed(0)+'m'}</text>`;
+    }
+    
+    points.forEach(p => {
+        let cX = pad + ((p.x - minX) / xRangeF) * w, cY = pad + (1 - (p.y - minY) / yRangeF) * h;
+        svg.innerHTML += `<circle cx="${cX}" cy="${cY}" r="5" fill="${p.sec==='s1'?'#0000FF':'#FF0000'}"><title>Point ${p.id} - X:${p.x.toFixed(4)}, Y:${p.y.toFixed(4)}</title></circle>`;
+        svg.innerHTML += `<text x="${cX+8}" y="${cY-8}" font-size="12" font-weight="bold">${p.id}</text>`;
+    });
+}
+
 let _leafletMap = null;
 let _leafletMarkers = null;
 
@@ -1170,86 +1076,44 @@ function plotOnLeaflet() {
 
     if (!_leafletMap) {
         _leafletMap = L.map('map', { preferCanvas: true }).setView([13.0, 101.0], 6);
-        const sat = L.tileLayer(
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            {
-              attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-              maxZoom: 19,
-              crossOrigin: ''
-            }
-        ).addTo(_leafletMap);
-        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19,
-            crossOrigin: ''
-        });
+        const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, crossOrigin: '' }).addTo(_leafletMap);
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: '' });
         L.control.layers({ "🛰️ ESRI Satellite": sat, "🗺️ Street Map": osm }).addTo(_leafletMap);
         _leafletMarkers = L.featureGroup().addTo(_leafletMap);
     }
 
     _leafletMarkers.clearLayers();
-    const bounds = [];
+    const format1 = document.getElementById('section1InputFormat').value;
 
-    // Section 1 — read WGS84 input directly
-    const fmt1 = document.getElementById('section1InputFormat').value;
-    const rows1 = document.getElementById('table1').rows;
-    for (let i = 1; i < rows1.length; i++) {
-        const c = rows1[i].cells;
-        let lat = NaN, lon = NaN;
-        if (fmt1 === 'dm') {
-            const latD = toNumber(c[1].querySelector('input').value);
-            const latM = toNumber(c[2].querySelector('input').value);
-            const lonD = toNumber(c[3].querySelector('input').value);
-            const lonM = toNumber(c[4].querySelector('input').value);
-            if (!isNaN(latD) && !isNaN(latM)) lat = (latD < 0 ? -1 : 1) * (Math.abs(latD) + latM / 60);
-            if (!isNaN(lonD) && !isNaN(lonM)) lon = (lonD < 0 ? -1 : 1) * (Math.abs(lonD) + lonM / 60);
-        } else {
-            lat = toNumber(c[1].querySelector('input').value);
-            lon = toNumber(c[2].querySelector('input').value);
+    AppState.s1.forEach(r => {
+        const degs = getS1DecDeg(r, format1);
+        if (!isNaN(degs.lat) && !isNaN(degs.lon)) {
+            L.circleMarker([degs.lat, degs.lon], { color: '#0057ff', fillColor: '#4488ff', fillOpacity: 0.8, radius: 7, weight: 2 })
+              .addTo(_leafletMarkers).bindPopup(`<b>S1 — ${r.id}</b><br>Lat: ${degs.lat.toFixed(6)}°N<br>Lon: ${degs.lon.toFixed(6)}°E`);
         }
-        if (!isNaN(lat) && !isNaN(lon)) {
-            const pointId = c[0].innerText;
-            L.circleMarker([lat, lon], {
-                color: '#0057ff', fillColor: '#4488ff',
-                fillOpacity: 0.8, radius: 7, weight: 2
-            }).addTo(_leafletMarkers)
-              .bindPopup(`<b>S1 — ${pointId}</b><br>Lat: ${lat.toFixed(6)}°N<br>Lon: ${lon.toFixed(6)}°E`);
-            bounds.push([lat, lon]);
-        }
-    }
+    });
 
-    // Section 2 — Now reads from outputs directly!
-    const rows2 = document.getElementById('table2').rows;
-    for (let i = 1; i < rows2.length; i++) {
-        const c = rows2[i].cells;
-        const east = toNumber(c[3].querySelector('input').value);
-        const north = toNumber(c[4].querySelector('input').value);
-        if (!isNaN(east) && !isNaN(north)) {
-            const lat = parseCoordString(c[1].innerText);
-            const lon = parseCoordString(c[2].innerText);
+    AppState.s2.forEach(r => {
+        if (r.outLat !== '' && r.outLon !== '') {
+            const lat = parseCoordString(r.outLat), lon = parseCoordString(r.outLon);
             if (!isNaN(lat) && !isNaN(lon)) {
-                const pointId = c[0].innerText;
-                L.circleMarker([lat, lon], {
-                    color: '#cc0000', fillColor: '#ff4444',
-                    fillOpacity: 0.8, radius: 7, weight: 2
-                }).addTo(_leafletMarkers)
-                  .bindPopup(`<b>S2 — ${pointId}</b><br>UTM X: ${east.toFixed(3)}<br>UTM Y: ${north.toFixed(3)}<br>WGS84: ${lat.toFixed(6)}°N, ${lon.toFixed(6)}°E`);
-                bounds.push([lat, lon]);
+                L.circleMarker([lat, lon], { color: '#cc0000', fillColor: '#ff4444', fillOpacity: 0.8, radius: 7, weight: 2 })
+                  .addTo(_leafletMarkers).bindPopup(`<b>S2 — ${r.id}</b><br>UTM X: ${r.e}<br>UTM Y: ${r.n}<br>WGS84: ${lat.toFixed(6)}°N, ${lon.toFixed(6)}°E`);
             }
         }
-    }
+    });
 
-    if (bounds.length === 0) {
-        alert('No valid points to display on map.\nPlease calculate coordinates first.');
+    if (_leafletMarkers.getLayers().length === 0) {
+        alert(currentLang === 'th' ? 'ไม่มีข้อมูลพิกัด (โปรดคำนวณส่วนที่ 1 หรือ 2 ก่อนแสดงแผนที่)' : 'No valid points to display.\nPlease calculate coordinates first.');
         mapDiv.classList.remove('map-visible');
         return;
     }
 
-    // CRITICAL: delay invalidateSize so Leaflet detects container after display:block
+    // BUG FIXED: เพิ่ม maxZoom ใน fitBounds เพื่อแก้ปัญหาการซูมลึกเกินไป (จอดำ)
     setTimeout(() => {
         _leafletMap.invalidateSize();
         if (_leafletMarkers.getBounds().isValid()) {
-            _leafletMap.fitBounds(_leafletMarkers.getBounds(), { padding: [50, 50] });
+            _leafletMap.fitBounds(_leafletMarkers.getBounds(), { padding: [50, 50], maxZoom: 16 });
         } else {
             _leafletMap.setView([13.0, 101.0], 6);
         }
@@ -1257,35 +1121,24 @@ function plotOnLeaflet() {
     }, 400);
 }
 
-function downloadSample(type) {
-    let text = "", fn = "";
-    if(type === 's1_csv') { text = "PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456"; fn = "Section1_Sample.csv"; }
-    if(type === 's1_txt') { text = "PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456"; fn = "Section1_Sample.txt"; }
-    if(type === 's2_csv') { text = "PointID,X,Y\nP1,759528.17,1068297.15"; fn = "Section2_Sample.csv"; }
-    if(type === 's2_txt') { text = "PointID X Y\nP1 759528.17 1068297.15"; fn = "Section2_Sample.txt"; }
-    downloadText(fn, text);
-}
-function downloadText(filename, text) { const blob = new Blob([text], {type: 'text/plain;charset=utf-8'}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
-
+// ==========================================
+// 9. Init
+// ==========================================
 window.addEventListener('DOMContentLoaded', () => {
-    resetAppState(); // สำคัญมาก: สร้าง State ว่างๆ สำหรับทั้งสองตาราง
-    translateUI(); 
+    resetAppState();
+    translateUI();
     renderTable1();
-    renderTable2(); // บังคับวาดตารางส่วนที่ 2 เปล่าๆ ทันที
+    renderTable2();
     
-    const DM_SAMPLES = [
-        {latDeg:9, latMin:39.535, lonDeg:101, lonMin:21.718},
-        {latDeg:7, latMin:54.807, lonDeg:102, lonMin:49.359}
-    ];
+    // Default Data
+    const DM_SAMPLES = [{latDeg:9, latMin:39.535, lonDeg:101, lonMin:21.718}, {latDeg:7, latMin:54.807, lonDeg:102, lonMin:49.359}];
     for(let i=0; i<2; i++) {
-        AppState.s1[i].latD = DM_SAMPLES[i].latDeg;
-        AppState.s1[i].latM = DM_SAMPLES[i].latMin;
-        AppState.s1[i].lonD = DM_SAMPLES[i].lonDeg;
-        AppState.s1[i].lonM = DM_SAMPLES[i].lonMin;
+        AppState.s1[i].latD = DM_SAMPLES[i].latDeg; AppState.s1[i].latM = DM_SAMPLES[i].latMin;
+        AppState.s1[i].lonD = DM_SAMPLES[i].lonDeg; AppState.s1[i].lonM = DM_SAMPLES[i].lonMin;
     }
     
-    // เรียกคำนวณและวาดตารางใหม่พร้อมข้อมูลเริ่มต้น
-    safeCalculateSection1();
+    // Render the initial values in table
+    renderTable1();
 });
 </script>
 </body>
