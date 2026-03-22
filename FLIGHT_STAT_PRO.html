@@ -36,10 +36,10 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            height: 100vh;
+            min-height: 100vh; /* แก้ไข: ให้หน้าจอขยายได้ตามเนื้อหา */
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-x: hidden; /* ป้องกันการเลื่อนซ้ายขวา แต่ยอมให้เลื่อนขึ้นลงได้ */
             transition: background 0.3s;
         }
 
@@ -48,7 +48,7 @@
             flex-direction: column;
             padding: 12px;
             gap: 8px;
-            height: 100%;
+            flex: 1; /* แก้ไข: ให้คอนเทนเนอร์ขยายเต็มพื้นที่ที่เหลือยืดหยุ่นได้ */
         }
 
         .header {
@@ -231,7 +231,7 @@
         </div>
 
         <!-- Developer Credit -->
-        <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto;">
+        <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto; padding-top: 15px; padding-bottom: 5px;">
             Dev by Rattawit W.
         </div>
     </div>
