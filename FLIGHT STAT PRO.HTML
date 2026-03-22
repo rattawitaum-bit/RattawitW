@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FLIGHT STAT PRO V1.0</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --text-main: #ffffff;
+            --text-sub: #8e8e93;
+            --accent: #0a84ff;
+            --danger: #ff453a;
+            --success: #32d74b;
+            --warning: #ffd60a;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-main: #000000;
+            --text-sub: #636366;
+            --accent: #007aff;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 8px;
+            height: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 30px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .status-bar {
+            padding: 8px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 800;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        #gpsDot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-sub);
+        }
+
+        .selector-box {
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 12px;
+        }
+        .label { font-size: 0.65rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 1px solid var(--text-sub);
+            background: var(--card-bg);
+            color: var(--text-main);
+            outline: none;
+            appearance: none;
+        }
+
+        .dashboard {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .eta-card { flex-grow: 1.5; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-grow: 1; }
+
+        .val-large { font-size: 4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+        .val-med { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+        .unit { font-size: 0.8rem; color: var(--text-sub); margin-left: 2px; }
+
+        .offset-day { font-size: 0.9rem; color: var(--danger); vertical-align: super; margin-left: 5px; font-weight: 800; }
+
+        @keyframes blink { 50% { opacity: 0.4; } }
+        .stale { animation: blink 1.5s infinite; color: var(--warning) !important; }
+
+        .tech-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 0.7rem;
+            padding: 5px;
+            text-decoration: underline;
+        }
+
+        .tech-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            padding: 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            display: none; 
+        }
+        .tech-details.active { display: grid; }
+        .tech-item { text-align: center; }
+        .tech-val { font-weight: 600; font-size: 0.8rem; display: block; }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div class="container">
+        <div class="header">
+            <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub);">FLIGHT STAT PRO V1.0</h3>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
+        </div>
+
+        <div class="status-bar">
+            <span id="gpsDot"></span>
+            <span id="statusText">INITIALIZING GPS</span>
+        </div>
+
+        <div class="selector-box">
+            <div class="label">Destination</div>
+            <select id="airportSelect" onchange="updateDest()">
+            </select>
+        </div>
+
+        <div class="dashboard">
+            <div class="card eta-card">
+                <div class="label">Estimated Arrival (ICT / GMT+7)</div>
+                <div id="etaDisplay" class="val-large">--:--</div>
+                <div id="etaSubLabel" class="sub-label" style="font-size: 0.7rem; color: var(--text-sub); margin-top: 5px;">Searching signal...</div>
+            </div>
+
+            <div class="data-grid">
+                <div class="card">
+                    <div class="label">Distance Left</div>
+                    <div><span id="distValue" class="val-med">0</span><span class="unit">km</span></div>
+                </div>
+                <div class="card">
+                    <div class="label">Current Speed</div>
+                    <div><span id="speedValue" class="val-med">0</span><span class="unit">km/h</span></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="tech-toggle-btn" onclick="toggleTech()">Show Technical Details</button>
+        
+        <div id="techPanel" class="tech-details">
+            <div class="tech-item">
+                <span class="label">Bearing</span>
+                <span id="bearingValue" class="tech-val">--</span>
+            </div>
+            <div class="tech-item">
+                <span class="label">Accuracy</span>
+                <span id="accuValue" class="tech-val">--</span>
+            </div>
+            <div class="tech-item">
+                <span class="label">Altitude</span>
+                <span id="altValue" class="tech-val">--</span>
+            </div>
+        </div>
+
+        <!-- Developer Credit -->
+        <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto;">
+            Dev by Rattawit W.
+        </div>
+    </div>
+
+    <script>
+        const AIRPORTS = {
+            "BKK": { name: "Suvarnabhumi", lat: 13.6925, lon: 100.7500 },
+            "DMK": { name: "Don Mueang", lat: 13.9126, lon: 100.6067 },
+            "CNX": { name: "Chiang Mai", lat: 18.7713, lon: 98.9626 },
+            "HKT": { name: "Phuket", lat: 8.1132, lon: 98.3064 },
+            "KBV": { name: "Krabi", lat: 8.0997, lon: 98.9855 },
+            "KKC": { name: "Khon Kaen", lat: 16.4667, lon: 102.7833 },
+            "ROI": { name: "Roi Et", lat: 16.1167, lon: 103.7667 },
+            "HDY": { name: "Hat Yai", lat: 6.9333, lon: 100.3964 },
+            "HHQ": { name: "Hua Hin", lat: 12.6364, lon: 99.9519 },
+            "URT": { name: "Surat Thani", lat: 9.1326, lon: 99.1356 },
+            "SIN": { name: "Singapore", lat: 1.3644, lon: 103.9915 },
+            "HKG": { name: "Hong Kong", lat: 22.3080, lon: 113.9185 },
+            "LPT": { name: "Lampang", lat: 18.2722, lon: 99.5033 },
+            "CEI": { name: "Chiang Rai", lat: 19.9517, lon: 99.8831 },
+            "NST": { name: "Nakhon Si Thammarat", lat: 8.5414, lon: 99.9442 },
+            "ICN": { name: "Incheon", lat: 37.4602, lon: 126.4407 },
+            "HAN": { name: "Hanoi", lat: 21.2212, lon: 105.8072 },
+            "TPE": { name: "Taipei Taoyuan", lat: 25.0797, lon: 121.2342 },
+            "CTS": { name: "New Chitose", lat: 42.7750, lon: 141.6923 },
+            "KIX": { name: "Kansai", lat: 34.4347, lon: 135.2441 },
+            "NRT": { name: "Narita", lat: 35.7720, lon: 140.3929 }
+        };
+
+        let state = {
+            isFlying: false,      
+            isMoving: false,      
+            lastPos: null,
+            lastTime: null,
+            speedBuffer: [],
+            currentPos: null
+        };
+
+        const FLYING_START_SPEED = 150; 
+        const FLYING_STOP_SPEED = 80;   
+        const MOVING_START_SPEED = 45;  
+        const MOVING_STOP_SPEED = 15;   
+        const MAX_VALID_SPEED = 1200;   
+
+        function init() {
+            const select = document.getElementById('airportSelect');
+            Object.keys(AIRPORTS).sort().forEach(code => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.text = `${code} - ${AIRPORTS[code].name}`;
+                select.appendChild(opt);
+            });
+
+            const saved = localStorage.getItem('lastDest');
+            if (saved && AIRPORTS[saved]) select.value = saved;
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(processLocation, handleError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 2000,
+                    timeout: 10000
+                });
+            }
+        }
+
+        function processLocation(position) {
+            const coords = position.coords;
+            const now = Date.now();
+            let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
+            let isSynthetic = false;
+
+            if (rawSpeed === 0 && state.lastPos) {
+                const dt = (now - state.lastTime) / 1000;
+                if (dt >= 1.5) {
+                    const dist = haversine(state.lastPos.lat, state.lastPos.lon, coords.latitude, coords.longitude);
+                    rawSpeed = (dist / dt) * 3600;
+                    isSynthetic = true; 
+                }
+            }
+
+            if (rawSpeed > MAX_VALID_SPEED) return; 
+
+            state.speedBuffer.push(rawSpeed);
+            if (state.speedBuffer.length > 5) state.speedBuffer.shift();
+            const smoothedSpeed = state.speedBuffer.reduce((a, b) => a + b, 0) / state.speedBuffer.length;
+
+            if (!state.isFlying && smoothedSpeed > FLYING_START_SPEED) state.isFlying = true;
+            if (state.isFlying && smoothedSpeed < FLYING_STOP_SPEED) state.isFlying = false;
+
+            if (!state.isMoving && smoothedSpeed > MOVING_START_SPEED) state.isMoving = true;
+            if (state.isMoving && smoothedSpeed < MOVING_STOP_SPEED) state.isMoving = false;
+
+            state.lastPos = { lat: coords.latitude, lon: coords.longitude };
+            state.lastTime = now;
+            
+            state.currentPos = { ...coords, speedKph: smoothedSpeed, isSynthetic: isSynthetic };
+
+            updateUI();
+        }
+
+        function updateUI() {
+            if (!state.currentPos) return;
+
+            const pos = state.currentPos;
+            const airportCode = document.getElementById('airportSelect').value;
+            const dest = AIRPORTS[airportCode];
+
+            if (!dest) return;
+
+            const dist = haversine(pos.latitude, pos.longitude, dest.lat, dest.lon);
+            const bearing = getBearing(pos.latitude, pos.longitude, dest.lat, dest.lon);
+
+            const dot = document.getElementById('gpsDot');
+            const statusTxt = document.getElementById('statusText');
+            
+            if (pos.accuracy > 100 || pos.isSynthetic) {
+                dot.style.background = "var(--warning)";
+                dot.classList.add('stale');
+                statusTxt.innerText = state.isFlying ? "WEAK SIGNAL (IN FLIGHT)" : "WEAK SIGNAL (GROUND)";
+            } else {
+                dot.style.background = "var(--success)";
+                dot.classList.remove('stale');
+                statusTxt.innerText = state.isFlying ? "IN FLIGHT" : "ON GROUND";
+            }
+
+            const etaVal = document.getElementById('etaDisplay');
+            const etaSub = document.getElementById('etaSubLabel');
+
+            if (!state.isFlying) {
+                etaVal.innerText = "READY";
+                etaVal.className = "val-large";
+                etaSub.innerText = state.isMoving ? "Taxiing for takeoff..." : "Parked at airport";
+            } else {
+                const timeRemainingH = dist / pos.speedKph;
+                const hh = Math.floor(timeRemainingH);
+                const mm = Math.round((timeRemainingH - hh) * 60);
+                
+                const now = new Date();
+                const etaDate = new Date(now.getTime() + (timeRemainingH * 3600000));
+                
+                const thaiTime = new Intl.DateTimeFormat('en-GB', {
+                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok'
+                }).format(etaDate);
+
+                const isNextDay = etaDate.getDate() !== now.getDate();
+                
+                etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
+                etaVal.className = "val-large";
+                etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+            }
+
+            document.getElementById('distValue').innerText = dist.toFixed(1);
+            
+            const speedEl = document.getElementById('speedValue');
+            speedEl.innerText = Math.round(pos.speedKph);
+            if (pos.isSynthetic) speedEl.classList.add('stale');
+            else speedEl.classList.remove('stale');
+
+            document.getElementById('bearingValue').innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
+            document.getElementById('accuValue').innerText = Math.round(pos.accuracy) + "m";
+            document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
+        }
+
+        function haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function getBearing(lat1, lon1, lat2, lon2) {
+            const rad = d => d * Math.PI / 180;
+            const y = Math.sin(rad(lon2-lon1)) * Math.cos(rad(lat2));
+            const x = Math.cos(rad(lat1)) * Math.sin(rad(lat2)) -
+                      Math.sin(rad(lat1)) * Math.cos(rad(lat2)) * Math.cos(rad(lon2-lon1));
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+
+        function getCardinal(deg) {
+            const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"];
+            return dirs[Math.round(deg / 45)];
+        }
+
+        function toggleTheme() {
+            const b = document.body;
+            const isDark = b.getAttribute('data-theme') === 'dark';
+            const newTheme = isDark ? 'light' : 'dark';
+            b.setAttribute('data-theme', newTheme);
+            document.getElementById('themeIcon').innerText = newTheme === 'dark' ? '🌙' : '☀️';
+        }
+
+        function toggleTech() {
+            const p = document.getElementById('techPanel');
+            const b = document.querySelector('.tech-toggle-btn');
+            p.classList.toggle('active');
+            b.innerText = p.classList.contains('active') ? "Hide Technical Details" : "Show Technical Details";
+        }
+
+        function updateDest() {
+            const code = document.getElementById('airportSelect').value;
+            localStorage.setItem('lastDest', code);
+            if (state.currentPos) updateUI();
+        }
+
+        function handleError(e) {
+            const statusTxt = document.getElementById('statusText');
+            const dot = document.getElementById('gpsDot');
+            statusTxt.innerText = "GPS ERROR: " + (e.message || e.code);
+            dot.style.background = "var(--danger)";
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
