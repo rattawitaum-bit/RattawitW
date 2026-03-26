@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLIGHT STAT PRO V1.0</title>
     
-    <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -161,6 +160,19 @@
         .tech-item { text-align: center; }
         .tech-val { font-weight: 600; font-size: 0.8rem; display: block; }
 
+        /* Debug Console Styles */
+        .debug-panel {
+            grid-column: span 3;
+            border-top: 1px dashed rgba(255,255,255,0.2);
+            margin-top: 10px;
+            padding-top: 10px;
+            text-align: left;
+            font-size: 0.65rem;
+            color: var(--text-sub);
+            font-family: monospace;
+            line-height: 1.4;
+        }
+
         /* Tips Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -232,10 +244,19 @@
                 <span class="label">Altitude</span>
                 <span id="altValue" class="tech-val">--</span>
             </div>
+            
+            <div class="debug-panel">
+                <div>[SPD] Raw: <span id="dbgRaw">0</span> | Avg: <span id="dbgSmooth">0</span></div>
+                <div>[FLG] Fly: <span id="dbgFly">F</span> | Mov: <span id="dbgMov">F</span> | Syn: <span id="dbgSyn">F</span></div>
+                <div>[ANC] Set: <span id="dbgAnchor">NO</span> | StillCount: <span id="dbgStill">0</span></div>
+            </div>
+        </div>
+
+        <div style="text-align: center; font-size: 0.55rem; color: var(--text-sub); margin-top: auto; padding-top: 15px; padding-bottom: 5px;">
+            Dev by Rattawit W.
         </div>
     </div>
 
-    <!-- Tips Modal -->
     <div id="tipsModal" class="modal-overlay">
         <div class="modal-box">
             <h4 style="margin-bottom: 12px; color: var(--text-main);">📌 How to Use</h4>
@@ -272,11 +293,6 @@
             </div>
             
             <button onclick="toggleTips()" class="modal-close-btn">I Understand</button>
-
-            <!-- Moved Developer Credit Here -->
-            <div style="text-align: center; font-size: 0.6rem; color: var(--text-sub); margin-top: 15px;">
-                Dev by Rattawit W.
-            </div>
         </div>
     </div>
 
@@ -404,7 +420,17 @@
             state.lastPos = { lat: coords.latitude, lon: coords.longitude };
             state.lastTime = now;
             
-            state.currentPos = { ...coords, speedKph: smoothedSpeed, isSynthetic: isSynthetic };
+            // ใช้การระบุค่าตรงๆ แก้ปัญหา Object Spread (...coords) ที่ทำให้พิกัดหายตอนเคลื่อนที่
+            state.currentPos = { 
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                accuracy: coords.accuracy,
+                altitude: coords.altitude,
+                heading: coords.heading,
+                speedKph: smoothedSpeed, 
+                rawSpeed: rawSpeed,
+                isSynthetic: isSynthetic 
+            };
 
             updateUI();
         }
@@ -434,6 +460,15 @@
 
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
+
+            // --- Update Debug Console ---
+            document.getElementById('dbgRaw').innerText = Math.round(pos.rawSpeed);
+            document.getElementById('dbgSmooth').innerText = Math.round(pos.speedKph);
+            document.getElementById('dbgFly').innerText = state.isFlying ? "T" : "F";
+            document.getElementById('dbgMov').innerText = state.isMoving ? "T" : "F";
+            document.getElementById('dbgSyn').innerText = pos.isSynthetic ? "T" : "F";
+            document.getElementById('dbgAnchor').innerText = state.anchorPos ? "YES" : "NO";
+            document.getElementById('dbgStill').innerText = state.stillCount;
 
             const airportCode = document.getElementById('airportSelect').value;
             const dest = AIRPORTS[airportCode];
