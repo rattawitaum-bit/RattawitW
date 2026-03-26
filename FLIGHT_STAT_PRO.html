@@ -144,6 +144,7 @@
             font-size: 0.7rem;
             padding: 5px;
             text-decoration: underline;
+            cursor: pointer;
         }
 
         .tech-details {
@@ -266,8 +267,8 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (LOCAL FILE):</p>
-                <p style="font-size: 0.75rem; margin-bottom: 15px;">Send this .html file to your device. On iOS, "Save to Files" and open it directly from the Files app during the flight.</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (100% Reliable):</p>
+                <p style="font-size: 0.75rem; margin-bottom: 15px;">Open this app via a web link (HTTPS). Tap the browser's Share/Menu button and select <b>"Add to Home Screen"</b>. Do not run as a local HTML file on Android, as GPS will be blocked.</p>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
 
@@ -316,7 +317,7 @@
             currentPos: null,
             anchorPos: null,
             stillCount: 0,
-            synPos: null // QC: แยกจุดอ้างอิงเพื่อสะสมระยะทางป้องการ Reset-Loop
+            synPos: null 
         };
 
         const FLYING_START_SPEED = 150; 
@@ -355,7 +356,6 @@
             startGPS();
         }
 
-        // Feature: Auto WakeLock on interaction
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator && !wakeLock) {
@@ -366,9 +366,7 @@
                         }
                     });
                 }
-            } catch (err) {
-                // Silently fail if browser doesn't support or denies
-            }
+            } catch (err) {}
         }
 
         function startGPS() {
@@ -378,20 +376,21 @@
                     maximumAge: 2000,
                     timeout: 10000
                 });
+            } else {
+                document.getElementById('statusText').innerText = "GPS NOT SUPPORTED";
+                document.getElementById('gpsDot').style.background = "var(--danger)";
             }
         }
 
         function processLocation(position) {
             const coords = position.coords;
             
-            // QC Guard: ตัดพิกัดขยะที่ Accuracy แย่มากๆ ทิ้งก่อนคำนวณ (กัน Speed Spikes)
-            if (coords.accuracy > 2000) return;
+            if (coords.accuracy > 2000) return; // Ignore extreme GPS spikes
 
             const now = Date.now();
             let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
             let isSynthetic = false;
 
-            // Reset logic เมื่อพับแอปทิ้งไว้นานกว่า 15 วิ
             if (state.lastTime && (now - state.lastTime) / 1000 > 15) {
                 state.speedBuffer = [];
                 state.isFlying = false;
@@ -399,7 +398,6 @@
                 state.stillCount = 0;
             }
 
-            // QC Fix: ฐานข้อมูลพิกัดอิสระสำหรับ Synthetic (ป้องการ Reset ระยะทางทุกวิ)
             if (!state.synPos) {
                 state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
             }
@@ -408,18 +406,15 @@
                 const dt = (now - state.synPos.time) / 1000;
                 if (dt >= 1.0) {
                     const dist = haversine(state.synPos.lat, state.synPos.lon, coords.latitude, coords.longitude);
-                    // 0.015 km = 15m ป้องกัน GPS Drift ขณะเครื่องจอดสนิท
-                    if (dist > 0.015) { 
+                    if (dist > 0.015) { // 15 meters drift protection
                         rawSpeed = (dist / dt) * 3600;
                         isSynthetic = true;
                         state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
                     } else if (dt > 10.0) {
-                        // ไม่ขยับเกิน 15m ภายใน 10 วิ = จอดสนิทแน่นอน รีเซ็ตเวลาเริ่มต้น
                         state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
                     }
                 }
             } else {
-                // มี Speed จาก Hardware รีเซ็ตจุดอ้างอิงให้เป็นปัจจุบันเสมอ
                 state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
             }
 
@@ -488,7 +483,6 @@
             else speedEl.classList.remove('stale');
 
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
-            // QC Fix: เปลี่ยนเงื่อนไขเพื่อรองรับระดับน้ำทะเล (0m)
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
             document.getElementById('dbgRaw').innerText = Math.round(pos.rawSpeed);
@@ -519,7 +513,6 @@
             const dist = haversine(calcLat, calcLon, dest.lat, dest.lon);
             const bearing = getBearing(calcLat, calcLon, dest.lat, dest.lon);
 
-            // QC Fix: แยก Flight Phase Logic ให้อ่านรอบคลุมถึง Landing / Taxi
             if (!state.isFlying) {
                 etaVal.innerText = "READY";
                 etaVal.className = "val-large";
@@ -631,7 +624,12 @@
                 return;
             }
 
-            statusTxt.innerText = "GPS ERROR: " + (e.message || e.code);
+            let errorMsg = e.message || e.code;
+            if (e.code === 1 && window.location.protocol === 'file:' && /Android/i.test(navigator.userAgent)) {
+                errorMsg = "Android blocks GPS on local files. Use Add to Home Screen via HTTPS link.";
+            }
+
+            statusTxt.innerText = "GPS ERROR: " + errorMsg;
             dot.style.background = "var(--danger)";
         }
 
