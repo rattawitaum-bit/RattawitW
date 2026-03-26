@@ -159,7 +159,6 @@
         .tech-item { text-align: center; }
         .tech-val { font-weight: 600; font-size: 0.8rem; display: block; }
 
-        /* Debug Console Styles */
         .debug-panel {
             grid-column: span 3;
             border-top: 1px dashed rgba(255,255,255,0.2);
@@ -172,7 +171,6 @@
             line-height: 1.4;
         }
 
-        /* Tips Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100;
@@ -313,12 +311,12 @@
         let state = {
             isFlying: false,      
             isMoving: false,      
-            lastPos: null,
             lastTime: null,
             speedBuffer: [],
             currentPos: null,
             anchorPos: null,
-            stillCount: 0
+            stillCount: 0,
+            synPos: null // QC: แยกจุดอ้างอิงเพื่อสะสมระยะทางป้องการ Reset-Loop
         };
 
         const FLYING_START_SPEED = 150; 
@@ -327,6 +325,8 @@
         const MOVING_STOP_SPEED = 15;   
         const MAX_VALID_SPEED = 1200;
         const ANCHOR_STILL_COUNT = 3;   
+        let watchId = null;
+        let wakeLock = null;
 
         function init() {
             const select = document.getElementById('airportSelect');
@@ -352,8 +352,28 @@
                 setTimeout(toggleTips, 500);
             }
 
+            startGPS();
+        }
+
+        // Feature: Auto WakeLock on interaction
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator && !wakeLock) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible') {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            } catch (err) {
+                // Silently fail if browser doesn't support or denies
+            }
+        }
+
+        function startGPS() {
             if ("geolocation" in navigator) {
-                navigator.geolocation.watchPosition(processLocation, handleError, {
+                watchId = navigator.geolocation.watchPosition(processLocation, handleError, {
                     enableHighAccuracy: true,
                     maximumAge: 2000,
                     timeout: 10000
@@ -363,23 +383,55 @@
 
         function processLocation(position) {
             const coords = position.coords;
+            
+            // QC Guard: ตัดพิกัดขยะที่ Accuracy แย่มากๆ ทิ้งก่อนคำนวณ (กัน Speed Spikes)
+            if (coords.accuracy > 2000) return;
+
             const now = Date.now();
             let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
             let isSynthetic = false;
 
-            if (rawSpeed === 0 && state.lastPos) {
-                const dt = (now - state.lastTime) / 1000;
-                if (dt >= 1.5) {
-                    const dist = haversine(state.lastPos.lat, state.lastPos.lon, coords.latitude, coords.longitude);
-                    rawSpeed = (dist / dt) * 3600;
-                    isSynthetic = true; 
+            // Reset logic เมื่อพับแอปทิ้งไว้นานกว่า 15 วิ
+            if (state.lastTime && (now - state.lastTime) / 1000 > 15) {
+                state.speedBuffer = [];
+                state.isFlying = false;
+                state.isMoving = false;
+                state.stillCount = 0;
+            }
+
+            // QC Fix: ฐานข้อมูลพิกัดอิสระสำหรับ Synthetic (ป้องการ Reset ระยะทางทุกวิ)
+            if (!state.synPos) {
+                state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
+            }
+
+            if (rawSpeed === 0) {
+                const dt = (now - state.synPos.time) / 1000;
+                if (dt >= 1.0) {
+                    const dist = haversine(state.synPos.lat, state.synPos.lon, coords.latitude, coords.longitude);
+                    // 0.015 km = 15m ป้องกัน GPS Drift ขณะเครื่องจอดสนิท
+                    if (dist > 0.015) { 
+                        rawSpeed = (dist / dt) * 3600;
+                        isSynthetic = true;
+                        state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
+                    } else if (dt > 10.0) {
+                        // ไม่ขยับเกิน 15m ภายใน 10 วิ = จอดสนิทแน่นอน รีเซ็ตเวลาเริ่มต้น
+                        state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
+                    }
                 }
+            } else {
+                // มี Speed จาก Hardware รีเซ็ตจุดอ้างอิงให้เป็นปัจจุบันเสมอ
+                state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
             }
 
             if (rawSpeed > MAX_VALID_SPEED) return; 
 
-            state.speedBuffer.push(rawSpeed);
-            if (state.speedBuffer.length > 5) state.speedBuffer.shift();
+            if (state.speedBuffer.length === 0 && rawSpeed > 0) {
+                state.speedBuffer = Array(5).fill(rawSpeed);
+            } else {
+                state.speedBuffer.push(rawSpeed);
+                if (state.speedBuffer.length > 5) state.speedBuffer.shift();
+            }
+            
             const smoothedSpeed = state.speedBuffer.reduce((a, b) => a + b, 0) / state.speedBuffer.length;
 
             if (!state.isFlying && smoothedSpeed > FLYING_START_SPEED) state.isFlying = true;
@@ -398,9 +450,7 @@
                 state.anchorPos = null;
             }
 
-            state.lastPos = { lat: coords.latitude, lon: coords.longitude };
             state.lastTime = now;
-            
             state.currentPos = { 
                 latitude: coords.latitude,
                 longitude: coords.longitude,
@@ -419,7 +469,6 @@
             if (!state.currentPos) return;
 
             const pos = state.currentPos;
-            
             const dot = document.getElementById('gpsDot');
             const statusTxt = document.getElementById('statusText');
             
@@ -439,9 +488,9 @@
             else speedEl.classList.remove('stale');
 
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
-            document.getElementById('altValue').innerText = pos.altitude ? Math.round(pos.altitude) + "m" : "--";
+            // QC Fix: เปลี่ยนเงื่อนไขเพื่อรองรับระดับน้ำทะเล (0m)
+            document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
-            // --- Update Debug Console ---
             document.getElementById('dbgRaw').innerText = Math.round(pos.rawSpeed);
             document.getElementById('dbgSmooth').innerText = Math.round(pos.speedKph);
             document.getElementById('dbgFly').innerText = state.isFlying ? "T" : "F";
@@ -470,33 +519,51 @@
             const dist = haversine(calcLat, calcLon, dest.lat, dest.lon);
             const bearing = getBearing(calcLat, calcLon, dest.lat, dest.lon);
 
+            // QC Fix: แยก Flight Phase Logic ให้อ่านรอบคลุมถึง Landing / Taxi
             if (!state.isFlying) {
                 etaVal.innerText = "READY";
                 etaVal.className = "val-large";
-                etaSub.innerText = state.isMoving ? "Taxiing for takeoff..." : "Parked at airport";
+                if (dist < 20) {
+                    etaSub.innerText = state.isMoving ? "Taxiing to gate..." : "Arrived / Parked";
+                } else {
+                    etaSub.innerText = state.isMoving ? "Taxiing for takeoff..." : "Parked at airport";
+                }
             } else {
-                const timeRemainingH = dist / pos.speedKph;
-                const hh = Math.floor(timeRemainingH);
-                const mm = Math.round((timeRemainingH - hh) * 60);
-                
-                const now = new Date();
-                const etaDate = new Date(now.getTime() + (timeRemainingH * 3600000));
-                
-                // Timezone safe formatting for display
-                const thaiTime = new Intl.DateTimeFormat('en-GB', {
-                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok'
-                }).format(etaDate);
+                if (pos.speedKph < 250) {
+                    etaVal.innerText = "CALC";
+                    etaVal.className = "val-large";
+                    if (dist < 100) {
+                        etaSub.innerText = "Approaching destination...";
+                    } else {
+                        etaSub.innerText = pos.speedKph < 10 ? "Calculating..." : "Reaching cruise speed...";
+                    }
+                } else {
+                    const timeRemainingH = dist / pos.speedKph;
+                    let hh = Math.floor(timeRemainingH);
+                    let mm = Math.round((timeRemainingH - hh) * 60);
+                    
+                    if (mm >= 60) {
+                        hh += 1;
+                        mm -= 60;
+                    }
+                    
+                    const now = new Date();
+                    const etaDate = new Date(now.getTime() + (timeRemainingH * 3600000));
+                    
+                    const thaiTime = new Intl.DateTimeFormat('en-GB', {
+                        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok'
+                    }).format(etaDate);
 
-                // Timezone safe comparison for +1 Day logic
-                const fmt = d => new Intl.DateTimeFormat('en-CA', {
-                    timeZone: 'Asia/Bangkok',
-                    year: 'numeric', month: '2-digit', day: '2-digit'
-                }).format(d);
-                const isNextDay = fmt(etaDate) !== fmt(now);
-                
-                etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
-                etaVal.className = "val-large";
-                etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+                    const fmt = d => new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Bangkok',
+                        year: 'numeric', month: '2-digit', day: '2-digit'
+                    }).format(d);
+                    const isNextDay = fmt(etaDate) !== fmt(now);
+                    
+                    etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
+                    etaVal.className = "val-large";
+                    etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+                }
             }
 
             document.getElementById('distValue').innerText = dist.toFixed(1);
@@ -549,12 +616,21 @@
         function updateDest() {
             const code = document.getElementById('airportSelect').value;
             localStorage.setItem('lastDest', code);
+            requestWakeLock();
             if (state.currentPos) updateUI();
         }
 
         function handleError(e) {
             const statusTxt = document.getElementById('statusText');
             const dot = document.getElementById('gpsDot');
+            
+            if (e.code === 3) {
+                console.log("GPS Timeout, restarting watch...");
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                startGPS();
+                return;
+            }
+
             statusTxt.innerText = "GPS ERROR: " + (e.message || e.code);
             dot.style.background = "var(--danger)";
         }
