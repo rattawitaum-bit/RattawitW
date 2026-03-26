@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLIGHT STAT PRO V1.0</title>
     
-    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Flight Stat">
@@ -269,18 +268,8 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--danger); font-weight: bold; margin-bottom: 5px;">❌ OFFLINE WARNING:</p>
-                <ul style="padding-left: 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
-                    <li>Do <u style="text-underline-offset: 2px;">NOT</u> "Save Page As" or download as a file.</li>
-                    <li>Do <u style="text-underline-offset: 2px;">NOT</u> just leave the browser tab open. It will crash without internet.</li>
-                </ul>
-
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ HOW TO SAVE FOR OFFLINE:</p>
-                <p style="font-size: 0.75rem; margin-bottom: 8px;">While you still have internet connection:</p>
-                <ul style="padding-left: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 4px;">
-                    <li><b>iOS (Safari):</b> Tap the Share icon (square with up arrow) -> scroll down -> tap <b>"Add to Home Screen"</b>.</li>
-                    <li><b>Android (Chrome):</b> Tap the 3-dots menu -> tap <b>"Add to Home screen"</b>.</li>
-                </ul>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (LOCAL FILE):</p>
+                <p style="font-size: 0.75rem; margin-bottom: 15px;">Send this .html file to your device. On iOS, "Save to Files" and open it directly from the Files app during the flight.</p>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
 
@@ -340,14 +329,6 @@
         const ANCHOR_STILL_COUNT = 3;   
 
         function init() {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(function(reg) {
-                    console.log('Service Worker Registered!', reg);
-                }).catch(function(err) {
-                    console.log('Service Worker Failed!', err);
-                });
-            }
-
             const select = document.getElementById('airportSelect');
             
             const defaultOpt = document.createElement('option');
@@ -420,7 +401,6 @@
             state.lastPos = { lat: coords.latitude, lon: coords.longitude };
             state.lastTime = now;
             
-            // ใช้การระบุค่าตรงๆ แก้ปัญหา Object Spread (...coords) ที่ทำให้พิกัดหายตอนเคลื่อนที่
             state.currentPos = { 
                 latitude: coords.latitude,
                 longitude: coords.longitude,
@@ -502,11 +482,17 @@
                 const now = new Date();
                 const etaDate = new Date(now.getTime() + (timeRemainingH * 3600000));
                 
+                // Timezone safe formatting for display
                 const thaiTime = new Intl.DateTimeFormat('en-GB', {
                     hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok'
                 }).format(etaDate);
 
-                const isNextDay = etaDate.getDate() !== now.getDate();
+                // Timezone safe comparison for +1 Day logic
+                const fmt = d => new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Bangkok',
+                    year: 'numeric', month: '2-digit', day: '2-digit'
+                }).format(d);
+                const isNextDay = fmt(etaDate) !== fmt(now);
                 
                 etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
                 etaVal.className = "val-large";
