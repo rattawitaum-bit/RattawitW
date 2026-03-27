@@ -330,6 +330,17 @@
         let wakeLock = null;
 
         function init() {
+            // --- Service Worker Kill Switch ---
+            // โค้ดนี้จะบังคับถอนรากถอนโคน Service Worker ตัวเก่าที่ค้างอยู่ในเครื่องผู้ใช้
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('Old ServiceWorker unregistered successfully.');
+                    }
+                });
+            }
+
             const select = document.getElementById('airportSelect');
             
             const defaultOpt = document.createElement('option');
