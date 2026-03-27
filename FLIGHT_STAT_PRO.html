@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.0.5</title>
+    <title>FLIGHT STAT PRO V1.0.7</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -191,7 +194,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.0.5 
+                FLIGHT STAT PRO V1.0.7 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -267,8 +270,8 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (100% Reliable):</p>
-                <p style="font-size: 0.75rem; margin-bottom: 15px;">Open this app via a web link (HTTPS). Tap the browser's Share/Menu button and select <b>"Add to Home Screen"</b>. Do not run as a local HTML file on Android, as GPS will be blocked.</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (WebAPK & Local):</p>
+                <p style="font-size: 0.75rem; margin-bottom: 15px;"><b>Android/iOS:</b> Open this app via HTTPS link and select <b>"Install App" / "Add to Home Screen"</b>. Alternatively on iOS, save as a local file and open via Files app.</p>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
 
@@ -320,27 +323,23 @@
             synPos: null 
         };
 
-        // --- QC Adjusted Thresholds ---
-        // เปลี่ยนกลับมาใช้ค่าที่ต้านทาน GPS Drift ได้ดีขึ้น เพื่อรักษาเสถียรภาพของ Anchor System
         const FLYING_START_SPEED = 150; 
         const FLYING_STOP_SPEED = 80;   
-        const MOVING_START_SPEED = 45;   // กลับมาใช้ 45 km/h เพื่อหลีกเลี่ยง False-Taxi จากสัญญาณ GPS แกว่ง
-        const MOVING_STOP_SPEED = 15;    // กลับมาใช้ 15 km/h เพื่อให้สามารถล็อก Anchor ได้แม้จะมี Drift เล็กน้อย
+        const MOVING_START_SPEED = 45;   
+        const MOVING_STOP_SPEED = 15;    
         const MAX_VALID_SPEED = 1300;    
-        const ANCHOR_STILL_COUNT = 3;    // ล็อกสมอได้เร็วขึ้นเมื่อจอดนิ่ง
+        const ANCHOR_STILL_COUNT = 3;    
         
         let watchId = null;
         let wakeLock = null;
 
         function init() {
-            if ('serviceWorker' in navigator) {
-                try {
-                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                        for(let registration of registrations) {
-                            registration.unregister();
-                        }
-                    }).catch(function(e) {});
-                } catch (err) {}
+            // Guard: ลงทะเบียน Service Worker เฉพาะเมื่อเปิดผ่านเน็ตเวิร์ก (HTTP/HTTPS) 
+            // หากเปิดเป็นไฟล์ในเครื่อง (file://) โค้ดนี้จะไม่ทำงาน ทำให้ไม่เกิด InvalidStateError
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
+                navigator.serviceWorker.register('sw.js').catch(function(e) {
+                    console.log('SW Registration failed:', e);
+                });
             }
 
             const select = document.getElementById('airportSelect');
