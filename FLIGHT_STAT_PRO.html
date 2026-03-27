@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.0.4</title>
+    <title>FLIGHT STAT PRO V1.0.5</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -191,7 +191,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.0.4 
+                FLIGHT STAT PRO V1.0.5 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -320,13 +320,14 @@
             synPos: null 
         };
 
-        // QC Adjusted Thresholds for realistic aviation parameters
+        // --- QC Adjusted Thresholds ---
+        // เปลี่ยนกลับมาใช้ค่าที่ต้านทาน GPS Drift ได้ดีขึ้น เพื่อรักษาเสถียรภาพของ Anchor System
         const FLYING_START_SPEED = 150; 
         const FLYING_STOP_SPEED = 80;   
-        const MOVING_START_SPEED = 15;   // เครื่องบินแท็กซี่มักจะอยู่ที่ 15-30 km/h
-        const MOVING_STOP_SPEED = 5;     // ต่ำกว่า 5 km/h ให้ถือว่าจอดสนิท (กัน drift)
-        const MAX_VALID_SPEED = 1300;    // เผื่อบินตามกระแสลมกรด (Jet Stream) ที่ดัน ground speed พุ่งสูง
-        const ANCHOR_STILL_COUNT = 4;    // รอให้นิ่งสนิท 4 วินาทีก่อนวางสมอ   
+        const MOVING_START_SPEED = 45;   // กลับมาใช้ 45 km/h เพื่อหลีกเลี่ยง False-Taxi จากสัญญาณ GPS แกว่ง
+        const MOVING_STOP_SPEED = 15;    // กลับมาใช้ 15 km/h เพื่อให้สามารถล็อก Anchor ได้แม้จะมี Drift เล็กน้อย
+        const MAX_VALID_SPEED = 1300;    
+        const ANCHOR_STILL_COUNT = 3;    // ล็อกสมอได้เร็วขึ้นเมื่อจอดนิ่ง
         
         let watchId = null;
         let wakeLock = null;
