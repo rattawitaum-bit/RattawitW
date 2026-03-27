@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.0</title>
+    <title>FLIGHT STAT PRO V1.0.4</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -191,7 +191,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.0 
+                FLIGHT STAT PRO V1.0.4 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -320,25 +320,26 @@
             synPos: null 
         };
 
+        // QC Adjusted Thresholds for realistic aviation parameters
         const FLYING_START_SPEED = 150; 
         const FLYING_STOP_SPEED = 80;   
-        const MOVING_START_SPEED = 45;  
-        const MOVING_STOP_SPEED = 15;   
-        const MAX_VALID_SPEED = 1200;
-        const ANCHOR_STILL_COUNT = 3;   
+        const MOVING_START_SPEED = 15;   // เครื่องบินแท็กซี่มักจะอยู่ที่ 15-30 km/h
+        const MOVING_STOP_SPEED = 5;     // ต่ำกว่า 5 km/h ให้ถือว่าจอดสนิท (กัน drift)
+        const MAX_VALID_SPEED = 1300;    // เผื่อบินตามกระแสลมกรด (Jet Stream) ที่ดัน ground speed พุ่งสูง
+        const ANCHOR_STILL_COUNT = 4;    // รอให้นิ่งสนิท 4 วินาทีก่อนวางสมอ   
+        
         let watchId = null;
         let wakeLock = null;
 
         function init() {
-            // --- Service Worker Kill Switch ---
-            // โค้ดนี้จะบังคับถอนรากถอนโคน Service Worker ตัวเก่าที่ค้างอยู่ในเครื่องผู้ใช้
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for(let registration of registrations) {
-                        registration.unregister();
-                        console.log('Old ServiceWorker unregistered successfully.');
-                    }
-                });
+                try {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            registration.unregister();
+                        }
+                    }).catch(function(e) {});
+                } catch (err) {}
             }
 
             const select = document.getElementById('airportSelect');
@@ -364,6 +365,14 @@
                 setTimeout(toggleTips, 500);
             }
 
+            document.addEventListener('visibilitychange', async () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    try {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                    } catch (err) {}
+                }
+            });
+
             startGPS();
         }
 
@@ -371,11 +380,6 @@
             try {
                 if ('wakeLock' in navigator && !wakeLock) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    document.addEventListener('visibilitychange', async () => {
-                        if (wakeLock !== null && document.visibilityState === 'visible') {
-                            wakeLock = await navigator.wakeLock.request('screen');
-                        }
-                    });
                 }
             } catch (err) {}
         }
@@ -396,7 +400,7 @@
         function processLocation(position) {
             const coords = position.coords;
             
-            if (coords.accuracy > 2000) return; // Ignore extreme GPS spikes
+            if (coords.accuracy > 2000) return;
 
             const now = Date.now();
             let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
@@ -407,6 +411,7 @@
                 state.isFlying = false;
                 state.isMoving = false;
                 state.stillCount = 0;
+                state.synPos = null; 
             }
 
             if (!state.synPos) {
@@ -417,7 +422,7 @@
                 const dt = (now - state.synPos.time) / 1000;
                 if (dt >= 1.0) {
                     const dist = haversine(state.synPos.lat, state.synPos.lon, coords.latitude, coords.longitude);
-                    if (dist > 0.015) { // 15 meters drift protection
+                    if (dist > 0.015) { 
                         rawSpeed = (dist / dt) * 3600;
                         isSynthetic = true;
                         state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
