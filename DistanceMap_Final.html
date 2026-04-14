@@ -82,6 +82,7 @@
   </div>
   <div id="metaBar" class="metabar">
     <span>Owner: <b>PPD/P Geomatics</b></span> •
+	<span>V260414</span> •
     <span>Now: <b id="dateHeader"></b></span> •
     <span>Speed: <b id="speedHeader">8</b> kn</span>
   </div>
@@ -197,7 +198,7 @@ const GOT_POLY={"type":"FeatureCollection","features":[
 
 /* ========= Geodesy ========= */
 const a_wgs=6378137,f_wgs=1/298.257223563,a_ind=6377276.345,f_ind=1/300.8017;
-const dx=-204.64,dy=-834.74,dz=-293.8,k0=0.9996,zone=47,cm=6*zone-183,false_e=500000;
+const dx=204.64,dy=834.74,dz=293.8,k0=0.9996,zone=47,cm=6*zone-183,false_e=500000;
 const degToRad=d=>d*Math.PI/180, radToDeg=r=>r*180/Math.PI;
 function geodeticToECEF(lat,lon,h,a,f){const lr=degToRad(lat),mr=degToRad(lon),e2=f*(2-f),nu=a/Math.sqrt(1-e2*Math.sin(lr)**2);return[(nu+h)*Math.cos(lr)*Math.cos(mr),(nu+h)*Math.cos(lr)*Math.sin(mr),(nu*(1-e2)+h)*Math.sin(lr)];}
 function ecefToGeodetic(X,Y,Z,a,f){const e2=f*(2-f),p=Math.sqrt(X*X+Y*Y);let lon=Math.atan2(Y,X),lat=Math.atan2(Z,p*(1-e2)),h=0;for(let i=0;i<100;i++){const nu=a/Math.sqrt(1-e2*Math.sin(lat)**2),h2=p/Math.cos(lat)-nu,lat2=Math.atan2(Z+e2*nu*Math.sin(lat),p);if(Math.abs(lat2-lat)<1e-9&&Math.abs(h2-h)<1e-9)break;lat=lat2;h=h2;}return[radToDeg(lat),radToDeg(lon),h];}
@@ -218,7 +219,7 @@ function utmToLatLon(east,north,a,f){
 function indian1975UTMToWGS84(e,n){
   const [li,lo]=utmToLatLon(e,n,a_ind,f_ind);
   const [x,y,z]=geodeticToECEF(li,lo,0,a_ind,f_ind);
-  const [lw,ow]=ecefToGeodetic(x-dx,y-dy,z-dz,a_wgs,f_wgs);
+  const [lw,ow]=ecefToGeodetic(x+dx,y+dy,z+dz,a_wgs,f_wgs);
   return[lw,ow,li,lo];
 }
 
@@ -229,7 +230,7 @@ function fmtNum(x){return(x==null||!isFinite(x))?'':x.toLocaleString(undefined,{
 function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg),d=Math.floor(a),m=(a-d)*60,dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m.toFixed(3)}’${dir}`;}
 function esc(s){return String(s).replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function hrsToHM(hrs){ if(!isFinite(hrs)) return '—'; let h=Math.floor(hrs); let m=Math.round((hrs-h)*60); if(m===60){h+=1;m=0;} return `${h}:${String(m).padStart(2,'0')}`; }
-function ydm(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${day}-${m}`; }
+function ydm(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
 
 /* NEW: split name into max 2 lines for tighter columns */
 function breakNameTwoLines(s){
@@ -293,8 +294,8 @@ function initMap(){
   bgPolyLayer=L.geoJSON(GOT_POLY,{pane:'bgPoly',style:{color:'#0284c7',weight:1,opacity:0.7,fillColor:'#0ea5e9',fillOpacity:0.12}}).addTo(map);
   markersLayer=L.layerGroup().addTo(map);
   linesLayer=L.layerGroup().addTo(map);
-  // Recalculate label positions when view changes
-  map.on('zoomend moveend', ()=>{ setTimeout(()=>{ renderPOIs(); drawLines(); }, 80); });
+  // Recalculate label positions when view changes (guard against fitMap re-triggering moveend)
+  map.on('zoomend moveend', ()=>{ if(_renderInProgress) return; setTimeout(()=>{ renderPOIs(); drawLines(); }, 80); });
   fitMap();
   resize();
 }
@@ -363,11 +364,13 @@ function addLeaderLines(positions){
 }
 function fitMap(){
   const padding=[30,30];
+  _renderInProgress = true;
   if(bgPolyLayer && pois.length){
     const polyB=bgPolyLayer.getBounds(), poiB=L.latLngBounds(pois.map(p=>[p.lat,p.lon])); polyB.extend(poiB); map.fitBounds(polyB,{padding});
   }else if(bgPolyLayer){ map.fitBounds(bgPolyLayer.getBounds(),{padding}); }
   else if(pois.length){ map.fitBounds(L.latLngBounds(pois.map(p=>[p.lat,p.lon])),{padding}); }
   else { map.fitBounds([[5.0,99.0],[14.5,105.8]],{padding}); }
+  setTimeout(()=>{ _renderInProgress = false; }, 400);
 }
 
 /* ========= Rendering ========= */
@@ -507,7 +510,7 @@ function addMatrixHoverHighlight(){
     rows.forEach(r=>r.classList.remove('row-hl'));
     table.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
   };
-  table.addEventListener('mouseleave', clearHL, {once:true});
+  table.addEventListener('mouseleave', clearHL);
   rows.forEach(r=>{
     Array.from(r.children).forEach((cell,ci)=>{
       cell.addEventListener('mouseenter',()=>{
@@ -518,6 +521,7 @@ function addMatrixHoverHighlight(){
     });
   });
 }
+let _renderInProgress = false;
 function drawLines(){
   linesLayer.clearLayers(); if(!pois.length) return;
   const show=els.toggleLines.checked;
@@ -627,7 +631,7 @@ els.btnExport.addEventListener('click', async ()=>{
   function footer(){
   doc.setFontSize(8); doc.setTextColor(90);
   const left=`Owner: PPD/P Geomatics • Exported: ${exportedStr}`;
-  const right=`Indian 1975 → WGS84 • Speed ${(els.speed.value||'8')} kn`;
+  const right=`Indian 1975 -> WGS84 • Speed ${(els.speed.value||'8')} kn`;
   // Left & right on line 1
   doc.text(left, margin, pageH-7);
   const w=doc.getTextWidth(right);
@@ -783,6 +787,12 @@ els.btnExportMatrixOnly.addEventListener('click', ()=>{
   const exportedAt=new Date();
   const { jsPDF } = window.jspdf;
 
+  // Create doc first so calculateOptimalSizing can call doc.setFontSize
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const margin=8;
+
   const cols=['From \\ To','WGS84 (DM)', ...pois.map(p=>p.name)];
   const speedVal=parseFloat(els.speed.value||'8');
   const numCols = cols.length;
@@ -845,12 +855,6 @@ els.btnExportMatrixOnly.addEventListener('click', ()=>{
   }
 
   const sizing = calculateOptimalSizing(numCols);
-  
-  // Create document with calculated settings
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
-  const pageW=doc.internal.pageSize.getWidth();
-  const pageH=doc.internal.pageSize.getHeight();
-  const margin=8;
 
   // Header
   doc.setFontSize(12); 
@@ -935,11 +939,11 @@ els.btnExportMatrixOnly.addEventListener('click', ()=>{
   doc.setTextColor(90);
   const footerY = pageH - 4;
   const left = `Owner: PPD/P Geomatics • Exported: ${exportedAt.toLocaleString()}`;
-  const right = `Indian 1975 → WGS84 • Speed ${speedVal} kn • Develop by Rattawit W`;
+  const right = `Indian 1975 -> WGS84 • Speed ${speedVal} kn`;
   doc.text(left, margin, footerY);
   const rightWidth = doc.getTextWidth(right);
   doc.text(right, pageW - margin - rightWidth, footerY);
-  // Centered credit on second line
+  // Centered credit
   doc.setFontSize(9); doc.setTextColor(60);
   const credit = 'Develop by Rattawit W';
   const cw = doc.getTextWidth(credit);
@@ -1153,11 +1157,11 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
   const head=`<tr>
     <th class="sticky-left">From \\\\ To</th>
     <th class="sticky-left-2">WGS84 (DM)</th>
-    ${pois.map(p=>`<th><div class="name2l-h">${esc(breakNameTwoLines(p.name)).replace(/\\n/g,'<br>')}</div></th>`).join('')}
+    ${pois.map(p=>`<th><div class="name2l-h">${esc(breakNameTwoLines(p.name)).split('\n').join('<br>')}</div></th>`).join('')}
   </tr>`;
 
   const body=pois.map((from,i)=>{
-    const nameHtml = esc(breakNameTwoLines(from.name)).replace(/\\n/g,'<br>');
+    const nameHtml = esc(breakNameTwoLines(from.name)).split('\n').join('<br>');
     const wgsCell = `<div>${formatDM(from.lat,true)}</div><div>${formatDM(from.lon,false)}</div>`;
     const tds = pois.map((to,j)=>{
       if(i===j) return `<td class="muted empty">—</td>`;
@@ -1198,7 +1202,7 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
     .row-hl th, .row-hl td{background:var(--hl) !important}
     .col-hl{background:var(--hl) !important}
     .muted{color:var(--muted)}
-    td.empty{background:#f0f0f0;color:#var(--muted)}
+    td.empty{background:#f0f0f0;color:var(--muted)}
 
     @media print{@page{size:A3 landscape;margin:12mm} body{background:#fff}
       header,.sub{break-after:avoid}
@@ -1250,12 +1254,17 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
       tbody.addEventListener('mouseleave', clear);
 
       function computeStickyOffsets(){
-        const firstTh = headRow?.cells[0];
-        const firstW = firstTh ? firstTh.getBoundingClientRect().width : 160;
-        t.style.setProperty('--sticky-left-2', Math.round(firstW) + 'px');
+        requestAnimationFrame(() => {
+          let w = 0;
+          const firstColCells = t.querySelectorAll('th:first-child, td:first-child');
+          firstColCells.forEach(c => { w = Math.max(w, c.offsetWidth); });
+          t.style.setProperty('--sticky-left-2', w + 'px');
+        });
       }
       computeStickyOffsets();
       window.addEventListener('resize', computeStickyOffsets);
+      const ro = new ResizeObserver(computeStickyOffsets);
+      if(headRow?.cells[0]) ro.observe(headRow.cells[0]);
 
       document.getElementById('btnSaveHtml').addEventListener('click', ()=>{
         const serializer = new XMLSerializer();
