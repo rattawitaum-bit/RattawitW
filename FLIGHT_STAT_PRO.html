@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.0.7</title>
+    <title>FLIGHT STAT PRO V1.1.4</title>
     
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Flight Stat">
@@ -139,6 +137,7 @@
 
         @keyframes blink { 50% { opacity: 0.4; } }
         .stale { animation: blink 1.5s infinite; color: var(--warning) !important; }
+        .lost { animation: blink 1s infinite; color: var(--danger) !important; background: var(--danger) !important;}
 
         .tech-toggle-btn {
             background: none;
@@ -194,7 +193,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.0.7 
+                FLIGHT STAT PRO V1.1.4 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -213,7 +212,7 @@
 
         <div class="dashboard">
             <div class="card eta-card">
-                <div class="label">Estimated Arrival (ICT / GMT+7)</div>
+                <div id="etaLabel" class="label">Estimated Arrival (ICT / GMT+7)</div>
                 <div id="etaDisplay" class="val-large">--:--</div>
                 <div id="etaSubLabel" class="sub-label" style="font-size: 0.7rem; color: var(--text-sub); margin-top: 5px;">Searching signal...</div>
             </div>
@@ -270,16 +269,20 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ OFFLINE SETUP (WebAPK & Local):</p>
-                <p style="font-size: 0.75rem; margin-bottom: 15px;"><b>Android/iOS:</b> Open this app via HTTPS link and select <b>"Install App" / "Add to Home Screen"</b>. Alternatively on iOS, save as a local file and open via Files app.</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ADVANCED ETA ENGINE (V1.1):</p>
+                <ul style="padding-left: 15px; margin-bottom: 15px; font-size: 0.75rem;">
+                    <li>Uses <b>Segmented Flight Profiles</b> for higher accuracy.</li>
+                    <li>Accounts for <b>Airway Routing</b> (+5% distance).</li>
+                    <li>Auto-detects <b>Holding/Vectoring</b> to stabilize time.</li>
+                </ul>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
 
                 <p style="color: var(--text-main); font-weight: bold; margin-bottom: 5px;">✈️ Status Info:</p>
                 <ul style="padding-left: 15px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 6px;">
                     <li><b>Parked:</b> Distance locked to stop GPS jumping.</li>
-                    <li><b>Weak Signal:</b> No GPS signal = No updates.</li>
-                    <li><b>Blinking Numbers:</b> Estimated mode (hardware lost speed data).</li>
+                    <li><b>Weak Signal:</b> Accuracy low, estimating.</li>
+                    <li><b>Signal Lost:</b> Red dot. No GPS data received >10s.</li>
                 </ul>
             </div>
             
@@ -289,7 +292,7 @@
 
     <script>
         const AIRPORTS = {
-            "ALA": { name: "Almaty", lat: 43.3521, lon: 77.0406 }, // 🇰🇿 อัลมาตี คาซัคสถาน
+            "ALA": { name: "Almaty", lat: 43.3521, lon: 77.0406 },
             "BKK": { name: "Suvarnabhumi", lat: 13.6925, lon: 100.7500 },
             "DMK": { name: "Don Mueang", lat: 13.9126, lon: 100.6067 },
             "CNX": { name: "Chiang Mai", lat: 18.7713, lon: 98.9626 },
@@ -321,7 +324,10 @@
             currentPos: null,
             anchorPos: null,
             stillCount: 0,
-            synPos: null 
+            synPos: null,
+            emaSpeed: null,    
+            lastValidETA: null,
+            isHolding: false 
         };
 
         const FLYING_START_SPEED = 150; 
@@ -333,10 +339,10 @@
         
         let watchId = null;
         let wakeLock = null;
+        let watchdogInterval = null; 
 
         function init() {
-            // Guard: ลงทะเบียน Service Worker เฉพาะเมื่อเปิดผ่านเน็ตเวิร์ก (HTTP/HTTPS) 
-            // หากเปิดเป็นไฟล์ในเครื่อง (file://) โค้ดนี้จะไม่ทำงาน ทำให้ไม่เกิด InvalidStateError
+            // RESTORED (From V1.0.7): ลงทะเบียน Service Worker เฉพาะเมื่อเปิดผ่านเน็ตเวิร์ก เพื่อรองรับ WebAPK
             if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
                 navigator.serviceWorker.register('sw.js').catch(function(e) {
                     console.log('SW Registration failed:', e);
@@ -344,11 +350,8 @@
             }
 
             const select = document.getElementById('airportSelect');
-            
             const defaultOpt = document.createElement('option');
-            defaultOpt.value = "";
-            defaultOpt.text = "📍 Select Destination...";
-            defaultOpt.disabled = true;
+            defaultOpt.value = ""; defaultOpt.text = "📍 Select Destination..."; defaultOpt.disabled = true;
             select.appendChild(defaultOpt);
 
             Object.keys(AIRPORTS).sort().forEach(code => {
@@ -359,38 +362,39 @@
             });
 
             const saved = localStorage.getItem('lastDest');
-            if (saved && AIRPORTS[saved]) {
-                select.value = saved;
-            } else {
-                select.value = ""; 
-                setTimeout(toggleTips, 500);
-            }
+            if (saved && AIRPORTS[saved]) select.value = saved;
+            else { select.value = ""; setTimeout(toggleTips, 500); }
 
             document.addEventListener('visibilitychange', async () => {
                 if (wakeLock !== null && document.visibilityState === 'visible') {
-                    try {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                    } catch (err) {}
+                    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
                 }
             });
 
             startGPS();
+            startWatchdog(); 
+        }
+
+        function startWatchdog() {
+            if (watchdogInterval) clearInterval(watchdogInterval);
+            watchdogInterval = setInterval(() => {
+                if (state.lastTime && (Date.now() - state.lastTime > 10000)) {
+                    const dot = document.getElementById('gpsDot');
+                    const statusTxt = document.getElementById('statusText');
+                    dot.className = 'lost'; 
+                    statusTxt.innerText = "SIGNAL LOST (SEARCHING...)";
+                }
+            }, 2000);
         }
 
         async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator && !wakeLock) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {}
+            try { if ('wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
 
         function startGPS() {
             if ("geolocation" in navigator) {
                 watchId = navigator.geolocation.watchPosition(processLocation, handleError, {
-                    enableHighAccuracy: true,
-                    maximumAge: 2000,
-                    timeout: 10000
+                    enableHighAccuracy: true, maximumAge: 2000, timeout: 10000
                 });
             } else {
                 document.getElementById('statusText').innerText = "GPS NOT SUPPORTED";
@@ -400,7 +404,6 @@
 
         function processLocation(position) {
             const coords = position.coords;
-            
             if (coords.accuracy > 2000) return;
 
             const now = Date.now();
@@ -408,41 +411,31 @@
             let isSynthetic = false;
 
             if (state.lastTime && (now - state.lastTime) / 1000 > 15) {
-                state.speedBuffer = [];
-                state.isFlying = false;
-                state.isMoving = false;
-                state.stillCount = 0;
-                state.synPos = null; 
+                state.speedBuffer = []; 
+                state.isFlying = false; 
+                state.isMoving = false; 
+                state.stillCount = 0; 
+                state.synPos = null;
+                state.emaSpeed = null;
+                state.lastValidETA = null;
+                state.isHolding = false;
             }
 
-            if (!state.synPos) {
-                state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
-            }
+            if (!state.synPos) state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
 
             if (rawSpeed === 0) {
                 const dt = (now - state.synPos.time) / 1000;
                 if (dt >= 1.0) {
                     const dist = haversine(state.synPos.lat, state.synPos.lon, coords.latitude, coords.longitude);
-                    if (dist > 0.015) { 
-                        rawSpeed = (dist / dt) * 3600;
-                        isSynthetic = true;
-                        state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
-                    } else if (dt > 10.0) {
-                        state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
-                    }
+                    if (dist > 0.015) { rawSpeed = (dist / dt) * 3600; isSynthetic = true; state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now }; }
+                    else if (dt > 10.0) state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
                 }
-            } else {
-                state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
-            }
+            } else state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
 
             if (rawSpeed > MAX_VALID_SPEED) return; 
 
-            if (state.speedBuffer.length === 0 && rawSpeed > 0) {
-                state.speedBuffer = Array(5).fill(rawSpeed);
-            } else {
-                state.speedBuffer.push(rawSpeed);
-                if (state.speedBuffer.length > 5) state.speedBuffer.shift();
-            }
+            if (state.speedBuffer.length === 0 && rawSpeed > 0) state.speedBuffer = Array(5).fill(rawSpeed);
+            else { state.speedBuffer.push(rawSpeed); if (state.speedBuffer.length > 5) state.speedBuffer.shift(); }
             
             const smoothedSpeed = state.speedBuffer.reduce((a, b) => a + b, 0) / state.speedBuffer.length;
 
@@ -454,50 +447,84 @@
 
             if (smoothedSpeed < MOVING_STOP_SPEED) {
                 state.stillCount++;
-                if (state.stillCount >= ANCHOR_STILL_COUNT && !state.anchorPos) {
-                    state.anchorPos = { lat: coords.latitude, lon: coords.longitude };
-                }
-            } else {
-                state.stillCount = 0;
-                state.anchorPos = null;
-            }
+                if (state.stillCount >= ANCHOR_STILL_COUNT && !state.anchorPos) state.anchorPos = { lat: coords.latitude, lon: coords.longitude };
+            } else { state.stillCount = 0; state.anchorPos = null; }
 
             state.lastTime = now;
             state.currentPos = { 
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                accuracy: coords.accuracy,
-                altitude: coords.altitude,
-                heading: coords.heading,
-                speedKph: smoothedSpeed, 
-                rawSpeed: rawSpeed,
-                isSynthetic: isSynthetic 
+                latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy, altitude: coords.altitude,
+                heading: coords.heading, speedKph: smoothedSpeed, rawSpeed: rawSpeed, isSynthetic: isSynthetic 
             };
 
             updateUI();
         }
 
+        function getAngleDifference(heading, bearing) {
+            let diff = Math.abs(heading - bearing) % 360;
+            return diff > 180 ? 360 - diff : diff;
+        }
+
+        function calculateAdvancedETA(currentSpeed, distanceLeftKm, currentHeading, bearingToAirport) {
+            if (distanceLeftKm <= 3 && currentSpeed < 100) return { status: "Landed", etaMinutes: 0 };
+
+            let routingMultiplier = distanceLeftKm > 200 ? 1.05 : 1.0 + (0.05 * (distanceLeftKm / 200));
+            let effectiveDistance = distanceLeftKm * routingMultiplier;
+
+            if (distanceLeftKm <= 150) {
+                if (currentHeading !== null && !isNaN(currentHeading)) {
+                    let angleDiff = getAngleDifference(currentHeading, bearingToAirport);
+                    if (!state.isHolding && angleDiff > 65) {
+                        state.isHolding = true; 
+                    } else if (state.isHolding && angleDiff < 35) {
+                        state.isHolding = false; 
+                    }
+                }
+            } else {
+                state.isHolding = false;
+            }
+
+            const ALPHA = 0.2;
+            let smoothSpeed = (state.emaSpeed !== null) 
+                ? (ALPHA * currentSpeed) + ((1 - ALPHA) * state.emaSpeed) 
+                : currentSpeed;
+            state.emaSpeed = smoothSpeed;
+
+            const effectiveSpeed = Math.max(smoothSpeed, 150);
+            let rawEtaMinutes = (effectiveDistance / effectiveSpeed) * 60;
+            
+            const MAX_PENALTY_MINUTES = 15;
+            const PENALTY_START_DIST = 215;
+            let penaltyMinutes = effectiveDistance > PENALTY_START_DIST ? MAX_PENALTY_MINUTES : MAX_PENALTY_MINUTES * (effectiveDistance / PENALTY_START_DIST);
+
+            let calculatedETA = Math.round(rawEtaMinutes + penaltyMinutes);
+
+            if (state.isHolding && state.lastValidETA !== null) return { status: "Holding", etaMinutes: state.lastValidETA };
+            
+            state.lastValidETA = calculatedETA;
+            return { status: "En Route", etaMinutes: calculatedETA };
+        }
+
         function updateUI() {
             if (!state.currentPos) return;
-
             const pos = state.currentPos;
             const dot = document.getElementById('gpsDot');
             const statusTxt = document.getElementById('statusText');
             
-            if (pos.accuracy > 100 || pos.isSynthetic) {
-                dot.style.background = "var(--warning)";
-                dot.classList.add('stale');
-                statusTxt.innerText = state.isFlying ? "WEAK SIGNAL (IN FLIGHT)" : "WEAK SIGNAL (GROUND)";
-            } else {
-                dot.style.background = "var(--success)";
-                dot.classList.remove('stale');
-                statusTxt.innerText = state.isFlying ? "IN FLIGHT" : "ON GROUND";
+            dot.className = ''; 
+            
+            if (pos.accuracy > 100 || pos.isSynthetic) { 
+                dot.style.background = "var(--warning)"; 
+                dot.classList.add('stale'); 
+                statusTxt.innerText = state.isFlying ? "WEAK SIGNAL (IN FLIGHT)" : "WEAK SIGNAL (GROUND)"; 
+            }
+            else { 
+                dot.style.background = "var(--success)"; 
+                statusTxt.innerText = state.isFlying ? "IN FLIGHT" : "ON GROUND"; 
             }
 
             const speedEl = document.getElementById('speedValue');
             speedEl.innerText = Math.round(pos.speedKph);
-            if (pos.isSynthetic) speedEl.classList.add('stale');
-            else speedEl.classList.remove('stale');
+            if (pos.isSynthetic) speedEl.classList.add('stale'); else speedEl.classList.remove('stale');
 
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
@@ -514,65 +541,66 @@
             const dest = AIRPORTS[airportCode];
             const etaVal = document.getElementById('etaDisplay');
             const etaSub = document.getElementById('etaSubLabel');
+            const etaLabel = document.getElementById('etaLabel');
 
             if (!dest) {
-                etaVal.innerText = "CHOOSE";
-                etaVal.className = "val-large";
+                etaVal.innerText = "CHOOSE"; etaVal.className = "val-large"; etaVal.style.color = "";
                 etaSub.innerText = "↑ Select your destination airport above";
-                document.getElementById('distValue').innerText = "--";
-                document.getElementById('bearingValue').innerText = "--";
+                document.getElementById('distValue').innerText = "--"; document.getElementById('bearingValue').innerText = "--";
                 return; 
             }
 
             const calcLat = state.anchorPos ? state.anchorPos.lat : pos.latitude;
             const calcLon = state.anchorPos ? state.anchorPos.lon : pos.longitude;
-
             const dist = haversine(calcLat, calcLon, dest.lat, dest.lon);
             const bearing = getBearing(calcLat, calcLon, dest.lat, dest.lon);
 
             if (!state.isFlying) {
-                etaVal.innerText = "READY";
-                etaVal.className = "val-large";
-                if (dist < 20) {
-                    etaSub.innerText = state.isMoving ? "Taxiing to gate..." : "Arrived / Parked";
+                if (dist < 10) { 
+                    etaVal.innerText = "ARRIVED"; 
+                    etaVal.className = "val-large"; 
+                    etaVal.style.color = "var(--success)";
+                    etaSub.innerText = state.isMoving ? "Taxiing to gate..." : "Parked at destination";
                 } else {
-                    etaSub.innerText = state.isMoving ? "Taxiing for takeoff..." : "Parked at airport";
+                    etaVal.innerText = "READY"; 
+                    etaVal.className = "val-large"; 
+                    etaVal.style.color = "";
+                    etaSub.innerText = state.isMoving ? "Taxiing for takeoff..." : "Parked at origin";
                 }
             } else {
-                if (pos.speedKph < 250) {
-                    etaVal.innerText = "CALC";
-                    etaVal.className = "val-large";
-                    if (dist < 100) {
-                        etaSub.innerText = "Approaching destination...";
-                    } else {
-                        etaSub.innerText = pos.speedKph < 10 ? "Calculating..." : "Reaching cruise speed...";
-                    }
+                const etaResult = calculateAdvancedETA(pos.speedKph, dist, pos.heading, bearing);
+
+                if (etaResult.status === "Landed") {
+                    etaVal.innerText = "LANDED"; 
+                    etaVal.className = "val-large"; 
+                    etaVal.style.color = "var(--success)";
+                    etaSub.innerText = "Slowing down on runway...";
+                } else if (pos.speedKph < 150 && dist > 100) {
+                    etaVal.innerText = "CALC"; 
+                    etaVal.className = "val-large"; 
+                    etaVal.style.color = "";
+                    etaSub.innerText = "Reaching cruise speed...";
                 } else {
-                    const timeRemainingH = dist / pos.speedKph;
-                    let hh = Math.floor(timeRemainingH);
-                    let mm = Math.round((timeRemainingH - hh) * 60);
-                    
-                    if (mm >= 60) {
-                        hh += 1;
-                        mm -= 60;
-                    }
+                    const timeRemainingMins = etaResult.etaMinutes;
+                    let hh = Math.floor(timeRemainingMins / 60);
+                    let mm = timeRemainingMins % 60;
                     
                     const now = new Date();
-                    const etaDate = new Date(now.getTime() + (timeRemainingH * 3600000));
-                    
-                    const thaiTime = new Intl.DateTimeFormat('en-GB', {
-                        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok'
-                    }).format(etaDate);
-
-                    const fmt = d => new Intl.DateTimeFormat('en-CA', {
-                        timeZone: 'Asia/Bangkok',
-                        year: 'numeric', month: '2-digit', day: '2-digit'
-                    }).format(d);
+                    const etaDate = new Date(now.getTime() + (timeRemainingMins * 60000));
+                    const thaiTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }).format(etaDate);
+                    const fmt = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
                     const isNextDay = fmt(etaDate) !== fmt(now);
-                    
+
                     etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
                     etaVal.className = "val-large";
-                    etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+                    
+                    if (etaResult.status === "Holding") {
+                        etaVal.style.color = "var(--warning)";
+                        etaSub.innerText = `⚠️ Vectoring / Holding - Approx ${hh}h ${mm}m left`;
+                    } else {
+                        etaVal.style.color = "";
+                        etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+                    }
                 }
             }
 
@@ -584,17 +612,14 @@
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
         function getBearing(lat1, lon1, lat2, lon2) {
             const rad = d => d * Math.PI / 180;
             const y = Math.sin(rad(lon2-lon1)) * Math.cos(rad(lat2));
-            const x = Math.cos(rad(lat1)) * Math.sin(rad(lat2)) -
-                      Math.sin(rad(lat1)) * Math.cos(rad(lat2)) * Math.cos(rad(lon2-lon1));
+            const x = Math.cos(rad(lat1)) * Math.sin(rad(lat2)) - Math.sin(rad(lat1)) * Math.cos(rad(lat2)) * Math.cos(rad(lon2-lon1));
             return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
         }
 
@@ -604,16 +629,14 @@
         }
 
         function toggleTheme() {
-            const b = document.body;
-            const isDark = b.getAttribute('data-theme') === 'dark';
+            const b = document.body; const isDark = b.getAttribute('data-theme') === 'dark';
             const newTheme = isDark ? 'light' : 'dark';
             b.setAttribute('data-theme', newTheme);
             document.getElementById('themeIcon').innerText = newTheme === 'dark' ? '🌙' : '☀️';
         }
 
         function toggleTech() {
-            const p = document.getElementById('techPanel');
-            const b = document.querySelector('.tech-toggle-btn');
+            const p = document.getElementById('techPanel'); const b = document.querySelector('.tech-toggle-btn');
             p.classList.toggle('active');
             b.innerText = p.classList.contains('active') ? "Hide Technical Details" : "Show Technical Details";
         }
@@ -631,23 +654,14 @@
         }
 
         function handleError(e) {
-            const statusTxt = document.getElementById('statusText');
-            const dot = document.getElementById('gpsDot');
-            
-            if (e.code === 3) {
-                console.log("GPS Timeout, restarting watch...");
-                if (watchId) navigator.geolocation.clearWatch(watchId);
-                startGPS();
-                return;
-            }
-
+            if (e.code === 3) { if (watchId) navigator.geolocation.clearWatch(watchId); startGPS(); return; }
             let errorMsg = e.message || e.code;
             if (e.code === 1 && window.location.protocol === 'file:' && /Android/i.test(navigator.userAgent)) {
                 errorMsg = "Android blocks GPS on local files. Use Add to Home Screen via HTTPS link.";
             }
-
-            statusTxt.innerText = "GPS ERROR: " + errorMsg;
-            dot.style.background = "var(--danger)";
+            document.getElementById('statusText').innerText = "GPS ERROR: " + errorMsg;
+            document.getElementById('gpsDot').className = '';
+            document.getElementById('gpsDot').style.background = "var(--danger)";
         }
 
         window.onload = init;
