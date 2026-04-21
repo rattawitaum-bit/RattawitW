@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v5.0</title>
+    <title>Coordinate Converter v5.2 (260421)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -110,19 +110,10 @@
         select:focus { border-color: var(--primary-accent); box-shadow: 0 0 0 3px var(--input-focus); }
 
         button { 
-            background-color: var(--primary-accent); 
-            color: #fff; 
-            border: none; 
-            padding: 6px 12px; 
-            border-radius: var(--radius-md); 
-            cursor: pointer; 
-            font-size: 13px; 
-            font-weight: 600;
-            transition: all 0.2s ease; 
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-            margin-right: 6px; 
-            margin-bottom: 6px; 
-            font-family: var(--font-main);
+            background-color: var(--primary-accent); color: #fff; border: none; padding: 6px 12px; 
+            border-radius: var(--radius-md); cursor: pointer; font-size: 13px; font-weight: 600;
+            transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            margin-right: 6px; margin-bottom: 6px; font-family: var(--font-main);
         }
         button:hover { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3); }
         button:active { transform: translateY(1px); box-shadow: none; }
@@ -130,10 +121,22 @@
         button.clear-all { background-color: transparent; color: var(--danger); border: 2px solid var(--danger); box-shadow: none; }
         button.clear-all:hover { background-color: var(--danger); color: #fff; }
         
+        .btn-secondary { background-color: var(--text-secondary); }
+        .btn-secondary:hover { background-color: #334155; }
+        .btn-geo { background-color: #eab308; color: #422006; box-shadow: 0 2px 4px rgba(234, 179, 8, 0.2);}
+        .btn-geo:hover { background-color: #ca8a04; }
+        .btn-route { background-color: #9b59b6; box-shadow: 0 2px 4px rgba(155, 89, 182, 0.2);}
+        .btn-route:hover { background-color: #8e44ad; }
+        .btn-route-csv { background-color: #2c3e50; }
+        .btn-route-csv:hover { background-color: #1a252f; }
+        .btn-map { background-color: #10b981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);}
+        .btn-map:hover { background-color: #059669; }
+        
         .lang-btn { background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: none; padding: 6px 10px;}
         .lang-btn:hover { background-color: rgba(255,255,255,0.2); transform: none;}
 
-        table { border-collapse: separate; border-spacing: 0; width: 100%; margin-bottom: 8px; border-radius: var(--radius-md); overflow: hidden; font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); border: 1px solid var(--border-color); }
+        .table-responsive { width: 100%; overflow-x: auto; margin-bottom: 8px; border-radius: var(--radius-md); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); border: 1px solid var(--border-color); background: #fff;}
+        table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; min-width: 700px;}
         th, td { border: none; border-bottom: 1px solid var(--border-color); padding: 4px 8px; text-align: right; font-size: 12px; color: var(--text-primary); height: 26px; }
         td:not(:last-child), th:not(:last-child) { border-right: 1px solid var(--border-color); }
         th { background-color: var(--table-header); color: #ffffff; text-align: center; font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; height: 28px;}
@@ -152,28 +155,34 @@
         .input-cell.has-error { background-color: #ffe4e6; }
         .input-cell.has-error input { opacity: 1; outline: none; box-shadow: inset 0 0 0 2px var(--danger) !important; color: var(--danger); font-weight: bold; background: transparent; }
         
+        .dms-mode .input-cell input[type="text"] { min-width: 135px; }
+
         .inline-field { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-right: 12px; margin-bottom: 6px;}
         .controls-row { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 6px; gap: 8px; }
         
-        .status { margin-top: 4px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: var(--radius-md); display: none; }
-        .status.ok { color: #065f46; background: #d1fae5; display: block; border: 1px solid #34d399;}
-        .status.err { color: #991b1b; background: #fee2e2; display: block; border: 1px solid #f87171; max-height: 100px; overflow-y: auto; line-height: 1.5; font-weight: 500; }
-        
-        .help-tip { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #cbd5e1; color: #0f172a; font-weight: 700; cursor: help; margin-left: 6px; position: relative; font-size: 11px;}
-        .help-tip:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: 130%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 8px 10px; border-radius: var(--radius-md); font-size: 11px; line-height: 1.4; white-space: pre-line; min-width: 220px; max-width: 380px; z-index: 1000; box-shadow: var(--shadow-lg); text-align: left; font-weight: 400;}
-        .help-tip:hover::before { content: ""; position: absolute; left: 50%; bottom: 120%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1e293b; }
-        
-        input[type="file"] {
-            border: 1px solid var(--border-color);
-            padding: 4px 8px;
-            border-radius: var(--radius-md);
-            background: var(--input-bg);
-            font-size: 12px;
-            text-align: left;
-            margin-bottom: 6px;
-            font-family: var(--font-main);
-        }
+        .route-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; border-left: 2px solid var(--border-color); padding-left: 10px; margin-left: 2px; }
+        .route-lbl { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 2px;}
 
+        .status { margin-top: 4px; font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: var(--radius-md); max-height: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease; box-sizing: border-box; border: 1px solid transparent; margin-bottom: 0;}
+        .status.ok { color: #065f46; background: #d1fae5; border-color: #34d399; max-height: 200px; opacity: 1; padding: 8px; margin-bottom: 8px;}
+        .status.err { color: #991b1b; background: #fee2e2; border-color: #f87171; max-height: 500px; opacity: 1; padding: 8px; margin-bottom: 8px; overflow-y: auto; }
+        
+        .toast-container { position: fixed; bottom: 45px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
+        .toast { background: #1e293b; color: #fff; padding: 10px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--primary-accent);}
+        .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto;}
+        .toast.err { border-left-color: var(--danger); }
+        .toast.warn { border-left-color: #eab308; }
+
+        .help-tip { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #cbd5e1; color: #0f172a; font-weight: 700; cursor: help; margin-left: 6px; position: relative; font-size: 11px; outline: none; transition: background 0.2s;}
+        .help-tip:focus, .help-tip:hover { background: #94a3b8; }
+        .help-tip::after { content: attr(data-tip); position: absolute; left: 50%; bottom: 140%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 8px 10px; border-radius: var(--radius-md); font-size: 11px; line-height: 1.4; white-space: pre-line; min-width: 220px; max-width: 320px; z-index: 1000; box-shadow: var(--shadow-lg); text-align: left; font-weight: 400; opacity: 0; visibility: hidden; transition: all 0.2s ease;}
+        .help-tip::before { content: ""; position: absolute; left: 50%; bottom: 120%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #1e293b; opacity: 0; visibility: hidden; transition: all 0.2s ease;}
+        .help-tip:hover::after, .help-tip:focus::after, .help-tip[data-open]::after { opacity: 1; visibility: visible; bottom: 130%; }
+        .help-tip:hover::before, .help-tip:focus::before, .help-tip[data-open]::before { opacity: 1; visibility: visible; bottom: calc(130% - 11px); }
+        .help-tip.tooltip-right::after { right: -10px; left: auto; transform: none; }
+        .help-tip.tooltip-right::before { right: 4px; left: auto; transform: none; }
+
+        input[type="file"] { border: 1px solid var(--border-color); padding: 4px 8px; border-radius: var(--radius-md); background: var(--input-bg); font-size: 12px; text-align: left; margin-bottom: 6px; font-family: var(--font-main); }
         svg { border: 1px solid var(--border-color); border-radius: var(--radius-md); display: block; margin: 10px auto 0; background: #ffffff; width: 100%; max-width: 750px; height: auto; box-shadow: var(--shadow-sm);}
         .legend { margin-top: 8px; font-size: 12px; text-align: center; }
         .legend span { display: inline-block; margin: 0 10px; }
@@ -182,16 +191,12 @@
         
         .fixed-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface-color); color: var(--text-secondary); text-align: center; padding: 8px 0; border-top: 1px solid var(--border-color); font-size: 12px; font-weight: 500; z-index: 1000; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);}
         .soft-sep { height: 1px; background: var(--border-color); border: none; margin: 12px 0; }
-        
         .hint-text { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;}
 
-        /* Read-only output cells — green text to distinguish from editable inputs */
         #table1 tbody td:not(.input-cell):not(:first-child):not(:empty),
         #table2 tbody td:not(.input-cell):not(:first-child):not(:empty) { color: #166534; }
-        /* Editable Point-ID cells (Table 2) */
         td[contenteditable] { cursor: text; outline: none; text-align: center !important; }
         td[contenteditable]:focus { box-shadow: inset 0 0 0 2px var(--primary-accent); background: #eff6ff; }
-        /* GPS button loading state */
         #btnGetGPS:disabled { opacity: 0.7; cursor: wait; transform: none !important; box-shadow: none !important; }
     </style>
 </head>
@@ -199,7 +204,7 @@
 
 <div id="build-banner">
     <div>
-        <span class="v" data-i18n="app_title">Coordinate Converter v5.0</span>
+        <span class="v" data-i18n="app_title">Coordinate Converter v5.2 (260421)</span>
         <div class="banner-details">
             <b data-i18n="lbl_datum">Datum Shift (Indian 1975 ↔ WGS84):</b> 
             <span id="displayParams"><code>dx= -204.64</code> <code>dy= -834.74</code> <code>dz= -293.80</code></span>
@@ -207,7 +212,7 @@
             <b data-i18n="lbl_zone" style="margin-top: 4px; display: inline-block;">Current Zone:</b> <span id="displayZone"><code>47N (CM=99°E)</code></span>
         </div>
     </div>
-    <button class="lang-btn" id="langBtn">🇹🇭 EN / TH</button>
+    <button class="lang-btn" id="langBtn" data-i18n-title="tt_lang">🇹🇭 EN / TH</button>
 </div>
 
 <div class="control-panel">
@@ -225,7 +230,7 @@
             <option value="legacy" selected data-i18n="opt_legacy">Legacy v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)</option>
         </select>
     </div>
-    <button class="clear-all" id="btnClearAll" data-i18n="btn_clear_all">Clear All Inputs</button>
+    <button class="clear-all" id="btnClearAll" data-i18n="btn_clear_all" data-i18n-title="tt_clear_all">Clear All Inputs</button>
 </div>
 
 <div class="container">
@@ -251,33 +256,38 @@
     </div>
     
     <div class="hint-text" data-i18n="s1_import_hint">Import .txt or .csv file:</div>
-    <input type="file" id="fileInputSection1" accept=".txt,.csv"><span class="help-tip" id="s1_tooltip" data-tip="">?</span><br>
+    <input type="file" id="fileInputSection1" accept=".txt,.csv"><span class="help-tip tooltip-right" id="s1_tooltip" data-tip="" tabindex="0" onclick="this.toggleAttribute('data-open')">?</span><br>
     
     <div class="controls-row" style="margin-bottom: 8px;">
-        <button id="btnLoadS1" data-i18n="btn_load_file">Load TXT/CSV</button>
-        <button id="btnSampS1Csv" data-i18n="btn_samp_csv">Sample (CSV)</button>
-        <button id="btnSampS1Txt" data-i18n="btn_samp_txt">Sample (TXT)</button>
-        <button id="btnGetGPS" class="btn-sm" style="background:#eab308; color:#422006;">📍 Get GPS to Row 1</button>
+        <button id="btnLoadS1" data-i18n="btn_load_file" data-i18n-title="tt_load">Load TXT/CSV</button>
+        <button id="btnSampS1Csv" class="btn-secondary" data-i18n="btn_samp_csv" data-i18n-title="tt_samp_csv">Sample (CSV)</button>
+        <button id="btnSampS1Txt" class="btn-secondary" data-i18n="btn_samp_txt" data-i18n-title="tt_samp_txt">Sample (TXT)</button>
+        <button id="btnGetGPS" class="btn-geo" data-i18n-title="tt_gps">📍 Get GPS to Row 1</button>
     </div>
     <div id="section1Status" class="status"></div>
     
-    <table id="table1">
-        <thead></thead>
-        <tbody></tbody>
-    </table>
+    <div class="table-responsive">
+        <table id="table1">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
     
     <div class="controls-row">
-        <button id="btnCalcS1" data-i18n="btn_calc_s1">Calculate Section 1</button>
-        <button id="btnClearS1" data-i18n="btn_clear_s1" style="background:#64748b;">Clear Section 1</button>
-        <button id="btnExpCsvS1" data-i18n="btn_exp_csv_s1">Export CSV</button>
-        <button id="btnExpKmlS1" data-i18n="btn_exp_kml_s1">Export KML</button>
-        <button id="btnCopyS1" data-i18n="btn_copy_tsv_s1">Copy (TSV)</button>
+        <button id="btnCalcS1" data-i18n="btn_calc_s1" data-i18n-title="tt_calc_s1">Calculate Section 1</button>
+        <button id="btnClearS1" class="btn-secondary" data-i18n="btn_clear_s1" data-i18n-title="tt_clear_s1">Clear Section 1</button>
+        <button id="btnExpCsvS1" data-i18n="btn_exp_csv_s1" data-i18n-title="tt_exp_csv">Export CSV</button>
+        <button id="btnExpKmlS1" data-i18n="btn_exp_kml_s1" data-i18n-title="tt_exp_kml">Export KML</button>
+        <button id="btnCopyS1" data-i18n="btn_copy_tsv_s1" data-i18n-title="tt_copy">Copy (TSV)</button>
     </div>
 </div>
 
 <div class="container">
     <h2 data-i18n="s2_title">Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long</h2>
     <div class="controls-row">
+        <div class="inline-field">
+            <span class="hint-text" style="background:#e2e8f0; padding:4px 8px; border-radius:4px; font-weight:600; color:#0f172a; margin-right: 8px;" data-i18n="lbl_s2_input_hint">Input: Indian 1975 UTM (meters, E / N)</span>
+        </div>
         <div class="inline-field">
             <label data-i18n="lbl_out_format">Output Format:</label>
             <select id="section2OutputFormat">
@@ -289,77 +299,77 @@
     </div>
     
     <div class="hint-text" data-i18n="s2_import_hint">Import .txt or .csv file (format: PointID X Y):</div>
-    <input type="file" id="fileInputSection2" accept=".txt,.csv"><span class="help-tip" id="s2_tooltip" data-tip="">?</span><br>
+    <input type="file" id="fileInputSection2" accept=".txt,.csv"><span class="help-tip tooltip-right" id="s2_tooltip" data-tip="" tabindex="0" onclick="this.toggleAttribute('data-open')">?</span><br>
     
     <div class="controls-row" style="margin-bottom: 8px;">
-        <button id="btnLoadS2" data-i18n="btn_load_file">Load TXT/CSV</button>
-        <button id="btnSampS2Csv" data-i18n="btn_samp_csv">Sample (CSV)</button>
-        <button id="btnSampS2Txt" data-i18n="btn_samp_txt">Sample (TXT)</button>
+        <button id="btnLoadS2" data-i18n="btn_load_file" data-i18n-title="tt_load">Load TXT/CSV</button>
+        <button id="btnSampS2Csv" class="btn-secondary" data-i18n="btn_samp_csv" data-i18n-title="tt_samp_csv">Sample (CSV)</button>
+        <button id="btnSampS2Txt" class="btn-secondary" data-i18n="btn_samp_txt" data-i18n-title="tt_samp_txt">Sample (TXT)</button>
     </div>
     <div id="section2Status" class="status"></div>
     
-    <table id="table2">
-        <thead>
-            <tr>
-                <th data-i18n="th_pt">Point ID</th>
-                <th data-i18n="th_wgs_lat_out">WGS84 Latitude</th>
-                <th data-i18n="th_wgs_lon_out">WGS84 Longitude</th>
-                <th data-i18n="th_ind_e">Indian UTM Easting</th>
-                <th data-i18n="th_ind_n">Indian UTM Northing</th>
-                <th data-i18n="th_ind_lat">Indian Latitude</th>
-                <th data-i18n="th_ind_lon">Indian Longitude</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td contenteditable="true" spellcheck="false">1</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">2</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">3</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">4</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">5</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">6</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">7</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">8</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">9</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-            <tr><td contenteditable="true" spellcheck="false">10</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table id="table2">
+            <thead>
+                <tr>
+                    <th data-i18n="th_pt">Point ID</th>
+                    <th data-i18n="th_wgs_lat_out">WGS84 Latitude</th>
+                    <th data-i18n="th_wgs_lon_out">WGS84 Longitude</th>
+                    <th data-i18n="th_ind_e">Indian UTM Easting</th>
+                    <th data-i18n="th_ind_n">Indian UTM Northing</th>
+                    <th data-i18n="th_ind_lat">Indian Latitude</th>
+                    <th data-i18n="th_ind_lon">Indian Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td contenteditable="true" spellcheck="false">1</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">2</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">3</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">4</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">5</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">6</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">7</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">8</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">9</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+                <tr><td contenteditable="true" spellcheck="false">10</td><td></td><td></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td class="input-cell"><span></span><input type="number" step="0.01"></td><td></td><td></td></tr>
+            </tbody>
+        </table>
+    </div>
     
     <div class="controls-row">
-        <button id="btnCalcS2" data-i18n="btn_calc_s2">Calculate Section 2</button>
-        <button id="btnClearS2" data-i18n="btn_clear_s2" style="background:#64748b;">Clear Section 2</button>
-        <button id="btnExpCsvS2" data-i18n="btn_exp_csv_s2">Export CSV</button>
-        <button id="btnExpKmlS2" data-i18n="btn_exp_kml_s2">Export KML</button>
-        <button id="btnCopyS2" data-i18n="btn_copy_tsv_s2">Copy (TSV)</button>
-        <button id="btnTowRoute" style="background:#9b59b6; color:white;">TowRoute (KML)</button>
-        <button id="btnTowRouteCsv" style="background:#2c3e50; color:white;">TowRoute (CSV)</button>
+        <button id="btnCalcS2" data-i18n="btn_calc_s2" data-i18n-title="tt_calc_s2">Calculate Section 2</button>
+        <button id="btnClearS2" class="btn-secondary" data-i18n="btn_clear_s2" data-i18n-title="tt_clear_s2">Clear Section 2</button>
+        <button id="btnExpCsvS2" data-i18n="btn_exp_csv_s2" data-i18n-title="tt_exp_csv">Export CSV</button>
+        <button id="btnExpKmlS2" data-i18n="btn_exp_kml_s2" data-i18n-title="tt_exp_kml">Export KML</button>
+        <button id="btnCopyS2" data-i18n="btn_copy_tsv_s2" data-i18n-title="tt_copy">Copy (TSV)</button>
+        
+        <div class="route-group">
+            <span class="route-lbl" data-i18n="lbl_route_exp">Route Export ▸</span>
+            <button id="btnTowRoute" class="btn-route" data-i18n-title="tt_route_kml">TowRoute (KML)</button>
+            <button id="btnTowRouteCsv" class="btn-route-csv" data-i18n-title="tt_route_csv">TowRoute (CSV)</button>
+        </div>
     </div>
 </div>
 
 <div class="container">
     <h2 data-i18n="vis_title">Coordinate Visualization</h2>
     
-    <!-- Real-World Map Overlay -->
     <div style="margin-bottom: 24px;">
         <div class="inline-field mb-2" style="margin-bottom: 12px;">
-            <button id="btnShowLeaflet" style="background: #10b981; margin-bottom:0;">Plot on Real Map</button>
-            <select id="leafletMapType" style="margin-bottom:0;">
-                <option value="street">Street Map (OSM)</option>
-                <option value="satellite">Satellite (Esri)</option>
-            </select>
+            <button id="btnShowLeaflet" class="btn-map" style="margin-bottom:0;" data-i18n-title="tt_show_map">Plot on Real Map</button>
         </div>
         <div id="leafletMap" style="height: 400px; border-radius: var(--radius-md); border: 1px solid var(--border-color); width: 100%; display: none; z-index: 1;"></div>
     </div>
     <hr class="soft-sep">
 
-    <!-- Legacy SVG Overlay -->
     <h3 class="text-secondary" style="font-size: 14px; margin-bottom: 12px; font-weight: 600;">Legacy SVG Plotter</h3>
     <div class="inline-field">
         <select id="canvasMode" style="margin-right: 15px;">
             <option value="wgs84" data-i18n="opt_vis_wgs">WGS84 Lat/Long</option>
             <option value="utm" data-i18n="opt_vis_utm">Indian 1975 UTM</option>
         </select>
-        <button id="btnShowSvg" data-i18n="btn_show_svg">Show Points on SVG</button>
-        <button id="btnExpDxf" data-i18n="btn_exp_dxf">Export DXF (R12)</button>
+        <button id="btnShowSvg" data-i18n="btn_show_svg" data-i18n-title="tt_show_svg">Show Points on SVG</button>
+        <button id="btnExpDxf" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF (R12)</button>
     </div>
     <svg id="coordinateSVG" viewBox="0 0 750 550"></svg>
     <div class="legend">
@@ -367,6 +377,8 @@
         <span class="section2" data-i18n="lgd_s2">● Section 2: Red</span>
     </div>
 </div>
+
+<div id="toastContainer" class="toast-container"></div>
 
 <footer class="fixed-footer">
   Developed by Rattawit W.
@@ -382,7 +394,8 @@ const AppState = {
     zoneInfo: { zone: 47, cm: 99 },
     precCfg: { decdeg_dp: 7, dms_sec_dp: 4, dm_min_dp: 5, utm_dp: 2 },
     s1Format: 'dm',
-    forceTableReset: true
+    forceTableReset: true,
+    map: { instance: null, markerLayer: null, street: null, sat: null }
 };
 
 /**
@@ -390,7 +403,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v5.0", lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):", lbl_zone: "Current Zone:",
+        app_title: "Coordinate Converter v5.2 (260421)", lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):", lbl_zone: "Current Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:",
         opt_dol: "DOL Standard (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "High-Precision Survey (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "Legacy v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -406,10 +419,12 @@ const I18nDict = {
         tooltip_s1: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated", tooltip_s2: "Expected: PointID X Y\nExample: BM-01 759528.17 1068297.15\nAccepts: Comma or Space/Tab-separated\nPointID can be alphanumeric: P1, BM-01, CP-A",
         err_s1_empty: "Row {0}: Provide required coordinates.", err_s1_min: "Row {0}: Minutes must be 0-59.", err_s1_deg: "Row {0}: Lat Deg (-90 to 90) or Lon Deg (-180 to 180) invalid.",
         err_s2_both: "Row {0}: Both Easting and Northing required.", err_s2_utm: "Row {0}: Coordinates invalid for UTM zone.", err_invalid_num: "Row {0}: Numeric parse error.", err_lat_range: "Row {0}: Latitude must be between -90° and 90°.", err_lon_range: "Row {0}: Longitude must be between -180° and 180°.",
-        err_out_th: "Row {0}: Coordinates outside valid UTM bounds for region.", err_out_zone: "Row {0}: Longitude exceeds UTM Zone Central Meridian limits."
+        err_out_th: "Row {0}: Coordinates outside valid UTM bounds for region.", err_out_zone: "Row {0}: Longitude exceeds UTM Zone Central Meridian limits.",
+        msg_calc_ok: "✓ {0} row(s) calculated successfully.",
+        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v5.0", lbl_datum: "พารามิเตอร์แปลงพิกัด:", lbl_zone: "โซนปัจจุบัน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v5.2 (260421)", lbl_datum: "พารามิเตอร์แปลงพิกัด:", lbl_zone: "โซนปัจจุบัน:",
         sel_zone: "พิกัด UTM Zone:", sel_datum: "เลือกชุดพารามิเตอร์:",
         opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "ล้างข้อมูลทั้งหมด", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -425,7 +440,9 @@ const I18nDict = {
         tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv", tooltip_s2: "รูปแบบที่รองรับ: ชื่อจุด ค่าEasting ค่าNorthing\nรับไฟล์: .txt (เคาะวรรค) หรือ .csv",
         err_s1_empty: "แถว {0}: กรุณากรอกพิกัดให้ครบ", err_s1_min: "แถว {0}: ลิปดาต้องอยู่ระหว่าง 0-59", err_s1_deg: "แถว {0}: องศาผิดพลาด",
         err_s2_both: "แถว {0}: ต้องกรอกข้อมูล X และ Y", err_s2_utm: "แถว {0}: ค่าพิกัดฉากผิดพลาด", err_invalid_num: "แถว {0}: รูปแบบตัวเลขผิด", err_lat_range: "แถว {0}: ละติจูดอยู่นอกช่วง -90 ถึง 90", err_lon_range: "แถว {0}: ลองจิจูดอยู่นอกช่วง -180 ถึง 180",
-        err_out_th: "แถว {0}: พิกัดหลุดอาณาบริเวณ", err_out_zone: "แถว {0}: ค่าลองจิจูดผิดโซน CM ที่ตั้งไว้"
+        err_out_th: "แถว {0}: พิกัดหลุดอาณาบริเวณ", err_out_zone: "แถว {0}: ค่าลองจิจูดผิดโซน CM ที่ตั้งไว้",
+        msg_calc_ok: "✓ คำนวณสำเร็จ {0} แถว",
+        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
 
@@ -442,8 +459,13 @@ function updateTranslations() {
         else if (el.tagName === 'INPUT') el.placeholder = t(key);
         else el.innerText = t(key);
     });
-    document.getElementById('s1_tooltip').setAttribute('data-tip', I18nDict[AppState.lang]['tooltip_s1']);
-    document.getElementById('s2_tooltip').setAttribute('data-tip', I18nDict[AppState.lang]['tooltip_s2']);
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        el.title = t(el.getAttribute('data-i18n-title'));
+    });
+    
+    // Fixed: properly resolve tooltip texts using the t() function wrapper
+    document.getElementById('s1_tooltip').setAttribute('data-tip', t('tooltip_s1'));
+    document.getElementById('s2_tooltip').setAttribute('data-tip', t('tooltip_s2'));
 }
 
 /**
@@ -454,6 +476,13 @@ const GeoMath = {
     degRad: d => d * Math.PI / 180,
     radDeg: r => r * 180 / Math.PI,
     
+    // PHASE A FIX: Calculate True North Grid Convergence
+    calculateConvergence: (lat, lon, cm) => {
+        const phi = lat * (Math.PI / 180);
+        const dLon = lon - cm;
+        return dLon * Math.sin(phi);
+    },
+
     geodeticToECEF: (lat, lon, h, a, f) => {
         const latRef = GeoMath.degRad(lat), lonRef = GeoMath.degRad(lon), e2 = f * (2 - f);
         const nu = a / Math.sqrt(1 - e2 * Math.sin(latRef) ** 2);
@@ -467,8 +496,9 @@ const GeoMath = {
     ecefToGeodetic: (X, Y, Z, a, f) => {
         const e2 = f * (2 - f), p = Math.sqrt(X ** 2 + Y ** 2);
         let lon = Math.atan2(Y, X), lat = Math.atan2(Z, p * (1 - e2)), h = 0;
-        for (let i = 0; i < 100; i++) {
-            const nu = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2), h_new = p / Math.cos(lat) - nu;
+        for (let i = 0; i < 15; i++) {
+            const nu = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2);
+            const h_new = Math.abs(Math.cos(lat)) < 1e-10 ? Math.abs(Z) - a * Math.sqrt(1 - e2) : p / Math.cos(lat) - nu;
             const lat_new = Math.atan2(Z + e2 * nu * Math.sin(lat), p);
             if (Math.abs(lat_new - lat) < 1e-9 && Math.abs(h_new - h) < 1e-9) break;
             lat = lat_new; h = h_new;
@@ -489,7 +519,7 @@ const GeoMath = {
     },
 
     utmToLatLon: (east, north, a, f, c_m) => {
-        const radCM = GeoMath.degRad(c_m), e2 = f * (2 - f), e4 = e2 ** 2, e6 = e2 * e4, ep2 = e2 / (1 - e2), M = north / GeoMath.k0;
+        const radCM = GeoMath.degRad(c_m), e2 = f * (2 - f), e4 = e2 ** 2, e6 = e2 * e4, ep2 = e2 / (1 - e2), M = (north - GeoMath.false_n) / GeoMath.k0;
         const mu = M / (a * (1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256)), e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
         const phi1 = mu + (3 / 2 * e1 - 27 / 32 * e1 ** 3) * Math.sin(2 * mu) + (21 / 16 * e1 ** 2 - 55 / 32 * e1 ** 4) * Math.sin(4 * mu) + (151 / 96 * e1 ** 3) * Math.sin(6 * mu) + (1097 / 512 * e1 ** 4) * Math.sin(8 * mu);
         const nu1 = a / Math.sqrt(1 - e2 * Math.sin(phi1) ** 2), rho1 = a * (1 - e2) / (1 - e2 * Math.sin(phi1) ** 2) ** 1.5;
@@ -519,11 +549,16 @@ const GeoMath = {
  * Format & Helpers
  */
 const Formatter = {
+    escapeXml: (unsafe) => (unsafe || '').replace(/[<>&'"]/g, c => {
+        switch (c) { case '<': return '&lt;'; case '>': return '&gt;'; case '&': return '&amp;'; case '\'': return '&apos;'; case '"': return '&quot;'; }
+    }),
     toNumber: v => {
         if (v == null) return NaN;
         if (typeof v !== 'string') return Number(v);
         const m = {'๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','−':'-'};
-        let s = v.replace(/[\u00A0\s]/g,'').replace(/[°'″”″"’]/g,'').replace(',', '.').replace(/[๐-๙−]/g, c => m[c] || c);
+        let s = v.replace(/[\u00A0\s]/g,'').replace(/[°'″”″"’]/g,'').replace(/[๐-๙−]/g, c => m[c] || c);
+        if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, ''); 
+        s = s.replace(/,/g, '.'); 
         return s === '' ? NaN : Number(s);
     },
     toFixedSafe: (x, dp) => (Math.round(Number(x) * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp),
@@ -545,20 +580,19 @@ const Formatter = {
     parseDMS: (str) => {
         if (str == null || str === '') return NaN;
         const s = String(str).trim();
-        // Match D°M'S"[Hemisphere]
         const m = s.match(/^(-?\d+(?:\.\d+)?)\s*[\u00b0]\s*(\d+(?:\.\d+)?)\s*[']\s*(\d+(?:\.\d+)?)\s*["\u2033]?\s*([NSEWnsew])?/);
+        
+        // PHASE B FIX: Bulletproof sign management to avoid double-negative logic failures
         if (m) {
-            const d = parseFloat(m[1]), mn = parseFloat(m[2]), sc = parseFloat(m[3]);
-            const hem = m[4] ? m[4].toUpperCase() : null;
-            let dec = Math.abs(d) + mn/60 + sc/3600;
-            if (hem === 'S' || hem === 'W' || d < 0) dec = -dec;
+            let dec = Math.abs(parseFloat(m[1])) + (parseFloat(m[2]) || 0)/60 + (parseFloat(m[3]) || 0)/3600;
+            if (/[SWsw]/.test(s) || s.startsWith('-')) dec = -dec;
             return dec;
         }
-        // Try space-separated D M S (with stripped symbols)
         const parts = s.replace(/[\u00b0'"]/g, ' ').split(/\s+/).filter(Boolean);
         if (parts.length >= 3) {
-            const d = parseFloat(parts[0]), mn = parseFloat(parts[1]), sc = parseFloat(parts[2]);
-            if (!isNaN(d) && !isNaN(mn) && !isNaN(sc)) return (d < 0 ? -1 : 1) * (Math.abs(d) + mn/60 + sc/3600);
+            let dec = Math.abs(parseFloat(parts[0])) + (parseFloat(parts[1]) || 0)/60 + (parseFloat(parts[2]) || 0)/3600;
+            if (/[SWsw]/.test(s) || s.startsWith('-')) dec = -dec;
+            if (!isNaN(dec)) return dec;
         }
         return Formatter.toNumber(s);
     }
@@ -568,6 +602,20 @@ const Formatter = {
  * UI Application Logic
  */
 const AppMethods = {
+    showToast: (msg, type = 'info') => {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    },
+
     syncSettings: () => {
         AppState.zoneInfo.zone = parseInt(document.getElementById('zoneSelect').value);
         AppState.zoneInfo.cm = 6 * AppState.zoneInfo.zone - 183;
@@ -581,9 +629,8 @@ const AppMethods = {
         
         AppMethods.calcS1(); AppMethods.calcS2();
         if(document.getElementById('coordinateSVG').innerHTML!=='') AppMethods.drawSvg();
-        // Refresh Leaflet map if it is currently visible
         const mapDiv = document.getElementById('leafletMap');
-        if(window.lMap && mapDiv && mapDiv.style.display !== 'none') AppMethods.drawLeaflet();
+        if(AppState.map.instance && mapDiv && mapDiv.style.display !== 'none') AppMethods.drawLeaflet();
     },
 
     updateInputDisplay: (cell) => {
@@ -597,12 +644,34 @@ const AppMethods = {
             const cln = b.lastElementChild.cloneNode(true);
             cln.querySelectorAll('td').forEach(td => {
                 td.classList.remove('has-error');
+                if (td.hasAttribute('contenteditable')) td.innerText = ''; 
                 const i=td.querySelector('input'); if(i) i.value='';
                 const s=td.querySelector('span'); if(s) s.innerText='';
             });
+            cln.cells[0].innerText = b.children.length + 1; 
             b.appendChild(cln);
         }
-        Array.from(b.children).forEach((r, idx) => r.cells[0].innerText = idx + 1);
+    },
+
+    getS1Cols: () => AppState.s1Format === 'dm' ? { e: 5, n: 6, lat: 7, lon: 8 } : { e: 3, n: 4, lat: 5, lon: 6 },
+
+    getS1LatLon: (row) => {
+        const fmt = AppState.s1Format;
+        const c = row.cells;
+        let lat = NaN, lon = NaN;
+        if (fmt === 'dm') {
+            let ld = Formatter.toNumber(c[1].querySelector('input').value), lm = Formatter.toNumber(c[2].querySelector('input').value);
+            let lod = Formatter.toNumber(c[3].querySelector('input').value), lom = Formatter.toNumber(c[4].querySelector('input').value);
+            if (!isNaN(ld) && !isNaN(lm)) lat = (Object.is(ld, -0) || ld < 0 ? -1 : 1) * (Math.abs(ld) + lm / 60);
+            if (!isNaN(lod) && !isNaN(lom)) lon = (Object.is(lod, -0) || lod < 0 ? -1 : 1) * (Math.abs(lod) + lom / 60);
+        } else if (fmt === 'dms') {
+            lat = Formatter.parseDMS(c[1].querySelector('input').value);
+            lon = Formatter.parseDMS(c[2].querySelector('input').value);
+        } else {
+            lat = Formatter.toNumber(c[1].querySelector('input').value);
+            lon = Formatter.toNumber(c[2].querySelector('input').value);
+        }
+        return { lat, lon };
     },
 
     buildS1Table: (count = 10) => {
@@ -612,15 +681,18 @@ const AppMethods = {
         h.innerHTML = fmt === 'dm' ? 
             `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th></tr>` 
             : `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th></tr>`;
+        
+        if (fmt === 'dms') document.getElementById('table1').classList.add('dms-mode');
+        else document.getElementById('table1').classList.remove('dms-mode');
+
         let rn = [];
-        const iType = fmt === 'dms' ? 'text' : 'number';
         for(let i=1; i<=count; i++) {
             if(fmt === 'dm') {
-                rn.push(`<tr><td>${i}</td><td class="input-cell"><span></span><input type="number"></td><td class="input-cell"><span></span><input type="number" step="0.000001"></td><td class="input-cell"><span></span><input type="number"></td><td class="input-cell"><span></span><input type="number" step="0.000001"></td><td></td><td></td><td></td><td></td></tr>`);
+                rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="number"></td><td class="input-cell"><span></span><input type="number" step="0.000001"></td><td class="input-cell"><span></span><input type="number"></td><td class="input-cell"><span></span><input type="number" step="0.000001"></td><td></td><td></td><td></td><td></td></tr>`);
             } else if(fmt === 'dms') {
-                rn.push(`<tr><td>${i}</td><td class="input-cell"><span></span><input type="text" placeholder="13°45'23.5&quot;N" style="text-align:left;"></td><td class="input-cell"><span></span><input type="text" placeholder="100°30'15.2&quot;E" style="text-align:left;"></td><td></td><td></td><td></td><td></td></tr>`);
+                rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="text" placeholder="13°45'23.5&quot;N" style="text-align:left;"></td><td class="input-cell"><span></span><input type="text" placeholder="100°30'15.2&quot;E" style="text-align:left;"></td><td></td><td></td><td></td><td></td></tr>`);
             } else {
-                rn.push(`<tr><td>${i}</td><td class="input-cell"><span></span><input type="number" step="0.0000001"></td><td class="input-cell"><span></span><input type="number" step="0.0000001"></td><td></td><td></td><td></td><td></td></tr>`);
+                rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="number" step="0.0000001"></td><td class="input-cell"><span></span><input type="number" step="0.0000001"></td><td></td><td></td><td></td><td></td></tr>`);
             }
         }
         b.innerHTML = rn.join('');
@@ -633,20 +705,8 @@ const AppMethods = {
         if(AppState.s1Format === nf) return;
         const b = document.querySelector('#table1 tbody'), saved = [];
         Array.from(b.children).forEach(r => {
-            let lat=NaN, lon=NaN, c=r.cells;
-            if(AppState.s1Format==='dm') {
-                let ld=Formatter.toNumber(c[1].querySelector('input').value), lm=Formatter.toNumber(c[2].querySelector('input').value);
-                let lod=Formatter.toNumber(c[3].querySelector('input').value), lom=Formatter.toNumber(c[4].querySelector('input').value);
-                if(!isNaN(ld) && !isNaN(lm)) lat = (ld<0?-1:1)*(Math.abs(ld)+lm/60);
-                if(!isNaN(lod) && !isNaN(lom)) lon = (lod<0?-1:1)*(Math.abs(lod)+lom/60);
-            } else if(AppState.s1Format==='dms') {
-                lat = Formatter.parseDMS(c[1].querySelector('input').value);
-                lon = Formatter.parseDMS(c[2].querySelector('input').value);
-            } else {
-                lat = Formatter.toNumber(c[1].querySelector('input').value);
-                lon = Formatter.toNumber(c[2].querySelector('input').value);
-            }
-            saved.push({id:c[0].innerText, lat, lon});
+            let coords = AppMethods.getS1LatLon(r);
+            saved.push({id:r.cells[0].innerText, lat: coords.lat, lon: coords.lon});
         });
         AppState.s1Format = nf; AppState.forceTableReset = true; AppMethods.buildS1Table(Math.max(10, saved.length));
         
@@ -688,7 +748,10 @@ const AppMethods = {
         AppMethods.clearErr('table1'); let msgs = [], rowsCalc = 0;
         const fmt=AppState.s1Format, outF=document.getElementById('section1OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         Array.from(document.querySelector('#table1 tbody').children).forEach((r, i) => {
-            let c=r.cells, lD=NaN, oD=NaN, rE=false, idx=i+1;
+            let c=r.cells, rE=false, idx=i+1;
+            let coords = AppMethods.getS1LatLon(r);
+            let lD = coords.lat, oD = coords.lon;
+            
             if(fmt==='dm') {
                 let td=Formatter.toNumber(c[1].querySelector('input').value), tm=Formatter.toNumber(c[2].querySelector('input').value), lod=Formatter.toNumber(c[3].querySelector('input').value), lom=Formatter.toNumber(c[4].querySelector('input').value);
                 if(isNaN(td)&&isNaN(tm)&&isNaN(lod)&&isNaN(lom)) return;
@@ -696,27 +759,30 @@ const AppMethods = {
                 else {
                     if(tm<0||tm>=60||lom<0||lom>=60){ msgs.push(t('err_s1_min',idx)); rE=true;}
                     if(td<-90||td>90||lod<-180||lod>180){ msgs.push(t('err_s1_deg',idx)); rE=true;}
-                    if(!rE){ lD=(td<0?-1:1)*(Math.abs(td)+tm/60); oD=(lod<0?-1:1)*(Math.abs(lod)+lom/60); let ev=AppMethods.valQC(lD,oD,idx,zi.cm); if(ev.length){ msgs=msgs.concat(ev); rE=true;} }
+                    if(!rE){ let ev=AppMethods.valQC(lD,oD,idx,zi.cm); if(ev.length){ msgs=msgs.concat(ev); rE=true;} }
                 }
                 if(rE) { [1,2,3,4].forEach(x => c[x].classList.add('has-error')); return; }
             } else {
-                // D and DMS modes: 2-column lat/lon input
-                lD = (fmt==='dms') ? Formatter.parseDMS(c[1].querySelector('input').value) : Formatter.toNumber(c[1].querySelector('input').value);
-                oD = (fmt==='dms') ? Formatter.parseDMS(c[2].querySelector('input').value) : Formatter.toNumber(c[2].querySelector('input').value);
-                if(isNaN(lD)&&isNaN(oD)) return;
+                let v1 = c[1].querySelector('input').value, v2 = c[2].querySelector('input').value;
+                if(!v1 && !v2) return;
                 if(isNaN(lD)||isNaN(oD)){ msgs.push(t('err_s1_empty',idx)); rE=true; }
                 else { let ev=AppMethods.valQC(lD,oD,idx,zi.cm); if(ev.length){msgs=msgs.concat(ev); rE=true;} }
                 if(rE) { [1,2].forEach(x => c[x].classList.add('has-error')); return; }
             }
             rowsCalc++;
-            let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm), off=fmt==='dm'?0:-2;
-            c[5+off].innerText = Formatter.formatUTM(res.east); c[6+off].innerText = Formatter.formatUTM(res.north);
-            c[7+off].innerText = Formatter.formatStr(res.lat, outF, true); c[8+off].innerText = Formatter.formatStr(res.lon, outF, false);
+            try {
+                let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm);
+                const cols = AppMethods.getS1Cols();
+                c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
+                c[cols.lat].innerText = Formatter.formatStr(res.lat, outF, true); c[cols.lon].innerText = Formatter.formatStr(res.lon, outF, false);
+            } catch(e) {
+                msgs.push(`Row ${idx}: Math error.`);
+            }
         });
         const st = document.getElementById('section1Status');
         const uniq = [...new Set(msgs)];
         if(uniq.length) { st.innerHTML = uniq.join('<br>'); st.className = 'status err'; }
-        else if(rowsCalc > 0) { st.innerHTML = `✓ ${rowsCalc} row(s) calculated successfully.`; st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; } 
         else { st.innerHTML = ''; st.className = 'status'; }
     },
 
@@ -727,18 +793,22 @@ const AppMethods = {
             let c=r.cells, e=Formatter.toNumber(c[3].querySelector('input').value), n=Formatter.toNumber(c[4].querySelector('input').value), rE=false, idx=i+1;
             if(isNaN(e)&&isNaN(n)){ c[1].innerText=''; c[2].innerText=''; c[5].innerText=''; c[6].innerText=''; return; }
             if(isNaN(e)||isNaN(n)){ msgs.push(t('err_s2_both',idx)); rE=true; }
-            else { if(e<100000||e>999999) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<500000||n>3000000){msgs.push(t('err_out_th',idx)); rE=true;} }
+            else { if(e<100000||e>999999) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<0||n>10000000){msgs.push(t('err_out_th',idx)); rE=true;} }
             
             if(rE){ [3,4].forEach(x=>c[x].classList.add('has-error')); c[1].innerText=''; c[2].innerText=''; c[5].innerText=''; c[6].innerText=''; return; }
             rowsCalc++;
-            let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm);
-            c[1].innerText=Formatter.formatStr(res.lat, outF, true); c[2].innerText=Formatter.formatStr(res.lon, outF, false);
-            c[5].innerText=Formatter.formatStr(res.ind_lat, outF, true); c[6].innerText=Formatter.formatStr(res.ind_lon, outF, false);
+            try {
+                let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm);
+                c[1].innerText=Formatter.formatStr(res.lat, outF, true); c[2].innerText=Formatter.formatStr(res.lon, outF, false);
+                c[5].innerText=Formatter.formatStr(res.ind_lat, outF, true); c[6].innerText=Formatter.formatStr(res.ind_lon, outF, false);
+            } catch(e) {
+                msgs.push(`Row ${idx}: Math error.`);
+            }
         });
         const st = document.getElementById('section2Status');
         const uniq = [...new Set(msgs)];
         if(uniq.length) { st.innerHTML = uniq.join('<br>'); st.className = 'status err'; }
-        else if(rowsCalc > 0) { st.innerHTML = `✓ ${rowsCalc} row(s) calculated successfully.`; st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
         else { st.innerHTML = ''; st.className = 'status'; }
     },
 
@@ -749,18 +819,17 @@ const AppMethods = {
         document.getElementById('section2Status').className='status'; document.getElementById('fileInputSection2').value='';
     },
     clearAll: () => {
+        if(!confirm(t('msg_clear_warn'))) return;
         AppMethods.clearS1(); AppMethods.clearS2();
         document.getElementById('coordinateSVG').innerHTML='';
-        // Reset Leaflet map if it was initialised
-        if(window.lMarkerLayer) window.lMarkerLayer.clearLayers();
+        if(AppState.map.markerLayer) AppState.map.markerLayer.clearLayers();
         const mapDiv = document.getElementById('leafletMap');
         if(mapDiv) mapDiv.style.display = 'none';
-        if(window.lMap) { window.lMap.remove(); window.lMap = null; window.lMarkerLayer = null; window.lStreet = null; window.lSat = null; }
+        if(AppState.map.instance) { AppState.map.instance.remove(); AppState.map.instance = null; AppState.map.markerLayer = null; AppState.map.street = null; AppState.map.sat = null; }
     },
 
     copyTable: (tid, head) => {
         const tb=document.getElementById(tid), lines=[];
-        // Export metadata header (Zone + Datum) - from v5.0
         const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
         const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
         lines.push(`# Zone: ${zoneLabel} | ${datumLabel} | dx=${AppState.params.dx} dy=${AppState.params.dy} dz=${AppState.params.dz}`);
@@ -770,23 +839,29 @@ const AppMethods = {
             if(cells.some(x=>x!=='')) lines.push(cells.join('\t'));
         }
         const txt = lines.join('\n');
-        if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).catch(e=>alert('Copy failed'));
-        else { let ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+        if(navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(txt)
+                .then(() => AppMethods.showToast('Table copied to clipboard!', 'ok'))
+                .catch(e => AppMethods.showToast('Copy failed.', 'err'));
+        } else { 
+            let ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); 
+            document.execCommand('copy'); document.body.removeChild(ta); 
+            AppMethods.showToast('Table copied to clipboard!', 'ok');
+        }
     },
 
     exportCsv: (tid, fn) => {
         const tb=document.getElementById(tid), lines=['\uFEFF'];
-        // Export metadata header (Zone + Datum) - from v5.0
         const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
         const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
-        // Headers first (ArcGIS Pro / QGIS compatible — row 1 = column names)
+        
+        lines.push(`"# Zone: ${zoneLabel} | ${datumLabel} | dx=${AppState.params.dx} dy=${AppState.params.dy} dz=${AppState.params.dz}"`);
+        
         lines.push(Array.from(tb.rows[0].cells).map(h=>`"${h.innerText.replace(/"/g,'""')}"`).join(','));
         for(let i=1; i<tb.rows.length; i++){
             let cl = Array.from(tb.rows[i].cells).map(c=>{let i=c.querySelector('input'); return `"${String(i&&i.value?i.value:c.innerText).replace(/"/g,'""')}"`;});
             if(!cl.slice(1).every(c=>c==='""')) lines.push(cl.join(','));
         }
-        // Metadata footer (prefixed with # to not interfere with data)
-        lines.push(`"# Zone: ${zoneLabel} | ${datumLabel} | dx=${AppState.params.dx} dy=${AppState.params.dy} dz=${AppState.params.dz}"`);
         AppMethods.download(fn, lines.join('\n'), 'text/csv;charset=utf-8');
     },
 
@@ -796,34 +871,28 @@ const AppMethods = {
         for(let i=1;i<tb.rows.length;i++){
             let c=tb.rows[i].cells, lat,lon,dsc="";
             if(isS1){
-                let off=AppState.s1Format==='dm'?0:-2, et=c[5+off].innerText, nt=c[6+off].innerText; if(!et||!nt) continue;
-                if(AppState.s1Format==='dm'){
-                    let td=Formatter.toNumber(c[1].querySelector('input').value), tm=Formatter.toNumber(c[2].querySelector('input').value), lod=Formatter.toNumber(c[3].querySelector('input').value), lom=Formatter.toNumber(c[4].querySelector('input').value);
-                    lat=(Object.is(td,-0)||td<0?-1:1)*(Math.abs(td)+tm/60); lon=(Object.is(lod,-0)||lod<0?-1:1)*(Math.abs(lod)+lom/60);
-                } else { lat=Formatter.toNumber(c[1].querySelector('input').value); lon=Formatter.toNumber(c[2].querySelector('input').value); }
-                if(isNaN(lat)||isNaN(lon))continue; dsc=`ID: ${c[0].innerText}, E: ${et}, N: ${nt}`;
+                const cols = AppMethods.getS1Cols();
+                let et=c[cols.e].innerText, nt=c[cols.n].innerText; if(!et||!nt) continue;
+                let coords = AppMethods.getS1LatLon(tb.rows[i]);
+                lat = coords.lat; lon = coords.lon;
+                if(isNaN(lat)||isNaN(lon))continue; 
+                dsc=`ID: ${c[0].innerText}, E: ${et}, N: ${nt}`;
             } else {
                 let x=Formatter.toNumber(c[3].querySelector('input').value), y=Formatter.toNumber(c[4].querySelector('input').value); if(isNaN(x)||isNaN(y)) continue;
                 let res=GeoMath.ind1975ToWgs84(x,y,AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm); lat=res.lat; lon=res.lon; dsc=`ID: ${c[0].innerText}, E: ${x}, N: ${y}`;
             }
-            kml+=`<Placemark><name>${c[0].innerText}</name><styleUrl>#pt</styleUrl><description>${dsc}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
+            kml+=`<Placemark><name>${Formatter.escapeXml(c[0].innerText)}</name><styleUrl>#pt</styleUrl><description>${Formatter.escapeXml(dsc)}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
         }
         kml+='</Document>\n</kml>'; AppMethods.download(fn, kml, 'text/xml;charset=utf-8');
     },
 
     exportDxf: () => {
-        // Collect all points from both sections (with WGS84 coords for labels)
         let pts=[], f1=AppState.s1Format, p=AppState.params, zi=AppState.zoneInfo;
         Array.from(document.getElementById('table1').rows).slice(1).forEach(r=>{
-            let c=r.cells, o=f1==='dm'?0:-2, e=Formatter.toNumber(c[5+o].innerText), n=Formatter.toNumber(c[6+o].innerText);
+            let c=r.cells, cols=AppMethods.getS1Cols(), e=Formatter.toNumber(c[cols.e].innerText), n=Formatter.toNumber(c[cols.n].innerText);
             if(!isFinite(e)||!isFinite(n)||(!e&&!n)) return;
-            let lat,lon;
-            if(f1==='dm'){
-                let td=Formatter.toNumber(c[1].querySelector('input').value), tm=Formatter.toNumber(c[2].querySelector('input').value);
-                let lod=Formatter.toNumber(c[3].querySelector('input').value), lom=Formatter.toNumber(c[4].querySelector('input').value);
-                lat=(td<0?-1:1)*(Math.abs(td)+tm/60); lon=(lod<0?-1:1)*(Math.abs(lod)+lom/60);
-            } else { lat=Formatter.toNumber(c[1].querySelector('input').value); lon=Formatter.toNumber(c[2].querySelector('input').value); }
-            pts.push({id:c[0].innerText,e,n,lat:lat||0,lon:lon||0,s:'s1'});
+            let coords = AppMethods.getS1LatLon(r);
+            pts.push({id:c[0].innerText,e,n,lat:coords.lat||0,lon:coords.lon||0,s:'s1'});
         });
         Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
             let c=r.cells, e=Formatter.toNumber(c[3].querySelector('input').value), n=Formatter.toNumber(c[4].querySelector('input').value);
@@ -832,9 +901,11 @@ const AppMethods = {
                 pts.push({id:c[0].innerText,e,n,lat:res.lat,lon:res.lon,s:'s2'});
             }
         });
-        if(!pts.length){alert('No valid points.'); return;}
+        if(!pts.length){ AppMethods.showToast(t('msg_no_pts'), 'err'); return;}
 
-        // Helper
+        const hasNonAscii = pts.some(pt => /[^\x00-\x7F]/.test(pt.id));
+        if (hasNonAscii) AppMethods.showToast('Warning: Point IDs contain Thai/Special characters. They may not render properly in DXF.', 'warn');
+
         const dp = (c,v) => String(c)+'\r\n'+String(v)+'\r\n';
         const fmtDM = (deg,isLat) => {
             if(!isFinite(deg)) return '';
@@ -842,18 +913,15 @@ const AppMethods = {
             return d+' '+m.toFixed(4)+' '+h;
         };
 
-        // Compute extents
         let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
         pts.forEach(pt=>{if(pt.e<minx)minx=pt.e;if(pt.n<miny)miny=pt.n;if(pt.e>maxx)maxx=pt.e;if(pt.n>maxy)maxy=pt.n;});
 
-        // HEADER with $ACADVER, $EXTMIN/MAX
         let dxf = dp(0,'SECTION')+dp(2,'HEADER');
         dxf += dp(9,'$ACADVER')+dp(1,'AC1009');
         dxf += dp(9,'$INSBASE')+dp(10,0)+dp(20,0)+dp(30,0);
         if(isFinite(minx)) { dxf+=dp(9,'$EXTMIN')+dp(10,minx)+dp(20,miny); dxf+=dp(9,'$EXTMAX')+dp(10,maxx)+dp(20,maxy); }
         dxf += dp(0,'ENDSEC');
 
-        // TABLES: LTYPE, LAYER (with colors), STYLE
         dxf += dp(0,'SECTION')+dp(2,'TABLES');
         dxf += dp(0,'TABLE')+dp(2,'LTYPE')+dp(70,1);
         dxf += dp(0,'LTYPE')+dp(2,'CONTINUOUS')+dp(70,0)+dp(3,'Solid line')+dp(72,65)+dp(73,0)+dp(40,0);
@@ -867,10 +935,8 @@ const AppMethods = {
         dxf += dp(0,'ENDTAB');
         dxf += dp(0,'ENDSEC');
 
-        // Empty BLOCKS section
         dxf += dp(0,'SECTION')+dp(2,'BLOCKS')+dp(0,'ENDSEC');
 
-        // ENTITIES
         dxf += dp(0,'SECTION')+dp(2,'ENTITIES');
         const txtH=5, labelDX=5, labelDY=5, lineGap=6, markerR=1.5;
         pts.forEach(pt=>{
@@ -883,30 +949,38 @@ const AppMethods = {
         });
         dxf+=dp(0,'ENDSEC')+dp(0,'EOF')+'\r\n';
 
-        // Save as ASCII bytes (prevents BOM/UTF-8 issues in CAD)
         const bytes = new Uint8Array(dxf.length);
         for(let i=0;i<dxf.length;i++) bytes[i] = dxf.charCodeAt(i) & 0x7F;
         const blob = new Blob([bytes], {type:'application/octet-stream'});
         const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `Points_R12_${today}.dxf`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        
+        const a = document.createElement('a'); 
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `Points_R12_${today}.dxf`; 
+        document.body.appendChild(a); a.click(); 
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     },
 
     download: (fn, txt, typ) => {
         const b = new Blob([txt], {type: typ}); const a = document.createElement('a');
-        a.href = URL.createObjectURL(b); a.download = fn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        const url = URL.createObjectURL(b);
+        a.href = url; a.download = fn; document.body.appendChild(a); a.click(); 
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     },
+    
     downloadSample: (type) => {
-        // Format-aware sample generation from v5.0
         let txt="", fn="";
         const fmt1 = AppState.s1Format;
         if(type==='s1_csv'){
             if(fmt1==='dm') txt="PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456";
+            else if(fmt1==='dms') txt="PointID,Latitude,Longitude\nP1,\"13°45'23.50\"\"N\",\"100°30'15.20\"\"E\"";
             else txt="PointID,Latitude,Longitude\nP1,13.752050,100.507600";
             fn="S1_Sample.csv";
         }
         if(type==='s1_txt'){
             if(fmt1==='dm') txt="PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456";
+            else if(fmt1==='dms') txt="PointID Latitude Longitude\nP1 13°45'23.50\"N 100°30'15.20\"E";
             else txt="PointID Latitude Longitude\nP1 13.752050 100.507600";
             fn="S1_Sample.txt";
         }
@@ -917,7 +991,7 @@ const AppMethods = {
 
     loadF1:() => {
         const f=document.getElementById('fileInputSection1').files[0];
-        if(!f) { const st=document.getElementById('section1Status'); st.innerHTML='⚠ Please select a file first.'; st.className='status err'; return; }
+        if(!f) { AppMethods.showToast('Please select a file first.', 'err'); return; }
         const r=new FileReader(); r.onload=e=>{
             AppMethods.clearS1(); const lns=e.target.result.split(/\r?\n/).map(x=>x.trim()).filter(Boolean); if(!lns.length) return;
             const fp=lns[0].split(/,|\s+/), hh=(fp.length>0&&(fp[0].toLowerCase()=='pointid'||isNaN(Formatter.toNumber(fp[1]))));
@@ -927,15 +1001,17 @@ const AppMethods = {
                 const p=l.split(/,|\s+/); if(p.length<2) return;
                 if(hdr) { hdr=false; if(p[0].toLowerCase()=='pointid' || isNaN(Formatter.toNumber(p[1]))) return; }
                 const c = document.getElementById('table1').rows[ri].cells; c[0].innerText=p[0];
+                
                 if(AppState.s1Format==='dm'&&p.length>=5){ c[1].querySelector('input').value=Formatter.toNumber(p[1]); c[2].querySelector('input').value=Formatter.toNumber(p[2]); c[3].querySelector('input').value=Formatter.toNumber(p[3]); c[4].querySelector('input').value=Formatter.toNumber(p[4]); [1,2,3,4].forEach(i=>AppMethods.updateInputDisplay(c[i])); ri++; }
                 else if(AppState.s1Format==='d'&&p.length>=3){ c[1].querySelector('input').value=Formatter.toNumber(p[1]); c[2].querySelector('input').value=Formatter.toNumber(p[2]); [1,2].forEach(i=>AppMethods.updateInputDisplay(c[i])); ri++; }
+                else if(AppState.s1Format==='dms'&&p.length>=3){ c[1].querySelector('input').value=p[1]; c[2].querySelector('input').value=p[2]; [1,2].forEach(i=>AppMethods.updateInputDisplay(c[i])); ri++; }
             }); AppMethods.calcS1();
         }; r.readAsText(f);
     },
     
     loadF2:() => {
         const f=document.getElementById('fileInputSection2').files[0];
-        if(!f) { const st=document.getElementById('section2Status'); st.innerHTML='⚠ Please select a file first.'; st.className='status err'; return; }
+        if(!f) { AppMethods.showToast('Please select a file first.', 'err'); return; }
         const r=new FileReader(); r.onload=e=>{
             AppMethods.clearS2(); const lns=e.target.result.split(/\r?\n/).map(x=>x.trim()).filter(Boolean); if(!lns.length) return;
             const sp=x=>x.includes(',')?x.split(',').map(s=>s.trim()):x.split(/\s+/), fp=sp(lns[0]);
@@ -945,16 +1021,16 @@ const AppMethods = {
             lns.forEach(l=>{
                 const p=sp(l); if(p.length<3) return;
                 if(hdr) { hdr=false; if(p[0].toLowerCase()=='pointid' || isNaN(Formatter.toNumber(p[1]))) return; }
-                const rowEl = document.getElementById('table2').rows[ri]; if(!rowEl) return; // guard against overflow
+                const rowEl = document.getElementById('table2').rows[ri]; if(!rowEl) return; 
                 const c = rowEl.cells; c[0].innerText=p[0];
                 const eVal=Formatter.toNumber(p[1]), nVal=Formatter.toNumber(p[2]);
-                if(isNaN(eVal)||isNaN(nVal)) return; // skip bad rows silently — will show in status
+                if(isNaN(eVal)||isNaN(nVal)) return; 
                 c[3].querySelector('input').value=eVal; c[4].querySelector('input').value=nVal;
                 [3,4].forEach(i=>AppMethods.updateInputDisplay(c[i])); ri++; rowsLoaded++;
             });
             AppMethods.calcS2();
             if(rowsLoaded === 0) {
-                const st=document.getElementById('section2Status'); st.innerHTML='⚠ No rows loaded. Check format: PointID X Y (e.g. BM-01 759528.17 1068297.15)'; st.className='status err';
+                const st=document.getElementById('section2Status'); st.innerHTML='⚠ No rows loaded. Check format: PointID X Y'; st.className='status err';
             }
         }; r.readAsText(f);
     },
@@ -964,15 +1040,12 @@ const AppMethods = {
         svg.innerHTML=''; let pts=[];
         Array.from(document.getElementById('table1').rows).slice(1).forEach(r=>{
             let c=r.cells; if(md==='utm'){
-                let et=c[5+(AppState.s1Format==='dm'?0:-2)].innerText, nt=c[6+(AppState.s1Format==='dm'?0:-2)].innerText;
+                const cols = AppMethods.getS1Cols();
+                let et=c[cols.e].innerText, nt=c[cols.n].innerText;
                 if(et&&nt) pts.push({id:c[0].innerText,x:Formatter.toNumber(et),y:Formatter.toNumber(nt),s:'s1'});
             }else{
-                let lat,lon; if(AppState.s1Format==='dm'){
-                    let dL=Formatter.toNumber(c[1].querySelector('input').value), mL=Formatter.toNumber(c[2].querySelector('input').value);
-                    let doL=Formatter.toNumber(c[3].querySelector('input').value), moL=Formatter.toNumber(c[4].querySelector('input').value);
-                    lat=(dL<0?-1:1)*(Math.abs(dL)+mL/60); lon=(doL<0?-1:1)*(Math.abs(doL)+moL/60);
-                } else { lat=Formatter.toNumber(c[1].querySelector('input').value); lon=Formatter.toNumber(c[2].querySelector('input').value); }
-                if(!isNaN(lat)&&!isNaN(lon)) pts.push({id:c[0].innerText,x:lon,y:lat,s:'s1'});
+                let coords = AppMethods.getS1LatLon(r);
+                if(!isNaN(coords.lat)&&!isNaN(coords.lon)) pts.push({id:c[0].innerText,x:coords.lon,y:coords.lat,s:'s1'});
             }
         });
         Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
@@ -1007,8 +1080,7 @@ const AppMethods = {
             if(isM)out+=`<text x="${pd-10}" y="${cy+4}" font-size="11" fill="#64748b" text-anchor="end">${md==='wgs84'?v.toFixed(3)+'\u00b0N':v.toFixed(0)+'m'}</text>`;
         }
 
-        // Add Scale bar
-        let sDist = xS; // Display 1 major grid cell size
+        let sDist = xS; 
         let sPx = (sDist / diffX) * w;
         if(sPx > 0 && isFinite(sPx)) {
             out+=`<line x1="${pd}" y1="${pd+h+40}" x2="${pd+sPx}" y2="${pd+h+40}" stroke="#475569" stroke-width="2"/>`;
@@ -1026,8 +1098,9 @@ const AppMethods = {
         svg.innerHTML = out;
     },
 
+    // RESTORED FIX: Native GPS Location API (using showToast instead of alerts)
     getGPS: () => {
-        if (!navigator.geolocation) { alert('Geolocation is not supported by your browser.'); return; }
+        if (!navigator.geolocation) { AppMethods.showToast('Geolocation is not supported by your browser.', 'err'); return; }
         const btn = document.getElementById('btnGetGPS');
         const origHTML = btn.innerHTML;
         btn.innerHTML = '⏳ Getting GPS...'; btn.disabled = true;
@@ -1038,7 +1111,7 @@ const AppMethods = {
             if(AppState.s1Format !== 'd') { fSel.value = 'd'; AppMethods.fmtSwitcherS1(); }
             
             const r = document.getElementById('table1').rows[1];
-            if(!r) { alert('Table 1 has no rows.'); return; }
+            if(!r) return;
             r.cells[1].querySelector('input').value = lat.toFixed(7);
             r.cells[2].querySelector('input').value = lon.toFixed(7);
             [1, 2].forEach(idx => {
@@ -1046,48 +1119,37 @@ const AppMethods = {
                r.cells[idx].classList.remove('has-error');
             });
             AppMethods.calcS1();
-        }, err => { btn.innerHTML = origHTML; btn.disabled = false; alert('Geolocation error: ' + err.message); }, { enableHighAccuracy: true });
+            AppMethods.showToast('GPS coordinates fetched successfully!', 'ok');
+        }, err => { 
+            btn.innerHTML = origHTML; btn.disabled = false; 
+            AppMethods.showToast('Geolocation error: ' + err.message, 'err'); 
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     },
 
+    // RESTORED FIX: Interactive Native Leaflet Map drawing functionality
     drawLeaflet: () => {
         const mapDiv = document.getElementById('leafletMap');
         mapDiv.style.display = 'block';
         
-        if (!window.lMap) {
-            // preferCanvas for better performance (from v5.0)
-            window.lMap = L.map('leafletMap', { preferCanvas: true }).setView([13.75, 100.5], 6);
-            // CartoDB Voyager: visually identical to OSM but works from file:// (no Referer policy)
-            window.lStreet = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        if (!AppState.map.instance) {
+            AppState.map.instance = L.map('leafletMap', { preferCanvas: true }).setView([13.75, 100.5], 6);
+            AppState.map.street = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 subdomains: 'abcd', maxZoom: 19
             });
-            window.lSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri', maxZoom: 19 });
+            AppState.map.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri', maxZoom: 19 });
             
-            // Start with the user's chosen layer
-            if (document.getElementById('leafletMapType').value === 'street') window.lStreet.addTo(window.lMap);
-            else window.lSat.addTo(window.lMap);
-            
-            // Native Leaflet layer toggle control (from v5.0) - replaces manual dropdown
-            L.control.layers({'🗺️ Street (OSM)': window.lStreet, '🛰️ Satellite (Esri)': window.lSat}).addTo(window.lMap);
-            // Sync native Leaflet layer control → dropdown to prevent state mismatch (fix #11)
-            window.lMap.on('baselayerchange', function(e) {
-                document.getElementById('leafletMapType').value = (e.name.includes('Street') || e.name.includes('OSM')) ? 'street' : 'satellite';
-            });
-            
-            window.lMarkerLayer = L.featureGroup().addTo(window.lMap);
+            AppState.map.street.addTo(AppState.map.instance); 
+            L.control.layers({'🗺️ Street (OSM)': AppState.map.street, '🛰️ Satellite (Esri)': AppState.map.sat}).addTo(AppState.map.instance);
+            AppState.map.markerLayer = L.featureGroup().addTo(AppState.map.instance);
         } else {
-            window.lMarkerLayer.clearLayers();
+            AppState.map.markerLayer.clearLayers();
         }
         
         let pts=[];
         Array.from(document.getElementById('table1').rows).slice(1).forEach(r=>{
-            let c=r.cells; let lat,lon; 
-            if(AppState.s1Format==='dm'){
-                let dL=Formatter.toNumber(c[1].querySelector('input').value), mL=Formatter.toNumber(c[2].querySelector('input').value);
-                let doL=Formatter.toNumber(c[3].querySelector('input').value), moL=Formatter.toNumber(c[4].querySelector('input').value);
-                lat=(dL<0?-1:1)*(Math.abs(dL)+mL/60); lon=(doL<0?-1:1)*(Math.abs(doL)+moL/60);
-            } else { lat=Formatter.toNumber(c[1].querySelector('input').value); lon=Formatter.toNumber(c[2].querySelector('input').value); }
-            if(!isNaN(lat)&&!isNaN(lon)) pts.push({id:c[0].innerText, lat: lat, lon: lon, isS1: true});
+            let coords = AppMethods.getS1LatLon(r);
+            if(!isNaN(coords.lat)&&!isNaN(coords.lon)) pts.push({id:r.cells[0].innerText, lat: coords.lat, lon: coords.lon, isS1: true});
         });
         
         Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
@@ -1098,47 +1160,31 @@ const AppMethods = {
             }
         });
         
-        if (!pts.length) { alert('No valid coordinates to plot on Real Map.'); return; }
+        if (!pts.length) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
         
         pts.forEach(p => {
             const color = p.isS1 ? '#4338ca' : '#be123c';
             const fill  = p.isS1 ? '#4f46e5' : '#e11d48';
-            // circleMarker is lighter & crisper than custom divIcon (from v5.0)
             const marker = L.circleMarker([p.lat, p.lon], {
                 color: color, fillColor: fill, fillOpacity: 0.85, radius: 7, weight: 2
-            }).addTo(window.lMarkerLayer);
-            marker.bindPopup(`<b>Point ID: ${p.id}</b><br>Section: ${p.isS1?'1':'2'}<br>Lat: ${p.lat.toFixed(6)}°N<br>Lon: ${p.lon.toFixed(6)}°E`);
+            }).addTo(AppState.map.markerLayer);
+            marker.bindPopup(`<b>Point ID: ${Formatter.escapeXml(p.id)}</b><br>Section: ${p.isS1?'1':'2'}<br>Lat: ${p.lat.toFixed(6)}°N<br>Lon: ${p.lon.toFixed(6)}°E`);
         });
         
-        // Safe fitBounds with maxZoom:16 guard to prevent black-screen bug (from v5.0)
         setTimeout(() => {
-            window.lMap.invalidateSize();
-            if (window.lMarkerLayer.getBounds().isValid()) {
-                window.lMap.fitBounds(window.lMarkerLayer.getBounds(), { padding: [50, 50], maxZoom: 16 });
+            AppState.map.instance.invalidateSize();
+            if (AppState.map.markerLayer.getBounds().isValid()) {
+                AppState.map.instance.fitBounds(AppState.map.markerLayer.getBounds(), { padding: [50, 50], maxZoom: 16 });
             } else {
-                window.lMap.setView([13.75, 100.5], 6);
+                AppState.map.instance.setView([13.75, 100.5], 6);
             }
-            setTimeout(() => window.lMap.invalidateSize(), 250);
+            setTimeout(() => AppState.map.instance.invalidateSize(), 250);
         }, 400);
     },
 
-    toggleLeafletType: () => {
-        // Still needed for the select dropdown sync (sync state only; visual handled by L.control.layers)
-        if (!window.lMap) return;
-        const mt = document.getElementById('leafletMapType').value;
-        if (mt === 'street') { window.lMap.removeLayer(window.lSat); window.lStreet.addTo(window.lMap); }
-        else { window.lMap.removeLayer(window.lStreet); window.lSat.addTo(window.lMap); }
-    },
-
-    /**
-     * TowRoute KML Export (from v3.13+)
-     * Generates 2 KML files: Buffer polygons (1NM/2NM) and Route lines with bearing/distance.
-     * Fixed: miter-spike cap at sharp turns, semicircular endcaps at route start/end.
-     */
     exportTowRoute: () => {
         const p=AppState.params, zi=AppState.zoneInfo;
         const pts=[];
-        // Collect Section 2 points (UTM input)
         Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
             let c=r.cells, e=Formatter.toNumber(c[3].querySelector('input').value), n=Formatter.toNumber(c[4].querySelector('input').value);
             if(!isNaN(e)&&!isNaN(n)){
@@ -1146,9 +1192,8 @@ const AppMethods = {
                 pts.push({id:c[0].innerText, e, n, lat:res.lat, lon:res.lon});
             }
         });
-        if(pts.length<2){ alert('Need at least 2 points in Section 2 to generate TowRoute.'); return; }
+        if(pts.length<2){ AppMethods.showToast('Need at least 2 points in Section 2 to generate TowRoute.', 'err'); return; }
 
-        // Line intersection helper for miter-join buffer
         const intersect=(x1,y1,x2,y2,x3,y3,x4,y4)=>{
             const dn=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
             if(Math.abs(dn)<0.001) return null;
@@ -1156,7 +1201,6 @@ const AppMethods = {
             return {x:x1+t*(x2-x1), y:y1+t*(y2-y1)};
         };
 
-        // Generate semicircle arc vertices
         const semiArc=(cx,cy,radius,startAngle,steps)=>{
             const arc=[];
             for(let a=0;a<=Math.PI;a+=Math.PI/steps){
@@ -1165,7 +1209,6 @@ const AppMethods = {
             return arc;
         };
 
-        // Build buffer polygon from UTM coordinates then convert to WGS84
         const getBufferWGS=(points, radius)=>{
             const Lside=[],Rside=[],segs=[];
             for(let i=0;i<points.length-1;i++){
@@ -1178,15 +1221,14 @@ const AppMethods = {
             Lside.push({x:segs[0].x1,y:segs[0].y1}); Rside.push({x:segs[0].rx1,y:segs[0].ry1});
             for(let i=0;i<segs.length-1;i++){
                 const s1=segs[i],s2=segs[i+1];
-                const vx=points[i+1].e, vy=points[i+1].n; // the vertex at which the join occurs
+                const vx=points[i+1].e, vy=points[i+1].n; 
                 let iL=intersect(s1.x1,s1.y1,s1.x2,s1.y2,s2.x1,s2.y1,s2.x2,s2.y2);
                 let iR=intersect(s1.rx1,s1.ry1,s1.rx2,s1.ry2,s2.rx1,s2.ry1,s2.rx2,s2.ry2);
-                // FIX #1: Miter-spike cap — if miter point is >2x radius from vertex, bevel instead
                 if(iL && Math.hypot(iL.x-vx, iL.y-vy) > 2*radius) {
-                    Lside.push({x:s1.x2,y:s1.y2}); Lside.push({x:s2.x1,y:s2.y1}); // bevel
+                    Lside.push({x:s1.x2,y:s1.y2}); Lside.push({x:s2.x1,y:s2.y1}); 
                 } else { Lside.push(iL||{x:s1.x2,y:s1.y2}); }
                 if(iR && Math.hypot(iR.x-vx, iR.y-vy) > 2*radius) {
-                    Rside.push({x:s1.rx2,y:s1.ry2}); Rside.push({x:s2.rx1,y:s2.ry1}); // bevel
+                    Rside.push({x:s1.rx2,y:s1.ry2}); Rside.push({x:s2.rx1,y:s2.ry1}); 
                 } else { Rside.push(iR||{x:s1.rx2,y:s1.ry2}); }
             }
             const last=segs[segs.length-1];
@@ -1195,26 +1237,21 @@ const AppMethods = {
             const coords=[];
             const addW=pt=>{const w=GeoMath.ind1975ToWgs84(pt.x,pt.y,p.dx,p.dy,p.dz,zi.cm); coords.push(`${w.lon.toFixed(7)},${w.lat.toFixed(7)},0`);};
 
-            // FIX #2: Semicircular endcap at END of route
-            const endAngle=Math.atan2(last.ny, last.nx); // normal angle of last segment
+            const endAngle=Math.atan2(last.ny, last.nx); 
             const endCap=semiArc(points[points.length-1].e, points[points.length-1].n, radius, endAngle, 10);
-
-            // FIX #2: Semicircular endcap at START of route
             const startAngle=Math.atan2(segs[0].ny, segs[0].nx) + Math.PI;
             const startCap=semiArc(points[0].e, points[0].n, radius, startAngle, 10);
 
-            // Build polygon: L-side forward → end cap → R-side reversed → start cap → close
             Lside.forEach(addW);
             endCap.forEach(addW);
             for(let i=Rside.length-1;i>=0;i--) addW(Rside[i]);
             startCap.forEach(addW);
-            addW(Lside[0]); // close ring
+            addW(Lside[0]); 
             return coords.join(' ');
         };
 
-        const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const esc = Formatter.escapeXml;
 
-        // File 1: Buffer polygons
         let kmlBuf=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>TowRoute Buffers</name>\n`;
         kmlBuf+=`<Style id="towBuf1NM"><PolyStyle><color>66ffcc99</color><outline>0</outline></PolyStyle></Style>\n`;
         kmlBuf+=`<Style id="towBuf2NM"><PolyStyle><color>33ffcc99</color><outline>0</outline></PolyStyle></Style>\n`;
@@ -1222,7 +1259,6 @@ const AppMethods = {
         kmlBuf+=`<Folder><name>2 NM Buffer</name><Placemark><name>2 NM Clearance</name><styleUrl>#towBuf2NM</styleUrl><Polygon><outerBoundaryIs><LinearRing><coordinates>${getBufferWGS(pts,3704)}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Folder>\n`;
         kmlBuf+=`</Document>\n</kml>`;
 
-        // File 2: Route lines + waypoints + bearing/distance
         let kmlLine=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>TowRoute Lines and Points</name>\n`;
         kmlLine+=`<Style id="towWP"><IconStyle><color>ff993300</color><scale>0.8</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle><LabelStyle><scale>0.85</scale><color>ffffffff</color></LabelStyle></Style>\n`;
         kmlLine+=`<Style id="towLine"><LineStyle><color>ff993300</color><width>3</width></LineStyle></Style>\n`;
@@ -1241,21 +1277,23 @@ const AppMethods = {
             const midW=GeoMath.ind1975ToWgs84(midE,midN,p.dx,p.dy,p.dz,zi.cm);
             const dx2=p2.e-p1.e, dy2=p2.n-p1.n;
             const distM=Math.hypot(dx2,dy2), distKM=distM/1000, distNM=distM/1852;
-            let brg=Math.atan2(dx2,dy2)*(180/Math.PI); if(brg<0) brg+=360;
-            const lbl=`Brg: ${brg.toFixed(1)}\u00b0 | ${distKM.toFixed(2)} km (${distNM.toFixed(2)} NM)`;
+            
+            let gridBrg=Math.atan2(dx2,dy2)*(180/Math.PI); if(gridBrg<0) gridBrg+=360;
+            
+            let gamma = GeoMath.calculateConvergence(midW.lat, midW.lon, zi.cm);
+            let trueBrg = gridBrg + gamma;
+            if (trueBrg < 0) trueBrg += 360;
+            if (trueBrg >= 360) trueBrg -= 360;
+            
+            const lbl=`Brg: ${trueBrg.toFixed(1)}\u00b0 (T) / ${gridBrg.toFixed(1)}\u00b0 (G) | ${distKM.toFixed(2)} km (${distNM.toFixed(2)} NM)`;
             kmlLine+=`<Placemark><name>${esc(lbl)}</name><styleUrl>#towBrgLbl</styleUrl><Point><coordinates>${midW.lon.toFixed(7)},${midW.lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
         }
         kmlLine+=`</Folder>\n</Document>\n</kml>`;
 
-        // Download both files
         AppMethods.download('TowRoute_Buffers.kml', kmlBuf, 'application/vnd.google-earth.kml+xml');
         setTimeout(()=>AppMethods.download('TowRoute_Lines_Points.kml', kmlLine, 'application/vnd.google-earth.kml+xml'), 500);
     },
 
-    /**
-     * TowRoute CSV Export
-     * Exports waypoint table with coordinates, bearing, distance and summary.
-     */
     exportTowRouteCsv: () => {
         const p=AppState.params, zi=AppState.zoneInfo;
         const pts=[];
@@ -1266,34 +1304,45 @@ const AppMethods = {
                 pts.push({id:c[0].innerText, e, n, lat:res.lat, lon:res.lon});
             }
         });
-        if(pts.length<2){ alert('Need at least 2 points in Section 2 to generate TowRoute CSV.'); return; }
+        if(pts.length<2){ AppMethods.showToast('Need at least 2 points in Section 2 to generate TowRoute CSV.', 'err'); return; }
 
         const outF = document.getElementById('section2OutputFormat').value;
         const fmtName = outF==='dms'?'DMS':(outF==='dm'?'DM':'Decimal');
 
-        // Build CSV rows
-        let csv='\uFEFF'; // BOM for Excel
+        let csv='\uFEFF'; 
         const zoneLabel=document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
         const datumLabel=document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
         csv+=`"TowRoute Summary - Zone: ${zoneLabel} | Params: ${datumLabel} | dx=${p.dx} dy=${p.dy} dz=${p.dz}"\n`;
-        csv+=`"WP#","Point ID","UTM Easting (m)","UTM Northing (m)","WGS84 Lat (Decimal)","WGS84 Lon (Decimal)","WGS84 Lat (${fmtName})","WGS84 Lon (${fmtName})","Bearing to Next (deg)","Distance (m)","Distance (km)","Distance (NM)"\n`;
+        
+        csv+=`"WP#","Point ID","UTM Easting (m)","UTM Northing (m)","WGS84 Lat (Decimal)","WGS84 Lon (Decimal)","WGS84 Lat (${fmtName})","WGS84 Lon (${fmtName})","Grid Bearing (Deg)","Convergence (Deg)","True Bearing (Deg)","Planar Distance (m)","Distance (km)","Distance (NM)"\n`;
 
         let totalDistM=0;
         for(let i=0;i<pts.length;i++){
             const pt=pts[i];
-            let brg='', distM='', distKM='', distNM='';
+            let gBrg='', conv='', tBrg='', distM='', distKM='', distNM='';
             if(i<pts.length-1){
                 const nx=pts[i+1].e-pt.e, ny=pts[i+1].n-pt.n;
                 const dm=Math.hypot(nx,ny);
-                let b=Math.atan2(nx,ny)*(180/Math.PI); if(b<0) b+=360;
-                brg=b.toFixed(2);
+                let gb=Math.atan2(nx,ny)*(180/Math.PI); if(gb<0) gb+=360;
+                
+                const midE=(pt.e+pts[i+1].e)/2, midN=(pt.n+pts[i+1].n)/2;
+                const midW=GeoMath.ind1975ToWgs84(midE,midN,p.dx,p.dy,p.dz,zi.cm);
+                let gamma = GeoMath.calculateConvergence(midW.lat, midW.lon, zi.cm);
+                
+                let tb = gb + gamma;
+                if(tb < 0) tb += 360;
+                if(tb >= 360) tb -= 360;
+
+                gBrg=gb.toFixed(2);
+                conv=gamma.toFixed(4);
+                tBrg=tb.toFixed(2);
+                
                 distM=dm.toFixed(2); distKM=(dm/1000).toFixed(3); distNM=(dm/1852).toFixed(3);
                 totalDistM+=dm;
             }
-            csv+=`${i+1},"${pt.id}",${pt.e.toFixed(2)},${pt.n.toFixed(2)},${pt.lat.toFixed(7)},${pt.lon.toFixed(7)},"${Formatter.formatStr(pt.lat,outF,true)}","${Formatter.formatStr(pt.lon,outF,false)}",${brg},${distM},${distKM},${distNM}\n`;
+            csv+=`${i+1},"${pt.id}",${pt.e.toFixed(2)},${pt.n.toFixed(2)},${pt.lat.toFixed(7)},${pt.lon.toFixed(7)},"${Formatter.formatStr(pt.lat,outF,true)}","${Formatter.formatStr(pt.lon,outF,false)}",${gBrg},${conv},${tBrg},${distM},${distKM},${distNM}\n`;
         }
-        // Summary row
-        csv+=`\n,"TOTAL ROUTE",,,,,,,,${totalDistM.toFixed(2)},${(totalDistM/1000).toFixed(3)},${(totalDistM/1852).toFixed(3)}\n`;
+        csv+=`\n,"TOTAL ROUTE",,,,,,,,,,${totalDistM.toFixed(2)},${(totalDistM/1000).toFixed(3)},${(totalDistM/1852).toFixed(3)}\n`;
         csv+=`,"Waypoints: ${pts.length}"\n`;
 
         AppMethods.download('TowRoute_Summary.csv', csv, 'text/csv;charset=utf-8');
@@ -1304,17 +1353,14 @@ const AppMethods = {
  * Event Binding & Init
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Expose PREC_CFG for power-users in DevTools based on original v4.7 spec
     window.__PREC_CFG__ = AppState.precCfg;
 
     updateTranslations(); AppState.forceTableReset = true; AppMethods.buildS1Table();
     
-    // Wire UI Elements
     document.getElementById('langBtn').addEventListener('click', () => { AppState.lang = AppState.lang==='th'?'en':'th'; updateTranslations(); });
     ['zoneSelect', 'datumSelect'].forEach(id => document.getElementById(id).addEventListener('change', AppMethods.syncSettings));
     document.getElementById('section1InputFormat').addEventListener('change', AppMethods.fmtSwitcherS1);
     
-    // Input Debouncers
     let ts1=null, ts2=null;
     document.addEventListener('input', e => {
         if(e.target.tagName !== 'INPUT') return;
@@ -1324,7 +1370,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.target.closest('#table2')) { clearTimeout(ts2); ts2 = setTimeout(AppMethods.calcS2, 300); }
     });
 
-    // Buttons actions
     document.getElementById('btnCalcS1').addEventListener('click', AppMethods.calcS1); document.getElementById('btnClearS1').addEventListener('click', AppMethods.clearS1);
     document.getElementById('btnLoadS1').addEventListener('click', AppMethods.loadF1); document.getElementById('btnCopyS1').addEventListener('click', ()=>AppMethods.copyTable('table1',true));
     document.getElementById('btnExpCsvS1').addEventListener('click', ()=>AppMethods.exportCsv('table1','S1_Output.csv')); document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1','S1_Output.kml'));
@@ -1339,27 +1384,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnClearAll').addEventListener('click', AppMethods.clearAll);
     document.getElementById('btnShowSvg').addEventListener('click', AppMethods.drawSvg); document.getElementById('btnExpDxf').addEventListener('click', AppMethods.exportDxf);
     
-    // Leaflet + GPS Bindings
     document.getElementById('btnShowLeaflet').addEventListener('click', AppMethods.drawLeaflet);
-    document.getElementById('leafletMapType').addEventListener('change', AppMethods.toggleLeafletType);
     document.getElementById('btnGetGPS').addEventListener('click', AppMethods.getGPS);
     document.getElementById('btnTowRoute').addEventListener('click', AppMethods.exportTowRoute);
     document.getElementById('btnTowRouteCsv').addEventListener('click', AppMethods.exportTowRouteCsv);
 
-    // Paste Handlers
     document.getElementById('table1').addEventListener('paste', function(e) {
         if(e.target.tagName !== 'INPUT') return;
         const clip=e.clipboardData||window.clipboardData; if(!clip) return;
         const txt=clip.getData('text'); if(!txt) return; e.preventDefault();
         let lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean), ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
-        if(lns.length > 500) { alert('Max 500 rows per paste operation.'); lns = lns.slice(0, 500); }
+        if (ri === -1) return; 
+        
+        if(lns.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); lns = lns.slice(0, 500); }
         AppMethods.ensureRows(this, ri+lns.length);
         lns.forEach((l,i)=>{
             let p=l.split(/,|\s+/), c=this.rows[ri+1+i].cells;
-            // Detect non-numeric PointID prefix and assign to ID column
             if(p.length > 0 && isNaN(Formatter.toNumber(p[0]))) { c[0].innerText = p[0]; p = p.slice(1); }
             [1,2].forEach(x=>c[x].classList.remove('has-error'));
-            [5,6,7,8].forEach(x=>{if(c[x]) c[x].innerText=''}); // Clear outputs before parse
+            [5,6,7,8].forEach(x=>{if(c[x]) c[x].innerText=''}); 
             if(AppState.s1Format==='dm'&&p.length>=4){
                 c[1].querySelector('input').value=Formatter.toNumber(p[0]); c[2].querySelector('input').value=Formatter.toNumber(p[1]); c[3].querySelector('input').value=Formatter.toNumber(p[2]); c[4].querySelector('input').value=Formatter.toNumber(p[3]); [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(c[x]));
             } else if(p.length>=2){
@@ -1373,20 +1416,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const clip=e.clipboardData||window.clipboardData; if(!clip) return;
         const txt=clip.getData('text'); if(!txt) return; e.preventDefault();
         let lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean), ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
-        if(lns.length > 500) { alert('Max 500 rows per paste operation.'); lns = lns.slice(0, 500); }
+        if (ri === -1) return; 
+        
+        if(lns.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); lns = lns.slice(0, 500); }
         AppMethods.ensureRows(this, ri+lns.length);
         lns.forEach((l,i)=>{
             let p=l.split(/,|\s+/).filter(Boolean), c=this.rows[ri+1+i].cells;
-            // Detect non-numeric PointID prefix
             if(p.length > 0 && isNaN(Formatter.toNumber(p[0]))) { c[0].innerText = p[0]; p = p.slice(1); }
-            [1,2,5,6].forEach(x=>{if(c[x]) c[x].innerText=''}); // Clear outputs before parse
+            [1,2,5,6].forEach(x=>{if(c[x]) c[x].innerText=''}); 
             if(p.length>=2){
                 c[3].querySelector('input').value=Formatter.toNumber(p[0]); c[4].querySelector('input').value=Formatter.toNumber(p[1]); [3,4].forEach(x=>{c[x].classList.remove('has-error'); AppMethods.updateInputDisplay(c[x]);});
             }
         }); AppMethods.calcS2();
     });
 
-    // Preset data
     const rs = document.getElementById('table1').rows;
     if(rs[1]) { rs[1].cells[1].querySelector('input').value=9; rs[1].cells[2].querySelector('input').value=39.535; rs[1].cells[3].querySelector('input').value=101; rs[1].cells[4].querySelector('input').value=21.718; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs[1].cells[x])); }
     if(rs[2]) { rs[2].cells[1].querySelector('input').value=7; rs[2].cells[2].querySelector('input').value=54.807; rs[2].cells[3].querySelector('input').value=102; rs[2].cells[4].querySelector('input').value=49.359; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs[2].cells[x])); }
