@@ -779,14 +779,22 @@
                                       <td className="px-4 py-2.5 text-xs">
                                           {res.points.filter(p => p.isBuoy).length > 0 ? (
                                               res.points.filter(p => p.isBuoy).map((b, i) => {
-                                                  if (b.isSlack) {
-                                                      return <span key={i} className="mr-2 px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-gray-500 font-medium text-[10px]">SLACK</span>;
-                                                  }
                                                   const util = (b.buoyUtilization || 0) * 100;
-                                                  if (util >= 99.5) {
-                                                      return <span key={i} className="mr-2 px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold text-[10px] border border-red-200 dark:border-red-800">SUBMERGED</span>;
+                                                  if (b.isSlack) {
+                                                      return (
+                                                          <span key={i} className="mr-2 whitespace-nowrap font-mono text-gray-500 dark:text-gray-400">
+                                                              B{i+1}: {util.toFixed(0)}% <span className="ml-0.5 px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[9px] font-bold">SLACK</span>
+                                                          </span>
+                                                      );
                                                   }
-                                                  return <span key={i} className="mr-2 whitespace-nowrap font-mono text-green-600 dark:text-green-400">B{i+1}:{util.toFixed(0)}%</span>;
+                                                  if (util >= 99.5) {
+                                                      return (
+                                                          <span key={i} className="mr-2 whitespace-nowrap font-mono text-red-600 dark:text-red-400">
+                                                              B{i+1}: <span className="ml-0.5 px-1 py-0.5 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-[9px] font-bold uppercase">Submerged</span>
+                                                          </span>
+                                                      );
+                                                  }
+                                                  return <span key={i} className="mr-2 whitespace-nowrap font-mono text-green-600 dark:text-green-400">B{i+1}: {util.toFixed(0)}%</span>;
                                               })
                                           ) : <span className="text-gray-400">-</span>}
                                       </td>
