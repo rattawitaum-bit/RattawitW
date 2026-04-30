@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v5.2 (260421)</title>
+    <title>Coordinate Converter v5.3 (260430)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -204,7 +204,7 @@
 
 <div id="build-banner">
     <div>
-        <span class="v" data-i18n="app_title">Coordinate Converter v5.2 (260421)</span>
+        <span class="v" data-i18n="app_title">Coordinate Converter v5.3 (260430)</span>
         <div class="banner-details">
             <b data-i18n="lbl_datum">Datum Shift (Indian 1975 ↔ WGS84):</b> 
             <span id="displayParams"><code>dx= -204.64</code> <code>dy= -834.74</code> <code>dz= -293.80</code></span>
@@ -403,7 +403,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v5.2 (260421)", lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):", lbl_zone: "Current Zone:",
+        app_title: "Coordinate Converter v5.3 (260430)", lbl_datum: "Datum Shift (Indian 1975 ↔ WGS84):", lbl_zone: "Current Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:",
         opt_dol: "DOL Standard (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "High-Precision Survey (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "Legacy v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -424,7 +424,7 @@ const I18nDict = {
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v5.2 (260421)", lbl_datum: "พารามิเตอร์แปลงพิกัด:", lbl_zone: "โซนปัจจุบัน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v5.3 (260430)", lbl_datum: "พารามิเตอร์แปลงพิกัด:", lbl_zone: "โซนปัจจุบัน:",
         sel_zone: "พิกัด UTM Zone:", sel_datum: "เลือกชุดพารามิเตอร์:",
         opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "แบบดั้งเดิม v3.13 (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "ล้างข้อมูลทั้งหมด", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -498,7 +498,7 @@ const GeoMath = {
         let lon = Math.atan2(Y, X), lat = Math.atan2(Z, p * (1 - e2)), h = 0;
         for (let i = 0; i < 15; i++) {
             const nu = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2);
-            const h_new = Math.abs(Math.cos(lat)) < 1e-10 ? Math.abs(Z) - a * Math.sqrt(1 - e2) : p / Math.cos(lat) - nu;
+            const h_new = Math.abs(lat) > Math.PI / 4 ? (Z / Math.sin(lat)) - nu * (1 - e2) : p / Math.cos(lat) - nu;
             const lat_new = Math.atan2(Z + e2 * nu * Math.sin(lat), p);
             if (Math.abs(lat_new - lat) < 1e-9 && Math.abs(h_new - h) < 1e-9) break;
             lat = lat_new; h = h_new;
@@ -580,7 +580,7 @@ const Formatter = {
     parseDMS: (str) => {
         if (str == null || str === '') return NaN;
         const s = String(str).trim();
-        const m = s.match(/^(-?\d+(?:\.\d+)?)\s*[\u00b0]\s*(\d+(?:\.\d+)?)\s*[']\s*(\d+(?:\.\d+)?)\s*["\u2033]?\s*([NSEWnsew])?/);
+        const m = s.match(/^(-?\d+(?:\.\d+)?)\s*(?:[\u00b0\u00ba]|deg)\s*(\d+(?:\.\d+)?)\s*[']\s*(\d+(?:\.\d+)?)\s*["\u2033]?\s*([NSEWnsew])?/i);
         
         // PHASE B FIX: Bulletproof sign management to avoid double-negative logic failures
         if (m) {
@@ -588,7 +588,7 @@ const Formatter = {
             if (/[SWsw]/.test(s) || s.startsWith('-')) dec = -dec;
             return dec;
         }
-        const parts = s.replace(/[\u00b0'"]/g, ' ').split(/\s+/).filter(Boolean);
+        const parts = s.replace(/[\u00b0\u00ba'"]/g, ' ').replace(/deg/ig, ' ').split(/\s+/).filter(Boolean);
         if (parts.length >= 3) {
             let dec = Math.abs(parseFloat(parts[0])) + (parseFloat(parts[1]) || 0)/60 + (parseFloat(parts[2]) || 0)/3600;
             if (/[SWsw]/.test(s) || s.startsWith('-')) dec = -dec;
@@ -640,17 +640,22 @@ const AppMethods = {
 
     ensureRows: (tb, cnt) => {
         const b = tb.querySelector('tbody');
-        while(b.children.length < cnt) {
-            const cln = b.lastElementChild.cloneNode(true);
+        const currentLen = b.children.length;
+        if (currentLen >= cnt) return;
+        const frag = document.createDocumentFragment();
+        const template = b.lastElementChild;
+        for (let idx = currentLen; idx < cnt; idx++) {
+            const cln = template.cloneNode(true);
             cln.querySelectorAll('td').forEach(td => {
                 td.classList.remove('has-error');
                 if (td.hasAttribute('contenteditable')) td.innerText = ''; 
                 const i=td.querySelector('input'); if(i) i.value='';
                 const s=td.querySelector('span'); if(s) s.innerText='';
             });
-            cln.cells[0].innerText = b.children.length + 1; 
-            b.appendChild(cln);
+            cln.cells[0].innerText = idx + 1; 
+            frag.appendChild(cln);
         }
+        b.appendChild(frag);
     },
 
     getS1Cols: () => AppState.s1Format === 'dm' ? { e: 5, n: 6, lat: 7, lon: 8 } : { e: 3, n: 4, lat: 5, lon: 6 },
