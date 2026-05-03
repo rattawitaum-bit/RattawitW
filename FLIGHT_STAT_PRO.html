@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.1.4</title>
+    <title>FLIGHT STAT PRO V1.2.0</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -107,6 +108,16 @@
             appearance: none;
         }
 
+        .dual-clock-panel {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            padding: 2px 5px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
         .dashboard {
             flex-grow: 1;
             display: flex;
@@ -161,6 +172,13 @@
         .tech-details.active { display: grid; }
         .tech-item { text-align: center; }
         .tech-val { font-weight: 600; font-size: 0.8rem; display: block; }
+        
+        #compassArrow {
+            display: inline-block;
+            transition: transform 0.3s ease;
+            color: var(--accent);
+            margin-right: 2px;
+        }
 
         .debug-panel {
             grid-column: span 3;
@@ -193,7 +211,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.1.4 
+                FLIGHT STAT PRO V1.2.0 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -210,9 +228,14 @@
             </select>
         </div>
 
+        <div class="dual-clock-panel">
+            <span id="localTimeDisplay">Local: --:--</span>
+            <span id="destTimeDisplay">Dest: --:--</span>
+        </div>
+
         <div class="dashboard">
             <div class="card eta-card">
-                <div id="etaLabel" class="label">Estimated Arrival (ICT / GMT+7)</div>
+                <div id="etaLabel" class="label">Estimated Arrival (Destination Time)</div>
                 <div id="etaDisplay" class="val-large">--:--</div>
                 <div id="etaSubLabel" class="sub-label" style="font-size: 0.7rem; color: var(--text-sub); margin-top: 5px;">Searching signal...</div>
             </div>
@@ -225,6 +248,7 @@
                 <div class="card">
                     <div class="label">Current Speed</div>
                     <div><span id="speedValue" class="val-med">0</span><span class="unit">km/h</span></div>
+                    <div id="vPhaseDisplay" style="font-size: 0.65rem; font-weight: 800; color: var(--accent); margin-top: 4px; letter-spacing: 1px; height: 10px;"></div>
                 </div>
             </div>
         </div>
@@ -234,7 +258,7 @@
         <div id="techPanel" class="tech-details">
             <div class="tech-item">
                 <span class="label">Bearing</span>
-                <span id="bearingValue" class="tech-val">--</span>
+                <span class="tech-val"><span id="compassArrow">↑</span><span id="bearingValue">--</span></span>
             </div>
             <div class="tech-item">
                 <span class="label">Accuracy</span>
@@ -269,11 +293,11 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ADVANCED ETA ENGINE (V1.1):</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ENGINE V1.2 (TIMEZONE & PHASE):</p>
                 <ul style="padding-left: 15px; margin-bottom: 15px; font-size: 0.75rem;">
-                    <li>Uses <b>Segmented Flight Profiles</b> for higher accuracy.</li>
-                    <li>Accounts for <b>Airway Routing</b> (+5% distance).</li>
-                    <li>Auto-detects <b>Holding/Vectoring</b> to stabilize time.</li>
+                    <li>Auto-adjusts ETA to <b>Destination Timezone</b>.</li>
+                    <li>Evaluates <b>CLIMB/CRUISE/DESCENT</b> via 15s trend.</li>
+                    <li>Real-time <b>Visual Compass</b> for approach bearing.</li>
                 </ul>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
@@ -291,29 +315,30 @@
     </div>
 
     <script>
+        // V1.2.0: Added IANA Timezone definitions for accurate cross-border ETA
         const AIRPORTS = {
-            "ALA": { name: "Almaty", lat: 43.3521, lon: 77.0406 },
-            "BKK": { name: "Suvarnabhumi", lat: 13.6925, lon: 100.7500 },
-            "DMK": { name: "Don Mueang", lat: 13.9126, lon: 100.6067 },
-            "CNX": { name: "Chiang Mai", lat: 18.7713, lon: 98.9626 },
-            "HKT": { name: "Phuket", lat: 8.1132, lon: 98.3064 },
-            "KBV": { name: "Krabi", lat: 8.0997, lon: 98.9855 },
-            "KKC": { name: "Khon Kaen", lat: 16.4667, lon: 102.7833 },
-            "ROI": { name: "Roi Et", lat: 16.1167, lon: 103.7667 },
-            "HDY": { name: "Hat Yai", lat: 6.9333, lon: 100.3964 },
-            "HHQ": { name: "Hua Hin", lat: 12.6364, lon: 99.9519 },
-            "URT": { name: "Surat Thani", lat: 9.1326, lon: 99.1356 },
-            "SIN": { name: "Singapore", lat: 1.3644, lon: 103.9915 },
-            "HKG": { name: "Hong Kong", lat: 22.3080, lon: 113.9185 },
-            "LPT": { name: "Lampang", lat: 18.2722, lon: 99.5033 },
-            "CEI": { name: "Chiang Rai", lat: 19.9517, lon: 99.8831 },
-            "NST": { name: "Nakhon Si Thammarat", lat: 8.5414, lon: 99.9442 },
-            "ICN": { name: "Incheon", lat: 37.4602, lon: 126.4407 },
-            "HAN": { name: "Hanoi", lat: 21.2212, lon: 105.8072 },
-            "TPE": { name: "Taipei Taoyuan", lat: 25.0797, lon: 121.2342 },
-            "CTS": { name: "New Chitose", lat: 42.7750, lon: 141.6923 },
-            "KIX": { name: "Kansai", lat: 34.4347, lon: 135.2441 },
-            "NRT": { name: "Narita", lat: 35.7720, lon: 140.3929 }
+            "ALA": { name: "Almaty", lat: 43.3521, lon: 77.0406, tz: "Asia/Almaty" },
+            "BKK": { name: "Suvarnabhumi", lat: 13.6925, lon: 100.7500, tz: "Asia/Bangkok" },
+            "DMK": { name: "Don Mueang", lat: 13.9126, lon: 100.6067, tz: "Asia/Bangkok" },
+            "CNX": { name: "Chiang Mai", lat: 18.7713, lon: 98.9626, tz: "Asia/Bangkok" },
+            "HKT": { name: "Phuket", lat: 8.1132, lon: 98.3064, tz: "Asia/Bangkok" },
+            "KBV": { name: "Krabi", lat: 8.0997, lon: 98.9855, tz: "Asia/Bangkok" },
+            "KKC": { name: "Khon Kaen", lat: 16.4667, lon: 102.7833, tz: "Asia/Bangkok" },
+            "ROI": { name: "Roi Et", lat: 16.1167, lon: 103.7667, tz: "Asia/Bangkok" },
+            "HDY": { name: "Hat Yai", lat: 6.9333, lon: 100.3964, tz: "Asia/Bangkok" },
+            "HHQ": { name: "Hua Hin", lat: 12.6364, lon: 99.9519, tz: "Asia/Bangkok" },
+            "URT": { name: "Surat Thani", lat: 9.1326, lon: 99.1356, tz: "Asia/Bangkok" },
+            "SIN": { name: "Singapore", lat: 1.3644, lon: 103.9915, tz: "Asia/Singapore" },
+            "HKG": { name: "Hong Kong", lat: 22.3080, lon: 113.9185, tz: "Asia/Hong_Kong" },
+            "LPT": { name: "Lampang", lat: 18.2722, lon: 99.5033, tz: "Asia/Bangkok" },
+            "CEI": { name: "Chiang Rai", lat: 19.9517, lon: 99.8831, tz: "Asia/Bangkok" },
+            "NST": { name: "Nakhon Si Thammarat", lat: 8.5414, lon: 99.9442, tz: "Asia/Bangkok" },
+            "ICN": { name: "Incheon", lat: 37.4602, lon: 126.4407, tz: "Asia/Seoul" },
+            "HAN": { name: "Hanoi", lat: 21.2212, lon: 105.8072, tz: "Asia/Ho_Chi_Minh" },
+            "TPE": { name: "Taipei Taoyuan", lat: 25.0797, lon: 121.2342, tz: "Asia/Taipei" },
+            "CTS": { name: "New Chitose", lat: 42.7750, lon: 141.6923, tz: "Asia/Tokyo" },
+            "KIX": { name: "Kansai", lat: 34.4347, lon: 135.2441, tz: "Asia/Tokyo" },
+            "NRT": { name: "Narita", lat: 35.7720, lon: 140.3929, tz: "Asia/Tokyo" }
         };
 
         let state = {
@@ -327,7 +352,8 @@
             synPos: null,
             emaSpeed: null,    
             lastValidETA: null,
-            isHolding: false 
+            isHolding: false,
+            altBuffer: [] // V1.2.0: Stores {alt, time} for Vertical Phase evaluation
         };
 
         const FLYING_START_SPEED = 150; 
@@ -340,9 +366,10 @@
         let watchId = null;
         let wakeLock = null;
         let watchdogInterval = null; 
+        let clockInterval = null;
 
         function init() {
-            // RESTORED (From V1.0.7): ลงทะเบียน Service Worker เฉพาะเมื่อเปิดผ่านเน็ตเวิร์ก เพื่อรองรับ WebAPK
+            // Service Worker Logic for WebAPK Support
             if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
                 navigator.serviceWorker.register('sw.js').catch(function(e) {
                     console.log('SW Registration failed:', e);
@@ -373,6 +400,25 @@
 
             startGPS();
             startWatchdog(); 
+            startDualClocks(); // V1.2.0: Initiate Timezone Clocks
+        }
+
+        // --- NEW: Dual-Clock Ticker ---
+        function startDualClocks() {
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(() => {
+                const now = new Date();
+                const fmtLocal = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                document.getElementById('localTimeDisplay').innerText = `Local: ${fmtLocal.format(now)}`;
+                
+                const code = document.getElementById('airportSelect').value;
+                if (code && AIRPORTS[code]) {
+                    const fmtDest = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: AIRPORTS[code].tz });
+                    document.getElementById('destTimeDisplay').innerText = `Dest: ${fmtDest.format(now)}`;
+                } else {
+                    document.getElementById('destTimeDisplay').innerText = `Dest: --:--`;
+                }
+            }, 1000);
         }
 
         function startWatchdog() {
@@ -419,7 +465,15 @@
                 state.emaSpeed = null;
                 state.lastValidETA = null;
                 state.isHolding = false;
+                state.altBuffer = []; // Reset Alt Buffer
             }
+
+            // Append altitude logic for Phase Filter
+            if (coords.altitude !== null) {
+                state.altBuffer.push({ alt: coords.altitude, time: now });
+            }
+            // Keep maximum of 20 seconds of altitude data
+            state.altBuffer = state.altBuffer.filter(a => now - a.time <= 20000);
 
             if (!state.synPos) state.synPos = { lat: coords.latitude, lon: coords.longitude, time: now };
 
@@ -509,6 +563,7 @@
             const pos = state.currentPos;
             const dot = document.getElementById('gpsDot');
             const statusTxt = document.getElementById('statusText');
+            const now = Date.now();
             
             dot.className = ''; 
             
@@ -529,6 +584,21 @@
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
+            // --- V1.2.0: Vertical Flight Phase Evaluation ---
+            let vPhaseText = "";
+            if (state.isFlying && pos.altitude !== null && pos.accuracy <= 50 && state.altBuffer.length > 1) {
+                // Find altitude value from approx 15 seconds ago (allow 14-20s window)
+                let pastObj = state.altBuffer.find(a => (now - a.time) >= 14000); 
+                if (pastObj) {
+                    let deltaAlt = pos.altitude - pastObj.alt;
+                    let tolerance = pos.accuracy <= 15 ? 60 : 100; // Dynamic Deadband Filter
+                    if (deltaAlt > tolerance) vPhaseText = "CLIMB";
+                    else if (deltaAlt < -tolerance) vPhaseText = "DESCENT";
+                    else vPhaseText = "CRUISE";
+                }
+            }
+            document.getElementById('vPhaseDisplay').innerText = vPhaseText;
+
             document.getElementById('dbgRaw').innerText = Math.round(pos.rawSpeed);
             document.getElementById('dbgSmooth').innerText = Math.round(pos.speedKph);
             document.getElementById('dbgFly').innerText = state.isFlying ? "T" : "F";
@@ -541,12 +611,12 @@
             const dest = AIRPORTS[airportCode];
             const etaVal = document.getElementById('etaDisplay');
             const etaSub = document.getElementById('etaSubLabel');
-            const etaLabel = document.getElementById('etaLabel');
 
             if (!dest) {
                 etaVal.innerText = "CHOOSE"; etaVal.className = "val-large"; etaVal.style.color = "";
                 etaSub.innerText = "↑ Select your destination airport above";
                 document.getElementById('distValue').innerText = "--"; document.getElementById('bearingValue').innerText = "--";
+                document.getElementById('compassArrow').style.transform = `rotate(0deg)`;
                 return; 
             }
 
@@ -585,26 +655,34 @@
                     let hh = Math.floor(timeRemainingMins / 60);
                     let mm = timeRemainingMins % 60;
                     
-                    const now = new Date();
-                    const etaDate = new Date(now.getTime() + (timeRemainingMins * 60000));
-                    const thaiTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }).format(etaDate);
-                    const fmt = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-                    const isNextDay = fmt(etaDate) !== fmt(now);
+                    // V1.2.0: Smart Remaining Time Formatting
+                    let timeRemainingStr = hh > 0 ? `${hh}h ${mm}m` : `${mm}m`;
 
-                    etaVal.innerHTML = thaiTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
+                    // V1.2.0: IANA Timezone Implementation
+                    const currentRealTime = new Date();
+                    const etaDate = new Date(currentRealTime.getTime() + (timeRemainingMins * 60000));
+                    
+                    const fmtDestTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: dest.tz }).format(etaDate);
+                    const fmtDate = d => new Intl.DateTimeFormat('en-CA', { timeZone: dest.tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+                    const isNextDay = fmtDate(etaDate) !== fmtDate(currentRealTime);
+
+                    etaVal.innerHTML = fmtDestTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
                     etaVal.className = "val-large";
                     
                     if (etaResult.status === "Holding") {
                         etaVal.style.color = "var(--warning)";
-                        etaSub.innerText = `⚠️ Vectoring / Holding - Approx ${hh}h ${mm}m left`;
+                        etaSub.innerText = `⚠️ Vectoring / Holding - Approx ${timeRemainingStr} left`;
                     } else {
                         etaVal.style.color = "";
-                        etaSub.innerText = `Approximately ${hh}h ${mm}m remaining`;
+                        etaSub.innerText = `Approximately ${timeRemainingStr} remaining`;
                     }
                 }
             }
 
             document.getElementById('distValue').innerText = dist.toFixed(1);
+            
+            // V1.2.0: Visual Compass Arrow Update
+            document.getElementById('compassArrow').style.transform = `rotate(${bearing}deg)`;
             document.getElementById('bearingValue').innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
         }
 
@@ -668,3 +746,5 @@
     </script>
 </body>
 </html>
+
+
