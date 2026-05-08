@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.2.2</title>
+    <title>FLIGHT STAT PRO V1.3.1</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -211,7 +211,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.2.2 
+                FLIGHT STAT PRO V1.3.1 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -293,11 +293,11 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ENGINE V1.2.2:</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ KINETIC ENGINE V1.3.1:</p>
                 <ul style="padding-left: 15px; margin-bottom: 15px; font-size: 0.75rem;">
-                    <li>Auto-adjusts ETA to <b>Destination Timezone</b>.</li>
-                    <li>Evaluates <b>CLIMB/CRUISE/DESCENT</b> via Robust State Machine.</li>
-                    <li>Real-time <b>Visual Compass</b> for approach bearing.</li>
+                    <li><b>Dynamic Kinetic Penalty:</b> Scales ETA adjustments accurately by current speed.</li>
+                    <li><b>Pattern Smoothing (Option B+):</b> Real-time, smooth ETA adjustments during U-turns and holds.</li>
+                    <li><b>Vertical Phase:</b> Evaluates CLIMB/CRUISE/DESCENT via Hysteresis EMA filter.</li>
                 </ul>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
@@ -351,12 +351,12 @@
             synPos: null,
             emaSpeed: null,    
             lastValidETA: null,
-            isHolding: false,
             altBuffer: [],
             emaAlt: null,           
             currentVPhase: "CRUISE",
-            pendingVPhase: "CRUISE", // V1.2.2: QC Flaw Fix - Strict consistent phase candidate
-            vPhaseCounter: 0        
+            pendingVPhase: "CRUISE", 
+            vPhaseCounter: 0,
+            currentPenalty: null  
         };
 
         const FLYING_START_SPEED = 150; 
@@ -463,12 +463,12 @@
                 state.synPos = null;
                 state.emaSpeed = null;
                 state.lastValidETA = null;
-                state.isHolding = false;
                 state.altBuffer = [];
                 state.emaAlt = null;
                 state.currentVPhase = "CRUISE";
                 state.pendingVPhase = "CRUISE";
                 state.vPhaseCounter = 0;
+                state.currentPenalty = null; 
             }
 
             if (coords.altitude !== null) {
@@ -523,44 +523,51 @@
             return diff > 180 ? 360 - diff : diff;
         }
 
+        // V1.3.1 Engine: Dynamic Kinetic Penalty + Pattern EMA (Strict Boundary Failsafe)
         function calculateAdvancedETA(currentSpeed, distanceLeftKm, currentHeading, bearingToAirport) {
             if (distanceLeftKm <= 3 && currentSpeed < 100) return { status: "Landed", etaMinutes: 0 };
 
-            let routingMultiplier = distanceLeftKm > 200 ? 1.05 : 1.0 + (0.05 * (distanceLeftKm / 200));
-            let effectiveDistance = distanceLeftKm * routingMultiplier;
-
-            if (distanceLeftKm <= 150) {
+            let effectiveDistance = distanceLeftKm; 
+            let targetPenalty = 0;
+            let isVectoring = false;
+            
+            // STRICT BOUNDARY 1: Distance Zone
+            if (distanceLeftKm <= 50) {
+                // STRICT BOUNDARY 2: Sensor Integrity Check
                 if (currentHeading !== null && !isNaN(currentHeading)) {
                     let angleDiff = getAngleDifference(currentHeading, bearingToAirport);
-                    if (!state.isHolding && angleDiff > 65) {
-                        state.isHolding = true; 
-                    } else if (state.isHolding && angleDiff < 35) {
-                        state.isHolding = false; 
-                    }
+                    if (angleDiff >= 70) { targetPenalty = 8; isVectoring = true; }
+                    else if (angleDiff >= 30) { targetPenalty = 4; isVectoring = true; }
+                    else { targetPenalty = 0; }
+                } else {
+                    // Failsafe: If compass drops out near airport, assume direct approach to prevent ETA spike
+                    targetPenalty = 0; 
                 }
             } else {
-                state.isHolding = false;
+                // Zone > 50km: Dynamic Kinetic Penalty
+                let k_speed = Math.max(0, Math.min(1, (currentSpeed - 250) / 550));
+                let k_dist = Math.max(0, Math.min(1, distanceLeftKm / 100));
+                targetPenalty = 8 * k_speed * k_dist;
             }
 
-            const ALPHA = 0.2;
+            // EMA Penalty Filter
+            if (state.currentPenalty === null) state.currentPenalty = targetPenalty;
+            const ALPHA_PENALTY = 0.1; 
+            state.currentPenalty = (ALPHA_PENALTY * targetPenalty) + ((1 - ALPHA_PENALTY) * state.currentPenalty);
+
+            const ALPHA_SPEED = 0.2;
             let smoothSpeed = (state.emaSpeed !== null) 
-                ? (ALPHA * currentSpeed) + ((1 - ALPHA) * state.emaSpeed) 
+                ? (ALPHA_SPEED * currentSpeed) + ((1 - ALPHA_SPEED) * state.emaSpeed) 
                 : currentSpeed;
             state.emaSpeed = smoothSpeed;
 
             const effectiveSpeed = Math.max(smoothSpeed, 150);
             let rawEtaMinutes = (effectiveDistance / effectiveSpeed) * 60;
             
-            const MAX_PENALTY_MINUTES = 15;
-            const PENALTY_START_DIST = 215;
-            let penaltyMinutes = effectiveDistance > PENALTY_START_DIST ? MAX_PENALTY_MINUTES : MAX_PENALTY_MINUTES * (effectiveDistance / PENALTY_START_DIST);
+            let calculatedETA = Math.round(rawEtaMinutes + state.currentPenalty);
 
-            let calculatedETA = Math.round(rawEtaMinutes + penaltyMinutes);
-
-            if (state.isHolding && state.lastValidETA !== null) return { status: "Holding", etaMinutes: state.lastValidETA };
-            
             state.lastValidETA = calculatedETA;
-            return { status: "En Route", etaMinutes: calculatedETA };
+            return { status: isVectoring ? "Vectoring" : "En Route", etaMinutes: calculatedETA };
         }
 
         function updateUI() {
@@ -589,7 +596,6 @@
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
-            // V1.2.2: Flawless State Machine Logic for Vertical Phase
             let vPhaseText = "";
             if (state.isFlying && state.emaAlt !== null && pos.accuracy <= 50 && state.altBuffer.length > 1) {
                 let pastObj = state.altBuffer.find(a => (now - a.time) >= 14000); 
@@ -602,7 +608,6 @@
                     else if (deltaAlt < -tolerance) calcPhase = "DESCENT";
 
                     if (calcPhase !== state.currentVPhase) {
-                        // Strict requirement: must be the SAME candidate phase consistently
                         if (calcPhase === state.pendingVPhase) {
                             state.vPhaseCounter++;
                             if (state.vPhaseCounter >= 3) {
@@ -694,9 +699,9 @@
                     etaVal.innerHTML = fmtDestTime + (isNextDay ? `<span class="offset-day">+1D</span>` : "");
                     etaVal.className = "val-large";
                     
-                    if (etaResult.status === "Holding") {
+                    if (etaResult.status === "Vectoring") {
                         etaVal.style.color = "var(--warning)";
-                        etaSub.innerText = `⚠️ Vectoring / Holding - Approx ${timeRemainingStr} left`;
+                        etaSub.innerText = `⚠️ Vectoring / Pattern - Approx ${timeRemainingStr} left`;
                     } else {
                         etaVal.style.color = "";
                         etaSub.innerText = `Approximately ${timeRemainingStr} remaining`;
