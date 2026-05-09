@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.3.1</title>
+    <title>FLIGHT STAT PRO V1.4.1</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -211,7 +211,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.3.1 
+                FLIGHT STAT PRO V1.4.1 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -293,11 +293,11 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ KINETIC ENGINE V1.3.1:</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ENGINE V1.4.1:</p>
                 <ul style="padding-left: 15px; margin-bottom: 15px; font-size: 0.75rem;">
-                    <li><b>Dynamic Kinetic Penalty:</b> Scales ETA adjustments accurately by current speed.</li>
-                    <li><b>Pattern Smoothing (Option B+):</b> Real-time, smooth ETA adjustments during U-turns and holds.</li>
-                    <li><b>Vertical Phase:</b> Evaluates CLIMB/CRUISE/DESCENT via Hysteresis EMA filter.</li>
+                    <li><b>Smart Speed ETA:</b> Adjusts arrival time automatically based on aircraft deceleration.</li>
+                    <li><b>Approach Detection:</b> Calculates delays dynamically if the plane makes a U-turn or holding pattern.</li>
+                    <li><b>Flight Phase:</b> Analyzes altitude trends to show Climb, Cruise, or Descent status.</li>
                 </ul>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
@@ -349,14 +349,13 @@
             anchorPos: null,
             stillCount: 0,
             synPos: null,
-            emaSpeed: null,    
-            lastValidETA: null,
             altBuffer: [],
             emaAlt: null,           
             currentVPhase: "CRUISE",
             pendingVPhase: "CRUISE", 
             vPhaseCounter: 0,
-            currentPenalty: null  
+            currentPenalty: null,
+            prevDistanceLeftKm: null // Track distance for boundary reset
         };
 
         const FLYING_START_SPEED = 150; 
@@ -426,7 +425,7 @@
                 if (state.lastTime && (Date.now() - state.lastTime > 10000)) {
                     const dot = document.getElementById('gpsDot');
                     const statusTxt = document.getElementById('statusText');
-                    dot.className = 'lost'; 
+                    dot.classList.add('lost');
                     statusTxt.innerText = "SIGNAL LOST (SEARCHING...)";
                 }
             }, 2000);
@@ -455,20 +454,20 @@
             let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
             let isSynthetic = false;
 
+            // Deep Reset if GPS drops for 15s
             if (state.lastTime && (now - state.lastTime) / 1000 > 15) {
                 state.speedBuffer = []; 
                 state.isFlying = false; 
                 state.isMoving = false; 
                 state.stillCount = 0; 
                 state.synPos = null;
-                state.emaSpeed = null;
-                state.lastValidETA = null;
                 state.altBuffer = [];
                 state.emaAlt = null;
                 state.currentVPhase = "CRUISE";
                 state.pendingVPhase = "CRUISE";
                 state.vPhaseCounter = 0;
                 state.currentPenalty = null; 
+                state.prevDistanceLeftKm = null;
             }
 
             if (coords.altitude !== null) {
@@ -523,50 +522,48 @@
             return diff > 180 ? 360 - diff : diff;
         }
 
-        // V1.3.1 Engine: Dynamic Kinetic Penalty + Pattern EMA (Strict Boundary Failsafe)
         function calculateAdvancedETA(currentSpeed, distanceLeftKm, currentHeading, bearingToAirport) {
             if (distanceLeftKm <= 3 && currentSpeed < 100) return { status: "Landed", etaMinutes: 0 };
 
-            let effectiveDistance = distanceLeftKm; 
             let targetPenalty = 0;
             let isVectoring = false;
             
-            // STRICT BOUNDARY 1: Distance Zone
+            // STRICT BOUNDARY 1: Approach Zone
             if (distanceLeftKm <= 50) {
-                // STRICT BOUNDARY 2: Sensor Integrity Check
+                // STRICT BOUNDARY 2: Sensor Failsafe
                 if (currentHeading !== null && !isNaN(currentHeading)) {
                     let angleDiff = getAngleDifference(currentHeading, bearingToAirport);
                     if (angleDiff >= 70) { targetPenalty = 8; isVectoring = true; }
                     else if (angleDiff >= 30) { targetPenalty = 4; isVectoring = true; }
                     else { targetPenalty = 0; }
                 } else {
-                    // Failsafe: If compass drops out near airport, assume direct approach to prevent ETA spike
                     targetPenalty = 0; 
                 }
+
+                // Boundary Crossing Hard-Reset to prevent Ghost Penalty drag
+                if (state.prevDistanceLeftKm !== null && state.prevDistanceLeftKm > 50) {
+                    state.currentPenalty = targetPenalty;
+                }
             } else {
-                // Zone > 50km: Dynamic Kinetic Penalty
+                // Zone > 50km: Pure Kinetic Penalty
                 let k_speed = Math.max(0, Math.min(1, (currentSpeed - 250) / 550));
-                let k_dist = Math.max(0, Math.min(1, distanceLeftKm / 100));
-                targetPenalty = 8 * k_speed * k_dist;
+                targetPenalty = 8 * k_speed;
             }
+
+            state.prevDistanceLeftKm = distanceLeftKm;
 
             // EMA Penalty Filter
             if (state.currentPenalty === null) state.currentPenalty = targetPenalty;
             const ALPHA_PENALTY = 0.1; 
             state.currentPenalty = (ALPHA_PENALTY * targetPenalty) + ((1 - ALPHA_PENALTY) * state.currentPenalty);
 
-            const ALPHA_SPEED = 0.2;
-            let smoothSpeed = (state.emaSpeed !== null) 
-                ? (ALPHA_SPEED * currentSpeed) + ((1 - ALPHA_SPEED) * state.emaSpeed) 
-                : currentSpeed;
-            state.emaSpeed = smoothSpeed;
-
-            const effectiveSpeed = Math.max(smoothSpeed, 150);
-            let rawEtaMinutes = (effectiveDistance / effectiveSpeed) * 60;
+            // Raw ETA calculation using unmodified speed
+            // Set 30 km/h minimum to prevent division by zero, while keeping final approach speed accurate.
+            const effectiveSpeed = Math.max(currentSpeed, 30);
+            let rawEtaMinutes = (distanceLeftKm / effectiveSpeed) * 60;
             
-            let calculatedETA = Math.round(rawEtaMinutes + state.currentPenalty);
+            let calculatedETA = Math.max(0, Math.round(rawEtaMinutes + state.currentPenalty));
 
-            state.lastValidETA = calculatedETA;
             return { status: isVectoring ? "Vectoring" : "En Route", etaMinutes: calculatedETA };
         }
 
@@ -577,7 +574,7 @@
             const statusTxt = document.getElementById('statusText');
             const now = Date.now();
             
-            dot.className = ''; 
+            dot.classList.remove('lost', 'stale'); 
             
             if (pos.accuracy > 100 || pos.isSynthetic) { 
                 dot.style.background = "var(--warning)"; 
@@ -596,6 +593,7 @@
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
+            // Vertical Phase Logic
             let vPhaseText = "";
             if (state.isFlying && state.emaAlt !== null && pos.accuracy <= 50 && state.altBuffer.length > 1) {
                 let pastObj = state.altBuffer.find(a => (now - a.time) >= 14000); 
@@ -631,6 +629,7 @@
             }
             document.getElementById('vPhaseDisplay').innerText = vPhaseText;
 
+            // Debug Panel
             document.getElementById('dbgRaw').innerText = Math.round(pos.rawSpeed);
             document.getElementById('dbgSmooth').innerText = Math.round(pos.speedKph);
             document.getElementById('dbgFly').innerText = state.isFlying ? "T" : "F";
@@ -766,7 +765,6 @@
                 errorMsg = "Android blocks GPS on local files. Use Add to Home Screen via HTTPS link.";
             }
             document.getElementById('statusText').innerText = "GPS ERROR: " + errorMsg;
-            document.getElementById('gpsDot').className = '';
             document.getElementById('gpsDot').style.background = "var(--danger)";
         }
 
@@ -774,3 +772,4 @@
     </script>
 </body>
 </html>
+
