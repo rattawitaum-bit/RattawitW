@@ -1397,14 +1397,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('table1').addEventListener('paste', function(e) {
         if(e.target.tagName !== 'INPUT') return;
         const clip=e.clipboardData||window.clipboardData; if(!clip) return;
-        const txt=clip.getData('text'); if(!txt) return; e.preventDefault();
-        let lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean), ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
+        const txt=clip.getData('text'); if(!txt) return;
+        const lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        const firstLineHasTab = lns.length > 0 && lns[0].includes('\t');
+        const isMulti = lns.length > 1 || firstLineHasTab;
+        
+        // Single-cell paste: just set the focused input value and let it flow naturally
+        if(!isMulti) {
+            e.preventDefault();
+            const inp = e.target;
+            const cleaned = txt.trim();
+            if(inp.type === 'number') { const n = Formatter.toNumber(cleaned); inp.value = isNaN(n) ? '' : n; }
+            else { inp.value = cleaned; }
+            const cell = inp.closest('.input-cell'); if(cell) AppMethods.updateInputDisplay(cell);
+            if(inp.closest('#table1')) { clearTimeout(ts1); ts1 = setTimeout(AppMethods.calcS1, 300); }
+            return;
+        }
+        
+        // Multi-row / multi-column paste (Excel bulk paste)
+        e.preventDefault();
+        let rows = lns;
+        let ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
         if (ri === -1) return; 
         
-        if(lns.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); lns = lns.slice(0, 500); }
-        AppMethods.ensureRows(this, ri+lns.length);
-        lns.forEach((l,i)=>{
-            let p=l.split(/,|\s+/), c=this.rows[ri+1+i].cells;
+        if(rows.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); rows = rows.slice(0, 500); }
+        AppMethods.ensureRows(this, ri+rows.length);
+        rows.forEach((l,i)=>{
+            let p=l.split(/\t|,|\s+/), c=this.rows[ri+1+i].cells;
             if(p.length > 0 && isNaN(Formatter.toNumber(p[0]))) { c[0].innerText = p[0]; p = p.slice(1); }
             [1,2].forEach(x=>c[x].classList.remove('has-error'));
             [5,6,7,8].forEach(x=>{if(c[x]) c[x].innerText=''}); 
@@ -1419,14 +1438,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('table2').addEventListener('paste', function(e) {
         if(e.target.tagName !== 'INPUT') return;
         const clip=e.clipboardData||window.clipboardData; if(!clip) return;
-        const txt=clip.getData('text'); if(!txt) return; e.preventDefault();
-        let lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean), ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
+        const txt=clip.getData('text'); if(!txt) return;
+        const lns=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        const firstLineHasTab = lns.length > 0 && lns[0].includes('\t');
+        const isMulti = lns.length > 1 || firstLineHasTab;
+        
+        // Single-cell paste: just set the focused input value
+        if(!isMulti) {
+            e.preventDefault();
+            const inp = e.target;
+            const cleaned = txt.trim();
+            if(inp.type === 'number') { const n = Formatter.toNumber(cleaned); inp.value = isNaN(n) ? '' : n; }
+            else { inp.value = cleaned; }
+            const cell = inp.closest('.input-cell'); if(cell) AppMethods.updateInputDisplay(cell);
+            if(inp.closest('#table2')) { clearTimeout(ts2); ts2 = setTimeout(AppMethods.calcS2, 300); }
+            return;
+        }
+        
+        // Multi-row / multi-column paste (Excel bulk paste)
+        e.preventDefault();
+        let rows = lns;
+        let ri=Array.from(this.querySelector('tbody').children).indexOf(e.target.closest('tr'));
         if (ri === -1) return; 
         
-        if(lns.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); lns = lns.slice(0, 500); }
-        AppMethods.ensureRows(this, ri+lns.length);
-        lns.forEach((l,i)=>{
-            let p=l.split(/,|\s+/).filter(Boolean), c=this.rows[ri+1+i].cells;
+        if(rows.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); rows = rows.slice(0, 500); }
+        AppMethods.ensureRows(this, ri+rows.length);
+        rows.forEach((l,i)=>{
+            let p=l.split(/\t|,|\s+/).filter(Boolean), c=this.rows[ri+1+i].cells;
             if(p.length > 0 && isNaN(Formatter.toNumber(p[0]))) { c[0].innerText = p[0]; p = p.slice(1); }
             [1,2,5,6].forEach(x=>{if(c[x]) c[x].innerText=''}); 
             if(p.length>=2){
