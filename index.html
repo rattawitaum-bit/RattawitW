@@ -1,259 +1,365 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Offshore Geo Tools</title>
-  <meta name="description" content="Geodetic, mapping, tide, and engineering tools suite for offshore projects." />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Offshore Geo Tools | Command Center</title>
+  <meta name="description" content="Advanced geomatics and offshore engineering toolset."/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-        }
-      }
-    }
-  </script>
-  <style>
-    body { background-color: #f8fafc; color: #334155; }
-    
-    .compact-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 0.75rem;
-    }
-    
-    .tool-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 0.875rem;
-      display: flex;
-      gap: 0.875rem;
-      align-items: flex-start;
-      transition: all 0.15s ease;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    
-    .tool-card:hover {
-      border-color: #cbd5e1;
-      background-color: #fcfcfd;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    
-    .icon-box {
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    
-    .badge-compact {
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    
-    .filter-btn {
-      transition: all 0.15s ease;
-    }
-    .filter-btn.active {
-      background-color: #334155;
-      color: white;
-      border-color: #334155;
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Dark Theme (Default) */
+  --bg-main: #060910;
+  --bg-gradient: linear-gradient(160deg, #060910 0%, #0c1222 50%, #111a30 100%);
+  --card-bg: rgba(15, 23, 42, 0.6);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --text-title: #f1f5f9;
+  --text-body: #94a3b8;
+  --header-bg: rgba(6, 9, 16, 0.8);
+  --accent-glow: rgba(59, 130, 246, 0.15);
+  --filter-btn-bg: rgba(30, 41, 59, 0.5);
+  --contour-opacity: 0.05;
+}
+
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-gradient: linear-gradient(160deg, #f8fafc 0%, #f1f5f9 100%);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(148, 163, 184, 0.2);
+  --text-title: #0f172a;
+  --text-body: #475569;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --accent-glow: rgba(59, 130, 246, 0.05);
+  --filter-btn-bg: rgba(241, 245, 249, 1);
+  --contour-opacity: 0.15;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Background Animation */
+.contour-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: var(--contour-opacity);
+  background-image: 
+    repeating-radial-gradient(circle at 20% 30%, transparent 0, transparent 100px, #94a3b8 101px, transparent 102px),
+    repeating-radial-gradient(circle at 80% 70%, transparent 0, transparent 150px, #94a3b8 151px, transparent 152px);
+  filter: blur(1px);
+  animation: drift 60s linear infinite;
+}
+@keyframes drift {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Header */
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
+}
+.header-inner {
+  max-width: 1200px; margin: 0 auto; padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  display: grid; place-items: center;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+.brand-icon svg { width: 22px; height: 22px; color: #fff; }
+.brand-text h1 { font-size: 16px; font-weight: 700; color: var(--text-title); letter-spacing: -0.01em; }
+.brand-text p { font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Theme Toggle Button */
+.theme-toggle {
+  background: var(--filter-btn-bg);
+  border: 1px solid var(--card-border);
+  width: 40px; height: 40px; border-radius: 10px;
+  cursor: pointer; display: grid; place-items: center; color: var(--text-title);
+}
+.theme-toggle:hover { background: var(--card-border); }
+
+/* Filter bar */
+.filter-bar { border-bottom: 1px solid var(--card-border); background: rgba(0,0,0,0.05); }
+.filter-inner { max-width: 1200px; margin: 0 auto; padding: 8px 24px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.filter-inner::-webkit-scrollbar { display: none; }
+.filter-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  border: 1px solid transparent; background: transparent; color: var(--text-body);
+  cursor: pointer; white-space: nowrap; transition: 0.2s;
+}
+.filter-btn:hover { color: var(--text-title); background: var(--filter-btn-bg); }
+.filter-btn.active {
+  background: #3b82f6; border-color: #3b82f6; color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Hero Section */
+.hero { text-align: left; max-width: 1200px; margin: 0 auto; padding: 60px 24px 20px; position: relative; z-index: 1; }
+.hero-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(59,130,246,0.1);
+  color: #3b82f6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;
+}
+.hero h2 { font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--text-title); letter-spacing: -0.03em; line-height: 1.1; }
+.hero p { font-size: 16px; color: var(--text-body); margin-top: 12px; max-width: 600px; }
+
+/* Tools Grid */
+.tools-grid {
+  max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;
+  position: relative; z-index: 1;
+}
+
+/* Enhanced Card Design */
+.tool-card {
+  position: relative; text-decoration: none; color: inherit;
+  background: var(--card-bg);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 24px;
+  display: flex; flex-direction: column; gap: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0; transform: translateY(20px);
+  animation: cardFadeIn 0.5s ease forwards;
+}
+@keyframes cardFadeIn { to { opacity: 1; transform: translateY(0); } }
+
+.tool-card:hover {
+  transform: translateY(-5px);
+  border-color: #3b82f6;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5), 0 0 15px var(--accent-glow);
+}
+
+.card-top { display: flex; align-items: center; justify-content: space-between; }
+.card-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: grid; place-items: center; background: rgba(148, 163, 184, 0.1);
+  color: var(--text-title);
+}
+.card-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 4px 10px; border-radius: 6px; background: rgba(148, 163, 184, 0.1);
+}
+
+.card-body h3 { font-size: 18px; font-weight: 700; color: var(--text-title); margin-bottom: 6px; }
+.card-body p { font-size: 13px; line-height: 1.6; color: var(--text-body); }
+
+.card-footer { 
+  margin-top: auto; padding-top: 16px; border-top: 1px solid var(--card-border);
+  display: flex; align-items: center; justify-content: space-between; font-size: 11px;
+  font-weight: 600; color: #3b82f6;
+}
+.card-arrow { transition: transform 0.3s; }
+.tool-card:hover .card-arrow { transform: translateX(4px); }
+
+/* Category Coloring (Subtle Accents) */
+.cat-Geodetic { --accent: #3b82f6; }
+.cat-Mapping { --accent: #10b981; }
+.cat-Engineering { --accent: #f59e0b; }
+.cat-QC { --accent: #8b5cf6; }
+.cat-Viewer { --accent: #06b6d4; }
+.cat-Tide { --accent: #14b8a6; }
+
+.tool-card:hover .card-icon { background: var(--accent); color: white; }
+.tool-card:hover .card-badge { background: var(--accent); color: white; }
+
+/* Empty state */
+.empty-state { display: none; padding: 100px 24px; text-align: center; }
+
+/* Footer */
+.site-footer {
+  margin-top: auto; padding: 24px;
+  border-top: 1px solid var(--card-border);
+  background: rgba(0,0,0,0.1);
+}
+.footer-inner {
+  max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--text-body);
+}
+
+@media(max-width: 640px) {
+  .tools-grid { grid-template-columns: 1fr; }
+  .hero { padding-top: 40px; }
+}
+</style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body>
 
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-      
-      <!-- Brand -->
-      <div class="flex items-center gap-3 w-full sm:w-auto">
-        <div class="bg-blue-600 text-white p-1.5 rounded">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-        </div>
-        <div>
-          <h1 class="text-sm font-semibold text-slate-900 leading-tight">Offshore Geo Tools</h1>
-          <p class="text-xs text-slate-500">Dashboard</p>
-        </div>
+<div class="contour-bg"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
       </div>
-      
-      <!-- Search Input -->
-      <div class="w-full sm:w-auto relative">
-        <svg class="absolute left-2.5 top-2 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        <input type="text" id="searchInput" placeholder="Search applications..." class="w-full sm:w-64 pl-8 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded focus:bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors">
+      <div class="brand-text">
+        <h1>Offshore Geo Tools</h1>
+        <p>Command Center</p>
       </div>
     </div>
     
-    <!-- Filter Context Bar -->
-    <div class="border-t border-slate-100 bg-slate-50/50">
-      <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide" id="filterContainer">
-        <!-- Populated via JS -->
-      </div>
-    </div>
-  </header>
+    <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
+      <svg class="sun-icon" style="display:none" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+  <div class="filter-bar">
+    <div class="filter-inner" id="filterContainer"></div>
+  </div>
+</header>
 
-  <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-6 content-start">
-    <div id="cardsGrid" class="compact-grid"></div>
+<main>
+  <div class="hero">
+    <span class="hero-tag">Offshore Engineering</span>
+    <h2>Precision Tools for <br/>Marine Geomatics.</h2>
+    <p>A suite of high-performance tools designed for offshore survey, geodetic transformations, and hydrographic operations.</p>
+  </div>
+
+  <div id="cardsGrid" class="tools-grid"></div>
+
+  <div id="emptyState" class="empty-state">
+    <h3>No tools found in this category</h3>
+    <button onclick="setFilter('All')" style="margin-top:10px; color:#3b82f6; background:none; border:none; cursor:pointer; font-weight:600;">Show all tools</button>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>&copy; <span id="year"></span> Offshore Geo Tools • Built for Precision</span>
+    <span>Developed by <strong style="color:var(--text-title)">Rattawit W.</strong></span>
+  </div>
+</footer>
+
+<script>
+const tools = [
+  { file:'Coordinate_Converter.html', title:'Coordinate Converter', category:'Geodetic', badge:'Geodetic', icon:'compass', description:'High-precision conversion between Geodetic, UTM, and local grid systems.' },
+  { file:'Gulf_of_Thailand_Tide.html', title:'Gulf of Thailand Tide', category:'Tide', badge:'Tide', icon:'tide', description:'Real-time and predictive tidal computation for Gulf of Thailand regions.' },
+  { file:'DistanceMap_Final.html', title:'Distance Map', category:'Mapping', badge:'Mapping', icon:'route', description:'Generate complex distance matrices and offline mapping visualizations.' },
+  { file:'SLACK_Catenary.html', title:'Catenary Calculation', category:'Engineering', badge:'Engineering', icon:'catenary', description:'Compute complex mooring profiles and grounded line lengths.' },
+  { file:'QC_Jackup.html', title:'QC Jackup', category:'QC', badge:'QC', icon:'jackup', description:'Validation engine for jack-up rig leg positioning and coordinate integrity.' },
+  { file:'geojson_viewer_v_35c.html', title:'GeoJSON Viewer', category:'Viewer', badge:'Viewer', icon:'viewer', description:'Advanced offline viewer for GeoJSON layers with dynamic styling.' },
+  { file:'xy_contour_studio.html', title:'XY Contour Studio', category:'Mapping', badge:'Mapping', icon:'contour', description:'Topographic contour generation engine from raw XYZ data sets.' },
+  { file:'Platform_slot_calculator.html', title:'Platform Slot Calc', category:'Engineering', badge:'Engineering', icon:'slot', description:'Precise layout calculation for offshore platform slot configurations.' }
+];
+
+const icons = {
+  compass:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='10'/><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'/></svg>`,
+  route:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 18l6-6-6-6'/><circle cx='7' cy='6' r='3'/><circle cx='17' cy='18' r='3'/></svg>`,
+  catenary:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 6c3 8 6 12 9 12s6-4 9-12'/><circle cx='3' cy='6' r='2' fill='currentColor'/><circle cx='21' cy='6' r='2' fill='currentColor'/></svg>`,
+  jackup:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='10' width='18' height='4' rx='1'/><path d='M6 14v6M18 14v6M9 10V4h6v6'/></svg>`,
+  viewer:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg>`,
+  contour:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M2 12c5 0 5-5 10-5s5 5 10 5'/><path d='M2 17c5 0 5-5 10-5s5 5 10 5' opacity='0.5'/><path d='M2 7c5 0 5-5 10-5s5 5 10 5' opacity='0.5'/></svg>`,
+  slot:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='2'/><line x1='3' y1='9' x2='21' y2='9'/><line x1='9' y1='21' x2='9' y2='9'/></svg>`,
+  tide:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3 3 3 6 3'/><path d='M2 16c3 0 3-3 6-3s3 3 6 3 3-3 6-3 3 3 6 3' opacity='0.4'/></svg>`
+};
+
+const arrowSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M12 5l7 7-7 7'/></svg>`;
+
+let activeFilter = 'All';
+const grid = document.getElementById('cardsGrid');
+const emptyState = document.getElementById('emptyState');
+const filterContainer = document.getElementById('filterContainer');
+
+function renderFilters(){
+  const cats = ['All', ...new Set(tools.map(t=>t.category))];
+  filterContainer.innerHTML = '';
+  cats.forEach(cat=>{
+    const btn = document.createElement('button');
+    btn.textContent = cat;
+    btn.className = 'filter-btn' + (activeFilter===cat?' active':'');
+    btn.onclick = ()=> setFilter(cat);
+    filterContainer.appendChild(btn);
+  });
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  renderFilters();
+  filterAndRender();
+}
+
+function filterAndRender(){
+  const filtered = tools.filter(t=> activeFilter==='All' || t.category===activeFilter);
+  renderCards(filtered);
+  grid.style.display = filtered.length ? 'grid' : 'none';
+  emptyState.style.display = filtered.length ? 'none' : 'block';
+}
+
+function renderCards(list){
+  grid.innerHTML = '';
+  list.forEach((t, i)=>{
+    const card = document.createElement('a');
+    card.href = t.file;
+    card.className = `tool-card cat-${t.category}`;
+    card.style.animationDelay = `${i * 0.05}s`;
     
-    <div id="emptyState" class="hidden py-12 text-center flex flex-col items-center justify-center">
-      <h3 class="text-sm font-medium text-slate-700">No applications found</h3>
-      <p class="text-xs text-slate-500 mt-1">Try adjusting your search query or clear your filters.</p>
-      <button onclick="resetFilters()" class="mt-3 px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded text-xs font-medium">Clear Filters</button>
-    </div>
-  </main>
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-icon">${icons[t.icon]}</div>
+        <span class="card-badge">${t.badge}</span>
+      </div>
+      <div class="card-body">
+        <h3>${t.title}</h3>
+        <p>${t.description}</p>
+      </div>
+      <div class="card-footer">
+        <span>LAUNCH TOOL</span>
+        <span class="card-arrow">${arrowSvg}</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
 
-  <footer class="border-t border-slate-200 bg-white py-3 mt-auto">
-    <div class="max-w-6xl mx-auto px-4 text-xs text-slate-500 flex justify-between items-center">
-      <span>&copy; <span id="year"></span> Offshore Geo Tools</span>
-      <span>Dev by <span class="font-medium">Rattawit W</span></span>
-    </div>
-  </footer>
+// Theme Toggle Logic
+const themeToggle = document.getElementById('themeToggle');
+const html = document.documentElement;
+const sunIcon = themeToggle.querySelector('.sun-icon');
+const moonIcon = themeToggle.querySelector('.moon-icon');
 
-  <script>
-    const tools = [
-      { file: 'Coordinate_Converter.html', title: 'Coordinate Converter', category: 'Geodetic', badge: 'Geodetic', icon: 'compass', description: 'Convert between geodetic, UTM, and local grids.' },
-      { file: 'Gulf_of_Thailand_Tide.html', title: 'Gulf of Thailand Tide', category: 'Tide', badge: 'Tide', icon: 'tide', description: 'Compute tides for the Gulf of Thailand regions.' },
-      { file: 'DistanceMap_Final.html', title: 'Distance Map', category: 'Mapping', badge: 'Mapping', icon: 'route', description: 'Generate offline distance maps and pairwise matrices.' },
-      { file: 'SLACK_Catenary.html', title: 'Catenary Calculation', category: 'Engineering', badge: 'Engineering', icon: 'catenary', description: 'Compute mooring line profiles and grounded lengths.' },
-      { file: 'QC_Jackup.html', title: 'QC Jackup', category: 'QC', badge: 'QC', icon: 'jackup', description: 'Validate jack-up rig leg coordinates thoroughly.' },
-      { file: 'geojson_viewer_v_35c.html', title: 'GeoJSON Viewer', category: 'Viewer', badge: 'Viewer', icon: 'viewer', description: 'Offline viewer for GeoJSON layers and basic styling.' },
-      { file: 'xy_contour_studio.html', title: 'XY Contour Studio', category: 'Mapping', badge: 'Mapping', icon: 'contour', description: 'Generate map contours from raw XY/Z data sets.' },
-      { file: 'Platform_slot_calculator.html', title: 'Platform Slot Calc', category: 'Engineering', badge: 'Engineering', icon: 'slot', description: 'Calculate offshore platform slot coordinate layouts.' }
-    ];
+function updateThemeIcons(theme) {
+  if (theme === 'light') {
+    sunIcon.style.display = 'none';
+    moonIcon.style.display = 'block';
+  } else {
+    sunIcon.style.display = 'block';
+    moonIcon.style.display = 'none';
+  }
+}
 
-    const icons = {
-      compass: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path fill='currentColor' d='M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2Zm3.6 6.4-1.9 4.8-4.8 1.9 1.9-4.8 4.8-1.9Z'/></svg>`,
-      route: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path fill='currentColor' d='M7 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm10 12a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM7 9c3 0 5 2 7 4s4 4 7 4' fill-opacity='.2'/><path d='M7 9c3 0 5 2 7 4s4 4 7 4' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>`,
-      catenary: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path d='M3 6c3 8 6 12 9 12s6-4 9-12' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='3' cy='6' r='2' fill='currentColor'/><circle cx='21' cy='6' r='2' fill='currentColor'/></svg>`,
-      jackup: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><rect x='3' y='10' width='18' height='4' rx='1' fill='currentColor'/><path d='M6 14v6M18 14v6M9 10V4h6v6' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>`,
-      viewer: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path d='M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='12' cy='12' r='2' fill='currentColor'/></svg>`,
-      contour: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path d='M3 18c3-6 6-9 9-9s6 3 9 9' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/><path d='M3 14c3-4 6-6 9-6s6 2 9 6' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none' opacity='.6'/></svg>`,
-      slot: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><rect x='4' y='4' width='16' height='16' rx='2' stroke='currentColor' stroke-width='2' stroke-linecap='round' fill='none'/><path d='M4 10h16M10 4v16' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>`,
-      tide: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' class='w-4 h-4'><path d='M2 12c2.5 0 2.5-3 5-3s2.5 3 5 3 2.5-3 5-3 2.5 3 5 3' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/><path d='M2 18c2.5 0 2.5-3 5-3s2.5 3 5 3 2.5-3 5-3 2.5 3 5 3' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none' opacity='.4'/></svg>`
-    };
+themeToggle.onclick = () => {
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('geo-theme', newTheme);
+  updateThemeIcons(newTheme);
+};
 
-    const themeConfig = {
-      'Geodetic':    { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-      'Mapping':     { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-      'Engineering': { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
-      'QC':          { bg: '#faf5ff', color: '#9333ea', border: '#e9d5ff' },
-      'Viewer':      { bg: '#f0f9ff', color: '#0284c7', border: '#bae6fd' },
-      'Tide':        { bg: '#f0fdfa', color: '#0d9488', border: '#ccfbf1' },
-    };
+// Init
+const savedTheme = localStorage.getItem('geo-theme') || 'dark';
+html.setAttribute('data-theme', savedTheme);
+updateThemeIcons(savedTheme);
 
-    let activeFilter = 'All';
-    let searchQuery = '';
-
-    const grid = document.getElementById('cardsGrid');
-    const emptyState = document.getElementById('emptyState');
-    const filterContainer = document.getElementById('filterContainer');
-    const searchInput = document.getElementById('searchInput');
-
-    function renderFilters() {
-      const categories = ['All', ...new Set(tools.map(t => t.category))];
-      filterContainer.innerHTML = '';
-      categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.textContent = cat;
-        btn.className = `filter-btn px-3 py-1 rounded text-xs font-medium border ${
-          activeFilter === cat 
-            ? 'active' 
-            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-        }`;
-        btn.onclick = () => {
-          activeFilter = cat;
-          renderFilters();
-          filterAndRender();
-        };
-        filterContainer.appendChild(btn);
-      });
-    }
-
-    function filterAndRender() {
-      const filtered = tools.filter(t => {
-        const matchesFilter = activeFilter === 'All' || t.category === activeFilter;
-        const matchesSearch = t.title.toLowerCase().includes(searchQuery) || 
-                              t.description.toLowerCase().includes(searchQuery) ||
-                              t.category.toLowerCase().includes(searchQuery);
-        return matchesFilter && matchesSearch;
-      });
-
-      renderCards(filtered);
-      
-      if (filtered.length === 0) {
-        grid.style.display = 'none';
-        emptyState.style.display = 'flex';
-      } else {
-        grid.style.display = 'grid';
-        emptyState.style.display = 'none';
-      }
-    }
-
-    function renderCards(list) {
-      grid.innerHTML = '';
-      list.forEach(t => {
-        const theme = themeConfig[t.category] || themeConfig['Geodetic'];
-        
-        const card = document.createElement('a');
-        card.href = t.file;
-        card.target = '_blank';
-        card.rel = 'noopener';
-        card.className = 'tool-card group';
-        
-        card.innerHTML = `
-          <div class="icon-box" style="background-color: ${theme.bg}; color: ${theme.color}">
-            ${icons[t.icon]}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between gap-2 mb-1">
-              <h3 class="text-sm font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">${t.title}</h3>
-              <span class="badge-compact" style="background-color: ${theme.bg}; color: ${theme.color}; border: 1px solid ${theme.border}">${t.badge}</span>
-            </div>
-            <p class="text-xs text-slate-500 leading-snug line-clamp-2">${t.description}</p>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    searchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value.toLowerCase();
-      filterAndRender();
-    });
-
-    window.resetFilters = function() {
-      activeFilter = 'All';
-      searchQuery = '';
-      searchInput.value = '';
-      renderFilters();
-      filterAndRender();
-    };
-
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        searchInput.focus();
-      }
-    });
-
-    document.getElementById('year').textContent = new Date().getFullYear();
-    renderFilters();
-    filterAndRender();
-  </script>
+document.getElementById('year').textContent = new Date().getFullYear();
+renderFilters();
+filterAndRender();
+</script>
 </body>
 </html>
