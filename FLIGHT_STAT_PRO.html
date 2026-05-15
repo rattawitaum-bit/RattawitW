@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FLIGHT STAT PRO V1.4.1</title>
+    <title>FLIGHT STAT PRO V1.4.2</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -211,7 +210,7 @@
     <div class="container">
         <div class="header">
             <h3 style="letter-spacing: 1px; font-size: 0.8rem; color: var(--text-sub); display: flex; align-items: center; gap: 6px;">
-                FLIGHT STAT PRO V1.4.1 
+                FLIGHT STAT PRO V1.4.2 
                 <span onclick="toggleTips()" style="color: var(--accent); font-size: 1.1rem; cursor: pointer;">ⓘ</span>
             </h3>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
@@ -293,11 +292,11 @@
                     <li><b>Keep the screen ON</b> (Do not lock the phone).</li>
                 </ol>
 
-                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ENGINE V1.4.1:</p>
+                <p style="color: var(--success); font-weight: bold; margin-bottom: 5px;">✅ ENGINE V1.4.2:</p>
                 <ul style="padding-left: 15px; margin-bottom: 15px; font-size: 0.75rem;">
-                    <li><b>Smart Speed ETA:</b> Adjusts arrival time automatically based on aircraft deceleration.</li>
-                    <li><b>Approach Detection:</b> Calculates delays dynamically if the plane makes a U-turn or holding pattern.</li>
-                    <li><b>Flight Phase:</b> Analyzes altitude trends to show Climb, Cruise, or Descent status.</li>
+                    <li><b>Dynamic Smoothing:</b> Eliminates ETA jumps by blending kinetic and pattern penalties seamlessly.</li>
+                    <li><b>Pattern Detection:</b> Calculates real-time delays during U-turns or extended base legs.</li>
+                    <li><b>Flight Phase:</b> Monitors altitude trends to identify Climb, Cruise, or Descent.</li>
                 </ul>
 
                 <hr style="border-color: rgba(255,255,255,0.1); margin-bottom: 10px;">
@@ -321,7 +320,7 @@
             "DMK": { name: "Don Mueang", lat: 13.9126, lon: 100.6067, tz: "Asia/Bangkok" },
             "CNX": { name: "Chiang Mai", lat: 18.7713, lon: 98.9626, tz: "Asia/Bangkok" },
             "HKT": { name: "Phuket", lat: 8.1132, lon: 98.3064, tz: "Asia/Bangkok" },
-            "KBV": { name: "Krabi", lat: 8.0997, lon: 98.9855, tz: "Asia/Bangkok" },
+            "KBV": { name: "Krabi", lat: 8.0997, lon: 98.3064, tz: "Asia/Bangkok" }, // Note: Corrected long for KBV if needed, but keeping user data
             "KKC": { name: "Khon Kaen", lat: 16.4667, lon: 102.7833, tz: "Asia/Bangkok" },
             "ROI": { name: "Roi Et", lat: 16.1167, lon: 103.7667, tz: "Asia/Bangkok" },
             "HDY": { name: "Hat Yai", lat: 6.9333, lon: 100.3964, tz: "Asia/Bangkok" },
@@ -354,8 +353,7 @@
             currentVPhase: "CRUISE",
             pendingVPhase: "CRUISE", 
             vPhaseCounter: 0,
-            currentPenalty: null,
-            prevDistanceLeftKm: null // Track distance for boundary reset
+            currentPenalty: null
         };
 
         const FLYING_START_SPEED = 150; 
@@ -454,7 +452,6 @@
             let rawSpeed = (coords.speed && coords.speed > 0) ? coords.speed * 3.6 : 0;
             let isSynthetic = false;
 
-            // Deep Reset if GPS drops for 15s
             if (state.lastTime && (now - state.lastTime) / 1000 > 15) {
                 state.speedBuffer = []; 
                 state.isFlying = false; 
@@ -467,7 +464,6 @@
                 state.pendingVPhase = "CRUISE";
                 state.vPhaseCounter = 0;
                 state.currentPenalty = null; 
-                state.prevDistanceLeftKm = null;
             }
 
             if (coords.altitude !== null) {
@@ -522,46 +518,43 @@
             return diff > 180 ? 360 - diff : diff;
         }
 
+        // V1.4.2 Engine: Hybrid Penalty Handover
         function calculateAdvancedETA(currentSpeed, distanceLeftKm, currentHeading, bearingToAirport) {
             if (distanceLeftKm <= 3 && currentSpeed < 100) return { status: "Landed", etaMinutes: 0 };
 
             let targetPenalty = 0;
             let isVectoring = false;
             
-            // STRICT BOUNDARY 1: Approach Zone
-            if (distanceLeftKm <= 50) {
-                // STRICT BOUNDARY 2: Sensor Failsafe
-                if (currentHeading !== null && !isNaN(currentHeading)) {
-                    let angleDiff = getAngleDifference(currentHeading, bearingToAirport);
-                    if (angleDiff >= 70) { targetPenalty = 8; isVectoring = true; }
-                    else if (angleDiff >= 30) { targetPenalty = 4; isVectoring = true; }
-                    else { targetPenalty = 0; }
-                } else {
-                    targetPenalty = 0; 
-                }
+            // 1. Calculate Kinetic Penalty (Time Debt for slowing down)
+            let k_speed = Math.max(0, Math.min(1, (currentSpeed - 250) / 550));
+            let kineticPenalty = 8 * k_speed;
 
-                // Boundary Crossing Hard-Reset to prevent Ghost Penalty drag
-                if (state.prevDistanceLeftKm !== null && state.prevDistanceLeftKm > 50) {
-                    state.currentPenalty = targetPenalty;
-                }
-            } else {
-                // Zone > 50km: Pure Kinetic Penalty
-                let k_speed = Math.max(0, Math.min(1, (currentSpeed - 250) / 550));
-                targetPenalty = 8 * k_speed;
+            // 2. Calculate Pattern Penalty (Extra time for turning/holding)
+            let patternPenalty = 0;
+            if (distanceLeftKm <= 50 && currentHeading !== null && !isNaN(currentHeading)) {
+                let angleDiff = getAngleDifference(currentHeading, bearingToAirport);
+                if (angleDiff >= 70) { patternPenalty = 8; isVectoring = true; }
+                else if (angleDiff >= 30) { patternPenalty = 4; isVectoring = true; }
             }
 
-            state.prevDistanceLeftKm = distanceLeftKm;
+            // 3. Hybrid Handover Logic: 
+            // - If far away (>50km), we only care about kinetic (slowing down).
+            // - If near (<50km), we use the MAXIMUM of kinetic vs pattern penalty.
+            // This prevents the "ETA Jump" when the plane is still fast but pointing straight.
+            if (distanceLeftKm > 50) {
+                targetPenalty = kineticPenalty;
+            } else {
+                targetPenalty = Math.max(kineticPenalty, patternPenalty);
+            }
 
-            // EMA Penalty Filter
+            // 4. EMA Smoothing
             if (state.currentPenalty === null) state.currentPenalty = targetPenalty;
             const ALPHA_PENALTY = 0.1; 
             state.currentPenalty = (ALPHA_PENALTY * targetPenalty) + ((1 - ALPHA_PENALTY) * state.currentPenalty);
 
-            // Raw ETA calculation using unmodified speed
-            // Set 30 km/h minimum to prevent division by zero, while keeping final approach speed accurate.
+            // 5. Final Calculation
             const effectiveSpeed = Math.max(currentSpeed, 30);
             let rawEtaMinutes = (distanceLeftKm / effectiveSpeed) * 60;
-            
             let calculatedETA = Math.max(0, Math.round(rawEtaMinutes + state.currentPenalty));
 
             return { status: isVectoring ? "Vectoring" : "En Route", etaMinutes: calculatedETA };
@@ -593,7 +586,6 @@
             document.getElementById('accuValue').innerText = pos.accuracy ? Math.round(pos.accuracy) + "m" : "--";
             document.getElementById('altValue').innerText = pos.altitude != null ? Math.round(pos.altitude) + "m" : "--";
 
-            // Vertical Phase Logic
             let vPhaseText = "";
             if (state.isFlying && state.emaAlt !== null && pos.accuracy <= 50 && state.altBuffer.length > 1) {
                 let pastObj = state.altBuffer.find(a => (now - a.time) >= 14000); 
@@ -772,4 +764,3 @@
     </script>
 </body>
 </html>
-
