@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.0.2 (Engine Fixed)</title>
+<title>XY Contour Studio — v9.1 260515</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   /* Light minimal theme + fixed header/footer */
@@ -77,7 +77,7 @@
     <div style="display:flex;align-items:center;gap:6px">
       <h1>XY Contour Studio</h1><span class="tag">XY - Local mode</span>
     </div>
-    <div class="hint">v9.0.2 (Engine Fixed)</div>
+    <div class="hint">v9.1 (Engine Fixed)</div>
   </div>
   <div class="header-spacer"></div>
   <span id="cdnStatus" class="hdr-status">CDN OK</span>
@@ -97,6 +97,7 @@
             <button id="btnDXF" class="btn" disabled style="flex:1">⬇ DXF</button>
             <button id="btnKML" class="btn" disabled style="flex:1">⬇ KML (WGS84)</button>
             <button id="btnSHPFiles" class="btn" disabled style="flex:1">⬇ SHP 47N (files)</button>
+            <button id="btnSHPZip" class="btn primary" disabled style="flex:1">⬇ SHP 47N (ZIP)</button>
           </div>
         </div>
       </div>
@@ -198,7 +199,7 @@
 <footer>
   <div class="footer-left">Created by <strong>Rattawit W</strong></div>
   <div class="footer-center"><span id="xyCursor">X: — , Y: — , Depth: —</span></div>
-  <div class="footer-right hint">v9.0.2 - Engine Optimization Fixed</div>
+  <div class="footer-right hint">v9.1 - Engine Optimization Fixed</div>
 </footer>
 
 </div>
@@ -208,6 +209,7 @@
 <script src="https://cdn.jsdelivr.net/npm/geotiff@2.0.7/dist-browser/geotiff.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-contour@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/simplify-js@1.2.4/simplify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
 function dePreviewFlip(E, N){
@@ -217,10 +219,11 @@ function dePreviewFlip(E, N){
 </script>
 <script>
 (function(){
+  console.log("xy_contour_studio_v9.1");
   function $(id){ return document.getElementById(id); }
 
   var status=$('status'), loadError=$('loadError'), loadInfo=$('loadInfo');
-  var fileInput=$('file'), btnGenerate=$('btnGenerate'), btnDXF=$('btnDXF'), btnKML=$('btnKML'), btnSHPFiles=$('btnSHPFiles');
+  var fileInput=$('file'), btnGenerate=$('btnGenerate'), btnDXF=$('btnDXF'), btnKML=$('btnKML'), btnSHPFiles=$('btnSHPFiles'), btnSHPZip=$('btnSHPZip');
   function sanitizeBase(name){
     name = String(name||'').replace(/^.*[\\/]/,'');
     name = name.replace(/\.[^.]+$/, '');
@@ -306,7 +309,7 @@ function dePreviewFlip(E, N){
   }
 
   var img,width,height,values,GT0,GT1,GT2,GT3,GT4,GT5;
-  var rasterNoData=NaN; // Unified to NaN in v9.0.2
+  var rasterNoData=NaN; // Unified to NaN in v9.1
   var lastFC=null, rasterLayer=null, stretchMin=null, stretchMax=null;
   var lastGeoJSONText=null, lastDXFText=null, validatorLayer=null, contourLayer=null;
 
@@ -419,7 +422,7 @@ function dePreviewFlip(E, N){
     loadError.style.display='none'; loadError.textContent='';
     var f=e.target.files[0]; if(!f) return;
     importBase = sanitizeBase(f.name);
-    btnGenerate.disabled=btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=true; lastFC=null; status.textContent='Reading GeoTIFF…';
+    btnGenerate.disabled=btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=btnSHPZip.disabled=true; lastFC=null; status.textContent='Reading GeoTIFF…';
     (async function(){
       try{
         var buf=await f.arrayBuffer(); var tiff=await GeoTIFF.fromArrayBuffer(buf); img=await tiff.getImage();
@@ -713,7 +716,7 @@ var bathymetryWorker = null;
       var bVec=contourLayer.getBounds(), bRas=rasterLayer? rasterLayer.getBounds():null;
       if(bRas && bRas.isValid() && bVec.isValid()) map.fitBounds(bVec.extend(bRas)); else if(bVec.isValid()) map.fitBounds(bVec);
 
-      btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=!features.length; btnGenerate.disabled=false; btnGenerate.textContent='▶ Generate';
+      btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=btnSHPZip.disabled=!features.length; btnGenerate.disabled=false; btnGenerate.textContent='▶ Generate';
 
       var lvlTotal=levels.length, nonzero=0; perLevelCount.forEach(function(v){ if(v>0) nonzero++; });
       var smoothInfo=useSmooth?(method==='paek'?('PAEK radius '+paekR+' m'):('simplify tol '+tol+' m')):'off';
@@ -1041,6 +1044,25 @@ function buildSHP_47N_FromFC(fc){
   var prjText='PROJCS["Indian_1975_UTM_Zone_47N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]';
   return { shp:new Uint8Array(shp), shx:new Uint8Array(shx), dbf:new Uint8Array(dbf), prj:new TextEncoder().encode(prjText), cpg:new TextEncoder().encode('UTF-8') };
 }
+
+btnSHPZip.addEventListener('click', function(){
+  if(!lastFC){ alert('Please generate contours first.'); return; }
+  var data = buildSHP_47N_FromFC(lastFC); if(!data) return;
+  var zip = new JSZip();
+  var base = 'contours_'+importBase;
+  zip.file(base+'.shp', data.shp);
+  zip.file(base+'.shx', data.shx);
+  zip.file(base+'.dbf', data.dbf);
+  zip.file(base+'.prj', data.prj);
+  zip.file(base+'.cpg', data.cpg);
+  zip.generateAsync({type:"blob"}).then(function(content) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = base+'.zip';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  });
+});
 
 btnSHPFiles.addEventListener('click', function(){
   if(!lastFC){ alert('Please generate contours first.'); return; }
