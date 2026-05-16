@@ -3,206 +3,207 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.1 260515</title>
+<title>XY Contour Studio — v9.0.3 (Production Final)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* Light minimal theme + fixed header/footer */
-  :root{
-    --bg:#ffffff; --panel:#ffffff; --panel-2:#ffffff;
-    --border:#e5e7eb; --muted:#6b7280; --text:#111827;
-    --accent:#2563eb; --hdr-h:56px; --ftr-h:44px;
+  :root {
+    --c-bg: #0f172a; --c-panel: #1e293b; --c-panel-2: #334155;
+    --c-border: #475569; --c-border-soft: #334155; --c-text: #f1f5f9; --c-text-2: #94a3b8;
+    --c-accent: #00d4aa; --c-accent-dim: rgba(0, 212, 170, 0.1);
+    --c-error: #ef4444; --c-warning: #f59e0b;
+    --hdr-h: 52px; --ftr-h: 40px; --sidebar-w: 350px;
   }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--text);font:14px ui-sans-serif,system-ui,Segoe UI,Arial}
-  .banner{display:none}
-  .app{min-height:100vh}
-  header{
-    position:fixed; top:0; left:0; right:0; z-index:1000;
-    display:flex; align-items:center; gap:12px;
-    height:var(--hdr-h); padding:10px 16px;
-    border-bottom:1px solid var(--border); background:var(--panel);
+  @media (prefers-color-scheme: light) {
+    :root { --c-bg: #f8fafc; --c-panel: #ffffff; --c-panel-2: #f1f5f9; --c-border: #e2e8f0; --c-border-soft: #e2e8f0; --c-text: #0f172a; --c-text-2: #64748b; }
   }
-  header .brand{display:flex;align-items:center;gap:10px}
-  .brand .logo{width:26px;height:26px;border-radius:6px;background:#111827;color:#fff;display:grid;place-items:center;font-weight:800}
-  .brand h1{font-size:18px;margin:0;font-weight:800;color:#111827}
-  .brand .tag{font-size:11px;color:#374151;background:#f3f4f6;padding:2px 6px;border-radius:999px;border:1px solid var(--border);margin-left:8px}
-  .header-spacer{flex:1}
-  .hdr-status{font-size:12px;color:#16a34a;border:1px solid var(--border);border-radius:6px;padding:2px 8px;background:#f9fafb}
-  .main{
-    position:fixed; left:0; right:0;
-    top:var(--hdr-h); bottom:var(--ftr-h);
-    display:grid; grid-template-columns:380px 1fr; min-height:0;
+  * { box-sizing: border-box; }
+  body { 
+    margin: 0; background: var(--c-bg); color: var(--c-text); 
+    font-family: 'Inter', ui-sans-serif, system-ui; font-size: 13px;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
   }
-  .sidebar{background:var(--panel);border-right:1px solid var(--border);padding:12px 12px 120px;overflow:auto}
-  .content{position:relative;background:var(--bg)}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--panel-2)}
-  #map{position:absolute;inset:0;background:#ffffff}
-  footer{
-    position:fixed; bottom:0; left:0; right:0; z-index:1000;
-    display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
-    height:var(--ftr-h); padding:8px 16px; border-top:1px solid var(--border);
-    color:var(--muted); background:var(--panel)
+  header { height: var(--hdr-h); display: flex; align-items:center; gap: 12px; padding: 0 16px; background: var(--c-panel); border-bottom: 1px solid var(--c-border); z-index: 1000; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 24px; height: 24px; background: var(--c-accent); color: #000; border-radius: 6px; display: grid; place-items: center; font-weight: 800; }
+  h1 { font-size: 15px; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .tag { font-size: 10px; padding: 2px 6px; border-radius: 99px; background: var(--c-accent-dim); color: var(--c-accent); border: 1px solid var(--c-accent); }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+  .sidebar { width: var(--sidebar-w); background: var(--c-panel); border-right: 1px solid var(--c-border); display: flex; flex-direction: column; z-index: 900; }
+  @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; height: 45vh; border-right: none; border-top: 2px solid var(--c-border); } }
+
+  .tab-headers { display: flex; border-bottom: 1px solid var(--c-border); padding: 0 12px; }
+  .tab-btn { padding: 12px 16px; border: 0; background: transparent; color: var(--c-text-2); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; font-size: 12px; transition: color 0.2s;}
+  .tab-btn:hover { color: var(--c-text); }
+  .tab-btn.active { color: var(--c-accent); border-bottom-color: var(--c-accent); }
+  
+  .tab-content { flex: 1; overflow-y: auto; padding: 16px 16px 40px; display: none; }
+  .tab-content.active { display: block; }
+  
+  .drop-zone { border: 2px dashed var(--c-border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; background: var(--c-panel-2); transition: 0.2s; }
+  .drop-zone:hover { border-color: var(--c-accent); background: var(--c-accent-dim); }
+
+  .group-title { font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; color: var(--c-text-2); margin: 24px 0 12px; border-bottom: 1px solid var(--c-border-soft); padding-bottom: 4px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .row label { font-weight: 500; color: var(--c-text-2); flex: 1; display: flex; align-items: center; }
+
+  input[type=number], select { 
+    background: var(--c-panel-2); border: 1px solid var(--c-border); border-radius: 6px; 
+    color: var(--c-text); padding: 6px 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 90px;
+    outline: none; transition: border-color 0.2s;
   }
-  .footer-left{justify-self:start}
-  .footer-center{justify-self:center;color:#111827;font-variant-numeric:tabular-nums}
-  .footer-right{justify-self:end}
-  .group{margin-bottom:12px}
-  .group h3{font-size:12px;margin:0 0 6px 0;color:#374151;text-transform:uppercase;letter-spacing:.6px}
-  .card{border:1px solid var(--border);background:#ffffff;border-radius:12px;padding:10px}
-  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0}
-  .row label{flex:1;color:#111827}
-  .row input[type=number], .row select, .row input[type=file], .row input[type=range]{
-    flex:1;min-width:0;background:#ffffff;border:1px solid var(--border);color:#111827;border-radius:8px;padding:6px
+  input[type=number]:focus, select:focus { border-color: var(--c-accent); }
+
+  .action-bar { padding: 16px; border-top: 1px solid var(--c-border); background: var(--c-panel); display: flex; flex-direction: column; gap: 8px; }
+  .btn { appearance: none; border: 1px solid var(--c-border); background: var(--c-panel-2); color: var(--c-text); border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; font-size: 12px;}
+  .btn:hover:not(:disabled) { background: #475569; }
+  .btn:active:not(:disabled) { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary { background: var(--c-accent); color: #000; border: none; width: 100%; box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2); }
+  .btn.outline-danger { background: transparent; border-color: var(--c-error); color: var(--c-error); }
+
+  .export-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .content { flex: 1; position: relative; background: #0f172a; }
+  #map { position: absolute; inset: 0; background: #0f172a; }
+
+  /* Map UI Z-index Fix */
+  .leaflet-bottom { bottom: calc(var(--ftr-h) + 8px) !important; }
+  .floating-status { 
+    position: absolute; top: 12px; left: 56px; z-index: 800; 
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); 
+    border: 1px solid var(--c-border); border-radius: 99px; padding: 6px 14px; 
+    display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 11px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
   }
-  .row input:focus, .row select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
-  .btn{appearance:none;border:1px solid var(--border);background:#f9fafb;color:#111827;border-radius:10px;padding:8px 12px;cursor:pointer}
-  .btn:hover{background:#f3f4f6}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#ffffff}
-  .btn.primary:hover{filter:brightness(0.95)}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .kbd{border:1px solid var(--border);border-bottom-width:2px;padding:2px 6px;border-radius:6px;color:#111827;background:#f9fafb;font-size:12px}
-  .hint{font-size:12px;color:var(--muted);margin-top:6px}
-  .badge{display:inline-block;border:1px solid var(--border);padding:2px 6px;border-radius:6px;font-size:12px;background:#f9fafb;color:#111827}
-  details{border:1px dashed var(--border);padding:8px;border-radius:10px;background:#fff}
-  .subtle{font-size:12px;color:#6b7280}
+
+  footer { height: var(--ftr-h); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--c-panel); border-top: 1px solid var(--c-border); font-size: 11px; color: var(--c-text-2); position: relative; z-index: 1000; }
+  #xyCursor { font-family: 'JetBrains Mono', monospace; color: var(--c-accent); font-size: 12px; }
+
+  .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [data-state="loading"] .spinner { display: inline-block; }
+  [data-state="loading"] .icon-label { display: none; }
+  
+  #diag { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #020617; padding: 12px; border-radius: 8px; color: #10b981; min-height:40px; line-height: 1.5; border: 1px solid var(--c-border); }
+  .chip { background: var(--c-panel-2); padding: 2px 8px; border-radius: 4px; font-size: 11px; border: 1px solid var(--c-border); }
+
+  /* CSS Tooltip Engine */
+  .tooltip-wrap { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: var(--c-text-2); font-size: 11px; width: 14px; height: 14px; justify-content: center; border-radius: 50%; border: 1px solid var(--c-text-2); font-style: normal;}
+  .tooltip-wrap:hover { color: var(--c-accent); border-color: var(--c-accent); }
+  .tooltip-wrap::after {
+    content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-10px);
+    width: max-content; max-width: 220px; background: #020617; color: #f8fafc; font-size: 11px; font-family: 'Inter', sans-serif;
+    padding: 10px; border-radius: 8px; border: 1px solid var(--c-border); white-space: pre-wrap;
+    opacity: 0; visibility: hidden; transition: 0.2s ease; z-index: 2100; pointer-events: none; line-height: 1.4; box-shadow: 0 10px 20px rgba(0,0,0,0.5); font-weight: 400; text-transform: none; letter-spacing: normal;
+  }
+  .tooltip-wrap:hover::after { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-6px); }
+  .top-tip .tooltip-wrap::after { bottom: auto; top: 100%; transform: translateX(-50%) translateY(10px); }
+  .top-tip .tooltip-wrap:hover::after { transform: translateX(-50%) translateY(6px); }
 </style>
 </head>
 <body>
-<div class="banner"></div>
-<div class="app">
+
 <header>
-  <div class="brand">
-    <div class="logo">A</div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <h1>XY Contour Studio</h1><span class="tag">XY - Local mode</span>
-    </div>
-    <div class="hint">v9.1 (Engine Fixed)</div>
-  </div>
-  <div class="header-spacer"></div>
-  <span id="cdnStatus" class="hdr-status">CDN OK</span>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.3 Production</span></div>
+  <div style="flex:1"></div>
+  <span id="cdnStatus" class="chip">System Ready</span>
 </header>
 
-  <div class="main">
-    <aside class="sidebar" aria-label="Controls">
-      <div class="group">
-        <h3>Input</h3>
-        <div class="card">
-          <div class="row"><label for="file">GeoTIFF</label><input id="file" type="file" accept=".tif,.tiff"/></div>
-          <div class="hint">Floating-point Bathymetry Supported.</div>
-          <div id="loadInfo" class="hint"></div>
-          <div id="loadError" class="hint err" style="display:none"></div>
-          <div class="row" style="margin-top:10px;gap:6px">
-            <button id="btnGenerate" class="btn primary" disabled style="flex:1">▶ Generate</button>
-            <button id="btnDXF" class="btn" disabled style="flex:1">⬇ DXF</button>
-            <button id="btnKML" class="btn" disabled style="flex:1">⬇ KML (WGS84)</button>
-            <button id="btnSHPFiles" class="btn" disabled style="flex:1">⬇ SHP 47N (files)</button>
-            <button id="btnSHPZip" class="btn primary" disabled style="flex:1">⬇ SHP 47N (ZIP)</button>
-          </div>
-        </div>
+<div class="main">
+  <aside class="sidebar">
+    <div class="tab-headers">
+      <button id="tab-engine" class="tab-btn active" onclick="showTab('engine')">Engine</button>
+      <button id="tab-style" class="tab-btn" onclick="showTab('style')">Style & Export</button>
+      <button id="tab-validate" class="tab-btn" onclick="showTab('validate')">Verify</button>
+    </div>
+
+    <!-- ENGINE TAB -->
+    <div id="engine" class="tab-content active">
+      <div class="drop-zone" onclick="document.getElementById('file').click()">
+        <div style="font-weight: 700; margin-bottom: 4px; color: var(--c-text);">📂 Load Bathymetry GeoTIFF</div>
+        <div style="font-size: 11px; color: var(--c-text-2);">Drop .tif or click to browse</div>
+        <input id="file" type="file" accept=".tif,.tiff" style="display:none"/>
       </div>
+      <div id="loadInfo" style="margin-top: 10px; font-size: 11px;"></div>
+      <div id="loadError" style="font-size: 11px; margin-top: 6px; color: var(--c-error); font-weight: 600; display: none;"></div>
 
-      <div class="group">
-        <h3>Contour Engine</h3>
-        <div class="card">
-          <div class="row"><label for="maxBridgeDist">IDW Max Bridge (m)</label><input id="maxBridgeDist" type="number" min="0" step="1" value="5"/></div>
-          <div class="row"><label class="switch" style="flex:0 0 auto"><input type="checkbox" id="useResampling" checked/> Enable Super-Sampling (x4)</label></div>
-          <div class="row"><label for="interval">Contour Interval (m)</label><input id="interval" type="number" min="0.01" step="0.01" value="1"/></div>
+      <div class="group-title">Surface Processing</div>
+      <div class="row top-tip"><label for="maxBridgeDist">IDW Bridge (m) <i class="tooltip-wrap" data-tooltip="Search Radius for Inverse Distance Weighting (IDW). Fills internal NoData/NaN gaps to prevent discontinuous contours.">i</i></label><input id="maxBridgeDist" type="number" min="0" step="1" value="5"/></div>
+      <div class="row"><label for="useResampling">Super-Sampling (x4) <i class="tooltip-wrap" data-tooltip="Applies Bicubic Spline Interpolation to upscale the grid by 4x. Generates mathematically smooth curves and reduces vector pixelation.">i</i></label><input type="checkbox" id="useResampling" checked/></div>
+      <div class="row"><label for="interval">Interval (m) <i class="tooltip-wrap" data-tooltip="The vertical elevation/depth spacing between generated vector contours.">i</i></label><input id="interval" type="number" min="0.001" step="0.01" value="1"/></div>
 
-          <div class="row" style="margin-top:8px; padding-top:8px; border-top: 1px solid #e5e7eb;">
-            <label class="switch" style="flex:0 0 auto"><input type="checkbox" id="smooth" checked/> Vector Post-Smooth</label>
-            <select id="smoothMethod" title="Smoothing method">
-              <option value="simplify">Douglas‑Peucker</option>
-              <option value="paek" selected>PAEK (exp. kernel)</option>
-            </select>
-          </div>
-          <div class="row" id="rowTol" style="display:none"><label for="tol">Tolerance (m)</label><input id="tol" type="number" min="0" step="0.1" value="0.1"/></div>
-          <div class="row" id="rowPaek"><label for="paekRadius">PAEK radius (m)</label><input id="paekRadius" type="number" min="0.1" step="0.1" value="2"/></div>
-          <div class="row"><label for="minLen">Min length (m)</label><input id="minLen" type="number" min="0" step="1" value="20"/></div>
-          <div class="subtle">Tip: If Super-Sampling is ON, keep Vector Post-Smooth OFF for best results.</div>
-
-          <details>
-            <summary>Diagnostics</summary>
-            <div class="hint" id="diag"></div>
-          </details>
-        </div>
+      <div class="group-title">Vector Finishing</div>
+      <div class="row"><label for="smooth">Smooth Paths <i class="tooltip-wrap" data-tooltip="Enables post-processing geometric algorithms to filter vertex harshness after extraction.">i</i></label><input type="checkbox" id="smooth"/></div>
+      <div class="row">
+        <label for="smoothMethod">Method <i class="tooltip-wrap" data-tooltip="PAEK: Exponential kernel smoothing retaining shape.&#10;Douglas-Peucker: Point decimation for compression.">i</i></label>
+        <select id="smoothMethod">
+          <option value="paek" selected>PAEK (Kernel)</option>
+          <option value="simplify">Douglas‑Peucker</option>
+        </select>
       </div>
-
-      <div class="group">
-        <h3>Orientation & Labels</h3>
-        <div class="card">
-          <div class="row"><label class="switch"><input type="checkbox" id="flipY"/> Flip Y (negate Y for export)</label></div>
-          <div class="row"><label for="labelEvery">Label every (m)</label><input id="labelEvery" type="number" min="1" step="1" value="100"/></div>
-          <div class="row"><label for="labelSize">Text height</label><input id="labelSize" type="number" min="0.1" step="0.1" value="2.5"/></div>
-        </div>
-      </div>
-
-      <div class="group">
-        <h3>Preview Styling</h3>
-        <div class="card">
-          <div class="row"><label class="switch"><input type="checkbox" id="showRaster" checked/> Show raster</label></div>
-          <div class="row"><button id="btnZoomExtent" class="btn" style="width:100%">🔎 Zoom to extent</button></div>
-          <div class="row"><label for="rasOpacity">Opacity</label><input id="rasOpacity" type="range" min="0" max="100" value="90"/><span id="rasOpacityVal">90%</span></div>
-          <div class="row"><label for="palette">Palette</label>
-            <select id="palette">
-              <option value="bw">Grayscale</option>
-              <option value="blue">Bathymetry Blue</option>
-              <option value="warm" selected>Bathymetry Warm</option>
-            </select>
-          </div>
-          <div class="row">
-            <label>Stretch (min / max)</label>
-            <input id="stretchMin" type="number" step="0.01" style="max-width:110px"/>
-            <input id="stretchMax" type="number" step="0.01" style="max-width:110px"/>
-            <button id="btnApplyStretch" class="btn">Apply</button>
-            <button id="btnAutoStretch" class="btn">Auto</button>
-          </div>
-          <div class="row">
-            <label for="contourColor">Contour color</label>
-            <select id="contourColor">
-              <option value="red">Red</option>
-              <option value="blue">Blue</option>
-              <option value="green">Green</option>
-              <option value="yellow">Yellow</option>
-              <option value="black" selected>Black</option>
-              <option value="grey">Grey</option>
-            </select>
-          </div>
-          <div class="row">
-            <label for="contourWidth">Line width</label>
-            <input id="contourWidth" type="number" min="0.1" step="0.1" value="1"/>
-          </div>
-        </div>
-      </div>
+      <div id="rowPaek" class="row"><label for="paekRadius">PAEK Radius (m) <i class="tooltip-wrap" data-tooltip="Kernel influence radius. Higher values create extremely smooth curves but may deviate from exact pixel coordinates.">i</i></label><input id="paekRadius" type="number" min="0.1" step="0.1" value="2"/></div>
+      <div id="rowTol" class="row" style="display:none"><label for="tol">Simplify Tol (m) <i class="tooltip-wrap" data-tooltip="Deviation threshold for Douglas-Peucker. Vertices deviating less than this distance are discarded to reduce file bloat.">i</i></label><input id="tol" type="number" min="0.001" step="0.05" value="0.1"/></div>
+      <div class="row"><label for="minLen">Min Length (m) <i class="tooltip-wrap" data-tooltip="Noise filter. Discards generated vector paths whose total cumulative length is less than this value.">i</i></label><input id="minLen" type="number" min="0" step="1" value="20"/></div>
       
-      <div class="group">
-        <h3>Validation</h3>
-        <div class="card">
-          <div class="row"><label><input type="checkbox" id="autoValidate" checked/> Auto‑validate on export</label></div>
-          <div class="row"><label><input type="checkbox" id="showValidator" checked/> Show validator overlay</label></div>
-          <div class="row" style="gap:6px;flex-wrap:wrap">
-            <button id="btnValidateDXF" class="btn" style="flex:1">Preview exported DXF</button>
-          </div>
-          <div class="row">
-            <button id="btnClearValidator" class="btn" style="flex:1">Clear overlay</button>
-          </div>
-        </div>
-      </div>
-    </aside>
+      <div class="group-title">Engine Diagnostics</div>
+      <div id="diag">Engine Idle. Ready for input.</div>
+    </div>
 
-    <section class="content" aria-label="Map">
-      <div class="toolbar"><div id="status">Load a GeoTIFF…</div> <span class="badge" id="flipYBadge" style="display:none">Flip‑Y ON</span></div>
-      <div id="map" role="application" aria-label="XY preview map"></div>
-    </section>
-  </div>
+    <!-- STYLE TAB -->
+    <div id="style" class="tab-content">
+      <div class="group-title">Raster Visualization</div>
+      <div class="row"><label for="showRaster">Show Raster</label><input type="checkbox" id="showRaster" checked/></div>
+      <div class="row"><label for="rasOpacity">Opacity</label><input id="rasOpacity" type="range" min="0" max="100" value="90"/><span id="rasOpacityVal" style="font-family: monospace;">90%</span></div>
+      <div class="row"><label for="palette">Palette</label><select id="palette"><option value="warm" selected>Bathymetry Warm</option><option value="blue">Bathymetry Blue</option><option value="bw">Grayscale</option></select></div>
+      <div class="row" style="margin-top:10px;"><input id="stretchMin" type="number" step="0.01" style="flex:1" title="Stretch Min"/><input id="stretchMax" type="number" step="0.01" style="flex:1" title="Stretch Max"/></div>
+      <div class="row"><button id="btnAutoStretch" class="btn" style="flex:1; padding:6px; font-size:11px;">Auto Stretch</button><button id="btnApplyStretch" class="btn" style="flex:1; padding:6px; font-size:11px;">Apply Stretch</button></div>
+
+      <div class="group-title">Contour Appearance</div>
+      <div class="row"><label for="contourColor">Line Color</label><select id="contourColor"><option value="white" selected>White</option><option value="cyan">Cyan</option><option value="yellow">Yellow</option><option value="black">Black</option><option value="red">Red</option></select></div>
+      <div class="row"><label for="contourWidth">Line Width</label><input id="contourWidth" type="number" min="0.1" step="0.1" value="1"/></div>
+      <div class="row"><label for="flipY">Flip Y (CAD Export)</label><input type="checkbox" id="flipY"/></div>
+      
+      <div class="group-title">DXF Labels</div>
+      <div class="row"><label for="labelEvery">Label Every (m)</label><input id="labelEvery" type="number" min="1" step="10" value="100"/></div>
+      <div class="row"><label for="labelSize">Text Height</label><input id="labelSize" type="number" min="0.1" step="0.1" value="2.5"/></div>
+      
+      <button id="btnZoomExtent" class="btn primary" style="width: 100%; margin-top: 15px; background: var(--c-panel-2); color: #fff;">🔎 Zoom to Extent</button>
+    </div>
+
+    <!-- VALIDATE TAB -->
+    <div id="validate" class="tab-content">
+      <div class="group-title">Verification Tools</div>
+      <div class="row"><label for="autoValidate">Auto‑verify on export</label><input type="checkbox" id="autoValidate" checked/></div>
+      <div class="row"><label for="showValidator">Show validator overlay</label><input type="checkbox" id="showValidator" checked/></div>
+      <button id="btnValidateDXF" class="btn primary" style="width: 100%; margin-top: 10px;">🔍 Verify Exported DXF</button>
+      <button id="btnClearValidator" class="btn outline-danger" style="width: 100%; margin-top: 8px;">Clear Overlays</button>
+    </div>
+
+    <div class="action-bar">
+      <button id="btnGenerate" class="btn primary" disabled><span class="spinner"></span><span class="icon-label">▶ GENERATE CONTOURS</span></button>
+      <div class="export-row">
+        <button id="btnDXF" class="btn" disabled>DXF</button>
+        <button id="btnKML" class="btn" title="Exports to WGS84 (Assumes Indian 1975 UTM 47N Input)" disabled>KML</button>
+        <button id="btnSHPZip" class="btn" disabled>SHP ZIP</button>
+      </div>
+      <button id="btnSHPFiles" class="btn" style="font-size: 10px; padding: 4px;" disabled>⬇ Individual SHP Files</button>
+    </div>
+  </aside>
+
+  <section class="content">
+    <div class="floating-status"><div id="status">Ready. Awaiting GeoTIFF.</div><span id="flipYBadge" class="tag" style="display:none; background: var(--c-error); border-color: var(--c-error); color: white;">Flip-Y ON</span></div>
+    <div id="map"></div>
+  </section>
+</div>
 
 <footer>
-  <div class="footer-left">Created by <strong>Rattawit W</strong></div>
-  <div class="footer-center"><span id="xyCursor">X: — , Y: — , Depth: —</span></div>
-  <div class="footer-right hint">v9.1 - Engine Optimization Fixed</div>
+  <div>Built for <strong>Geomatics Engineering</strong></div>
+  <div id="xyCursor">X: — , Y: — , Depth: —</div>
+  <div>Indian 1975 UTM 47N Engine Active — v9.0.3</div>
 </footer>
-
-</div>
 
 <!-- Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -212,27 +213,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
+// --- UI Controller ---
+function showTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById(tabId).classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+}
+
 function dePreviewFlip(E, N){
   var el = document.getElementById('flipY');
   return (el && el.checked) ? [E, -N] : [E, N];
 }
-</script>
-<script>
+
 (function(){
-  console.log("xy_contour_studio_v9.1");
+  console.log("xy_contour_studio_v9.0.3 - Production Boot Sequence Initiated");
+
   function $(id){ return document.getElementById(id); }
 
   var status=$('status'), loadError=$('loadError'), loadInfo=$('loadInfo');
   var fileInput=$('file'), btnGenerate=$('btnGenerate'), btnDXF=$('btnDXF'), btnKML=$('btnKML'), btnSHPFiles=$('btnSHPFiles'), btnSHPZip=$('btnSHPZip');
-  function sanitizeBase(name){
-    name = String(name||'').replace(/^.*[\\/]/,'');
-    name = name.replace(/\.[^.]+$/, '');
-    name = name.replace(/[^A-Za-z0-9_-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
-    if(!name) name='contours';
-    return name;
-  }
-  var importBase='contours';
-  function _sanBase(n){ try{ n = n.split(/[\/]/).pop(); n=n.replace(/\.[^.]+$/,''); n=n.replace(/[^A-Za-z0-9_\-]+/g,'_'); if(!n) n='contours'; return n; }catch(e){ return 'contours'; } }
   
   var maxBridgeDistEl=$('maxBridgeDist'), useResamplingEl=$('useResampling'), intervalEl=$('interval'), smoothEl=$('smooth'), methodEl=$('smoothMethod');
   var tolEl=$('tol'), paekRadiusEl=$('paekRadius'), rowTol=$('rowTol'), rowPaek=$('rowPaek');
@@ -248,75 +248,127 @@ function dePreviewFlip(E, N){
   var btnValidateDXF=$('btnValidateDXF'), btnClearValidator=$('btnClearValidator');
   var diag=$('diag');
 
-  try{ flipYEl.checked = localStorage.getItem('xy.flipY')==='1'; }catch(e){}
-  flipYBadge.style.display=flipYEl.checked?'inline-block':'none';
+  var importBase='contours';
+  var bathymetryWorker = null;
 
+  // --- UI Module: Drag & Drop ---
+  var dropZone = document.querySelector('.drop-zone');
+  if (dropZone) {
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--c-accent)';
+      dropZone.style.background = 'var(--c-accent-dim)';
+    });
+    dropZone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--c-border)';
+      dropZone.style.background = 'var(--c-panel-2)';
+    });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--c-border)';
+      dropZone.style.background = 'var(--c-panel-2)';
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change'));
+      }
+    });
+  }
+  
+  // --- Architecture: Text Sanitization ---
+  function sanitizeBase(name){
+    name = String(name||'').replace(/^.*[\\/]/,'');
+    name = name.replace(/\.[^.]+$/, '');
+    name = name.replace(/[^A-Za-z0-9_-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+    if(!name) name='contours';
+    return name;
+  }
+
+  function _sanBase(n){ 
+    try { 
+      n = n.split(/[\/]/).pop(); 
+      n = n.replace(/\.[^.]+$/,''); 
+      n = n.replace(/[^A-Za-z0-9_\-]+/g,'_'); 
+      if(!n) n='contours'; 
+      return n; 
+    } catch(e){ 
+      return 'contours'; 
+    } 
+  }
+
+  try { flipYEl.checked = localStorage.getItem('xy.flipY')==='1'; } catch(e){}
+  flipYBadge.style.display = flipYEl.checked ? 'inline-block' : 'none';
+
+  // --- UI Module: Toggle Settings Layout ---
   function toggleSmoothRows(){
-    var useSmooth=smoothEl.checked, usePAEK=(methodEl.value==='paek');
-    rowTol.style.display=(useSmooth && !usePAEK)?'':'none';
-    rowPaek.style.display=(useSmooth && usePAEK)?'':'none';
+    var useSmooth = smoothEl.checked;
+    var usePAEK = (methodEl.value === 'paek');
+    rowTol.style.display = (useSmooth && !usePAEK) ? '' : 'none';
+    rowPaek.style.display = (useSmooth && usePAEK) ? '' : 'none';
   }
   toggleSmoothRows();
   
-  // Real-time Event Hooks
   methodEl.addEventListener('change', function(){ toggleSmoothRows(); if(lastFC) generate(); });
   smoothEl.addEventListener('change', function(){ toggleSmoothRows(); if(lastFC) generate(); });
-  useResamplingEl.addEventListener('change', function(){ 
-      if(lastFC) generate(); 
-  });
+  useResamplingEl.addEventListener('change', function(){ if(lastFC) generate(); });
   maxBridgeDistEl.addEventListener('change', function(){ if(lastFC) generate(); });
 
   var map=L.map('map',{crs:L.CRS.Simple,preferCanvas:true,zoomControl:true}).setView([0,0],1);
-  map.createPane('rasterPane'); map.getPane('rasterPane').style.zIndex='200';
+  map.createPane('rasterPane'); 
+  map.getPane('rasterPane').style.zIndex='200';
+  L.control.scale({ imperial: false, metric: true }).addTo(map);
 
-(function(){
-  var xyOut = document.getElementById('xyCursor');
-  if (!xyOut) return;
-  function fmt(n){
-    if (!isFinite(n)) return '—';
-    var abs = Math.abs(n);
-    return (abs >= 1000 ? n.toFixed(1) : abs >= 10 ? n.toFixed(2) : n.toFixed(3));
-  }
-  function render(latlng){
-    if (!latlng) { xyOut.textContent = 'X: — , Y: — , Depth: —'; return; }
-    var x = latlng.lng, y = latlng.lat;
-    var info = depthAtXY(x,y);
-    var dTxt = info && isFinite(info.depth) ? fmt(info.depth) + ' m' : '—';
-    xyOut.textContent = 'X: ' + fmt(x) + ' , Y: ' + fmt(y) + ' , Depth: ' + dTxt;
-  }
-  map.on('mousemove', function(e){ render(e.latlng); });
-  map.on('mouseout',  function(){ render(null); });
-  var container = map.getContainer();
-  var rafId = null;
-  function domMove(ev){
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(function(){
-      var latlng = map.mouseEventToLatLng(ev);
-      render(latlng);
-      rafId = null;
+  // --- Rendering: Coordinates Tracker with RAF ---
+  (function(){
+    var xyOut = document.getElementById('xyCursor');
+    if (!xyOut) return;
+    function fmt(n){
+      if (!isFinite(n)) return '—';
+      var abs = Math.abs(n);
+      return (abs >= 1000 ? n.toFixed(1) : abs >= 10 ? n.toFixed(2) : n.toFixed(3));
+    }
+    function render(latlng){
+      if (!latlng) { xyOut.textContent = 'X: — , Y: — , Depth: —'; return; }
+      var x = latlng.lng, y = latlng.lat;
+      var info = depthAtXY(x,y);
+      var dTxt = info && isFinite(info.depth) ? fmt(info.depth) + ' m' : '—';
+      xyOut.textContent = 'X: ' + fmt(x) + ' , Y: ' + fmt(y) + ' , Depth: ' + dTxt;
+    }
+    var rafId = null;
+    map.on('mousemove', function(e){ 
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(function(){
+        render(e.latlng);
+        rafId = null;
+      });
     });
-  }
-  function domLeave(){ render(null); }
-  container.addEventListener('mousemove', domMove, {passive:true});
-  container.addEventListener('mouseleave', domLeave, {passive:true});
-  map.on('drag', function(e){ render(map.getCenter()); });
-})();
+    map.on('mouseout',  function(){ render(null); });
+    map.on('drag', function(e){ render(map.getCenter()); });
+  })();
 
-  function makeGeoJsonLayer(fc, style){
-    var opts={ coordsToLatLng:function(c){return L.latLng(c[1],c[0]);}, style:function(){return style;} };
+  // --- Rendering: GeoJSON Instantiation ---
+  function makeGeoJsonLayer(fc, style, isPointLayerSafety){
+    var opts = { 
+      coordsToLatLng: function(c){ return L.latLng(c[1],c[0]); }, 
+      style: function(){ return style; } 
+    };
+    if(isPointLayerSafety) {
+      opts.pointToLayer = function(feature, latlng) {
+        return L.circleMarker(latlng, {radius: 2, color: style.color, fillColor: style.color, fillOpacity: 0.8, weight: 1});
+      };
+    }
     if(typeof L.geoJSON==='function') return L.geoJSON(fc,opts);
     return L.geoJson(fc,opts);
   }
 
-  var img,width,height,values,GT0,GT1,GT2,GT3,GT4,GT5;
-  var rasterNoData=NaN; // Unified to NaN in v9.1
+  var img, width, height, values, GT0, GT1, GT2, GT3, GT4, GT5;
   var lastFC=null, rasterLayer=null, stretchMin=null, stretchMax=null;
-  var lastGeoJSONText=null, lastDXFText=null, validatorLayer=null, contourLayer=null;
+  var lastDXFText=null, validatorLayer=null, contourLayer=null;
 
   function segLen(a,b){ return Math.hypot(b[0]-a[0], b[1]-a[1]); }
   function maybeFlipY(xy){ return flipYEl.checked ? [xy[0], -xy[1]] : xy; }
   
-  // FIX #1: px2xy maps exactly to continuous grid coordinates. (No +0.5 shifts)
+  // --- Math: Pixel & Real-World Matrix Transform ---
   function px2xy(col,row){ return maybeFlipY([ GT0 + col*GT1 + row*GT2, GT3 + col*GT4 + row*GT5 ]); }
   function pxCenter2xy(col,row){ return maybeFlipY([ GT0 + (col+0.5)*GT1 + (row+0.5)*GT2, GT3 + (col+0.5)*GT4 + (row+0.5)*GT5 ]); }
 
@@ -340,21 +392,24 @@ function dePreviewFlip(E, N){
     var depth = v<0 ? -v : v;
     return {value:v, depth:depth};
   }
-  
+
+  // --- Statistics: Array Calculation ---
   function computeMinMax(arr){
-    var mn=Infinity,mx=-Infinity,i,v;
-    for(i=0;i<arr.length;i++){ 
-        v=arr[i]; 
+    var mn=Infinity, mx=-Infinity, i, v;
+    for(i=0; i<arr.length; i++){ 
+        v = arr[i]; 
         if(isNaN(v) || !isFinite(v)) continue; 
-        if(v<mn) mn=v; if(v>mx) mx=v; 
+        if(v < mn) mn=v; 
+        if(v > mx) mx=v; 
     }
-    if(mn===Infinity){ mn=0; mx=0; } return [mn,mx];
+    if(mn===Infinity){ mn=0; mx=0; } 
+    return [mn,mx];
   }
   
   function percentileSampled(arr,p){
     var n=arr.length, limit=200000, step=Math.max(1,Math.floor(n/limit));
     var sample=[], i, v;
-    for(i=0;i<n;i+=step){ 
+    for(i=0; i<n; i+=step){ 
         v=arr[i]; 
         if(isNaN(v) || !isFinite(v)) continue; 
         sample.push(v); 
@@ -365,92 +420,196 @@ function dePreviewFlip(E, N){
     return sample[idx];
   }
 
+  // --- Styling: Dynamic Palette System ---
   function paletteFn(){
-    if(paletteEl.value==='bw') return function(t){ t=Math.max(0,Math.min(1,t)); var v=Math.round(t*255); return [v,v,v,255]; };
+    if(paletteEl.value==='bw') return function(t){ 
+      t=Math.max(0,Math.min(1,t)); 
+      var v=Math.round(t*255); 
+      return [v,v,v,255]; 
+    };
     if(paletteEl.value==='warm') return function(t){
       t=Math.max(0,Math.min(1,t));
       var stops=[[0,[68,1,84]],[.2,[59,82,139]],[.4,[33,145,140]],[.6,[94,201,98]],[.75,[253,231,37]],[.9,[244,109,67]],[1,[252,141,98]]];
-      var i; for(i=0;i<stops.length-1;i++){ var t0=stops[i][0], c0=stops[i][1], t1=stops[i+1][0], c1=stops[i+1][1];
-        if(t>=t0 && t<=t1){ var u=(t-t0)/(t1-t0); return [Math.round(c0[0]+u*(c1[0]-c0[0])),Math.round(c0[1]+u*(c1[1]-c0[1])),Math.round(c0[2]+u*(c1[2]-c0[2])),255]; } }
-      var c=stops[stops.length-1][1]; return [c[0],c[1],c[2],255];
+      var i; 
+      for(i=0; i<stops.length-1; i++){ 
+        var t0=stops[i][0], c0=stops[i][1], t1=stops[i+1][0], c1=stops[i+1][1];
+        if(t>=t0 && t<=t1){ 
+          var u=(t-t0)/(t1-t0); 
+          return [
+            Math.round(c0[0]+u*(c1[0]-c0[0])),
+            Math.round(c0[1]+u*(c1[1]-c0[1])),
+            Math.round(c0[2]+u*(c1[2]-c0[2])),
+            255
+          ]; 
+        } 
+      }
+      var c=stops[stops.length-1][1]; 
+      return [c[0],c[1],c[2],255];
     };
-    return function(t){ t=Math.max(0,Math.min(1,t)); return [Math.round(10+20*t),Math.round(60+140*t),Math.round(120+120*t),255]; };
+    return function(t){ 
+      t=Math.max(0,Math.min(1,t)); 
+      return [Math.round(10+20*t),Math.round(60+140*t),Math.round(120+120*t),255]; 
+    };
   }
 
   btnZoomExtent.addEventListener('click', function(){
-    try{
+    try {
       if(rasterLayer && rasterLayer.getBounds){ map.fitBounds(rasterLayer.getBounds()); return; }
       var c0=px2xy(0,0), c1=px2xy(width,0), c2=px2xy(0,height), c3=px2xy(width,height);
       var minX=Math.min(c0[0],c1[0],c2[0],c3[0]); var maxX=Math.max(c0[0],c1[0],c2[0],c3[0]);
       var minY=Math.min(c0[1],c1[1],c2[1],c3[1]); var maxY=Math.max(c0[1],c1[1],c2[1],c3[1]);
       var b=L.latLngBounds([[minY,minX],[maxY,maxX]]);
       map.fitBounds(b);
-    }catch(e){ console.warn('zoom extent failed', e); }
+    } catch(e){ 
+      console.warn('zoom extent failed', e); 
+    }
   });
 
+  // --- UI View: HTML Canvas Preview Generation ---
   function buildRasterPreview(vals){
     var mm=computeMinMax(vals); var mn=mm[0], mx=mm[1];
     var sMin=(stretchMin!=null?stretchMin:mn), sMax=(stretchMax!=null?stretchMax:mx);
 
     var canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height;
-    var ctx=canvas.getContext('2d'); var im=ctx.createImageData(width,height); var data=im.data; var pal=paletteFn();
+    var ctx=canvas.getContext('2d'); var im=ctx.createImageData(width,height); 
+    var data=im.data; var pal=paletteFn();
     var i, v, idx=0;
-    for(i=0;i<vals.length;i++){
-      v=vals[i];
-      if(isNaN(v)){ data[idx++]=0;data[idx++]=0;data[idx++]=0;data[idx++]=0; continue; }
-      var t=(v-sMin)/((sMax-sMin)||1); var c=pal(t); data[idx++]=c[0]; data[idx++]=c[1]; data[idx++]=c[2]; data[idx++]=c[3];
+    
+    for(i=0; i<vals.length; i++){
+      v = vals[i];
+      if(isNaN(v)){ 
+        data[idx++]=0; data[idx++]=0; data[idx++]=0; data[idx++]=0; 
+        continue; 
+      }
+      var t = (v-sMin)/((sMax-sMin)||1); 
+      var c = pal(t); 
+      data[idx++] = c[0]; 
+      data[idx++] = c[1]; 
+      data[idx++] = c[2]; 
+      data[idx++] = c[3];
     }
     ctx.putImageData(im,0,0);
 
+    // 4-corner math bounds
     var c0=px2xy(0,0), c1=px2xy(width,0), c2=px2xy(0,height), c3=px2xy(width,height);
     var minX=Math.min(c0[0],c1[0],c2[0],c3[0]); var maxX=Math.max(c0[0],c1[0],c2[0],c3[0]);
     var minY=Math.min(c0[1],c1[1],c2[1],c3[1]); var maxY=Math.max(c0[1],c1[1],c2[1],c3[1]);
     var bounds=L.latLngBounds([[minY,minX],[maxY,maxX]]);
 
-    var url=canvas.toDataURL('image/png'); if(rasterLayer){ map.removeLayer(rasterLayer); rasterLayer=null; }
-    rasterLayer=L.imageOverlay(url,bounds,{opacity:(parseInt(rasOpacityEl.value)||90)/100,pane:'rasterPane'}); if(showRasterEl.checked) rasterLayer.addTo(map);
+    var url=canvas.toDataURL('image/png'); 
+    if(rasterLayer){ map.removeLayer(rasterLayer); rasterLayer=null; }
+    
+    rasterLayer = L.imageOverlay(url, bounds, {
+      opacity: (parseInt(rasOpacityEl.value)||90)/100,
+      pane: 'rasterPane'
+    }); 
+    if(showRasterEl.checked) rasterLayer.addTo(map);
     map.fitBounds(bounds);
 
-    status.textContent='Raster stretch '+sMin.toFixed(2)+' to '+sMax.toFixed(2)+' • size '+width+'×'+height;
-    stretchMinEl.value=sMin.toFixed(2); stretchMaxEl.value=sMax.toFixed(2);
+    status.textContent = 'Raster stretch ' + sMin.toFixed(2) + ' to ' + sMax.toFixed(2) + ' • size ' + width + '×' + height;
+    stretchMinEl.value = sMin.toFixed(2); 
+    stretchMaxEl.value = sMax.toFixed(2);
   }
 
-  function autoStretch(vals){ var p2=percentileSampled(vals,2), p98=percentileSampled(vals,98); if(p2!=null&&p98!=null&&p2<p98){ stretchMin=p2; stretchMax=p98; } }
+  function autoStretch(vals){ 
+    var p2=percentileSampled(vals,2), p98=percentileSampled(vals,98); 
+    if(p2!=null && p98!=null && p2<p98){ 
+      stretchMin=p2; 
+      stretchMax=p98; 
+    } 
+  }
 
+  function clearValidator(){ 
+    if(validatorLayer){ map.removeLayer(validatorLayer); validatorLayer=null; } 
+  }
+
+  // --- Engine: GeoTIFF Matrix Loading & OOM Prevention ---
+  window.currentPixelResolution = 1.0;
+  
   fileInput.addEventListener('change', function(e){
-    if(fileInput && fileInput.files && fileInput.files[0]){ importBase=_sanBase(fileInput.files[0].name); }
-    loadError.style.display='none'; loadError.textContent='';
-    var f=e.target.files[0]; if(!f) return;
+    if(fileInput && fileInput.files && fileInput.files[0]){ 
+      importBase = _sanBase(fileInput.files[0].name); 
+    }
+    loadError.style.display = 'none'; 
+    loadError.textContent = '';
+    
+    var f = e.target.files[0]; 
+    if(!f) return;
+    
     importBase = sanitizeBase(f.name);
-    btnGenerate.disabled=btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=btnSHPZip.disabled=true; lastFC=null; status.textContent='Reading GeoTIFF…';
+    
+    // Fix: Prevent Web Worker Race Condition
+    if(bathymetryWorker) {
+        bathymetryWorker.terminate();
+        bathymetryWorker = null;
+    }
+
+    btnGenerate.disabled = btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true; 
+    btnGenerate.removeAttribute('data-state');
+
+    lastFC = null; 
+    lastDXFText = null;
+    if(contourLayer){ map.removeLayer(contourLayer); contourLayer=null; }
+    clearValidator();
+
+    status.textContent = 'Reading GeoTIFF…';
+    
     (async function(){
-      try{
-        var buf=await f.arrayBuffer(); var tiff=await GeoTIFF.fromArrayBuffer(buf); img=await tiff.getImage();
-        var w=img.getWidth(), h=img.getHeight();
-        var origW=w, origH=h;
-        var maxCells=6000000, band0;
-        if(w*h>maxCells){ var s=Math.sqrt((w*h)/maxCells); var rw=Math.max(2,Math.floor(w/s)), rh=Math.max(2,Math.floor(h/s)); band0=await img.readRasters({width:rw,height:rh,interleave:false,samples:[0]}); w=rw; h=rh; status.textContent='Downsampled to '+w+'×'+h; }
-        else { band0=await img.readRasters({interleave:false,samples:[0]}); status.textContent='Raster size: '+w+'×'+h; }
-        var arr=Array.isArray(band0)?band0[0]:band0; values=new Float32Array(arr); width=w; height=h;
+      try {
+        var buf = await f.arrayBuffer(); 
+        var tiff = await GeoTIFF.fromArrayBuffer(buf); 
+        img = await tiff.getImage();
         
-        var fd=img.getFileDirectory(); var mt=fd.ModelTransformation;
+        var w = img.getWidth(), h = img.getHeight();
+        var origW = w, origH = h;
+        
+        // Critical System Constraint: Downsample large grids safely
+        var maxCells = 6000000, band0;
+        if(w * h > maxCells){ 
+          var s = Math.sqrt((w * h) / maxCells); 
+          var rw = Math.max(2, Math.floor(w/s)); 
+          var rh = Math.max(2, Math.floor(h/s)); 
+          band0 = await img.readRasters({width:rw, height:rh, interleave:false, samples:[0]}); 
+          w = rw; 
+          h = rh; 
+          status.textContent = 'Downsampled to ' + w + '×' + h; 
+        } else { 
+          band0 = await img.readRasters({interleave:false, samples:[0]}); 
+          status.textContent = 'Raster size: ' + w + '×' + h; 
+        }
+        
+        var arr = Array.isArray(band0) ? band0[0] : band0; 
+        values = new Float32Array(arr); 
+        width = w; 
+        height = h;
+        
+        var fd = img.getFileDirectory(); 
+        var mt = fd.ModelTransformation;
         GT0=0; GT1=1; GT2=0; GT3=0; GT4=0; GT5=-1; 
         var resSource = "Default (1.0)";
         
-        if(Array.isArray(mt) && mt.length===16){ 
+        if(Array.isArray(mt) && mt.length === 16){ 
           GT0=mt[3]; GT1=mt[0]; GT2=mt[1]; GT3=mt[7]; GT4=mt[4]; GT5=mt[5]; 
           resSource = "ModelTransformation";
-        }
-        else { 
-          var scale=fd.ModelPixelScale, tieRaw=fd.ModelTiepoint; 
-          var i0=0,j0=0,x0=0,y0=0;
+        } else { 
+          var scale = fd.ModelPixelScale, tieRaw = fd.ModelTiepoint; 
+          var i0=0, j0=0, x0=0, y0=0;
           if (scale) { resSource = "ModelPixelScale"; }
           else { scale=[1,1,0]; console.warn("Missing PixelScale & Transformation. Defaulting to 1.0"); }
           
-          if(Array.isArray(tieRaw) && tieRaw.length>=6){ i0=tieRaw[0]; j0=tieRaw[1]; x0=tieRaw[3]; y0=tieRaw[4]; }
-          else { var tps=img.getTiePoints(); if(Array.isArray(tps)&&tps.length){ i0=tps[0].i||0; j0=tps[0].j||0; x0=tps[0].x||0; y0=tps[0].y||0; } }
-          GT1=scale[0]; GT5=-scale[1]; GT2=0; GT4=0; GT0=x0 - i0*GT1 - j0*GT2; GT3=y0 - i0*GT4 - j0*GT5; 
+          if(Array.isArray(tieRaw) && tieRaw.length>=6){ 
+            i0=tieRaw[0]; j0=tieRaw[1]; x0=tieRaw[3]; y0=tieRaw[4]; 
+          } else { 
+            var tps = img.getTiePoints(); 
+            if(Array.isArray(tps) && tps.length){ 
+              i0=tps[0].i||0; j0=tps[0].j||0; x0=tps[0].x||0; y0=tps[0].y||0; 
+            } 
+          }
+          GT1=scale[0]; GT5=-scale[1]; GT2=0; GT4=0; 
+          GT0=x0 - i0*GT1 - j0*GT2; GT3=y0 - i0*GT4 - j0*GT5; 
         }
+        
+        // Dynamic re-scaling for downsampled images
         if(origW !== w || origH !== h){
           var dsX = origW / w, dsY = origH / h;
           GT1 *= dsX; GT4 *= dsX; GT2 *= dsY; GT5 *= dsY;
@@ -460,7 +619,7 @@ function dePreviewFlip(E, N){
         var avgPxRes = (pxResX + pxResY) / 2;
         window.currentPixelResolution = avgPxRes;
 
-        // FIX #4: Raster Color Crash. Sanitize NoData strictly BEFORE generating preview
+        // Data Sanitization: Erase GDAL NoData properties
         var originalND = fd.GDAL_NODATA != null ? parseFloat(fd.GDAL_NODATA) : null;
         let nanCount = 0, noDataCount = 0;
         for (let idx=0; idx < values.length; idx++) {
@@ -468,196 +627,235 @@ function dePreviewFlip(E, N){
             if (isNaN(val)) {
                 nanCount++;
                 values[idx] = NaN;
-            }
-            else if (val <= -9999 || val === originalND) {
+            } else if (val <= -9999 || val === originalND) {
                 noDataCount++;
-                values[idx] = NaN; // Unified Null State!
+                values[idx] = NaN;
             }
         }
         
         console.log("[System Health Check] Resolution Applied:", avgPxRes.toFixed(3), "m (" + resSource + ")");
         console.log("[System Health Check] Sanitized", (nanCount + noDataCount), "Missing/-9999 pixels into safe NaN.");
 
-        loadInfo.textContent=f.name+' — '+width+'×'+height+' px, px='+avgPxRes.toFixed(3)+' m';
+        var dsWarning = (origW !== w) ? `<br><span style="color:var(--c-warning)">Downsampled from ${origW}x${origH} to prevent memory crash.</span>` : '';
+        loadInfo.innerHTML = `<span class="chip">${width}x${height} px</span> <span class="chip">${avgPxRes.toFixed(3)} m/px</span>${dsWarning}`;
 
-        autoStretch(values); buildRasterPreview(values); btnGenerate.disabled=false;
-      }catch(err){ loadError.style.display='block'; loadError.textContent='Error: '+(err&&err.message?err.message:String(err))+' | '+(err&&err.stack?err.stack:''); status.textContent='Load failed.'; }
+        autoStretch(values); 
+        buildRasterPreview(values); 
+        btnGenerate.disabled = false;
+        
+      } catch(err){ 
+        loadError.style.display = 'block'; 
+        loadError.textContent = 'Error: ' + (err && err.message ? err.message : String(err)); 
+        status.textContent = 'Load failed.'; 
+      }
     })();
   });
 
+  // --- UI Event: Raster Layer Visibility Toggle ---
+  showRasterEl.addEventListener('change', function() {
+    if (!rasterLayer) return;
+    if (this.checked) {
+      map.addLayer(rasterLayer);
+    } else {
+      map.removeLayer(rasterLayer);
+    }
+  });
+
+  // --- Algorithm: PAEK Vector Post-Smoothing ---
   function smoothPAEK(coords, radius){
     if(!(radius>0) || coords.length<3) return coords;
     var n=coords.length, s=new Float64Array(n), i;
-    for(i=1;i<n;i++) s[i]=s[i-1]+Math.hypot(coords[i][0]-coords[i-1][0], coords[i][1]-coords[i-1][1]);
-    var out=new Array(n), j0=0, j1=0, win=3*radius;
-    for(i=0;i<n;i++){
-      var si=s[i], lo=si-win, hi=si+win;
-      while(j0<n && s[j0]<lo) j0++; while(j1+1<n && s[j1+1]<=hi) j1++;
-      var sumx=0,sumy=0,sumw=0,k; for(k=j0;k<=j1;k++){ var ds=s[k]-si, w=Math.exp(-(ds*ds)/(2*radius*radius)); sumx+=coords[k][0]*w; sumy+=coords[k][1]*w; sumw+=w; }
-      out[i]=sumw>0?[sumx/sumw,sumy/sumw]:coords[i];
+    for(i=1; i<n; i++) {
+      s[i] = s[i-1] + Math.hypot(coords[i][0]-coords[i-1][0], coords[i][1]-coords[i-1][1]);
     }
-    out[0]=coords[0].slice(); out[n-1]=coords[n-1].slice(); return out;
+    var out=new Array(n), j0=0, j1=0, win=3*radius;
+    for(i=0; i<n; i++){
+      var si=s[i], lo=si-win, hi=si+win;
+      while(j0<n && s[j0]<lo) j0++; 
+      while(j1+1<n && s[j1+1]<=hi) j1++;
+      var sumx=0, sumy=0, sumw=0, k; 
+      for(k=j0; k<=j1; k++){ 
+        var ds = s[k]-si, w = Math.exp(-(ds*ds)/(2*radius*radius)); 
+        sumx += coords[k][0]*w; 
+        sumy += coords[k][1]*w; 
+        sumw += w; 
+      }
+      out[i] = sumw>0 ? [sumx/sumw, sumy/sumw] : coords[i];
+    }
+    out[0] = coords[0].slice(); 
+    out[n-1] = coords[n-1].slice(); 
+    return out;
   }
 
-  var colorMap={red:'#ff0000',blue:'#0077ff',green:'#00aa00',yellow:'#cccc00',black:'#000000',grey:'#808080'};
-  function getSelectedStyle(){ var c=colorMap[contourColorEl.value]||'#000000'; var w=Math.max(0.1,parseFloat(contourWidthEl.value)||1); return {color:c,weight:w,opacity:.97}; }
+  // --- UI Render: Vector Restyling Dispatcher ---
+  var colorMap={red:'#ff0000',blue:'#0077ff',green:'#00aa00',yellow:'#eab308',black:'#020617',grey:'#808080',white:'#ffffff',cyan:'#06b6d4'};
+  
+  function getSelectedStyle(){ 
+    var c = colorMap[contourColorEl.value] || '#ffffff'; 
+    var w = Math.max(0.1, parseFloat(contourWidthEl.value) || 1); 
+    return {color: c, weight: w, opacity: 0.97}; 
+  }
+  
   function restyleContours(){
-    var style=getSelectedStyle();
-    if(contourLayer && typeof contourLayer.setStyle==='function') contourLayer.setStyle(style);
-    map.eachLayer(function(l){ if(l===validatorLayer||l===rasterLayer) return;
-      if(l && typeof l.setStyle==='function' && l.feature && l.feature.properties && ('elev' in l.feature.properties)) l.setStyle(style);
+    var style = getSelectedStyle();
+    if(contourLayer && typeof contourLayer.setStyle==='function') {
+      contourLayer.setStyle(style);
+    }
+    map.eachLayer(function(l){ 
+      if(l === validatorLayer || l === rasterLayer) return;
+      if(l && typeof l.setStyle === 'function' && l.feature && l.feature.properties && ('elev' in l.feature.properties)) {
+        l.setStyle(style);
+      }
     });
   }
   contourColorEl.addEventListener('change', restyleContours);
   contourWidthEl.addEventListener('input', restyleContours);
 
-// Web Worker embedded locally
-const bathymetryWorkerCode = `
-importScripts('https://cdn.jsdelivr.net/npm/d3-contour@4');
+  // --- Process Thread: Web Worker Engine Code ---
+  const bathymetryWorkerCode = `
+    importScripts('https://cdn.jsdelivr.net/npm/d3-contour@4');
 
-self.onmessage = function(e) {
-  const { buffer, width, height, step, maxBridgePixels, useResampling } = e.data;
-  const grid = new Float32Array(buffer); // Grid is already sanitized by main thread!
+    self.onmessage = function(e) {
+      const { buffer, width, height, step, maxBridgePixels, useResampling } = e.data;
+      const grid = new Float32Array(buffer); 
 
-  self.postMessage({ type: 'progress', msg: 'Module A: Bridging internal gaps (IDW)...' });
-  const filledGrid = new Float32Array(grid);
-  
-  // FIX #3: Prevent Infinite Loop if Coordinates are Geographic (Degrees)
-  const R = Math.min(Math.ceil(maxBridgePixels), 25); 
-  
-  if (R > 0) {
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          if (isNaN(grid[y * width + x])) {
-            let weightSum = 0, valSum = 0, count = 0;
-            for (let dy = -R; dy <= R; dy++) {
-              for (let dx = -R; dx <= R; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const dist2 = dx * dx + dy * dy;
-                if (dist2 > R * R) continue;
-                const nx = x + dx, ny = y + dy;
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                  const neighborVal = grid[ny * width + nx];
-                  if (!isNaN(neighborVal)) {
-                    const dist = Math.sqrt(dist2);
-                    const w = 1.0 / dist;
-                    valSum += neighborVal * w;
-                    weightSum += w;
-                    count++;
+      self.postMessage({ type: 'progress', msg: 'Module A: Bridging internal gaps (IDW)...' });
+      const filledGrid = new Float32Array(grid);
+      
+      const R = Math.min(Math.ceil(maxBridgePixels), 25); 
+      
+      if (R > 0) {
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              if (isNaN(grid[y * width + x])) {
+                let weightSum = 0, valSum = 0, count = 0;
+                for (let dy = -R; dy <= R; dy++) {
+                  for (let dx = -R; dx <= R; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const dist2 = dx * dx + dy * dy;
+                    if (dist2 > R * R) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                      const neighborVal = grid[ny * width + nx];
+                      if (!isNaN(neighborVal)) {
+                        const dist = Math.sqrt(dist2);
+                        const w = 1.0 / dist;
+                        valSum += neighborVal * w;
+                        weightSum += w;
+                        count++;
+                      }
+                    }
                   }
+                }
+                if (count >= 3) {
+                  filledGrid[y * width + x] = valSum / weightSum;
                 }
               }
             }
-            if (count >= 3) {
-              filledGrid[y * width + x] = valSum / weightSum;
-            }
           }
-        }
       }
-  }
 
-  let scale = 1;
-  let newWidth = width;
-  let newHeight = height;
-  let upsampled = filledGrid;
+      let scale = 1;
+      let newWidth = width;
+      let newHeight = height;
+      let upsampled = filledGrid;
 
-  if (useResampling) {
-    self.postMessage({ type: 'progress', msg: 'Module B: Super-Sampling Surface (x4)...' });
-    scale = 4;
-    newWidth = Math.floor(width * scale);
-    newHeight = Math.floor(height * scale);
-    upsampled = new Float32Array(newWidth * newHeight);
-    
-    function cubic(x) {
-      const a = -0.5;
-      const absX = Math.abs(x);
-      if (absX <= 1) return (a + 2)*absX*absX*absX - (a + 3)*absX*absX + 1;
-      if (absX < 2) return a*absX*absX*absX - 5*a*absX*absX + 8*a*absX - 4*a;
-      return 0;
-    }
-
-    for (let y = 0; y < newHeight; y++) {
-      for (let x = 0; x < newWidth; x++) {
-        const gx = x / scale, gy = y / scale;
-        const gxi = Math.floor(gx), gyi = Math.floor(gy);
+      if (useResampling) {
+        self.postMessage({ type: 'progress', msg: 'Module B: Super-Sampling Surface (x4)...' });
+        scale = 4;
+        newWidth = Math.floor(width * scale);
+        newHeight = Math.floor(height * scale);
+        upsampled = new Float32Array(newWidth * newHeight);
         
-        const nearestOrig = filledGrid[Math.min(Math.round(gy), height-1) * width + Math.min(Math.round(gx), width-1)];
-        if (isNaN(nearestOrig)) {
-            upsampled[y * newWidth + x] = NaN;
-            continue;
+        function cubic(x) {
+          const a = -0.5;
+          const absX = Math.abs(x);
+          if (absX <= 1) return (a + 2)*absX*absX*absX - (a + 3)*absX*absX + 1;
+          if (absX < 2) return a*absX*absX*absX - 5*a*absX*absX + 8*a*absX - 4*a;
+          return 0;
         }
 
-        let val = 0, weightSum = 0;
-        for (let m = -1; m <= 2; m++) {
-          for (let n = -1; n <= 2; n++) {
-            const sx = Math.min(Math.max(gxi + m, 0), width - 1);
-            const sy = Math.min(Math.max(gyi + n, 0), height - 1);
+        for (let y = 0; y < newHeight; y++) {
+          for (let x = 0; x < newWidth; x++) {
+            const gx = x / scale, gy = y / scale;
+            const gxi = Math.floor(gx), gyi = Math.floor(gy);
             
-            const sample = filledGrid[sy * width + sx];
-            if (!isNaN(sample)) {
-              const weight = cubic(gx - (gxi + m)) * cubic(gy - (gyi + n));
-              val += sample * weight;
-              weightSum += weight;
+            const nearestOrig = filledGrid[Math.min(Math.round(gy), height-1) * width + Math.min(Math.round(gx), width-1)];
+            if (isNaN(nearestOrig)) {
+                upsampled[y * newWidth + x] = NaN;
+                continue;
             }
+
+            let val = 0, weightSum = 0;
+            for (let m = -1; m <= 2; m++) {
+              for (let n = -1; n <= 2; n++) {
+                const sx = Math.min(Math.max(gxi + m, 0), width - 1);
+                const sy = Math.min(Math.max(gyi + n, 0), height - 1);
+                
+                const sample = filledGrid[sy * width + sx];
+                if (!isNaN(sample)) {
+                  const weight = cubic(gx - (gxi + m)) * cubic(gy - (gyi + n));
+                  val += sample * weight;
+                  weightSum += weight;
+                }
+              }
+            }
+            upsampled[y * newWidth + x] = Math.abs(weightSum) > 0.0001 ? (val / weightSum) : NaN;
           }
         }
-        // Safer weight check for edge boundaries
-        upsampled[y * newWidth + x] = Math.abs(weightSum) > 0.0001 ? (val / weightSum) : NaN;
       }
-    }
-  }
 
-  self.postMessage({ type: 'progress', msg: 'Tracing Topographic Paths...' });
-  let vmin = Infinity, vmax = -Infinity;
-  for (let i = 0; i < upsampled.length; i++) {
-    const v = upsampled[i];
-    if (!isNaN(v)) {
-      if (v < vmin) vmin = v;
-      if (v > vmax) vmax = v;
-    }
-  }
-  
-  if (vmin === Infinity) {
-      self.postMessage({ type: 'done', contours: [], newWidth, newHeight, scale, levels: [] });
-      return;
-  }
+      self.postMessage({ type: 'progress', msg: 'Tracing Topographic Paths...' });
+      let vmin = Infinity, vmax = -Infinity;
+      for (let i = 0; i < upsampled.length; i++) {
+        const v = upsampled[i];
+        if (!isNaN(v)) {
+          if (v < vmin) vmin = v;
+          if (v > vmax) vmax = v;
+        }
+      }
+      
+      if (vmin === Infinity) {
+          self.postMessage({ type: 'done', contours: [], newWidth, newHeight, scale, levels: [] });
+          return;
+      }
 
-  const EPS = 1e-9;
-  const k0 = Math.ceil((vmin - EPS) / step);
-  const k1 = Math.floor((vmax + EPS) / step);
-  const levels = [];
-  for (let k = k0; k <= k1; k++) {
-    levels.push(Number((k * step).toFixed(6)));
-  }
+      const EPS = 1e-9;
+      const k0 = Math.ceil((vmin - EPS) / step);
+      const k1 = Math.floor((vmax + EPS) / step);
+      const levels = [];
+      for (let k = k0; k <= k1; k++) {
+        levels.push(Number((k * step).toFixed(6)));
+      }
 
-  const contours = d3.contours()
-    .size([newWidth, newHeight])
-    .thresholds(levels)(upsampled);
+      const contours = d3.contours()
+        .size([newWidth, newHeight])
+        .thresholds(levels)(upsampled);
 
-  self.postMessage({ type: 'done', contours, newWidth, newHeight, scale, levels });
-};
-`;
-var workerBlob = new Blob([bathymetryWorkerCode], { type: 'application/javascript' });
-var bathymetryWorkerUrl = URL.createObjectURL(workerBlob);
-var bathymetryWorker = null;
+      self.postMessage({ type: 'done', contours, newWidth, newHeight, scale, levels });
+    };
+  `;
+
+  var workerBlob = new Blob([bathymetryWorkerCode], { type: 'application/javascript' });
+  var bathymetryWorkerUrl = URL.createObjectURL(workerBlob);
 
   function generate(){
     if(!values) return; 
-    btnGenerate.disabled=true; btnGenerate.textContent='Generating…';
+    
+    btnGenerate.setAttribute('data-state', 'loading'); 
+    btnGenerate.disabled = true;
 
     var useResampling = useResamplingEl ? useResamplingEl.checked : true;
-
-    var step=Math.max(0.0001, parseFloat(intervalEl.value)||1);
-    var useSmooth=smoothEl.checked, method=methodEl.value;
-    var tol=Math.max(0, parseFloat(tolEl.value)||0.1);
-    var paekR=Math.max(0.1, parseFloat(paekRadiusEl.value)||2);
-    var minLen=Math.max(0, parseFloat(minLenEl.value)||20);
+    var step = Math.max(0.001, parseFloat(intervalEl.value)||1);
+    var useSmooth = smoothEl.checked, method = methodEl.value;
+    var tol = Math.max(0, parseFloat(tolEl.value)||0.1);
+    var paekR = Math.max(0.1, parseFloat(paekRadiusEl.value)||2);
+    var minLen = Math.max(0, parseFloat(minLenEl.value)||20);
     var maxBridgeMeters = parseFloat(maxBridgeDistEl.value) || 5;
     
     var pxRes = window.currentPixelResolution || 1.0;
     var maxBridgePixels = maxBridgeMeters / pxRes;
     
-    // Safety check for unprojected geographic degrees (e.g. WGS84 native)
     if (pxRes < 0.01) {
         maxBridgePixels = Math.min(25, maxBridgeMeters / (pxRes * 111320));
         console.warn("Coordinate system looks like Lat/Lon degrees. Adjusted Bridge search radius.");
@@ -670,8 +868,8 @@ var bathymetryWorker = null;
        bathymetryWorker.onerror = function(err) {
            console.error("[System Health Check] Worker Exception:", err);
            status.textContent = 'Worker Error: Check console.';
+           btnGenerate.removeAttribute('data-state');
            btnGenerate.disabled = false;
-           btnGenerate.textContent = '▶ Generate';
        };
     }
 
@@ -685,43 +883,79 @@ var bathymetryWorker = null;
       var scale = e.data.scale;
       var levels = e.data.levels;
 
-      var features=[], perLevelCount=new Map(), ci,a,r,p,coords,z,cnt,L;
-      for(ci=0;ci<contours.length;ci++){
-        z=+contours[ci].value; cnt=0;
-        for(a=0;a<contours[ci].coordinates.length;a++){
-          for(r=0;r<contours[ci].coordinates[a].length;r++){
-            coords=[]; var ring=contours[ci].coordinates[a][r];
-            for(p=0;p<ring.length;p++) {
-               // pxCenter2xy: aligns d3.contours pixel-center output to real-world coords
+      var features=[], perLevelCount=new Map(), ci, a, r, p, coords, z, cnt, L_dist;
+      for(ci=0; ci<contours.length; ci++){
+        z = +contours[ci].value; 
+        cnt = 0;
+        for(a=0; a<contours[ci].coordinates.length; a++){
+          for(r=0; r<contours[ci].coordinates[a].length; r++){
+            coords=[]; 
+            var ring = contours[ci].coordinates[a][r];
+            for(p=0; p<ring.length; p++) {
                coords.push(pxCenter2xy(ring[p][0]/scale, ring[p][1]/scale));
             }
-            if(useSmooth && coords.length>4){
-              if(method==='simplify'){ var pts=[], s; for(p=0;p<coords.length;p++) pts.push({x:coords[p][0],y:coords[p][1]}); s=simplify(pts,tol,true); coords=[]; for(p=0;p<s.length;p++) coords.push([s[p].x,s[p].y]); }
-              else if(method==='paek'){ coords=smoothPAEK(coords,paekR); }
+            if(useSmooth && coords.length > 4){
+              if(method === 'simplify'){ 
+                var pts=[], s; 
+                for(p=0; p<coords.length; p++) pts.push({x:coords[p][0], y:coords[p][1]}); 
+                s = simplify(pts, tol, true); 
+                coords=[]; 
+                for(p=0; p<s.length; p++) coords.push([s[p].x, s[p].y]); 
+              }
+              else if(method === 'paek'){ 
+                coords = smoothPAEK(coords, paekR); 
+              }
             }
-            L=0; for(p=0;p<coords.length-1;p++) L+=segLen(coords[p],coords[p+1]);
-            if(coords.length>=2 && L>=minLen){ features.push({type:'Feature',properties:{elev:z},geometry:{type:'LineString',coordinates:coords}}); cnt++; }
+            
+            // Length filter logic
+            L_dist = 0; 
+            for(p=0; p<coords.length-1; p++) {
+              L_dist += segLen(coords[p], coords[p+1]);
+            }
+            if(coords.length >= 2 && L_dist >= minLen){ 
+              features.push({
+                type: 'Feature', 
+                properties: {elev: z}, 
+                geometry: {type: 'LineString', coordinates: coords}
+              }); 
+              cnt++; 
+            }
           }
         }
-        perLevelCount.set(z,(perLevelCount.get(z)||0)+cnt);
+        perLevelCount.set(z, (perLevelCount.get(z)||0) + cnt);
       }
 
-      lastFC={ type:'FeatureCollection', features:features, crs:{type:'name',properties:{name:'LOCAL_XY_FROM_TIFF'}}, properties:{flipY:flipYEl.checked, interval:step, smooth:useSmooth?method:'none'} };
+      lastFC = { 
+        type: 'FeatureCollection', 
+        features: features, 
+        crs: {type: 'name', properties: {name: 'LOCAL_XY_FROM_TIFF'}}, 
+        properties: {flipY: flipYEl.checked, interval: step, smooth: useSmooth?method:'none'} 
+      };
 
-      map.eachLayer(function(l){ if(l && typeof l.toGeoJSON==='function' && l!==validatorLayer) map.removeLayer(l); });
+      map.eachLayer(function(l){ 
+        if(l && typeof l.toGeoJSON === 'function' && l !== validatorLayer) {
+          map.removeLayer(l); 
+        }
+      });
 
-      var style=getSelectedStyle();
-      contourLayer=makeGeoJsonLayer(lastFC, style).addTo(map);
+      var style = getSelectedStyle();
+      contourLayer = makeGeoJsonLayer(lastFC, style).addTo(map);
 
-      var bVec=contourLayer.getBounds(), bRas=rasterLayer? rasterLayer.getBounds():null;
-      if(bRas && bRas.isValid() && bVec.isValid()) map.fitBounds(bVec.extend(bRas)); else if(bVec.isValid()) map.fitBounds(bVec);
+      var bVec = contourLayer.getBounds(), bRas = rasterLayer ? rasterLayer.getBounds() : null;
+      if(bRas && bRas.isValid() && bVec.isValid()) map.fitBounds(bVec.extend(bRas)); 
+      else if(bVec.isValid()) map.fitBounds(bVec);
 
-      btnDXF.disabled=btnKML.disabled=btnSHPFiles.disabled=btnSHPZip.disabled=!features.length; btnGenerate.disabled=false; btnGenerate.textContent='▶ Generate';
+      btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = !features.length; 
+      
+      btnGenerate.removeAttribute('data-state'); 
+      btnGenerate.disabled = false;
 
-      var lvlTotal=levels.length, nonzero=0; perLevelCount.forEach(function(v){ if(v>0) nonzero++; });
-      var smoothInfo=useSmooth?(method==='paek'?('PAEK radius '+paekR+' m'):('simplify tol '+tol+' m')):'off';
-      diag.innerText='Levels: '+lvlTotal+' • With features ≥ '+minLen+' m: '+nonzero+' • Vector-Smooth: '+smoothInfo;
-      status.textContent='Engine Complete: '+features.length+' vectors across '+nonzero+'/'+lvlTotal+' intervals';
+      var lvlTotal = levels.length, nonzero = 0; 
+      perLevelCount.forEach(function(v){ if(v>0) nonzero++; });
+      var smoothInfo = useSmooth ? (method==='paek' ? ('PAEK '+paekR+'m') : ('Simplify '+tol+'m')) : 'OFF';
+      
+      diag.innerHTML = `VECTORS GENERATED: <span style="color:#fff">${features.length}</span><br>INTERVAL LEVELS: <span style="color:#fff">${nonzero}</span><br>SMOOTHING: <span style="color:#fff">${smoothInfo}</span>`;
+      status.textContent = 'Engine Complete: '+features.length+' vectors generated.';
     };
 
     bathymetryWorker.postMessage({
@@ -735,22 +969,20 @@ var bathymetryWorker = null;
   }
   btnGenerate.addEventListener('click', generate);
 
+  // --- Export: CAD DXF Subroutine ---
   function buildDXF(fc){
-    var NL='\r\n'; var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
+    var NL='\r\n'; 
+    var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
     var labelEvery = Math.max(1, parseFloat(labelEveryEl.value)||100);
     var textHeight = Math.max(0.1, parseFloat(labelSizeEl.value)||2.5);
-    function segLen(a,b){ return Math.hypot(b[0]-a[0], b[1]-a[1]); }
 
-    for(var i=0;i<fc.features.length;i++){
+    for(var i=0; i<fc.features.length; i++){
       var f = fc.features[i];
       if(!f.geometry) continue;
-      if(f.geometry.type==='LineString'){
+      if(f.geometry.type === 'LineString'){
         var coords = f.geometry.coordinates;
         if(!coords || coords.length<2) continue;
 
-        // Option A: Douglas-Peucker decimation — removes sub-cm redundant vertices
-        // generated by the x4 super-sampling bicubic pipeline before writing to DXF.
-        // Tolerance 0.01 m (1cm) — no perceptible loss at any CAD survey scale.
         if(typeof simplify === 'function' && coords.length > 4){
           var dxfPts = coords.map(function(c){ return {x:c[0], y:c[1]}; });
           dxfPts = simplify(dxfPts, 0.01, true);
@@ -758,22 +990,26 @@ var bathymetryWorker = null;
         }
         if(coords.length < 2) continue;
 
-        // Option C: 2 decimal places (1cm precision) on all coordinates
         out += ['0','LWPOLYLINE','8','Contour','90', String(coords.length),'70','0','38', Number(f.properties&&f.properties.elev||0).toFixed(2)].join(NL)+NL;
-        for(var k=0;k<coords.length;k++){ out += ['10', coords[k][0].toFixed(2), '20', coords[k][1].toFixed(2)].join(NL)+NL; }
-        if(labelEvery>0 && textHeight>0){
-          var acc=0; var nextD=labelEvery;
-          for(var k2=0;k2<coords.length-1;k2++){
-            var p=coords[k2], q=coords[k2+1], L=segLen(p,q);
+        
+        for(var k=0; k<coords.length; k++){ 
+          out += ['10', coords[k][0].toFixed(2), '20', coords[k][1].toFixed(2)].join(NL)+NL; 
+        }
+        
+        if(labelEvery > 0 && textHeight > 0){
+          var acc = 0; 
+          var nextD = labelEvery;
+          for(var k2=0; k2<coords.length-1; k2++){
+            var p = coords[k2], q = coords[k2+1], L = segLen(p,q);
             while(acc+L >= nextD && L>0){
-              var t=(nextD-acc)/L;
-              var pt=[p[0]+t*(q[0]-p[0]), p[1]+t*(q[1]-p[1])];
-              var ang=Math.atan2(q[1]-p[1], q[0]-p[0])*180/Math.PI;
+              var t = (nextD-acc)/L;
+              var pt = [p[0]+t*(q[0]-p[0]), p[1]+t*(q[1]-p[1])];
+              var ang = Math.atan2(q[1]-p[1], q[0]-p[0])*180/Math.PI;
               var z = Number(f.properties&&f.properties.elev)||0;
               out += ['0','TEXT','8','ContourLabel','10', pt[0].toFixed(2),'20', pt[1].toFixed(2),'40', textHeight.toFixed(2),'1', z.toFixed(2)+' m','50', ang.toFixed(4)].join(NL)+NL;
               nextD += labelEvery;
             }
-            acc+=L;
+            acc += L;
           }
         }
       }
@@ -782,307 +1018,525 @@ var bathymetryWorker = null;
     return out;
   }
 
-  function clearValidator(){ if(validatorLayer){ map.removeLayer(validatorLayer); validatorLayer=null; } }
-  function validateGeoJSONExport(){ return; }
+  // --- Quality Control: DXF Re-parsing Engine ---
   function parseDXFToGeoJSON(text){
-    var lines=text.split(/\r?\n/), features=[], i=0;
-    function readPair(){ if(i+1>=lines.length) return null; return { code:lines[i++].trim(), value:lines[i++].trim() }; }
+    var lines = text.split(/\r?\n/), features = [], i = 0;
+    function readPair(){ 
+      if(i+1 >= lines.length) return null; 
+      return { code: lines[i++].trim(), value: lines[i++].trim() }; 
+    }
     var currentPoly = null;
-    while(i<lines.length){
-      var pair=readPair(); if(!pair) break; if(pair.code!=='0') continue;
-      var type=pair.value;
-      if(type==='LWPOLYLINE') { currentPoly = []; }
-      else if((pair.code==='10'||pair.code==='20') && currentPoly!=null) {
-         i--; 
-         var xv=null, yv=null, reading=true;
-         while(reading){
-            var vp=readPair(); if(!vp) break; 
-            if(vp.code==='0'){ i-=2; break; }
-            if(vp.code==='10') xv=parseFloat(vp.value);
-            if(vp.code==='20') yv=parseFloat(vp.value);
-         }
-         if(xv!==null && yv!==null) currentPoly.push([xv,yv]);
-      } else if(type==='TEXT'){
-        var x2=null,y2=null,label=null, inner2=true, q;
-        while(inner2){ q=readPair(); if(!q) break; if(q.code==='0'){ i-=2; break; }
-          if(q.code==='10'){ x2=parseFloat(q.value); } else if(q.code==='20'){ y2=parseFloat(q.value); } else if(q.code==='1'){ label=q.value; }
+    while(i < lines.length){
+      var pair = readPair(); 
+      if(!pair) break; 
+      if(pair.code !== '0') continue;
+      
+      var type = pair.value;
+      
+      // Fix: DXF Validator Parse Logic
+      if(type === 'LWPOLYLINE') { 
+        currentPoly = [];
+        var reading = true;
+        var xv = null;
+        while(reading) {
+          var vp = readPair();
+          if(!vp) break;
+          if(vp.code === '0') { i-=2; break; } 
+          if(vp.code === '10') { xv = parseFloat(vp.value); }
+          if(vp.code === '20' && xv !== null) { 
+            currentPoly.push([xv, parseFloat(vp.value)]);
+            xv = null; 
+          }
         }
-        if(isFinite(x2)&&isFinite(y2)) features.push({type:'Feature',properties:{label:label||''},geometry:{type:'Point',coordinates:[x2,y2]}});
-      }
-      if(currentPoly && currentPoly.length>=2 && type!=='LWPOLYLINE' && pair.code==='0') {
-         features.push({type:'Feature',properties:{from:'DXF'},geometry:{type:'LineString',coordinates:currentPoly}});
-         currentPoly = null;
+        if(currentPoly.length >= 2) {
+          features.push({type:'Feature', properties:{from:'DXF'}, geometry:{type:'LineString', coordinates:currentPoly}});
+        }
+        currentPoly = null;
+      } 
+      else if(type === 'TEXT'){
+        var x2 = null, y2 = null, label = null, inner2 = true, q;
+        while(inner2){ 
+          q = readPair(); 
+          if(!q) break; 
+          if(q.code === '0'){ i-=2; break; }
+          if(q.code === '10'){ x2 = parseFloat(q.value); } 
+          else if(q.code === '20'){ y2 = parseFloat(q.value); } 
+          else if(q.code === '1'){ label = q.value; }
+        }
+        if(isFinite(x2) && isFinite(y2)) {
+          features.push({type:'Feature', properties:{label:label||''}, geometry:{type:'Point', coordinates:[x2,y2]}});
+        }
       }
     }
     return { type:'FeatureCollection', features:features };
   }
 
   function validateDXFExport(){
-    if(!lastDXFText){ status.textContent='No DXF exported yet.'; return; }
+    if(!lastDXFText){ status.textContent = 'No DXF exported yet.'; return; }
     clearValidator();
-    try{
-      var fc=parseDXFToGeoJSON(lastDXFText);
-      if(showValidatorEl && !showValidatorEl.checked){ status.textContent='DXF validated.'; return; }
-      validatorLayer=makeGeoJsonLayer(fc,{color:'#f59e0b',weight:2,opacity:0.9,dashArray:'6 4'}); validatorLayer.addTo(map);
-      status.textContent='Validated LWPOLYLINE DXF preview overlaid.';
-    }catch(err){ status.textContent='DXF parsing exception: '+(err.message||String(err)); }
+    try {
+      var fc = parseDXFToGeoJSON(lastDXFText);
+      if(showValidatorEl && !showValidatorEl.checked){ status.textContent = 'DXF Validated successfully.'; return; }
+      validatorLayer = makeGeoJsonLayer(fc, {color:'#f59e0b', weight:2, opacity:0.9, dashArray:'6 4'}, true); 
+      validatorLayer.addTo(map);
+      status.textContent = 'Validated LWPOLYLINE DXF preview overlaid.';
+    } catch(err){ 
+      status.textContent = 'DXF parsing exception: ' + (err.message || String(err)); 
+    }
   }
 
-  // btnValidateGeoJSON removed — no matching HTML element
+  // --- UI Event: Verify Visibility Toggle ---
+  if (showValidatorEl) {
+    showValidatorEl.addEventListener('change', function() {
+      if (!validatorLayer) return;
+      if (this.checked) {
+        map.addLayer(validatorLayer);
+      } else {
+        map.removeLayer(validatorLayer);
+      }
+    });
+  }
+
   if(btnValidateDXF) btnValidateDXF.addEventListener('click', validateDXFExport);
-  if(btnClearValidator) btnClearValidator.addEventListener('click', function(){ clearValidator(); status.textContent='Validator overlay detached.'; });
+  if(btnClearValidator) btnClearValidator.addEventListener('click', function(){ 
+    clearValidator(); 
+    status.textContent = 'Validator overlay detached.'; 
+  });
+
+  function temporaryDisable(btn, text) {
+      var oldText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = text;
+      setTimeout(function(){ btn.innerHTML = oldText; btn.disabled = false; }, 1200);
+  }
 
   btnDXF.addEventListener('click', function(){
     if(!lastFC) return;
-    var dxf=buildDXF(lastFC); lastDXFText=dxf;
-    var blob=new Blob([dxf],{type:'application/dxf'}), a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download='contours_'+importBase+'.dxf'; a.click();
-    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
-    if(autoValidateEl && autoValidateEl.checked) validateDXFExport();
+    temporaryDisable(btnDXF, 'SAVING...');
+    // Fix: Unblock UI Thread
+    setTimeout(function() {
+        var dxf = buildDXF(lastFC); 
+        lastDXFText = dxf;
+        var blob = new Blob([dxf], {type:'application/dxf'});
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); 
+        a.download = 'contours_' + importBase + '.dxf'; 
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+        if(autoValidateEl && autoValidateEl.checked) validateDXFExport();
+    }, 50);
   });
 
-  function rebuildPreview(){ if(!img||!values) return; buildRasterPreview(values); }
+  // --- UI Event: Color Map Binding ---
+  btnApplyStretch.addEventListener('click', function() { 
+    var a = parseFloat(stretchMinEl.value); 
+    var b = parseFloat(stretchMaxEl.value); 
+    // Fix: Allow Inversion (min > max)
+    if (isFinite(a) && isFinite(b) && a !== b) { 
+      stretchMin = a; 
+      stretchMax = b; 
+      rebuildPreview(); 
+    } 
+  });
+
+  function rebuildPreview(){ 
+    if(!img || !values) return; 
+    buildRasterPreview(values); 
+  }
   paletteEl.addEventListener('change', rebuildPreview);
-  rasOpacityEl.addEventListener('input', function(){ rasOpacityVal.textContent=rasOpacityEl.value+'%'; if(rasterLayer) rasterLayer.setOpacity((parseInt(rasOpacityEl.value)||90)/100); });
-
-// Standard Indian 1975 Geodetic Math Framework preserved exactly as deployed
-function degToRad(d){ return d*Math.PI/180; }
-function radToDeg(r){ return r*180/Math.PI; }
-function geodeticToECEF(lat, lon, h, a, f){
-  var latr=degToRad(lat), lonr=degToRad(lon);
-  var e2=f*(2-f);
-  var nu=a/Math.sqrt(1 - e2*Math.sin(latr)**2);
-  var X=(nu+h)*Math.cos(latr)*Math.cos(lonr);
-  var Y=(nu+h)*Math.cos(latr)*Math.sin(lonr);
-  var Z=(nu*(1-e2)+h)*Math.sin(latr);
-  return [X,Y,Z];
-}
-function ecefToGeodetic(X,Y,Z,a,f){
-  var e2=f*(2-f), b=a*(1-f), ep2=(a*a-b*b)/(b*b);
-  var p=Math.hypot(X,Y);
-  var lon=Math.atan2(Y,X), lat=Math.atan2(Z, p*(1-e2)), h=0;
-  for(var i=0;i<100;i++){
-    var nu=a/Math.sqrt(1 - e2*Math.sin(lat)**2);
-    var h2=p/Math.cos(lat)-nu;
-    var lat2=Math.atan2(Z + e2*nu*Math.sin(lat), p);
-    if(Math.abs(lat2-lat)<1e-12 && Math.abs(h2-h)<1e-9) break;
-    lat=lat2; h=h2;
-  }
-  return [radToDeg(lat), radToDeg(lon), h];
-}
-const __UTM47 = { a_wgs:6378137, f_wgs:1/298.257223563, a_ind:6377276.345, f_ind:1/300.8017,
-                  dx:-204.64, dy:-834.74, dz:-293.8, k0:0.9996, zone:47, cm:6*47-183, false_e:500000, false_n:0 };
-
-function latLonToUTM(lat, lon, a, f){
-  var cm = degToRad(__UTM47.cm);
-  var phi=degToRad(lat), lam=degToRad(lon);
-  var e2=f*(2-f), e4=e2*e2, e6=e2*e4, ep2=e2/(1-e2);
-  var nu=a/Math.sqrt(1 - e2*Math.sin(phi)**2);
-  var t=Math.tan(phi), l=lam-cm, A=l*Math.cos(phi), eta2=ep2*Math.cos(phi)**2;
-  var alpha1=1 - e2/4 - 3*e4/64 - 5*e6/256;
-  var alpha2=3*e2/8 + 3*e4/32 + 45*e6/1024;
-  var alpha3=15*e4/256 + 45*e6/1024;
-  var alpha4=35*e6/3072;
-  var M=a*(alpha1*phi - alpha2*Math.sin(2*phi) + alpha3*Math.sin(4*phi) - alpha4*Math.sin(6*phi));
-  var east = __UTM47.k0*nu*( A + (1 - t*t + eta2)*A**3/6 + (5 - 18*t*t + t**4 + 14*eta2 - 58*eta2*t*t)*A**5/120 ) + __UTM47.false_e;
-  var north= __UTM47.k0*( M + nu*t*( A*A/2 + (5 - t*t + 9*eta2 + 4*eta2*eta2)*A**4/24 + (61 - 58*t*t + t**4 + 270*eta2 - 330*eta2*t*t)*A**6/720 ) ) + __UTM47.false_n;
-  return [east, north];
-}
-function utmToLatLon(east, north, a, f){
-  var cm = degToRad(__UTM47.cm);
-  var e2=f*(2-f), e4=e2*e2, e6=e2*e4, ep2=e2/(1-e2);
-  var alpha1=1 - e2/4 - 3*e4/64 - 5*e6/256;
-  var M = north/__UTM47.k0;
-  var mu = M / (a*alpha1);
-  var e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
-  var phi1 = mu + (3/2*e1 - 27/32*e1**3)*Math.sin(2*mu) + (21/16*e1**2 - 55/32*e1**4)*Math.sin(4*mu) + (151/96*e1**3)*Math.sin(6*mu) + (1097/512*e1**4)*Math.sin(8*mu);
-  var nu1=a/Math.sqrt(1 - e2*Math.sin(phi1)**2);
-  var rho1=a*(1-e2)/((1 - e2*Math.sin(phi1)**2)**1.5);
-  var t1=Math.tan(phi1), eta12=ep2*Math.cos(phi1)**2;
-  var D=(east - __UTM47.false_e)/(nu1*__UTM47.k0);
-  var lat = phi1 - (nu1*t1/rho1)*( D**2/2 - (5+3*t1*t1+10*eta12-4*eta12**2-9*ep2)*D**4/24 + (61+90*t1*t1+298*eta12+45*t1**4-252*ep2-3*eta12**2)*D**6/720 );
-  var lon = cm + ( D - (1+2*t1*t1+eta12)*D**3/6 + (5-2*eta12+28*t1*t1-3*eta12**2 + 8*ep2 + 24*t1**4)*D**5/120 )/Math.cos(phi1);
-  return [radToDeg(lat), radToDeg(lon)];
-}
-function indian1975UTMToWGS84(east, north){
-  var latlon_ind = utmToLatLon(east, north, __UTM47.a_ind, __UTM47.f_ind);
-  var lat_ind = latlon_ind[0], lon_ind = latlon_ind[1];
-  var ecef_ind = geodeticToECEF(lat_ind, lon_ind, 0, __UTM47.a_ind, __UTM47.f_ind);
-  var Xw = ecef_ind[0] - __UTM47.dx;
-  var Yw = ecef_ind[1] - __UTM47.dy;
-  var Zw = ecef_ind[2] - __UTM47.dz;
-  var geod_wgs = ecefToGeodetic(Xw, Yw, Zw, __UTM47.a_wgs, __UTM47.f_wgs);
-  return [geod_wgs[0], geod_wgs[1]];
-}
-
-function buildKML_WGS84_from_IndianUTM(fc){
-  function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function coordsToLonLatString(coords){
-    var parts=[], i, E, N, ll, lon, lat;
-    // Decimate super-sampling vertices (0.01m tolerance) before expensive datum conversion
-    if(typeof simplify === 'function' && coords.length > 4){
-      var kPts = coords.map(function(c){ return {x:c[0], y:c[1]}; });
-      kPts = simplify(kPts, 0.01, true);
-      coords = kPts.map(function(pt){ return [pt.x, pt.y]; });
-    }
-    for(i=0;i<coords.length;i++){
-      E=Number(coords[i][0]); N=Number(coords[i][1]); var __tmp=dePreviewFlip(E,N); ll = indian1975UTMToWGS84(__tmp[0], __tmp[1]);
-      lon = ll[1].toFixed(6); lat = ll[0].toFixed(6);
-      parts.push(lon+','+lat);
-    }
-    return parts.join(' ');
-  }
-  function lineKML(coords){ return '<LineString><tessellate>1</tessellate><coordinates>'+coordsToLonLatString(coords)+'</coordinates></LineString>'; }
-  var CRLF = '\r\n';
-  var out=[ '<kml xmlns="http://www.opengis.net/kml/2.2">', '<Document>', '<name>Contours (Indian1975 UTM47N -> WGS84)</name>', '<Style id="contour"><LineStyle><color>ff000000</color><width>1.3</width></LineStyle></Style>' ];
-  for(var i=0;i<fc.features.length;i++){
-    var f=fc.features[i]; if(!f||!f.geometry) continue;
-    var nm='';
-    if(f.properties){
-      if(f.properties.elev!=null) nm=f.properties.elev+' m';
-      else if(f.properties.ELEV!=null) nm=f.properties.ELEV+' m';
-      else if(f.properties.name) nm=String(f.properties.name);
-    }
-    nm = xmlEsc(nm);
-    if(f.geometry.type==='LineString'){ out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates)+'</Placemark>'); }
-    else if(f.geometry.type==='MultiLineString'){ for(var k=0;k<f.geometry.coordinates.length;k++){ out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates[k])+'</Placemark>'); } }
-  }
-  out.push('</Document></kml>'); return out.join(CRLF);
-}
-
-btnKML.addEventListener('click', function(){
-  if(!lastFC){ alert('Please generate contours first.'); return; }
-  var kml = buildKML_WGS84_from_IndianUTM(lastFC);
-  var blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}), a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='contours_'+importBase+'.kml'; a.click();
-  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
-});
-
-btnApplyStretch.addEventListener('click', function(){ var a=parseFloat(stretchMinEl.value), b=parseFloat(stretchMaxEl.value); if(isFinite(a)&&isFinite(b)&&a<b){ stretchMin=a; stretchMax=b; rebuildPreview(); } });
-
-function buildSHP_47N_FromFC(fc){
-  var recs=[], minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-  function pushPart(part, nm, elev){
-    var coords=[], p,E,N,en;
-    // Decimate super-sampling vertices (0.01m tolerance) before binary packing
-    var srcPts = part;
-    if(typeof simplify === 'function' && part.length > 4){
-      var sPts = part.map(function(c){ return {x:Number(c[0]), y:Number(c[1])}; });
-      sPts = simplify(sPts, 0.01, true);
-      srcPts = sPts.map(function(pt){ return [pt.x, pt.y]; });
-    }
-    for(var j=0;j<srcPts.length;j++){
-      p=srcPts[j]; E=Number(p[0]); N=Number(p[1]); en = dePreviewFlip(E,N);
-      coords.push([en[0], en[1]]);
-      if(en[0]<minX) minX=en[0]; if(en[1]<minY) minY=en[1];
-      if(en[0]>maxX) maxX=en[0]; if(en[1]>maxY) maxY=en[1];
-    }
-    if(coords.length>=2) recs.push({parts:[coords], name:nm||'', elev:(elev!=null?Number(elev):null)});
-  }
-  for(var i=0;i<fc.features.length;i++){
-    var f=fc.features[i]; if(!f||!f.geometry) continue;
-    var nm='', elev=null;
-    if(f.properties){
-      if(f.properties.elev!=null){ elev=Number(f.properties.elev); nm=String(f.properties.elev)+' m'; }
-      else if(f.properties.ELEV!=null){ elev=Number(f.properties.ELEV); nm=String(f.properties.ELEV)+' m'; }
-      else if(f.properties.name){ nm=String(f.properties.name); }
-    }
-    if(f.geometry.type==='LineString'){ pushPart(f.geometry.coordinates, nm, elev); }
-    else if(f.geometry.type==='MultiLineString'){ for(var k=0;k<f.geometry.coordinates.length;k++) pushPart(f.geometry.coordinates[k], nm, elev); }
-  }
-  if(!recs.length){ alert('No features to export.'); return null; }
-
-  function BE32(b,v){ b.push((v>>>24)&255,(v>>>16)&255,(v>>>8)&255,(v)&255); }
-  function LE32(b,v){ b.push((v)&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255); }
-  function F64LE(b,x){ var dv=new DataView(new ArrayBuffer(8)); dv.setFloat64(0,x,true); for(var t=0;t<8;t++) b.push(dv.getUint8(t)); }
-
-  var shp=[], shx=[];
-  BE32(shp,9994); for(var i0=0;i0<5;i0++) BE32(shp,0); var shpLenPos=shp.length; BE32(shp,0); LE32(shp,1000); LE32(shp,3);
-  F64LE(shp,minX); F64LE(shp,minY); F64LE(shp,maxX); F64LE(shp,maxY); for(var i1=0;i1<4;i1++) F64LE(shp,0);
-  BE32(shx,9994); for(var i2=0;i2<5;i2++) BE32(shx,0); var shxLenPos=shx.length; BE32(shx,0); LE32(shx,1000); LE32(shx,3);
-  F64LE(shx,minX); F64LE(shx,minY); F64LE(shx,maxX); F64LE(shx,maxY); for(var i3=0;i3<4;i3++) F64LE(shx,0);
-
-  var shpBytes=100, recNum=1;
-  for(var r=0;r<recs.length;r++,recNum++){
-    var rec=recs[r], pts=rec.parts[0], numParts=1, numPoints=pts.length;
-    var rminX=Infinity,rminY=Infinity,rmaxX=-Infinity,rmaxY=-Infinity;
-    for(var j=0;j<numPoints;j++){ var X=pts[j][0], Y=pts[j][1]; if(X<rminX) rminX=X; if(Y<rminY) rminY=Y; if(X>rmaxX) rmaxX=X; if(Y>rmaxY) rmaxY=Y; }
-    var contentBytes=4+32+4+4+(4*numParts)+(16*numPoints);
-    var contentWords=contentBytes/2; var offsetWords=shpBytes/2;
-    BE32(shx,offsetWords); BE32(shx,contentWords);
-    BE32(shp,recNum); BE32(shp,contentWords);
-    LE32(shp,3); F64LE(shp,rminX); F64LE(shp,rminY); F64LE(shp,rmaxX); F64LE(shp,rmaxY);
-    LE32(shp,numParts); LE32(shp,numPoints); LE32(shp,0);
-    for(var j=0;j<numPoints;j++){ F64LE(shp,pts[j][0]); F64LE(shp,pts[j][1]); }
-    shpBytes += 8 + contentBytes;
-  }
-  var shpWords=shpBytes/2; shp[shpLenPos+0]=(shpWords>>>24)&255; shp[shpLenPos+1]=(shpWords>>>16)&255; shp[shpLenPos+2]=(shpWords>>>8)&255; shp[shpLenPos+3]=(shpWords)&255;
-  var shxBytes=100 + recs.length*8; var shxWords=shxBytes/2;
-  shx[shxLenPos+0]=(shxWords>>>24)&255; shx[shxLenPos+1]=(shxWords>>>16)&255; shx[shxLenPos+2]=(shxWords>>>8)&255; shx[shxLenPos+3]=(shxWords)&255;
-
-  var dbf=[];
-  function le16(v){ dbf.push(v&255,(v>>8)&255); }
-  function le32(v){ dbf.push(v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255); }
-  function asciiPadRight(s,len){ s=String(s||'').replace(/[^ -~]/g,''); if(s.length>len) s=s.slice(0,len); while(s.length<len) s+=' '; return s; }
-  function asciiPadLeft(s,len){ s=String(s||'').replace(/[^ -~]/g,''); if(s.length>len) s=s.slice(0,len); while(s.length<len) s=' '+s; return s; }
-  function field(name,type,len,dec){ var b=new Array(32).fill(0); name=String(name||'').toUpperCase().replace(/[^A-Z0-9_]/g,''); if(name.length>10) name=name.slice(0,10); for(var i=0;i<name.length;i++) b[i]=name.charCodeAt(i); b[11]=type.charCodeAt(0); b[16]=len&255; b[17]=(dec||0)&255; for(var i=0;i<32;i++) dbf.push(b[i]); }
-
-  var now=new Date();
-  dbf.push(0x03, now.getFullYear()-1900, now.getMonth()+1, now.getDate());
-  le32(recs.length);
-  var recLen=1+32+10, hdrLen=32 + 32*2 + 1;
-  le16(hdrLen); le16(recLen);
-  for(var i4=0;i4<20;i4++) dbf.push(0);
-
-  field('NAME','C',32,0); field('ELEV','N',10,1); dbf.push(0x0D);
-  for(var i5=0;i5<recs.length;i5++){
-    var R=recs[i5]; dbf.push(0x20);
-    var nameTxt=asciiPadRight(R.name||'',32); for(var j=0;j<32;j++) dbf.push(nameTxt.charCodeAt(j));
-    var elevTxt=asciiPadLeft((R.elev!=null && isFinite(R.elev))?Number(R.elev).toFixed(1):'',10); for(var j=0;j<10;j++) dbf.push(elevTxt.charCodeAt(j));
-  }
-  dbf.push(0x1A);
-  var prjText='PROJCS["Indian_1975_UTM_Zone_47N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]';
-  return { shp:new Uint8Array(shp), shx:new Uint8Array(shx), dbf:new Uint8Array(dbf), prj:new TextEncoder().encode(prjText), cpg:new TextEncoder().encode('UTF-8') };
-}
-
-btnSHPZip.addEventListener('click', function(){
-  if(!lastFC){ alert('Please generate contours first.'); return; }
-  var data = buildSHP_47N_FromFC(lastFC); if(!data) return;
-  var zip = new JSZip();
-  var base = 'contours_'+importBase;
-  zip.file(base+'.shp', data.shp);
-  zip.file(base+'.shx', data.shx);
-  zip.file(base+'.dbf', data.dbf);
-  zip.file(base+'.prj', data.prj);
-  zip.file(base+'.cpg', data.cpg);
-  zip.generateAsync({type:"blob"}).then(function(content) {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(content);
-    a.download = base+'.zip';
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  
+  rasOpacityEl.addEventListener('input', function(){ 
+    rasOpacityVal.textContent = rasOpacityEl.value + '%'; 
+    if(rasterLayer) rasterLayer.setOpacity((parseInt(rasOpacityEl.value)||90)/100); 
   });
-});
 
-btnSHPFiles.addEventListener('click', function(){
-  if(!lastFC){ alert('Please generate contours first.'); return; }
-  var data = buildSHP_47N_FromFC(lastFC); if(!data) return;
-  function saveBytes(bytes, name){
-    var blob=new Blob([bytes], {type:'application/octet-stream'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  // --- Geomatics: Indian 1975 UTM 47N to WGS84 Datum Math ---
+  function degToRad(d){ return d*Math.PI/180; }
+  function radToDeg(r){ return r*180/Math.PI; }
+  
+  function geodeticToECEF(lat, lon, h, a, f){
+    var latr=degToRad(lat), lonr=degToRad(lon);
+    var e2=f*(2-f);
+    var nu=a/Math.sqrt(1 - e2*Math.sin(latr)**2);
+    var X=(nu+h)*Math.cos(latr)*Math.cos(lonr);
+    var Y=(nu+h)*Math.cos(latr)*Math.sin(lonr);
+    var Z=(nu*(1-e2)+h)*Math.sin(latr);
+    return [X,Y,Z];
   }
-  var base = 'contours_'+importBase;
-  saveBytes(data.shp, base+'.shp'); saveBytes(data.shx, base+'.shx'); saveBytes(data.dbf, base+'.dbf'); saveBytes(data.prj, base+'.prj'); saveBytes(data.cpg, base+'.cpg');
-});
+  
+  function ecefToGeodetic(X,Y,Z,a,f){
+    var e2=f*(2-f), b=a*(1-f), ep2=(a*a-b*b)/(b*b);
+    var p=Math.hypot(X,Y);
+    var lon=Math.atan2(Y,X), lat=Math.atan2(Z, p*(1-e2)), h=0;
+    for(var i=0;i<100;i++){
+      var nu=a/Math.sqrt(1 - e2*Math.sin(lat)**2);
+      var h2=p/Math.cos(lat)-nu;
+      var lat2=Math.atan2(Z + e2*nu*Math.sin(lat), p);
+      if(Math.abs(lat2-lat)<1e-12 && Math.abs(h2-h)<1e-9) break;
+      lat=lat2; h=h2;
+    }
+    return [radToDeg(lat), radToDeg(lon), h];
+  }
 
+  const __UTM47 = { a_wgs:6378137, f_wgs:1/298.257223563, a_ind:6377276.345, f_ind:1/300.8017,
+                    dx:-204.64, dy:-834.74, dz:-293.8, k0:0.9996, zone:47, cm:6*47-183, false_e:500000, false_n:0 };
+
+  function latLonToUTM(lat, lon, a, f){
+    var cm = degToRad(__UTM47.cm);
+    var phi=degToRad(lat), lam=degToRad(lon);
+    var e2=f*(2-f), e4=e2*e2, e6=e2*e4, ep2=e2/(1-e2);
+    var nu=a/Math.sqrt(1 - e2*Math.sin(phi)**2);
+    var t=Math.tan(phi), l=lam-cm, A=l*Math.cos(phi), eta2=ep2*Math.cos(phi)**2;
+    var alpha1=1 - e2/4 - 3*e4/64 - 5*e6/256;
+    var alpha2=3*e2/8 + 3*e4/32 + 45*e6/1024;
+    var alpha3=15*e4/256 + 45*e6/1024;
+    var alpha4=35*e6/3072;
+    var M=a*(alpha1*phi - alpha2*Math.sin(2*phi) + alpha3*Math.sin(4*phi) - alpha4*Math.sin(6*phi));
+    var east = __UTM47.k0*nu*( A + (1 - t*t + eta2)*A**3/6 + (5 - 18*t*t + t**4 + 14*eta2 - 58*eta2*t*t)*A**5/120 ) + __UTM47.false_e;
+    var north= __UTM47.k0*( M + nu*t*( A*A/2 + (5 - t*t + 9*eta2 + 4*eta2*eta2)*A**4/24 + (61 - 58*t*t + t**4 + 270*eta2 - 330*eta2*t*t)*A**6/720 ) ) + __UTM47.false_n;
+    return [east, north];
+  }
+  
+  function utmToLatLon(east, north, a, f){
+    var cm = degToRad(__UTM47.cm);
+    var e2=f*(2-f), e4=e2*e2, e6=e2*e4, ep2=e2/(1-e2);
+    var alpha1=1 - e2/4 - 3*e4/64 - 5*e6/256;
+    var M = north/__UTM47.k0;
+    var mu = M / (a*alpha1);
+    var e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+    var phi1 = mu + (3/2*e1 - 27/32*e1**3)*Math.sin(2*mu) + (21/16*e1**2 - 55/32*e1**4)*Math.sin(4*mu) + (151/96*e1**3)*Math.sin(6*mu) + (1097/512*e1**4)*Math.sin(8*mu);
+    var nu1=a/Math.sqrt(1 - e2*Math.sin(phi1)**2);
+    var rho1=a*(1-e2)/((1 - e2*Math.sin(phi1)**2)**1.5);
+    var t1=Math.tan(phi1), eta12=ep2*Math.cos(phi1)**2;
+    var D=(east - __UTM47.false_e)/(nu1*__UTM47.k0);
+    var lat = phi1 - (nu1*t1/rho1)*( D**2/2 - (5+3*t1*t1+10*eta12-4*eta12**2-9*ep2)*D**4/24 + (61+90*t1*t1+298*eta12+45*t1**4-252*ep2-3*eta12**2)*D**6/720 );
+    var lon = cm + ( D - (1+2*t1*t1+eta12)*D**3/6 + (5-2*eta12+28*t1*t1-3*eta12**2 + 8*ep2 + 24*t1**4)*D**5/120 )/Math.cos(phi1);
+    return [radToDeg(lat), radToDeg(lon)];
+  }
+  
+  function indian1975UTMToWGS84(east, north){
+    var latlon_ind = utmToLatLon(east, north, __UTM47.a_ind, __UTM47.f_ind);
+    var lat_ind = latlon_ind[0], lon_ind = latlon_ind[1];
+    var ecef_ind = geodeticToECEF(lat_ind, lon_ind, 0, __UTM47.a_ind, __UTM47.f_ind);
+    var Xw = ecef_ind[0] - __UTM47.dx;
+    var Yw = ecef_ind[1] - __UTM47.dy;
+    var Zw = ecef_ind[2] - __UTM47.dz;
+    var geod_wgs = ecefToGeodetic(Xw, Yw, Zw, __UTM47.a_wgs, __UTM47.f_wgs);
+    return [geod_wgs[0], geod_wgs[1]];
+  }
+
+  // --- Export: KML Generator (WGS84 3D) ---
+  function buildKML_WGS84_from_IndianUTM(fc){
+    function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function coordsToLonLatString(coords, elevVal){
+      var parts=[], i, E, N, ll, lon, lat;
+      if(typeof simplify === 'function' && coords.length > 4){
+        var kPts = coords.map(function(c){ return {x:c[0], y:c[1]}; });
+        kPts = simplify(kPts, 0.01, true);
+        coords = kPts.map(function(pt){ return [pt.x, pt.y]; });
+      }
+      for(i=0; i<coords.length; i++){
+        E=Number(coords[i][0]); N=Number(coords[i][1]); 
+        var __tmp=dePreviewFlip(E,N); 
+        ll = indian1975UTMToWGS84(__tmp[0], __tmp[1]);
+        lon = ll[1].toFixed(6); 
+        lat = ll[0].toFixed(6);
+        // Fix: Add Elevation to KML
+        parts.push(lon+','+lat+','+elevVal);
+      }
+      return parts.join(' ');
+    }
+    function lineKML(coords, elevVal){ 
+      return '<LineString><tessellate>1</tessellate><altitudeMode>absolute</altitudeMode><coordinates>'+coordsToLonLatString(coords, elevVal)+'</coordinates></LineString>'; 
+    }
+    
+    var CRLF = '\r\n';
+    var out=[ 
+      '<kml xmlns="http://www.opengis.net/kml/2.2">', 
+      '<Document>', 
+      '<name>Contours (Indian1975 UTM47N -> WGS84)</name>', 
+      '<Style id="contour"><LineStyle><color>ff000000</color><width>1.3</width></LineStyle></Style>' 
+    ];
+    
+    for(var i=0; i<fc.features.length; i++){
+      var f=fc.features[i]; 
+      if(!f||!f.geometry) continue;
+      var nm='';
+      var elevVal = 0;
+      if(f.properties){
+        if(f.properties.elev!=null) { nm=f.properties.elev+' m'; elevVal = f.properties.elev; }
+        else if(f.properties.ELEV!=null) { nm=f.properties.ELEV+' m'; elevVal = f.properties.ELEV; }
+        else if(f.properties.name) nm=String(f.properties.name);
+      }
+      nm = xmlEsc(nm);
+      if(f.geometry.type==='LineString'){ 
+        out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates, elevVal)+'</Placemark>'); 
+      }
+      else if(f.geometry.type==='MultiLineString'){ 
+        for(var k=0; k<f.geometry.coordinates.length; k++){ 
+          out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates[k], elevVal)+'</Placemark>'); 
+        } 
+      }
+    }
+    out.push('</Document></kml>'); 
+    return out.join(CRLF);
+  }
+
+  btnKML.addEventListener('click', function(){
+    if(!lastFC){ alert('Please generate contours first.'); return; }
+    temporaryDisable(btnKML, 'SAVING...');
+    // Fix: Unblock UI Thread
+    setTimeout(function() {
+      var kml = buildKML_WGS84_from_IndianUTM(lastFC);
+      var blob = new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); 
+      a.download = 'contours_' + importBase + '.kml'; 
+      a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);}, 1000);
+    }, 50);
+  });
+
+  // --- Export: Shapefile Binary Packer (SHP/SHX/DBF/PRJ) ---
+  function buildSHP_47N_FromFC(fc){
+    var recs=[], minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    
+    function pushPart(part, nm, elev){
+      var coords=[], p, E, N, en;
+      var srcPts = part;
+      if(typeof simplify === 'function' && part.length > 4){
+        var sPts = part.map(function(c){ return {x:Number(c[0]), y:Number(c[1])}; });
+        sPts = simplify(sPts, 0.01, true);
+        srcPts = sPts.map(function(pt){ return [pt.x, pt.y]; });
+      }
+      for(var j=0; j<srcPts.length; j++){
+        p = srcPts[j]; 
+        E = Number(p[0]); 
+        N = Number(p[1]); 
+        en = dePreviewFlip(E,N);
+        coords.push([en[0], en[1]]);
+        if(en[0]<minX) minX=en[0]; 
+        if(en[1]<minY) minY=en[1];
+        if(en[0]>maxX) maxX=en[0]; 
+        if(en[1]>maxY) maxY=en[1];
+      }
+      if(coords.length>=2) recs.push({parts:[coords], name:nm||'', elev:(elev!=null?Number(elev):null)});
+    }
+    
+    for(var i=0; i<fc.features.length; i++){
+      var f=fc.features[i]; 
+      if(!f||!f.geometry) continue;
+      var nm='', elev=null;
+      if(f.properties){
+        if(f.properties.elev!=null){ elev=Number(f.properties.elev); nm=String(f.properties.elev)+' m'; }
+        else if(f.properties.ELEV!=null){ elev=Number(f.properties.ELEV); nm=String(f.properties.ELEV)+' m'; }
+        else if(f.properties.name){ nm=String(f.properties.name); }
+      }
+      if(f.geometry.type==='LineString'){ pushPart(f.geometry.coordinates, nm, elev); }
+      else if(f.geometry.type==='MultiLineString'){ 
+        for(var k=0; k<f.geometry.coordinates.length; k++) pushPart(f.geometry.coordinates[k], nm, elev); 
+      }
+    }
+    
+    if(!recs.length){ alert('No features to export.'); return null; }
+
+    function BE32(b,v){ b.push((v>>>24)&255,(v>>>16)&255,(v>>>8)&255,(v)&255); }
+    function LE32(b,v){ b.push((v)&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255); }
+    function F64LE(b,x){ 
+      var dv=new DataView(new ArrayBuffer(8)); 
+      dv.setFloat64(0,x,true); 
+      for(var t=0; t<8; t++) b.push(dv.getUint8(t)); 
+    }
+
+    var shp=[], shx=[];
+    BE32(shp,9994); for(var i0=0; i0<5; i0++) BE32(shp,0); 
+    var shpLenPos=shp.length; 
+    BE32(shp,0); LE32(shp,1000); LE32(shp,3);
+    F64LE(shp,minX); F64LE(shp,minY); F64LE(shp,maxX); F64LE(shp,maxY); 
+    for(var i1=0; i1<4; i1++) F64LE(shp,0);
+    
+    BE32(shx,9994); for(var i2=0; i2<5; i2++) BE32(shx,0); 
+    var shxLenPos=shx.length; 
+    BE32(shx,0); LE32(shx,1000); LE32(shx,3);
+    F64LE(shx,minX); F64LE(shx,minY); F64LE(shx,maxX); F64LE(shx,maxY); 
+    for(var i3=0; i3<4; i3++) F64LE(shx,0);
+
+    var shpBytes=100, recNum=1;
+    for(var r=0; r<recs.length; r++, recNum++){
+      var rec=recs[r], pts=rec.parts[0], numParts=1, numPoints=pts.length;
+      var rminX=Infinity, rminY=Infinity, rmaxX=-Infinity, rmaxY=-Infinity;
+      for(var j=0; j<numPoints; j++){ 
+        var X=pts[j][0], Y=pts[j][1]; 
+        if(X<rminX) rminX=X; if(Y<rminY) rminY=Y; 
+        if(X>rmaxX) rmaxX=X; if(Y>rmaxY) rmaxY=Y; 
+      }
+      var contentBytes = 4 + 32 + 4 + 4 + (4*numParts) + (16*numPoints);
+      var contentWords = contentBytes/2; 
+      var offsetWords = shpBytes/2;
+      
+      BE32(shx, offsetWords); 
+      BE32(shx, contentWords);
+      
+      BE32(shp, recNum); 
+      BE32(shp, contentWords);
+      LE32(shp, 3); 
+      F64LE(shp, rminX); F64LE(shp, rminY); F64LE(shp, rmaxX); F64LE(shp, rmaxY);
+      LE32(shp, numParts); 
+      LE32(shp, numPoints); 
+      LE32(shp, 0);
+      
+      for(var j=0; j<numPoints; j++){ 
+        F64LE(shp, pts[j][0]); 
+        F64LE(shp, pts[j][1]); 
+      }
+      shpBytes += 8 + contentBytes;
+    }
+    
+    var shpWords = shpBytes/2; 
+    shp[shpLenPos+0] = (shpWords>>>24)&255; 
+    shp[shpLenPos+1] = (shpWords>>>16)&255; 
+    shp[shpLenPos+2] = (shpWords>>>8)&255; 
+    shp[shpLenPos+3] = (shpWords)&255;
+    
+    var shxBytes = 100 + recs.length*8; 
+    var shxWords = shxBytes/2;
+    shx[shxLenPos+0] = (shxWords>>>24)&255; 
+    shx[shxLenPos+1] = (shxWords>>>16)&255; 
+    shx[shxLenPos+2] = (shxWords>>>8)&255; 
+    shx[shxLenPos+3] = (shxWords)&255;
+
+    var dbf=[];
+    function le16(v){ dbf.push(v&255,(v>>8)&255); }
+    function le32(v){ dbf.push(v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255); }
+    
+    function asciiPadRight(s,len){ 
+      s=String(s||'').replace(/[^ -~]/g,''); 
+      if(s.length>len) s=s.slice(0,len); 
+      while(s.length<len) s+=' '; 
+      return s; 
+    }
+    function asciiPadLeft(s,len){ 
+      s=String(s||'').replace(/[^ -~]/g,''); 
+      if(s.length>len) s=s.slice(0,len); 
+      while(s.length<len) s=' '+s; 
+      return s; 
+    }
+    function field(name,type,len,dec){ 
+      var b=new Array(32).fill(0); 
+      name=String(name||'').toUpperCase().replace(/[^A-Z0-9_]/g,''); 
+      if(name.length>10) name=name.slice(0,10); 
+      for(var i=0; i<name.length; i++) b[i]=name.charCodeAt(i); 
+      b[11]=type.charCodeAt(0); 
+      b[16]=len&255; 
+      b[17]=(dec||0)&255; 
+      for(var i=0; i<32; i++) dbf.push(b[i]); 
+    }
+
+    var now = new Date();
+    dbf.push(0x03, now.getFullYear()-1900, now.getMonth()+1, now.getDate());
+    le32(recs.length);
+    var recLen = 1 + 32 + 10, hdrLen = 32 + 32*2 + 1;
+    le16(hdrLen); 
+    le16(recLen);
+    for(var i4=0; i4<20; i4++) dbf.push(0);
+
+    field('NAME','C',32,0); 
+    field('ELEV','N',10,1); 
+    dbf.push(0x0D);
+    
+    for(var i5=0; i5<recs.length; i5++){
+      var R = recs[i5]; 
+      dbf.push(0x20);
+      var nameTxt = asciiPadRight(R.name||'', 32); 
+      for(var j=0; j<32; j++) dbf.push(nameTxt.charCodeAt(j));
+      var elevTxt = asciiPadLeft((R.elev!=null && isFinite(R.elev))?Number(R.elev).toFixed(1):'', 10); 
+      for(var j=0; j<10; j++) dbf.push(elevTxt.charCodeAt(j));
+    }
+    dbf.push(0x1A);
+    
+    var prjText = 'PROJCS["Indian_1975_UTM_Zone_47N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]';
+    
+    return { 
+      shp: new Uint8Array(shp), 
+      shx: new Uint8Array(shx), 
+      dbf: new Uint8Array(dbf), 
+      prj: new TextEncoder().encode(prjText), 
+      cpg: new TextEncoder().encode('UTF-8') 
+    };
+  }
+
+  btnSHPZip.addEventListener('click', function(){
+    if(!lastFC){ alert('Please generate contours first.'); return; }
+    temporaryDisable(btnSHPZip, 'PACKING...');
+    // Fix: Unblock UI Thread
+    setTimeout(function() {
+      var data = buildSHP_47N_FromFC(lastFC); 
+      if(!data) return;
+      var zip = new JSZip();
+      var base = 'contours_' + importBase;
+      zip.file(base+'.shp', data.shp);
+      zip.file(base+'.shx', data.shx);
+      zip.file(base+'.dbf', data.dbf);
+      zip.file(base+'.prj', data.prj);
+      zip.file(base+'.cpg', data.cpg);
+      zip.generateAsync({type:"blob"}).then(function(content) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = base + '.zip';
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      });
+    }, 50);
+  });
+
+  // --- Export: Individual Subroutine ---
+  btnSHPFiles.addEventListener('click', function(){
+    if(!lastFC){ alert('Please generate contours first.'); return; }
+    
+    temporaryDisable(btnSHPFiles, 'SAVING...');
+    // Fix: Unblock UI Thread
+    setTimeout(function() {
+      var data = buildSHP_47N_FromFC(lastFC); 
+      if(!data) return;
+      
+      function saveBytes(bytes, name){
+        var blob = new Blob([bytes], {type:'application/octet-stream'});
+        var a = document.createElement('a'); 
+        a.href = URL.createObjectURL(blob); 
+        a.download = name; 
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      }
+      
+      var base = 'contours_' + importBase;
+      saveBytes(data.shp, base+'.shp'); 
+      saveBytes(data.shx, base+'.shx'); 
+      saveBytes(data.dbf, base+'.dbf'); 
+      
+      var bPrj = new Blob([data.prj], {type:'text/plain'});
+      var aPrj = document.createElement('a'); aPrj.href = URL.createObjectURL(bPrj); aPrj.download = base+'.prj'; aPrj.click();
+      
+      var bCpg = new Blob([data.cpg], {type:'text/plain'});
+      var aCpg = document.createElement('a'); aCpg.href = URL.createObjectURL(bCpg); aCpg.download = base+'.cpg'; aCpg.click();
+    }, 50);
+  });
+
+  // --- Global State & Final Binds ---
   btnAutoStretch.addEventListener('click', function(){ autoStretch(values); rebuildPreview(); });
-  flipYEl.addEventListener('change', function(){ flipYBadge.style.display=flipYEl.checked?'inline-block':'none'; try{localStorage.setItem('xy.flipY',flipYEl.checked?'1':'0');}catch(e){} rebuildPreview(); if(values) generate(); });
+  
+  flipYEl.addEventListener('change', function(){ 
+    flipYBadge.style.display = flipYEl.checked ? 'inline-block' : 'none'; 
+    try { localStorage.setItem('xy.flipY', flipYEl.checked ? '1' : '0'); } catch(e){} 
+    rebuildPreview(); 
+    if(values) btnGenerate.click(); 
+  });
 
   document.addEventListener('keydown', function(e){
-    if(e.target && (e.target.tagName==='INPUT'||e.target.tagName==='SELECT')) return;
-    if(e.key && e.key.toLowerCase()==='g'){ if(!btnGenerate.disabled) btnGenerate.click(); }if(e.key && e.key.toLowerCase()==='d'){ if(!btnDXF.disabled) btnDXF.click(); }
+    if(e.target && (e.target.tagName==='INPUT' || e.target.tagName==='SELECT')) return;
+    if(e.key && e.key.toLowerCase()==='g'){ if(!btnGenerate.disabled) btnGenerate.click(); }
+    if(e.key && e.key.toLowerCase()==='d'){ if(!btnDXF.disabled) btnDXF.click(); }
   });
+
 })();
 </script>
 </body>
