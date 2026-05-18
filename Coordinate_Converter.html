@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.2 (Final-260518)</title>
+    <title>Coordinate Converter v6.2.1 (260518_Final)</title>
     
     <!-- Offline & System Font Support -->
     
@@ -13,6 +13,9 @@
 
     <!-- SheetJS for Native Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- JSZip for Shapefile Packaging -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
         :root {
@@ -126,10 +129,14 @@
         .btn-map { background-color: #10b981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);}
         .btn-map:hover { background-color: #059669; }
         
-        /* New Excel Button Style */
         .btn-excel { background-color: #059669; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); }
         .btn-excel:hover { background-color: #047857; }
         .btn-excel:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
+        
+        /* SHP Button Style */
+        .btn-shp { background-color: #ea580c; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2); color: #fff;}
+        .btn-shp:hover { background-color: #c2410c; }
+        .btn-shp:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; opacity: 0.7; color: #f8fafc;}
         
         .lang-btn { background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: none; padding: 4px 8px; font-size: 12px;}
         .lang-btn:hover { background-color: rgba(255,255,255,0.2); transform: none;}
@@ -213,7 +220,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.2 (Final)</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.2.1 (260518_Final)</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -309,6 +316,7 @@
             <button id="btnClearS1" class="btn-secondary" data-i18n="btn_clear_s1" data-i18n-title="tt_clear_s1">Clear Section 1</button>
             <button id="btnExpCsvS1" data-i18n="btn_exp_csv_s1" data-i18n-title="tt_exp_csv">Export CSV</button>
             <button id="btnExpXlsxS1" class="btn-excel" data-i18n="btn_exp_xlsx_s1" data-i18n-title="tt_exp_xlsx">Export XLSX</button>
+            <button id="btnExpShpS1" class="btn-shp" data-i18n="btn_exp_shp" data-i18n-title="tt_exp_shp">Export SHP (ZIP)</button>
             <button id="btnExpKmlS1" data-i18n="btn_exp_kml_s1" data-i18n-title="tt_exp_kml">Export KML</button>
             <button id="btnExpDxf1" class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             <button id="btnCopyS1" data-i18n="btn_copy_tsv_s1" data-i18n-title="tt_copy">Copy (TSV)</button>
@@ -397,6 +405,7 @@
             <button id="btnClearS2" class="btn-secondary" data-i18n="btn_clear_s2" data-i18n-title="tt_clear_s2">Clear Section 2</button>
             <button id="btnExpCsvS2" data-i18n="btn_exp_csv_s2" data-i18n-title="tt_exp_csv">Export CSV</button>
             <button id="btnExpXlsxS2" class="btn-excel" data-i18n="btn_exp_xlsx_s2" data-i18n-title="tt_exp_xlsx">Export XLSX</button>
+            <button id="btnExpShpS2" class="btn-shp" data-i18n="btn_exp_shp" data-i18n-title="tt_exp_shp">Export SHP (ZIP)</button>
             <button id="btnExpKmlS2" data-i18n="btn_exp_kml_s2" data-i18n-title="tt_exp_kml">Export KML</button>
             <button id="btnExpDxf2" class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             <button id="btnCopyS2" data-i18n="btn_copy_tsv_s2" data-i18n-title="tt_copy">Copy (TSV)</button>
@@ -420,6 +429,7 @@
                 <button id="btnTowRoute" class="btn-route" data-i18n-title="tt_route_kml">TowRoute (KML)</button>
                 <button id="btnTowRouteCsv" class="btn-route-csv" data-i18n-title="tt_route_csv">TowRoute (CSV)</button>
                 <button id="btnTowRouteXlsx" class="btn-excel" data-i18n-title="tt_route_xlsx">TowRoute (XLSX)</button>
+                <button id="btnTowRouteShp" class="btn-shp" data-i18n-title="tt_route_shp">TowRoute (SHP)</button>
                 <button id="btnExpDxf3" class="btn-route" style="background-color: #2563eb;" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             </div>
         </div>
@@ -502,7 +512,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.2 (Final)", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.2.1 (260518_Final)", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -511,7 +521,7 @@ const I18nDict = {
         s1_import_hint: "Import .txt or .csv file:", s2_import_hint: "Import .txt or .csv file (format: PointID X Y):",
         lbl_show_wgs_utm: "Show WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
         btn_load_file: "Load CSV/TXT", btn_samp_csv: "Sample (CSV)", btn_samp_txt: "Sample (TXT)",
-        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_kml_s1: "Export KML", btn_copy_tsv_s1: "Copy (TSV)",
+        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_shp: "Export SHP (ZIP)", btn_exp_kml_s1: "Export KML", btn_copy_tsv_s1: "Copy (TSV)",
         btn_calc_s2: "Calculate Section 2", btn_clear_s2: "Clear Section 2", btn_exp_csv_s2: "Export CSV", btn_exp_xlsx_s2: "Export XLSX", btn_exp_kml_s2: "Export KML", btn_copy_tsv_s2: "Copy (TSV)",
         vis_title: "Coordinate Visualization", opt_vis_wgs: "WGS84 Lat/Long", opt_vis_utm: "Indian 1975 UTM", btn_show_svg: "Show Points on Chart", btn_exp_dxf: "Export DXF (R12)",
         vis_panel_title: "🗺️ Coordinate Visualization (Map & Grid)", btn_view_map: "🗺️ Interactive Map", btn_view_svg: "📐 Legacy SVG", btn_refresh_map: "Refresh Map",
@@ -526,10 +536,10 @@ const I18nDict = {
         err_math: "Row {0}: Math error.",
         route_empty: "No route data. Enter points in Tab 2 to generate analytics.",
         route_need_pts: "Need at least 2 valid points in Section 2 to generate route analytics.",
-        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
+        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.2 (XLSX Edition)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.2.1 (260518_Final)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -538,7 +548,7 @@ const I18nDict = {
         s1_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ WGS84:", s2_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ UTM:",
         lbl_show_wgs_utm: "แสดง WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
         btn_load_file: "โหลดไฟล์", btn_samp_csv: "ตัวอย่าง CSV", btn_samp_txt: "ตัวอย่าง TXT",
-        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
+        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_shp: "ส่งออก SHP (ZIP)", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
         btn_calc_s2: "ประมวลผลส่วนที่ 2", btn_clear_s2: "ล้างข้อมูล", btn_exp_csv_s2: "ส่งออก CSV", btn_exp_xlsx_s2: "ส่งออก XLSX", btn_exp_kml_s2: "ส่งออก KML", btn_copy_tsv_s2: "คัดลอกตาราง",
         vis_title: "ระบบแสดงกราฟิกพิกัดฉาก", opt_vis_wgs: "พิกัดภูมิศาสตร์ WGS84", opt_vis_utm: "พิกัดฉาก Indian 1975 UTM", btn_show_svg: "สร้างกราฟแสดงจุด", btn_exp_dxf: "ส่งออก CAD DXF",
         vis_panel_title: "🗺️ ระบบแสดงผลพิกัด (แผนที่ & กราฟ)", btn_view_map: "🗺️ แผนที่ Interactive", btn_view_svg: "📐 กราฟ SVG", btn_refresh_map: "รีเฟรชแผนที่",
@@ -553,7 +563,7 @@ const I18nDict = {
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
-        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
+        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
 
@@ -691,6 +701,152 @@ const GeoMath = {
         const ecef = GeoMath.geodeticToECEF(indGeod[0], indGeod[1], 0, GeoMath.a_ind, GeoMath.f_ind);
         const wgsGeod = GeoMath.ecefToGeodetic(ecef[0] - dx, ecef[1] - dy, ecef[2] - dz, GeoMath.a_wgs, GeoMath.f_wgs);
         return { lat: wgsGeod[0], lon: wgsGeod[1], ind_lat: indGeod[0], ind_lon: indGeod[1] };
+    }
+};
+
+/**
+ * Shapefile Binary Exporter Namespace
+ */
+const ShpExporter = {
+    BE32: (b, v) => { b.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255); },
+    LE32: (b, v) => { b.push(v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255); },
+    F64LE: (b, x) => { 
+        let dv = new DataView(new ArrayBuffer(8)); dv.setFloat64(0, x, true); 
+        for(let t=0; t<8; t++) b.push(dv.getUint8(t)); 
+    },
+    le16: (dbf, v) => { dbf.push(v & 255, (v >> 8) & 255); },
+    le32: (dbf, v) => { dbf.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); },
+    asciiPadRight: (s, len) => { 
+        s = String(s||'').replace(/[^ -~]/g,''); if(s.length > len) s = s.slice(0,len); 
+        while(s.length < len) s += ' '; return s; 
+    },
+    asciiPadLeft: (s, len) => { 
+        s = String(s||'').replace(/[^ -~]/g,''); if(s.length > len) s = s.slice(0,len); 
+        while(s.length < len) s = ' ' + s; return s; 
+    },
+    field: (dbf, name, type, len, dec) => { 
+        let b = new Array(32).fill(0); name = String(name||'').toUpperCase().replace(/[^A-Z0-9_]/g,''); 
+        if(name.length > 10) name = name.slice(0,10); 
+        for(let i=0; i<name.length; i++) b[i] = name.charCodeAt(i); 
+        b[11] = type.charCodeAt(0); b[16] = len & 255; b[17] = (dec||0) & 255; 
+        for(let i=0; i<32; i++) dbf.push(b[i]); 
+    },
+    
+    build: function(records, shapeType, dbfFields, prjString) {
+        if (!records || records.length === 0) return null;
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        
+        // Calculate Extents
+        records.forEach(r => {
+            if (shapeType === 1) {
+                let x = r.geom[0], y = r.geom[1];
+                if(x < minX) minX = x; if(y < minY) minY = y; if(x > maxX) maxX = x; if(y > maxY) maxY = y;
+            } else if (shapeType === 3) {
+                r.geom.forEach(pt => {
+                    let x = pt[0], y = pt[1];
+                    if(x < minX) minX = x; if(y < minY) minY = y; if(x > maxX) maxX = x; if(y > maxY) maxY = y;
+                });
+            }
+        });
+
+        // SHP & SHX Setup
+        let shp = [], shx = [];
+        this.BE32(shp, 9994); for(let i=0; i<5; i++) this.BE32(shp, 0); 
+        let shpLenPos = shp.length; 
+        this.BE32(shp, 0); this.LE32(shp, 1000); this.LE32(shp, shapeType);
+        this.F64LE(shp, minX); this.F64LE(shp, minY); this.F64LE(shp, maxX); this.F64LE(shp, maxY); 
+        for(let i=0; i<4; i++) this.F64LE(shp, 0);
+        
+        this.BE32(shx, 9994); for(let i=0; i<5; i++) this.BE32(shx, 0); 
+        let shxLenPos = shx.length; 
+        this.BE32(shx, 0); this.LE32(shx, 1000); this.LE32(shx, shapeType);
+        this.F64LE(shx, minX); this.F64LE(shx, minY); this.F64LE(shx, maxX); this.F64LE(shx, maxY); 
+        for(let i=0; i<4; i++) this.F64LE(shx, 0);
+
+        let shpBytes = 100, recNum = 1;
+        
+        // Write Records
+        records.forEach(r => {
+            let offsetWords = shpBytes / 2;
+            let contentBytes, contentWords;
+            
+            if (shapeType === 1) { // Point
+                contentBytes = 4 + 16; // shapeType(4) + X(8) + Y(8)
+                contentWords = contentBytes / 2;
+                
+                this.BE32(shx, offsetWords); this.BE32(shx, contentWords);
+                this.BE32(shp, recNum); this.BE32(shp, contentWords);
+                this.LE32(shp, 1); 
+                this.F64LE(shp, r.geom[0]); this.F64LE(shp, r.geom[1]);
+            } else if (shapeType === 3) { // PolyLine (Single Part per record)
+                let numPoints = r.geom.length;
+                let rminX = Infinity, rminY = Infinity, rmaxX = -Infinity, rmaxY = -Infinity;
+                r.geom.forEach(pt => {
+                    if(pt[0]<rminX) rminX=pt[0]; if(pt[1]<rminY) rminY=pt[1]; if(pt[0]>rmaxX) rmaxX=pt[0]; if(pt[1]>rmaxY) rmaxY=pt[1];
+                });
+                
+                contentBytes = 4 + 32 + 4 + 4 + 4 + (16 * numPoints);
+                contentWords = contentBytes / 2; 
+                
+                this.BE32(shx, offsetWords); this.BE32(shx, contentWords);
+                this.BE32(shp, recNum); this.BE32(shp, contentWords);
+                this.LE32(shp, 3); 
+                this.F64LE(shp, rminX); this.F64LE(shp, rminY); this.F64LE(shp, rmaxX); this.F64LE(shp, rmaxY);
+                this.LE32(shp, 1); // 1 part
+                this.LE32(shp, numPoints); 
+                this.LE32(shp, 0); // part offset
+                r.geom.forEach(pt => { this.F64LE(shp, pt[0]); this.F64LE(shp, pt[1]); });
+            }
+            
+            shpBytes += 8 + contentBytes;
+            recNum++;
+        });
+        
+        let shpWords = shpBytes / 2; 
+        shp[shpLenPos] = (shpWords>>>24)&255; shp[shpLenPos+1] = (shpWords>>>16)&255; shp[shpLenPos+2] = (shpWords>>>8)&255; shp[shpLenPos+3] = (shpWords)&255;
+        let shxBytes = 100 + records.length * 8; let shxWords = shxBytes / 2;
+        shx[shxLenPos] = (shxWords>>>24)&255; shx[shxLenPos+1] = (shxWords>>>16)&255; shx[shxLenPos+2] = (shxWords>>>8)&255; shx[shxLenPos+3] = (shxWords)&255;
+
+        // DBF Setup
+        let dbf = [];
+        let now = new Date();
+        dbf.push(0x03, now.getFullYear() - 1900, now.getMonth() + 1, now.getDate());
+        this.le32(dbf, records.length);
+        
+        let recLen = 1; // Delete flag
+        dbfFields.forEach(f => { recLen += f.len; });
+        let hdrLen = 32 + (32 * dbfFields.length) + 1;
+        
+        this.le16(dbf, hdrLen); this.le16(dbf, recLen);
+        for(let i=0; i<20; i++) dbf.push(0);
+        
+        dbfFields.forEach(f => { this.field(dbf, f.name, f.type, f.len, f.dec); });
+        dbf.push(0x0D); // Header terminator
+        
+        // DBF Records
+        records.forEach(r => {
+            dbf.push(0x20); // Valid record flag
+            dbfFields.forEach(f => {
+                let val = r.attr[f.name];
+                let strVal = '';
+                if (f.type === 'N') {
+                    strVal = this.asciiPadLeft((val != null && isFinite(val)) ? Number(val).toFixed(f.dec) : '', f.len);
+                } else {
+                    strVal = this.asciiPadRight(val || '', f.len);
+                }
+                for(let j=0; j<f.len; j++) dbf.push(strVal.charCodeAt(j));
+            });
+        });
+        dbf.push(0x1A); // EOF
+
+        return { 
+            shp: new Uint8Array(shp), 
+            shx: new Uint8Array(shx), 
+            dbf: new Uint8Array(dbf), 
+            prj: new TextEncoder().encode(prjString), 
+            cpg: new TextEncoder().encode('UTF-8') 
+        };
     }
 };
 
@@ -1504,6 +1660,121 @@ const AppMethods = {
         document.body.appendChild(a); a.click(); 
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     },
+    
+    exportShpS1: () => {
+        if(typeof JSZip === 'undefined') return;
+        const tb = document.getElementById('table1');
+        const p = AppState.params, zi = AppState.zoneInfo;
+        const cols = AppMethods.getS1Cols();
+        let records = [];
+        
+        Array.from(tb.rows).slice(1).forEach(r => {
+            if (r.querySelector('.has-error')) return;
+            let coords = AppMethods.getS1LatLon(r);
+            if (!isNaN(coords.lat) && !isNaN(coords.lon)) {
+                let res = GeoMath.wgs84ToInd1975(coords.lat, coords.lon, p.dx, p.dy, p.dz, zi.cm);
+                records.push({
+                    geom: [res.east, res.north],
+                    attr: {
+                        ID: r.cells[0].innerText,
+                        EAST: res.east,
+                        NORTH: res.north,
+                        LAT: r.cells[cols.lat].innerText,
+                        LON: r.cells[cols.lon].innerText
+                    }
+                });
+            }
+        });
+        
+        if(!records.length){ AppMethods.showToast(t('msg_no_pts'), 'err'); return;}
+        
+        const dbfFields = [
+            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'EAST', type: 'N', len: 14, dec: 4},
+            {name: 'NORTH', type: 'N', len: 14, dec: 4},
+            {name: 'LAT', type: 'C', len: 24, dec: 0},
+            {name: 'LON', type: 'C', len: 24, dec: 0}
+        ];
+        
+        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]`;
+        
+        const data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        if(!data) return;
+        
+        let zip = new JSZip();
+        let base = `S1_Points_${AppMethods.getTimestamp()}`;
+        zip.file(base+'.shp', data.shp);
+        zip.file(base+'.shx', data.shx);
+        zip.file(base+'.dbf', data.dbf);
+        zip.file(base+'.prj', data.prj);
+        zip.file(base+'.cpg', data.cpg);
+        
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(content);
+            a.href = url; a.download = base + '.zip';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+        });
+    },
+    
+    exportShpS2: () => {
+        if(typeof JSZip === 'undefined') return;
+        const tb = document.getElementById('table2');
+        const p = AppState.params, zi = AppState.zoneInfo;
+        const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
+        const cols = AppMethods.getS2Cols();
+        let records = [];
+        
+        Array.from(tb.rows).slice(1).forEach(r => {
+            if (r.querySelector('.has-error')) return;
+            let e = Formatter.toNumber(r.cells[cols.indE].querySelector('input').value);
+            let n = Formatter.toNumber(r.cells[cols.indN].querySelector('input').value);
+            if (!isNaN(e) && !isNaN(n)) {
+                records.push({
+                    geom: [e, n],
+                    attr: {
+                        ID: r.cells[cols.pt].innerText,
+                        EAST: e,
+                        NORTH: n,
+                        WGSLAT: r.cells[cols.wgsLat].innerText,
+                        WGSLON: r.cells[cols.wgsLon].innerText
+                    }
+                });
+            }
+        });
+        
+        if(!records.length){ AppMethods.showToast(t('msg_no_pts'), 'err'); return;}
+        
+        const dbfFields = [
+            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'EAST', type: 'N', len: 14, dec: 4},
+            {name: 'NORTH', type: 'N', len: 14, dec: 4},
+            {name: 'WGSLAT', type: 'C', len: 24, dec: 0},
+            {name: 'WGSLON', type: 'C', len: 24, dec: 0}
+        ];
+        
+        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]`;
+        
+        const data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        if(!data) return;
+        
+        let zip = new JSZip();
+        let base = `S2_Points_${AppMethods.getTimestamp()}`;
+        zip.file(base+'.shp', data.shp);
+        zip.file(base+'.shx', data.shx);
+        zip.file(base+'.dbf', data.dbf);
+        zip.file(base+'.prj', data.prj);
+        zip.file(base+'.cpg', data.cpg);
+        
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(content);
+            a.href = url; a.download = base + '.zip';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+        });
+    },
 
     exportTowRoute: () => {
         const p = AppState.params, zi = AppState.zoneInfo;
@@ -1624,6 +1895,78 @@ const AppMethods = {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Route Analytics");
         XLSX.writeFile(wb, `Route_Analytics_${AppMethods.getTimestamp()}.xlsx`);
+    },
+    
+    exportTowRouteShp: () => {
+        if(typeof JSZip === 'undefined') return;
+        const tb = document.getElementById('table2');
+        const p = AppState.params, zi = AppState.zoneInfo;
+        const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
+        const cols = AppMethods.getS2Cols();
+        let pts = [];
+        
+        Array.from(tb.rows).slice(1).forEach(r => {
+            if (r.querySelector('.has-error')) return;
+            let e = Formatter.toNumber(r.cells[cols.indE].querySelector('input').value);
+            let n = Formatter.toNumber(r.cells[cols.indN].querySelector('input').value);
+            if (!isNaN(e) && !isNaN(n)) {
+                let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern);
+                pts.push({id: r.cells[cols.pt].innerText, e: e, n: n, lat: res.lat, lon: res.lon});
+            }
+        });
+        
+        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        
+        let records = [];
+        for(let i=0; i<pts.length-1; i++) {
+            const pt1 = pts[i], pt2 = pts[i+1];
+            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
+            const planarDist = Math.hypot(dx, dy);
+            let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
+            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
+            
+            records.push({
+                geom: [[pt1.e, pt1.n], [pt2.e, pt2.n]], // Segment
+                attr: {
+                    LEG: i + 1,
+                    FROM: pt1.id,
+                    TO: pt2.id,
+                    GRID_BRG: gb,
+                    TRUE_BRG: isNaN(vRes.bearing) ? 0 : vRes.bearing,
+                    DIST_M: planarDist
+                }
+            });
+        }
+        
+        const dbfFields = [
+            {name: 'LEG', type: 'N', len: 5, dec: 0},
+            {name: 'FROM', type: 'C', len: 12, dec: 0},
+            {name: 'TO', type: 'C', len: 12, dec: 0},
+            {name: 'GRID_BRG', type: 'N', len: 8, dec: 2},
+            {name: 'TRUE_BRG', type: 'N', len: 8, dec: 2},
+            {name: 'DIST_M', type: 'N', len: 12, dec: 2}
+        ];
+        
+        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]`;
+        
+        const data = ShpExporter.build(records, 3, dbfFields, prjStr); // Type 3 = PolyLine
+        if(!data) return;
+        
+        let zip = new JSZip();
+        let base = `Route_Line_${AppMethods.getTimestamp()}`;
+        zip.file(base+'.shp', data.shp);
+        zip.file(base+'.shx', data.shx);
+        zip.file(base+'.dbf', data.dbf);
+        zip.file(base+'.prj', data.prj);
+        zip.file(base+'.cpg', data.cpg);
+        
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(content);
+            a.href = url; a.download = base + '.zip';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+        });
     },
 
     download: (fn, txt, typ) => {
@@ -2125,7 +2468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     AppMethods.flushToCache(2);
     AppMethods.drawLeaflet(false);
     
-    // OFFLINE FALLBACK FOR SHEETJS
+    // OFFLINE FALLBACK FOR SHEETJS & JSZIP
     setTimeout(() => {
         if (typeof XLSX === 'undefined') {
             ['btnExpXlsxS1', 'btnExpXlsxS2', 'btnTowRouteXlsx'].forEach(id => {
@@ -2133,7 +2476,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (btn) {
                     btn.disabled = true;
                     btn.title = AppState.lang === 'th' ? "ส่งออก XLSX (จำเป็นต้องเชื่อมต่ออินเทอร์เน็ต)" : "Export XLSX (Requires Internet Connection)";
-                    btn.innerText += " \u26A0\uFE0F"; // Add warning icon
+                    btn.innerText += " \u26A0\uFE0F"; 
+                }
+            });
+        }
+        if (typeof JSZip === 'undefined') {
+            ['btnExpShpS1', 'btnExpShpS2', 'btnTowRouteShp'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.title = AppState.lang === 'th' ? "ส่งออก SHP (จำเป็นต้องเชื่อมต่ออินเทอร์เน็ต)" : "Export SHP (Requires Internet Connection)";
+                    btn.innerText += " \u26A0\uFE0F";
                 }
             });
         }
@@ -2179,6 +2532,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLoadS1').addEventListener('click', AppMethods.loadF1); document.getElementById('btnCopyS1').addEventListener('click', ()=>AppMethods.copyTable('table1',true));
     document.getElementById('btnExpCsvS1').addEventListener('click', ()=>AppMethods.exportCsv('table1', `S1_${AppMethods.getTimestamp()}.csv`)); 
     document.getElementById('btnExpXlsxS1').addEventListener('click', ()=>AppMethods.exportXlsx('table1', `S1_${AppMethods.getTimestamp()}.xlsx`)); 
+    document.getElementById('btnExpShpS1').addEventListener('click', AppMethods.exportShpS1);
     document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1', `S1_${AppMethods.getTimestamp()}.kml`));
     document.getElementById('btnSampS1Csv').addEventListener('click', ()=>AppMethods.downloadSample('s1_csv')); document.getElementById('btnSampS1Txt').addEventListener('click', ()=>AppMethods.downloadSample('s1_txt'));
     
@@ -2186,6 +2540,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLoadS2').addEventListener('click', AppMethods.loadF2); document.getElementById('btnCopyS2').addEventListener('click', ()=>AppMethods.copyTable('table2',true));
     document.getElementById('btnExpCsvS2').addEventListener('click', ()=>AppMethods.exportCsv('table2', `S2_${AppMethods.getTimestamp()}.csv`)); 
     document.getElementById('btnExpXlsxS2').addEventListener('click', ()=>AppMethods.exportXlsx('table2', `S2_${AppMethods.getTimestamp()}.xlsx`));
+    document.getElementById('btnExpShpS2').addEventListener('click', AppMethods.exportShpS2);
     document.getElementById('btnExpKmlS2').addEventListener('click', ()=>AppMethods.exportKml('table2', `S2_${AppMethods.getTimestamp()}.kml`));
     document.getElementById('btnSampS2Csv').addEventListener('click', ()=>AppMethods.downloadSample('s2_csv')); document.getElementById('btnSampS2Txt').addEventListener('click', ()=>AppMethods.downloadSample('s2_txt'));
     
@@ -2202,6 +2557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnTowRoute').addEventListener('click', AppMethods.exportTowRoute);
     document.getElementById('btnTowRouteCsv').addEventListener('click', AppMethods.exportTowRouteCsv);
     document.getElementById('btnTowRouteXlsx').addEventListener('click', AppMethods.exportTowRouteXlsx);
+    document.getElementById('btnTowRouteShp').addEventListener('click', AppMethods.exportTowRouteShp);
 
     document.getElementById('gammaToggle').addEventListener('change', AppMethods.renderRouteTable);
     
