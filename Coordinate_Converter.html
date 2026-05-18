@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.1.3 (260517-Final)</title>
+    <title>Coordinate Converter v6.2 (Final-260518)</title>
     
-    <!-- Offline & System Font Support: Removed Google Fonts preconnects -->
+    <!-- Offline & System Font Support -->
     
+    <!-- Leaflet Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- SheetJS for Native Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
     <style>
         :root {
@@ -25,7 +29,6 @@
             --input-bg: #f8fafc;
             --input-focus: #c7d2fe;
             --table-header: #1e293b;
-            /* Changed to System Font Stack for offline/air-gapped environments */
             --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
@@ -123,6 +126,11 @@
         .btn-map { background-color: #10b981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);}
         .btn-map:hover { background-color: #059669; }
         
+        /* New Excel Button Style */
+        .btn-excel { background-color: #059669; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); }
+        .btn-excel:hover { background-color: #047857; }
+        .btn-excel:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
+        
         .lang-btn { background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: none; padding: 4px 8px; font-size: 12px;}
         .lang-btn:hover { background-color: rgba(255,255,255,0.2); transform: none;}
 
@@ -205,7 +213,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.1.3 (Final)</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.2 (Final)</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -300,6 +308,7 @@
             <button id="btnCalcS1" data-i18n="btn_calc_s1" data-i18n-title="tt_calc_s1">Calculate Section 1</button>
             <button id="btnClearS1" class="btn-secondary" data-i18n="btn_clear_s1" data-i18n-title="tt_clear_s1">Clear Section 1</button>
             <button id="btnExpCsvS1" data-i18n="btn_exp_csv_s1" data-i18n-title="tt_exp_csv">Export CSV</button>
+            <button id="btnExpXlsxS1" class="btn-excel" data-i18n="btn_exp_xlsx_s1" data-i18n-title="tt_exp_xlsx">Export XLSX</button>
             <button id="btnExpKmlS1" data-i18n="btn_exp_kml_s1" data-i18n-title="tt_exp_kml">Export KML</button>
             <button id="btnExpDxf1" class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             <button id="btnCopyS1" data-i18n="btn_copy_tsv_s1" data-i18n-title="tt_copy">Copy (TSV)</button>
@@ -387,6 +396,7 @@
             <button id="btnCalcS2" data-i18n="btn_calc_s2" data-i18n-title="tt_calc_s2">Calculate Section 2</button>
             <button id="btnClearS2" class="btn-secondary" data-i18n="btn_clear_s2" data-i18n-title="tt_clear_s2">Clear Section 2</button>
             <button id="btnExpCsvS2" data-i18n="btn_exp_csv_s2" data-i18n-title="tt_exp_csv">Export CSV</button>
+            <button id="btnExpXlsxS2" class="btn-excel" data-i18n="btn_exp_xlsx_s2" data-i18n-title="tt_exp_xlsx">Export XLSX</button>
             <button id="btnExpKmlS2" data-i18n="btn_exp_kml_s2" data-i18n-title="tt_exp_kml">Export KML</button>
             <button id="btnExpDxf2" class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             <button id="btnCopyS2" data-i18n="btn_copy_tsv_s2" data-i18n-title="tt_copy">Copy (TSV)</button>
@@ -409,12 +419,13 @@
             <div class="route-group" style="border: none; margin: 0; padding: 0;">
                 <button id="btnTowRoute" class="btn-route" data-i18n-title="tt_route_kml">TowRoute (KML)</button>
                 <button id="btnTowRouteCsv" class="btn-route-csv" data-i18n-title="tt_route_csv">TowRoute (CSV)</button>
+                <button id="btnTowRouteXlsx" class="btn-excel" data-i18n-title="tt_route_xlsx">TowRoute (XLSX)</button>
                 <button id="btnExpDxf3" class="btn-route" style="background-color: #2563eb;" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf">Export DXF</button>
             </div>
         </div>
         
         <div class="route-table-wrapper">
-            <table id="routeAnalyticsTable">
+            <table id="routeAnalyticsTable" class="show-conv">
                 <thead>
                     <tr>
                         <th>Leg</th>
@@ -491,7 +502,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.1.3 (Final)", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.2 (Final)", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -500,8 +511,8 @@ const I18nDict = {
         s1_import_hint: "Import .txt or .csv file:", s2_import_hint: "Import .txt or .csv file (format: PointID X Y):",
         lbl_show_wgs_utm: "Show WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
         btn_load_file: "Load CSV/TXT", btn_samp_csv: "Sample (CSV)", btn_samp_txt: "Sample (TXT)",
-        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export Section 1 CSV", btn_exp_kml_s1: "Export Section 1 KML", btn_copy_tsv_s1: "Copy Section 1 (TSV)",
-        btn_calc_s2: "Calculate Section 2", btn_clear_s2: "Clear Section 2", btn_exp_csv_s2: "Export Section 2 CSV", btn_exp_kml_s2: "Export Section 2 KML", btn_copy_tsv_s2: "Copy Section 2 (TSV)",
+        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_kml_s1: "Export KML", btn_copy_tsv_s1: "Copy (TSV)",
+        btn_calc_s2: "Calculate Section 2", btn_clear_s2: "Clear Section 2", btn_exp_csv_s2: "Export CSV", btn_exp_xlsx_s2: "Export XLSX", btn_exp_kml_s2: "Export KML", btn_copy_tsv_s2: "Copy (TSV)",
         vis_title: "Coordinate Visualization", opt_vis_wgs: "WGS84 Lat/Long", opt_vis_utm: "Indian 1975 UTM", btn_show_svg: "Show Points on Chart", btn_exp_dxf: "Export DXF (R12)",
         vis_panel_title: "🗺️ Coordinate Visualization (Map & Grid)", btn_view_map: "🗺️ Interactive Map", btn_view_svg: "📐 Legacy SVG", btn_refresh_map: "Refresh Map",
         th_pt: "Point ID", th_wgs_lat_d: "WGS84 Lat Deg", th_wgs_lat_m: "WGS84 Lat Min", th_wgs_lon_d: "WGS84 Lon Deg", th_wgs_lon_m: "WGS84 Lon Min", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
@@ -515,10 +526,10 @@ const I18nDict = {
         err_math: "Row {0}: Math error.",
         route_empty: "No route data. Enter points in Tab 2 to generate analytics.",
         route_need_pts: "Need at least 2 valid points in Section 2 to generate route analytics.",
-        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
+        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.1.3 (Final Architecture)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.2 (XLSX Edition)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -527,8 +538,8 @@ const I18nDict = {
         s1_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ WGS84:", s2_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ UTM:",
         lbl_show_wgs_utm: "แสดง WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
         btn_load_file: "โหลดไฟล์", btn_samp_csv: "ตัวอย่าง CSV", btn_samp_txt: "ตัวอย่าง TXT",
-        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
-        btn_calc_s2: "ประมวลผลส่วนที่ 2", btn_clear_s2: "ล้างข้อมูล", btn_exp_csv_s2: "ส่งออก CSV", btn_exp_kml_s2: "ส่งออก KML", btn_copy_tsv_s2: "คัดลอกตาราง",
+        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
+        btn_calc_s2: "ประมวลผลส่วนที่ 2", btn_clear_s2: "ล้างข้อมูล", btn_exp_csv_s2: "ส่งออก CSV", btn_exp_xlsx_s2: "ส่งออก XLSX", btn_exp_kml_s2: "ส่งออก KML", btn_copy_tsv_s2: "คัดลอกตาราง",
         vis_title: "ระบบแสดงกราฟิกพิกัดฉาก", opt_vis_wgs: "พิกัดภูมิศาสตร์ WGS84", opt_vis_utm: "พิกัดฉาก Indian 1975 UTM", btn_show_svg: "สร้างกราฟแสดงจุด", btn_exp_dxf: "ส่งออก CAD DXF",
         vis_panel_title: "🗺️ ระบบแสดงผลพิกัด (แผนที่ & กราฟ)", btn_view_map: "🗺️ แผนที่ Interactive", btn_view_svg: "📐 กราฟ SVG", btn_refresh_map: "รีเฟรชแผนที่",
         th_pt: "ชื่อจุด", th_wgs_lat_d: "WGS84 องศา (N)", th_wgs_lat_m: "WGS84 ลิปดา (N)", th_wgs_lon_d: "WGS84 องศา (E)", th_wgs_lon_m: "WGS84 ลิปดา (E)", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
@@ -542,7 +553,7 @@ const I18nDict = {
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
-        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
+        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
 
@@ -741,6 +752,13 @@ const Formatter = {
             if (!isNaN(dec)) return dec;
         }
         return Formatter.toNumber(s);
+    },
+    parseExcelNumber: (str) => {
+        let v = String(str).trim();
+        if(v === '') return '';
+        if(v.includes('°') || v.includes('\'') || v.includes('"')) return v; // Keep formatted DMS/DM as string
+        let num = Number(v);
+        return isNaN(num) ? v : num;
     }
 };
 
@@ -920,7 +938,6 @@ const AppMethods = {
         const tbody = document.querySelector('#routeAnalyticsTable tbody');
         if(!tbody) return;
         
-        // REFINED: Enhanced route empty states with safe visual feedback
         if(pts.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" style="padding: 16px; color: var(--text-secondary);">${t('route_empty')}</td></tr>`;
             return;
@@ -930,8 +947,6 @@ const AppMethods = {
         }
 
         const applyGamma = document.getElementById('gammaToggle').checked;
-        
-        // FIXED: Toggle "show-conv" class dynamically on the route analytics table itself
         const routeTable = document.getElementById('routeAnalyticsTable');
         if (routeTable) {
             routeTable.classList.toggle('show-conv', applyGamma);
@@ -1329,6 +1344,45 @@ const AppMethods = {
         }
         AppMethods.download(fn, lines.join('\n'), 'text/csv;charset=utf-8');
     },
+    
+    exportXlsx: (tid, fn) => {
+        if(typeof XLSX === 'undefined') return;
+        const tb=document.getElementById(tid), aoa=[];
+        const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
+        const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
+        
+        aoa.push([`# Zone: ${zoneLabel} | ${datumLabel} | dx=${AppState.params.dx} dy=${AppState.params.dy} dz=${AppState.params.dz}`]);
+        aoa.push([`# Note: 2D Transformation (Ellipsoidal Height forced to 0m)`]);
+        
+        const headers = Array.from(tb.rows[0].cells).filter(c => AppMethods.isCellVisible(c, tb)).map(h => h.innerText.trim());
+        aoa.push(headers);
+        
+        for(let i=1; i<tb.rows.length; i++){
+            if(tb.rows[i].querySelector('.has-error')) continue; 
+            let rowData = Array.from(tb.rows[i].cells)
+                .filter(c => AppMethods.isCellVisible(c, tb))
+                .map(c=>{
+                    let inp=c.querySelector('input'); 
+                    let val=String(inp&&inp.value?inp.value:c.innerText).trim();
+                    return Formatter.parseExcelNumber(val);
+                });
+            if(!rowData.slice(1).every(c=>c==='')) aoa.push(rowData);
+        }
+        
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const colWidths = aoa.reduce((acc, row) => {
+            row.forEach((cell, i) => {
+                const len = cell ? String(cell).length : 0;
+                if (!acc[i] || acc[i].wch < len) acc[i] = { wch: len + 3 };
+            });
+            return acc;
+        }, []);
+        ws['!cols'] = colWidths;
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Coordinates");
+        XLSX.writeFile(wb, fn);
+    },
 
     exportKml: (tid, fn) => {
         const isS1 = tid==='table1', tb=document.getElementById(tid); let kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
@@ -1492,7 +1546,6 @@ const AppMethods = {
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         
-        // FIXED: Added Conv γ (°) column to match the on-screen table format
         let csv = '\uFEFFLeg,From ID,To ID,Grid Bearing(°),Conv γ(°),True Bearing(°),Planar Distance(m),Geodesic Distance(km),Geodesic Distance(NM)\n';
         for(let i=0; i<pts.length-1; i++) {
             const pt1 = pts[i], pt2 = pts[i+1];
@@ -1512,6 +1565,65 @@ const AppMethods = {
             csv += `${i+1},"${pt1.id.replace(/"/g,'""')}","${pt2.id.replace(/"/g,'""')}",${gb.toFixed(2)},${gamma.toFixed(4)},${trueBrgStr},${planarDist.toFixed(2)},${geoKmStr},${geoNmStr}\n`;
         }
         AppMethods.download(`Route_Analytics_${AppMethods.getTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
+    },
+    
+    exportTowRouteXlsx: () => {
+        if(typeof XLSX === 'undefined') return;
+        const p = AppState.params, zi = AppState.zoneInfo;
+        const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
+        const s2Cols = AppMethods.getS2Cols();
+        const pts = [];
+        Array.from(document.getElementById('table2').rows).slice(1).forEach(r => {
+            if (r.querySelector('.has-error')) return;
+            let c = r.cells, e = Formatter.toNumber(c[s2Cols.indE].querySelector('input').value), n = Formatter.toNumber(c[s2Cols.indN].querySelector('input').value);
+            if(!isNaN(e) && !isNaN(n)) {
+                let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern);
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon});
+            }
+        });
+        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        
+        const aoa = [];
+        aoa.push(['Leg','From ID','To ID','Grid Bearing(°)','Conv γ(°)','True Bearing(°)','Planar Distance(m)','Geodesic Distance(km)','Geodesic Distance(NM)']);
+        
+        for(let i=0; i<pts.length-1; i++) {
+            const pt1 = pts[i], pt2 = pts[i+1];
+            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
+            const planarDist = Math.hypot(dx, dy);
+            let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
+            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
+            
+            const midE = (pt1.e + pt2.e) / 2, midN = (pt1.n + pt2.n) / 2;
+            const midW = GeoMath.ind1975ToWgs84(midE, midN, p.dx, p.dy, p.dz, zi.cm, isSouthern);
+            let gamma = GeoMath.calculateConvergence(midW.lat, midW.lon, zi.cm);
+            
+            let row = [
+                i + 1,
+                pt1.id,
+                pt2.id,
+                Number(gb.toFixed(2)),
+                Number(gamma.toFixed(4)),
+                isNaN(vRes.bearing) ? "ERR_ANTIPODAL" : Number(vRes.bearing.toFixed(2)),
+                Number(planarDist.toFixed(2)),
+                isNaN(vRes.distance) ? 0 : Number((vRes.distance / 1000).toFixed(3)),
+                isNaN(vRes.distance) ? 0 : Number((vRes.distance / 1852).toFixed(3))
+            ];
+            aoa.push(row);
+        }
+        
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const colWidths = aoa.reduce((acc, row) => {
+            row.forEach((cell, i) => {
+                const len = cell ? String(cell).length : 0;
+                if (!acc[i] || acc[i].wch < len) acc[i] = { wch: len + 3 };
+            });
+            return acc;
+        }, []);
+        ws['!cols'] = colWidths;
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Route Analytics");
+        XLSX.writeFile(wb, `Route_Analytics_${AppMethods.getTimestamp()}.xlsx`);
     },
 
     download: (fn, txt, typ) => {
@@ -1693,7 +1805,7 @@ const AppMethods = {
                 let data = AppMethods.extractRowData(l, true, AppState.s1Format);
                 if (!data) return;
                 if (i === 0 && data.coords.some(AppMethods.isHeaderWord)) return;
-                if (!tableEl.rows[destIdx]) return; // SAFE GUARD
+                if (!tableEl.rows[destIdx]) return;
                 
                 const c = tableEl.rows[destIdx].cells;
                 c[0].innerText = data.id || String(destIdx);
@@ -1724,7 +1836,7 @@ const AppMethods = {
                 let data = AppMethods.extractRowData(l, false, null);
                 if (!data) return;
                 if (i === 0 && data.coords.some(AppMethods.isHeaderWord)) return;
-                if (!tableEl.rows[destIdx]) return; // SAFE GUARD
+                if (!tableEl.rows[destIdx]) return;
                 
                 const c = tableEl.rows[destIdx].cells;
                 c[s2Cols.pt].innerText = data.id || String(destIdx);
@@ -2013,6 +2125,20 @@ document.addEventListener('DOMContentLoaded', () => {
     AppMethods.flushToCache(2);
     AppMethods.drawLeaflet(false);
     
+    // OFFLINE FALLBACK FOR SHEETJS
+    setTimeout(() => {
+        if (typeof XLSX === 'undefined') {
+            ['btnExpXlsxS1', 'btnExpXlsxS2', 'btnTowRouteXlsx'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.title = AppState.lang === 'th' ? "ส่งออก XLSX (จำเป็นต้องเชื่อมต่ออินเทอร์เน็ต)" : "Export XLSX (Requires Internet Connection)";
+                    btn.innerText += " \u26A0\uFE0F"; // Add warning icon
+                }
+            });
+        }
+    }, 1000);
+
     document.getElementById('langBtn').addEventListener('click', () => { AppState.lang = AppState.lang==='th'?'en':'th'; updateTranslations(); });
     ['zoneSelect', 'datumSelect', 's2Hemisphere'].forEach(id => document.getElementById(id).addEventListener('change', AppMethods.syncSettings));
     document.getElementById('section1InputFormat').addEventListener('change', AppMethods.fmtSwitcherS1);
@@ -2051,12 +2177,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btnCalcS1').addEventListener('click', AppMethods.calcS1); document.getElementById('btnClearS1').addEventListener('click', AppMethods.clearS1);
     document.getElementById('btnLoadS1').addEventListener('click', AppMethods.loadF1); document.getElementById('btnCopyS1').addEventListener('click', ()=>AppMethods.copyTable('table1',true));
-    document.getElementById('btnExpCsvS1').addEventListener('click', ()=>AppMethods.exportCsv('table1', `S1_${AppMethods.getTimestamp()}.csv`)); document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1', `S1_${AppMethods.getTimestamp()}.kml`));
+    document.getElementById('btnExpCsvS1').addEventListener('click', ()=>AppMethods.exportCsv('table1', `S1_${AppMethods.getTimestamp()}.csv`)); 
+    document.getElementById('btnExpXlsxS1').addEventListener('click', ()=>AppMethods.exportXlsx('table1', `S1_${AppMethods.getTimestamp()}.xlsx`)); 
+    document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1', `S1_${AppMethods.getTimestamp()}.kml`));
     document.getElementById('btnSampS1Csv').addEventListener('click', ()=>AppMethods.downloadSample('s1_csv')); document.getElementById('btnSampS1Txt').addEventListener('click', ()=>AppMethods.downloadSample('s1_txt'));
     
     document.getElementById('btnCalcS2').addEventListener('click', AppMethods.calcS2); document.getElementById('btnClearS2').addEventListener('click', AppMethods.clearS2);
     document.getElementById('btnLoadS2').addEventListener('click', AppMethods.loadF2); document.getElementById('btnCopyS2').addEventListener('click', ()=>AppMethods.copyTable('table2',true));
-    document.getElementById('btnExpCsvS2').addEventListener('click', ()=>AppMethods.exportCsv('table2', `S2_${AppMethods.getTimestamp()}.csv`)); document.getElementById('btnExpKmlS2').addEventListener('click', ()=>AppMethods.exportKml('table2', `S2_${AppMethods.getTimestamp()}.kml`));
+    document.getElementById('btnExpCsvS2').addEventListener('click', ()=>AppMethods.exportCsv('table2', `S2_${AppMethods.getTimestamp()}.csv`)); 
+    document.getElementById('btnExpXlsxS2').addEventListener('click', ()=>AppMethods.exportXlsx('table2', `S2_${AppMethods.getTimestamp()}.xlsx`));
+    document.getElementById('btnExpKmlS2').addEventListener('click', ()=>AppMethods.exportKml('table2', `S2_${AppMethods.getTimestamp()}.kml`));
     document.getElementById('btnSampS2Csv').addEventListener('click', ()=>AppMethods.downloadSample('s2_csv')); document.getElementById('btnSampS2Txt').addEventListener('click', ()=>AppMethods.downloadSample('s2_txt'));
     
     document.getElementById('section1OutputFormat').addEventListener('change', AppMethods.calcS1); document.getElementById('section2OutputFormat').addEventListener('change', AppMethods.calcS2);
@@ -2071,6 +2201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnGetGPS').addEventListener('click', AppMethods.getGPS);
     document.getElementById('btnTowRoute').addEventListener('click', AppMethods.exportTowRoute);
     document.getElementById('btnTowRouteCsv').addEventListener('click', AppMethods.exportTowRouteCsv);
+    document.getElementById('btnTowRouteXlsx').addEventListener('click', AppMethods.exportTowRouteXlsx);
 
     document.getElementById('gammaToggle').addEventListener('change', AppMethods.renderRouteTable);
     
