@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.2.1 (260518_Final)</title>
+    <title>Coordinate Converter v6.2.3 (Final-260518)</title>
     
     <!-- Offline & System Font Support -->
     
@@ -220,7 +220,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.2.1 (260518_Final)</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.2.3 (Final-260518)</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -512,7 +512,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.2.1 (260518_Final)", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.2.3 (Final-260518)", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM to WGS84 Lat/Long and Indian Lat/Long",
@@ -539,7 +539,7 @@ const I18nDict = {
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.2.1 (260518_Final)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.2.3 (Final-260518)", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -563,7 +563,7 @@ const I18nDict = {
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
-        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
+        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเฉพาะในหน้านี้เป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
 
@@ -1569,30 +1569,48 @@ const AppMethods = {
     },
 
     exportDxf: () => {
-        let pts=[], p=AppState.params, zi=AppState.zoneInfo;
+        let pts = [], p = AppState.params, zi = AppState.zoneInfo;
         const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
         const s2Cols = AppMethods.getS2Cols();
         
-        Array.from(document.getElementById('table1').rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            let coords = AppMethods.getS1LatLon(r);
-            if (!isNaN(coords.lat) && !isNaN(coords.lon)) {
-                let res = GeoMath.wgs84ToInd1975(coords.lat, coords.lon, p.dx, p.dy, p.dz, zi.cm);
-                pts.push({ id: r.cells[0].innerText, e: res.east, n: res.north, lat: coords.lat, lon: coords.lon, s: 's1' });
-            }
-        });
+        let exportType = AppState.activeTab;
+        let filename = '';
 
-        Array.from(document.getElementById('table2').rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            let c = r.cells;
-            let e = Formatter.toNumber(c[s2Cols.indE].querySelector('input').value);
-            let n = Formatter.toNumber(c[s2Cols.indN].querySelector('input').value);
-            if (!isNaN(e) && !isNaN(n)) {
-                let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern);
-                pts.push({ id: c[s2Cols.pt].innerText, e: e, n: n, lat: res.lat, lon: res.lon, s: 's2' });
+        if (exportType === 1) {
+            filename = `S1_Points_${AppMethods.getTimestamp()}.dxf`;
+            Array.from(document.getElementById('table1').rows).slice(1).forEach(r => {
+                if (r.querySelector('.has-error')) return;
+                let coords = AppMethods.getS1LatLon(r);
+                if (!isNaN(coords.lat) && !isNaN(coords.lon)) {
+                    let res = GeoMath.wgs84ToInd1975(coords.lat, coords.lon, p.dx, p.dy, p.dz, zi.cm);
+                    pts.push({ id: r.cells[0].innerText, e: res.east, n: res.north, lat: coords.lat, lon: coords.lon });
+                }
+            });
+        } else {
+            filename = exportType === 2 ? `S2_Points_${AppMethods.getTimestamp()}.dxf` : `Route_Line_${AppMethods.getTimestamp()}.dxf`;
+            Array.from(document.getElementById('table2').rows).slice(1).forEach(r => {
+                if (r.querySelector('.has-error')) return;
+                let c = r.cells;
+                let e = Formatter.toNumber(c[s2Cols.indE].querySelector('input').value);
+                let n = Formatter.toNumber(c[s2Cols.indN].querySelector('input').value);
+                if (!isNaN(e) && !isNaN(n)) {
+                    let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern);
+                    pts.push({ id: c[s2Cols.pt].innerText, e: e, n: n, lat: res.lat, lon: res.lon });
+                }
+            });
+            if (exportType === 3 && pts.length < 2) { 
+                AppMethods.showToast(t('route_need_pts'), 'err'); 
+                return; 
             }
-        });
+        }
 
+        if (!pts.length) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
+        
+        AppMethods.generateDxf(pts, exportType, filename);
+    },
+
+    // Core DXF Generator function
+    generateDxf: (pts, type, filename) => {
         if(!pts.length){ AppMethods.showToast(t('msg_no_pts'), 'err'); return;}
         
         const dp = (c,v) => String(c)+'\r\n'+String(v)+'\r\n';
@@ -1605,49 +1623,43 @@ const AppMethods = {
         let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
         pts.forEach(pt=>{if(pt.e<minx)minx=pt.e;if(pt.n<miny)miny=pt.n;if(pt.e>maxx)maxx=pt.e;if(pt.n>maxy)maxy=pt.n;});
 
-        let dxf = dp(0,'SECTION')+dp(2,'HEADER');
-        dxf += dp(9,'$ACADVER')+dp(1,'AC1009');
-        dxf += dp(9,'$INSBASE')+dp(10,0)+dp(20,0)+dp(30,0);
+        let dxf = dp(0,'SECTION')+dp(2,'HEADER')+dp(9,'$ACADVER')+dp(1,'AC1009')+dp(9,'$INSBASE')+dp(10,0)+dp(20,0)+dp(30,0);
         if(isFinite(minx)) { dxf+=dp(9,'$EXTMIN')+dp(10,minx)+dp(20,miny); dxf+=dp(9,'$EXTMAX')+dp(10,maxx)+dp(20,maxy); }
         dxf += dp(0,'ENDSEC');
         
         dxf += dp(999,'Note: 2D Transformation (Ellipsoidal Height forced to 0m)');
 
-        dxf += dp(0,'SECTION')+dp(2,'TABLES');
-        dxf += dp(0,'TABLE')+dp(2,'LTYPE')+dp(70,1);
-        dxf += dp(0,'LTYPE')+dp(2,'CONTINUOUS')+dp(70,0)+dp(3,'Solid line')+dp(72,65)+dp(73,0)+dp(40,0);
-        dxf += dp(0,'ENDTAB');
+        let layerPt = type===1 ? 'POINTS_SEC1' : (type===2 ? 'POINTS_SEC2' : 'ROUTE_PTS');
+        let layerLbl = layerPt + '_LBL';
+        let layerLine = 'ROUTE_LINE';
+
+        dxf += dp(0,'SECTION')+dp(2,'TABLES')+dp(0,'TABLE')+dp(2,'LTYPE')+dp(70,1);
+        dxf += dp(0,'LTYPE')+dp(2,'CONTINUOUS')+dp(70,0)+dp(3,'Solid line')+dp(72,65)+dp(73,0)+dp(40,0)+dp(0,'ENDTAB');
         
-        const layers=[['0',7],['POINTS_SEC1',5],['POINTS_SEC2',1],['POINTS_SEC1_LBL',5],['POINTS_SEC2_LBL',1],['ROUTE_LINE',2]];
+        const layers=[['0',7], [layerPt, type===1?5:1], [layerLbl, type===1?5:1]];
+        if (type === 3) layers.push([layerLine, 2]); // Yellow layer for Route Line
+        
         dxf += dp(0,'TABLE')+dp(2,'LAYER')+dp(70,layers.length);
         layers.forEach(([nm,cl])=>{ dxf+=dp(0,'LAYER')+dp(2,nm)+dp(70,0)+dp(62,cl)+dp(6,'CONTINUOUS'); });
-        dxf += dp(0,'ENDTAB');
-        dxf += dp(0,'TABLE')+dp(2,'STYLE')+dp(70,1);
-        dxf += dp(0,'STYLE')+dp(2,'STANDARD')+dp(70,0)+dp(40,0)+dp(41,1)+dp(50,0)+dp(71,0)+dp(42,0)+dp(3,'txt')+dp(4,'');
-        dxf += dp(0,'ENDTAB');
-        dxf += dp(0,'ENDSEC');
+        dxf += dp(0,'ENDTAB')+dp(0,'TABLE')+dp(2,'STYLE')+dp(70,1);
+        dxf += dp(0,'STYLE')+dp(2,'STANDARD')+dp(70,0)+dp(40,0)+dp(41,1)+dp(50,0)+dp(71,0)+dp(42,0)+dp(3,'txt')+dp(4,'')+dp(0,'ENDTAB')+dp(0,'ENDSEC');
 
-        dxf += dp(0,'SECTION')+dp(2,'BLOCKS')+dp(0,'ENDSEC');
-
-        dxf += dp(0,'SECTION')+dp(2,'ENTITIES');
-        const txtH=5, labelDX=5, labelDY=5, lineGap=6, markerR=1.5;
+        dxf += dp(0,'SECTION')+dp(2,'BLOCKS')+dp(0,'ENDSEC')+dp(0,'SECTION')+dp(2,'ENTITIES');
         
+        const txtH=5, labelDX=5, labelDY=5, lineGap=6, markerR=1.5;
         pts.forEach(pt=>{
-            let l=pt.s==='s1'?'POINTS_SEC1':'POINTS_SEC2';
-            dxf+=dp(0,'POINT')+dp(8,l)+dp(10,pt.e)+dp(20,pt.n)+dp(30,0);
-            dxf+=dp(0,'CIRCLE')+dp(8,l)+dp(10,pt.e)+dp(20,pt.n)+dp(30,0)+dp(40,markerR);
+            dxf+=dp(0,'POINT')+dp(8,layerPt)+dp(10,pt.e)+dp(20,pt.n)+dp(30,0);
+            dxf+=dp(0,'CIRCLE')+dp(8,layerPt)+dp(10,pt.e)+dp(20,pt.n)+dp(30,0)+dp(40,markerR);
             const sanitizedId = Formatter.escapeDxf(pt.id);
             const lines=[`${sanitizedId}`,`X: ${pt.e.toFixed(AppState.precCfg.utm_dp)}m`,`Y: ${pt.n.toFixed(AppState.precCfg.utm_dp)}m`,`Lat: ${fmtDM(pt.lat,true)}`,`Lon: ${fmtDM(pt.lon,false)}`];
             let x=pt.e+labelDX, y=pt.n+labelDY;
-            lines.forEach((txt,i)=>{ dxf+=dp(0,'TEXT')+dp(8,l+'_LBL')+dp(10,x)+dp(20,y-i*lineGap)+dp(30,0)+dp(40,txtH)+dp(1,txt)+dp(50,0)+dp(7,'STANDARD'); });
+            lines.forEach((txt,i)=>{ dxf+=dp(0,'TEXT')+dp(8,layerLbl)+dp(10,x)+dp(20,y-i*lineGap)+dp(30,0)+dp(40,txtH)+dp(1,txt)+dp(50,0)+dp(7,'STANDARD'); });
         });
 
-        if (AppState.activeTab === 3 && pts.length > 1) {
-            dxf += dp(0,'POLYLINE') + dp(8,'ROUTE_LINE') + dp(66,1) + dp(10,0) + dp(20,0) + dp(30,0);
-            pts.forEach(pt => {
-                dxf += dp(0,'VERTEX') + dp(8,'ROUTE_LINE') + dp(10,pt.e) + dp(20,pt.n) + dp(30,0);
-            });
-            dxf += dp(0,'SEQEND') + dp(8,'ROUTE_LINE');
+        if (type === 3 && pts.length > 1) {
+            dxf += dp(0,'POLYLINE') + dp(8,layerLine) + dp(66,1) + dp(10,0) + dp(20,0) + dp(30,0);
+            pts.forEach(pt => { dxf += dp(0,'VERTEX') + dp(8,layerLine) + dp(10,pt.e) + dp(20,pt.n) + dp(30,0); });
+            dxf += dp(0,'SEQEND') + dp(8,layerLine);
         }
 
         dxf+=dp(0,'ENDSEC')+dp(0,'EOF')+'\r\n';
@@ -1655,9 +1667,7 @@ const AppMethods = {
         const blob = new Blob([new TextEncoder().encode(dxf)], {type:'application/octet-stream'});
         const a = document.createElement('a'); 
         const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `Points_R12_${AppMethods.getTimestamp()}.dxf`; 
-        document.body.appendChild(a); a.click(); 
+        a.href = url; a.download = filename; document.body.appendChild(a); a.click(); 
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     },
     
