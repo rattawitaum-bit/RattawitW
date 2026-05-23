@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.3.1</title>
+    <title>Coordinate Converter v6.3.2</title>
     
     <!-- Offline & System Font Support -->
     
@@ -225,7 +225,7 @@
         table tbody tr:hover .out-wgs { background-color: #bae6fd !important; }
         table tbody tr:hover .out-ind { background-color: #fef08a !important; }
 
-/* v6.3.1: Improve invalid input readability */
+/* v6.3.2: Improve invalid input readability */
 .input-cell.has-error span {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -252,7 +252,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.3.1</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.3.2</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -270,10 +270,11 @@
             
             <label data-i18n="sel_datum">Params:</label>
             <select id="datumSelect">
-                <option value="dol" data-i18n="opt_dol">DOL</option>
-                <option value="survey" data-i18n="opt_survey">High-Prec</option>
-                <option value="legacy" selected data-i18n="opt_legacy">Legacy</option>
+                <option value="dol" data-i18n="opt_dol" title="Ref: Department of Lands (DOL), Thailand">DOL</option>
+                <option value="survey" data-i18n="opt_survey" title="Ref: High-Precision Regional Adjustment">High-Prec</option>
+                <option value="legacy" selected data-i18n="opt_legacy" title="Ref: NIMA/DMA Industry Standard (TR8350.2)">Legacy</option>
             </select>
+            <span class="help-tip" id="datum_tooltip" data-tip="Datum Parameter References:&#10;• Legacy (-204.64, -834.74, -293.80): NIMA/DMA TR8350.2 Industry Standard&#10;• DOL (-204.5, -837.9, -294.8): Department of Lands, Thailand&#10;• High-Prec (-204.4798, -837.8940, -294.7765): High-Precision Regional Survey Adjustment" tabindex="0" onclick="this.toggleAttribute('data-open')" style="vertical-align: middle;">?</span>
             <button class="lang-btn" id="langBtn" data-i18n-title="tt_lang">EN/TH</button>
             <button class="clear-all" data-i18n="btn_clear_all" data-i18n-title="tt_clear_all">Clear All</button>
         </div>
@@ -530,7 +531,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.3.1", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.3.2", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM and Lat/Long to WGS84",
@@ -560,10 +561,11 @@ const I18nDict = {
         err_math: "Row {0}: Math error.",
         route_empty: "No route data. Enter points in Tab 2 to generate analytics.",
         route_need_pts: "Need at least 2 valid points in Section 2 to generate route analytics.",
+        tt_datum_ref: "Datum Parameter References:\n• Legacy (-204.64, -834.74, -293.80): NIMA/DMA TR8350.2 Industry Standard\n• DOL (-204.5, -837.9, -294.8): Department of Lands, Thailand\n• High-Prec (-204.4798, -837.8940, -294.7765): High-Precision Regional Survey Adjustment",
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.3.1", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.3.2", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -593,6 +595,7 @@ const I18nDict = {
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
+        tt_datum_ref: "แหล่งอ้างอิงพารามิเตอร์:\n• Legacy (-204.64, -834.74, -293.80): ค่าสากลดั้งเดิมอุตสาหกรรม (NIMA/DMA TR8350.2)\n• DOL (-204.5, -837.9, -294.8): พารามิเตอร์กรมที่ดิน\n• High-Prec (-204.4798, -837.8940, -294.7765): ค่าปรับแก้รังวัดความละเอียดสูงภูมิภาค",
         tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเฉพาะในหน้านี้เป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
@@ -615,6 +618,8 @@ function updateTranslations() {
     });
     
     document.getElementById('s1_tooltip').setAttribute('data-tip', t('tooltip_s1'));
+    const datumTip = document.getElementById('datum_tooltip');
+    if (datumTip) datumTip.setAttribute('data-tip', t('tt_datum_ref'));
     
     if (AppState.s2Format === 'utm') {
         document.getElementById('s2_tooltip').setAttribute('data-tip', t('tooltip_s2'));
@@ -936,7 +941,7 @@ const Formatter = {
         let s = String(str).trim();
         if (s === '') return NaN;
 
-        // v6.3.1 Input Robustness: normalize common DMS punctuation variants.
+        // v6.3.2 Input Robustness: normalize common DMS punctuation variants.
         // Supports: °, º, deg, ', ’, ′, ", ”, ″ and separated/attached N/S/E/W suffixes.
         s = s
             .replace(/[º]/g, '°')
@@ -1011,13 +1016,13 @@ const AppMethods = {
 
     extractRowData: (line, isS1, format) => {
         if (!line || !line.trim()) return null;
-        const raw = String(line).trim();
+        const raw = String(line).trim().replace(/\u00A0|\u200B/g, ' ');
         const hasDelimited = /[	,]/.test(raw);
         const splitDelimited = s => s.split(/[	,]/).map(x => x.trim()).filter(Boolean);
         const splitWhitespace = s => s.split(/\s+/).map(x => x.trim()).filter(Boolean);
         const makeResult = (idParts, coords) => ({ id: idParts.length ? idParts.join(' ').trim() : null, coords });
 
-        // v6.3.1 Input Robustness: DMS is parsed as two complete coordinate strings.
+        // v6.3.2 Input Robustness: DMS is parsed as two complete coordinate strings.
         // This avoids forcing broken DMS fragments into the wrong columns during bulk paste.
         if (format === 'dms') {
             const tokens = hasDelimited ? splitDelimited(raw) : splitWhitespace(raw);
@@ -1159,7 +1164,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
             }
         });
         
@@ -1192,9 +1197,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); 
             if(gb < 0) gb += 360;
             
-            const midLat = (pt1.lat + pt2.lat) / 2;
-            const midLon = (pt1.lon + pt2.lon) / 2;
-            let gamma = applyGamma ? GeoMath.calculateConvergence(midLat, midLon, zi.cm) : 0;
+            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
+            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
+            let gamma = applyGamma ? GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm) : 0;
             
             let trueBrgStr = isNaN(vRes.bearing) ? `<span style="color:var(--danger);font-weight:700;">ERR_ANTIPODAL</span>` : `${vRes.bearing.toFixed(2)}°`;
             let distKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
@@ -1563,7 +1568,7 @@ const AppMethods = {
         if(!isFinite(lat) || !isFinite(lon)) return [t('err_invalid_num', rIdx)];
         if(lat < -90 || lat > 90) errs.push(t('err_lat_range', rIdx));
         if(lon < -180 || lon > 180) errs.push(t('err_lon_range', rIdx));
-        // v6.3.1: Region boundary is no longer a hard error. Keep global range + UTM zone guard only.
+        // v6.3.2: Region boundary is no longer a hard error. Keep global range + UTM zone guard only.
         if(!errs.length && Math.abs(lon - cmParam) > 4.0) errs.push(t('err_out_zone', rIdx));
         return errs;
     },
@@ -1601,7 +1606,7 @@ const AppMethods = {
             try {
                 let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm);
                 let wgsUtm = GeoMath.latLonToUTM(lD, oD, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
-                let gamma = GeoMath.calculateConvergence(lD, oD, zi.cm);
+                let gamma = GeoMath.calculateConvergence(res.lat, res.lon, zi.cm);
                 
                 c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
                 c[cols.lat].innerText = Formatter.formatStr(res.lat, outF, true); c[cols.lon].innerText = Formatter.formatStr(res.lon, outF, false);
@@ -1693,7 +1698,10 @@ const AppMethods = {
                     c[cols.indLon].innerText=Formatter.formatStr(indLon, outF, false);
                 }
                 
-                let gamma = GeoMath.calculateConvergence(wgsRes.lat, wgsRes.lon, zi.cm);
+                let convLat, convLon;
+        if (fmt === 'utm') { convLat = wgsRes.ind_lat; convLon = wgsRes.ind_lon; }
+        else { convLat = indLat; convLon = indLon; }
+        let gamma = GeoMath.calculateConvergence(convLat, convLon, zi.cm);
                 c[cols.wgsLat].innerText=Formatter.formatStr(wgsRes.lat, outF, true); 
                 c[cols.wgsLon].innerText=Formatter.formatStr(wgsRes.lon, outF, false);
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
@@ -2012,7 +2020,7 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'ID', type: 'C', len: 32, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'LAT', type: 'C', len: 24, dec: 0},
@@ -2077,7 +2085,7 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'ID', type: 'C', len: 32, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'WGSLAT', type: 'C', len: 24, dec: 0},
@@ -2152,7 +2160,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
@@ -2165,9 +2173,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
             const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
             
-            const midLat = (pt1.lat + pt2.lat) / 2;
-            const midLon = (pt1.lon + pt2.lon) / 2;
-            let gamma = GeoMath.calculateConvergence(midLat, midLon, zi.cm);
+            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
+            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
+            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
             
             let trueBrgStr = isNaN(vRes.bearing) ? "ERR_ANTIPODAL" : vRes.bearing.toFixed(2);
             let geoKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
@@ -2195,7 +2203,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
@@ -2210,9 +2218,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
             const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
             
-            const midLat = (pt1.lat + pt2.lat) / 2;
-            const midLon = (pt1.lon + pt2.lon) / 2;
-            let gamma = GeoMath.calculateConvergence(midLat, midLon, zi.cm);
+            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
+            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
+            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
             
             let row = [
                 i + 1,
@@ -2291,8 +2299,8 @@ const AppMethods = {
         
         const dbfFields = [
             {name: 'LEG', type: 'N', len: 5, dec: 0},
-            {name: 'FROM', type: 'C', len: 12, dec: 0},
-            {name: 'TO', type: 'C', len: 12, dec: 0},
+            {name: 'FROM', type: 'C', len: 32, dec: 0},
+            {name: 'TO', type: 'C', len: 32, dec: 0},
             {name: 'GRID_BRG', type: 'N', len: 8, dec: 2},
             {name: 'TRUE_BRG', type: 'N', len: 8, dec: 2},
             {name: 'DIST_M', type: 'N', len: 12, dec: 2}
@@ -2499,7 +2507,8 @@ const AppMethods = {
         if(!clip) return;
         const txt = clip.getData('text');
         if(!txt) return;
-        const lns = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        const cleanTxt = txt.replace(/\u00A0|\u200B/g, ' ');
+        const lns = cleanTxt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
         const firstLineHasTab = lns.length > 0 && lns[0].includes('\t');
         const isMulti = lns.length > 1 || firstLineHasTab;
         
@@ -2778,8 +2787,8 @@ const AppMethods = {
             let cy = oY + effH - (p.y - gridMinY) * scale;
             let cTxt=md==='wgs84'?`${p.y.toFixed(5)}\u00b0N, ${p.x.toFixed(5)}\u00b0E`:`E: ${p.x.toFixed(2)}m, N: ${p.y.toFixed(2)}m`;
             let fillCol = AppState.activeTab === 1 ? '#4f46e5' : '#e11d48';
-            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${p.id} (${cTxt})</title></circle></g>`;
-            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${p.id}</text>`;
+            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${Formatter.escapeXml(p.id)} (${cTxt})</title></circle></g>`;
+            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${Formatter.escapeXml(p.id)}</text>`;
         });
         svg.innerHTML = out;
     },
