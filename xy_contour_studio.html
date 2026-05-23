@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.0.3 (Production Final)</title>
+<title>XY Contour Studio — v9.0.5 (Production Hotfix)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,12 +102,14 @@
   .tooltip-wrap:hover::after { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-6px); }
   .top-tip .tooltip-wrap::after { bottom: auto; top: 100%; transform: translateX(-50%) translateY(10px); }
   .top-tip .tooltip-wrap:hover::after { transform: translateX(-50%) translateY(6px); }
+
+ kbd { font-size:9px; padding:1px 5px; border-radius:3px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); margin-left:5px; font-family:'JetBrains Mono',monospace; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.3 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.5 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -202,15 +204,16 @@
 <footer>
   <div>Built for <strong>Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N Engine Active — v9.0.3</div>
+  <div>Indian 1975 UTM 47N — v9.0.5 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/geotiff@2.0.7/dist-browser/geotiff.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/d3-contour@4"></script>
-<script src="https://cdn.jsdelivr.net/npm/simplify-js@1.2.4/simplify.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- TODO: Generate SRI integrity hashes for production deployment. -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.0.7/dist-browser/geotiff.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-contour@4" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/simplify-js@1.2.4/simplify.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 
 <script>
 // --- UI Controller ---
@@ -222,12 +225,11 @@ function showTab(tabId) {
 }
 
 function dePreviewFlip(E, N){
-  var el = document.getElementById('flipY');
-  return (el && el.checked) ? [E, -N] : [E, N];
+  return window.__contourFlipY ? [E, -N] : [E, N]; /* HOTFIX: export uses generate-time flip snapshot */
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.0.3 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.0.5 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -277,24 +279,16 @@ function dePreviewFlip(E, N){
   
   // --- Architecture: Text Sanitization ---
   function sanitizeBase(name){
-    name = String(name||'').replace(/^.*[\\/]/,'');
-    name = name.replace(/\.[^.]+$/, '');
-    name = name.replace(/[^A-Za-z0-9_-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
-    if(!name) name='contours';
-    return name;
+    try {
+      name = String(name||'').replace(/^.*[\/]/,'');
+      name = name.replace(/\.[^.]+$/, '');
+      name = name.replace(/[^A-Za-z0-9_-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+      if(!name) name='contours';
+      return name;
+    } catch(e) { return 'contours'; }
   }
 
-  function _sanBase(n){ 
-    try { 
-      n = n.split(/[\/]/).pop(); 
-      n = n.replace(/\.[^.]+$/,''); 
-      n = n.replace(/[^A-Za-z0-9_\-]+/g,'_'); 
-      if(!n) n='contours'; 
-      return n; 
-    } catch(e){ 
-      return 'contours'; 
-    } 
-  }
+  function _sanBase(n){ return sanitizeBase(n); } /* compatibility alias; single validation path */
 
   try { flipYEl.checked = localStorage.getItem('xy.flipY')==='1'; } catch(e){}
   flipYBadge.style.display = flipYEl.checked ? 'inline-block' : 'none';
@@ -527,9 +521,7 @@ function dePreviewFlip(E, N){
   window.currentPixelResolution = 1.0;
   
   fileInput.addEventListener('change', function(e){
-    if(fileInput && fileInput.files && fileInput.files[0]){ 
-      importBase = _sanBase(fileInput.files[0].name); 
-    }
+    /* _sanBase pre-call removed; sanitizeBase called once below */
     loadError.style.display = 'none'; 
     loadError.textContent = '';
     
@@ -712,8 +704,10 @@ function dePreviewFlip(E, N){
   contourWidthEl.addEventListener('input', restyleContours);
 
   // --- Process Thread: Web Worker Engine Code ---
+  var _d3InlineSource = null;
+  (function(){ try { fetch('https://cdn.jsdelivr.net/npm/d3-contour@4').then(function(r){return r.text();}).then(function(t){_d3InlineSource=t;}).catch(function(){}); } catch(e){} })();
   const bathymetryWorkerCode = `
-    importScripts('https://cdn.jsdelivr.net/npm/d3-contour@4');
+    /* __D3_INJECT_PLACEHOLDER__ */
 
     self.onmessage = function(e) {
       const { buffer, width, height, step, maxBridgePixels, useResampling } = e.data;
@@ -836,12 +830,20 @@ function dePreviewFlip(E, N){
     };
   `;
 
-  var workerBlob = new Blob([bathymetryWorkerCode], { type: 'application/javascript' });
-  var bathymetryWorkerUrl = URL.createObjectURL(workerBlob);
+  function buildWorkerBlob(){
+    var d3Preamble = _d3InlineSource ? (_d3InlineSource + '\n') : "try { importScripts('https://cdn.jsdelivr.net/npm/d3-contour@4'); } catch(e) { self.postMessage({type:'error', msg:'d3-contour load failed: '+e.message}); return; }\n";
+    return new Blob([bathymetryWorkerCode.replace('/* __D3_INJECT_PLACEHOLDER__ */', d3Preamble)], {type:'application/javascript'});
+  }
+  var _currentJobId = 0;
 
   function generate(){
     if(!values) return; 
     
+    var jobId = ++_currentJobId;
+    lastFC = null; lastDXFText = null;
+    btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true;
+    if(contourLayer){ map.removeLayer(contourLayer); contourLayer=null; }
+    clearValidator();
     btnGenerate.setAttribute('data-state', 'loading'); 
     btnGenerate.disabled = true;
 
@@ -863,17 +865,21 @@ function dePreviewFlip(E, N){
 
     var clonedBufferCopy = values.slice().buffer; 
 
-    if(!bathymetryWorker) {
-       bathymetryWorker = new Worker(bathymetryWorkerUrl);
-       bathymetryWorker.onerror = function(err) {
-           console.error("[System Health Check] Worker Exception:", err);
-           status.textContent = 'Worker Error: Check console.';
-           btnGenerate.removeAttribute('data-state');
-           btnGenerate.disabled = false;
-       };
-    }
+    if(bathymetryWorker){ bathymetryWorker.terminate(); bathymetryWorker=null; }
+    var _wUrl = URL.createObjectURL(buildWorkerBlob());
+    bathymetryWorker = new Worker(_wUrl);
+    URL.revokeObjectURL(_wUrl);
+    bathymetryWorker.onerror = function(err) {
+      if(jobId !== _currentJobId) return;
+      console.error("[System Health Check] Worker Exception:", err);
+      status.textContent = 'Worker Error: Check console.';
+      btnGenerate.removeAttribute('data-state');
+      btnGenerate.disabled = false;
+    };
 
     bathymetryWorker.onmessage = function(e) {
+      if(jobId !== _currentJobId) return;
+      if (e.data.type === 'error') { status.textContent = e.data.msg; btnGenerate.removeAttribute('data-state'); btnGenerate.disabled = false; return; }
       if (e.data.type === 'progress') {
          status.textContent = e.data.msg;
          return;
@@ -931,6 +937,7 @@ function dePreviewFlip(E, N){
         crs: {type: 'name', properties: {name: 'LOCAL_XY_FROM_TIFF'}}, 
         properties: {flipY: flipYEl.checked, interval: step, smooth: useSmooth?method:'none'} 
       };
+      window.__contourFlipY = flipYEl.checked; /* HOTFIX: snapshot for export */
 
       map.eachLayer(function(l){ 
         if(l && typeof l.toGeoJSON === 'function' && l !== validatorLayer) {
@@ -1110,6 +1117,9 @@ function dePreviewFlip(E, N){
       setTimeout(function(){ btn.innerHTML = oldText; btn.disabled = false; }, 1200);
   }
 
+
+  function exportReady(){ return !!(lastFC && lastFC.features && lastFC.features.length && !btnGenerate.disabled); }
+  function blockStaleExport(){ status.textContent='Contours are still generating or stale. Export is locked until generation completes.'; return false; }
   btnDXF.addEventListener('click', function(){
     if(!lastFC) return;
     temporaryDisable(btnDXF, 'SAVING...');
@@ -1122,7 +1132,7 @@ function dePreviewFlip(E, N){
         a.href = URL.createObjectURL(blob); 
         a.download = 'contours_' + importBase + '.dxf'; 
         a.click();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
         if(autoValidateEl && autoValidateEl.checked) validateDXFExport();
     }, 50);
   });
@@ -1242,12 +1252,12 @@ function dePreviewFlip(E, N){
         lon = ll[1].toFixed(6); 
         lat = ll[0].toFixed(6);
         // Fix: Add Elevation to KML
-        parts.push(lon+','+lat+','+elevVal);
+        parts.push(lon+','+lat+','+Number(elevVal||0).toFixed(3)); /* preserve depth/Z; clampToGround controls display */
       }
       return parts.join(' ');
     }
     function lineKML(coords, elevVal){ 
-      return '<LineString><tessellate>1</tessellate><altitudeMode>absolute</altitudeMode><coordinates>'+coordsToLonLatString(coords, elevVal)+'</coordinates></LineString>'; 
+      return '<LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>'+coordsToLonLatString(coords, elevVal)+'</coordinates></LineString>'; 
     }
     
     var CRLF = '\r\n';
@@ -1270,11 +1280,11 @@ function dePreviewFlip(E, N){
       }
       nm = xmlEsc(nm);
       if(f.geometry.type==='LineString'){ 
-        out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates, elevVal)+'</Placemark>'); 
+        out.push('<Placemark><name>'+nm+'</name><description>Depth: '+elevVal+' m</description><ExtendedData><Data name="depth_m"><value>'+elevVal+'</value></Data></ExtendedData><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates, elevVal)+'</Placemark>'); 
       }
       else if(f.geometry.type==='MultiLineString'){ 
         for(var k=0; k<f.geometry.coordinates.length; k++){ 
-          out.push('<Placemark><name>'+nm+'</name><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates[k], elevVal)+'</Placemark>'); 
+          out.push('<Placemark><name>'+nm+'</name><description>Depth: '+elevVal+' m</description><ExtendedData><Data name="depth_m"><value>'+elevVal+'</value></Data></ExtendedData><styleUrl>#contour</styleUrl>'+lineKML(f.geometry.coordinates[k], elevVal)+'</Placemark>'); 
         } 
       }
     }
@@ -1293,7 +1303,7 @@ function dePreviewFlip(E, N){
       a.href = URL.createObjectURL(blob); 
       a.download = 'contours_' + importBase + '.kml'; 
       a.click();
-      setTimeout(function(){URL.revokeObjectURL(a.href);}, 1000);
+      setTimeout(function(){URL.revokeObjectURL(a.href);}, 60000);
     }, 50);
   });
 
@@ -1340,70 +1350,25 @@ function dePreviewFlip(E, N){
     
     if(!recs.length){ alert('No features to export.'); return null; }
 
-    function BE32(b,v){ b.push((v>>>24)&255,(v>>>16)&255,(v>>>8)&255,(v)&255); }
-    function LE32(b,v){ b.push((v)&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255); }
-    function F64LE(b,x){ 
-      var dv=new DataView(new ArrayBuffer(8)); 
-      dv.setFloat64(0,x,true); 
-      for(var t=0; t<8; t++) b.push(dv.getUint8(t)); 
+    /* HOTFIX: DataView pre-allocated SHP/SHX binary writer */
+    var shpSize = 100, shxSize = 100 + recs.length * 8;
+    for(var _si=0; _si<recs.length; _si++) shpSize += 8 + 48 + 16 * recs[_si].parts[0].length;
+    var shpBuf = new ArrayBuffer(shpSize), shxBuf = new ArrayBuffer(shxSize);
+    var sv = new DataView(shpBuf), xv = new DataView(shxBuf);
+    var so=0, xo=0;
+    function be32S(v){ sv.setInt32(so,v,false); so+=4; } function le32S(v){ sv.setInt32(so,v,true); so+=4; } function f64S(v){ sv.setFloat64(so,v,true); so+=8; }
+    function be32X(v){ xv.setInt32(xo,v,false); xo+=4; } function le32X(v){ xv.setInt32(xo,v,true); xo+=4; } function f64X(v){ xv.setFloat64(xo,v,true); xo+=8; }
+    be32S(9994); for(var _h=0;_h<5;_h++) be32S(0); be32S(shpSize/2); le32S(1000); le32S(3); f64S(minX); f64S(minY); f64S(maxX); f64S(maxY); for(var _h2=0;_h2<4;_h2++) f64S(0);
+    be32X(9994); for(var _x=0;_x<5;_x++) be32X(0); be32X(shxSize/2); le32X(1000); le32X(3); f64X(minX); f64X(minY); f64X(maxX); f64X(maxY); for(var _x2=0;_x2<4;_x2++) f64X(0);
+    for(var _ri=0; _ri<recs.length; _ri++){
+      var pts=recs[_ri].parts[0], np=pts.length, cBytes=48+16*np, cWords=cBytes/2;
+      var rxn=Infinity, ryn=Infinity, rxx=-Infinity, ryx=-Infinity;
+      for(var _pi=0; _pi<np; _pi++){ var px=pts[_pi][0], py=pts[_pi][1]; if(px<rxn)rxn=px; if(py<ryn)ryn=py; if(px>rxx)rxx=px; if(py>ryx)ryx=py; }
+      be32X(so/2); be32X(cWords);
+      be32S(_ri+1); be32S(cWords); le32S(3); f64S(rxn); f64S(ryn); f64S(rxx); f64S(ryx); le32S(1); le32S(np); le32S(0);
+      for(var _pj=0; _pj<np; _pj++){ f64S(pts[_pj][0]); f64S(pts[_pj][1]); }
     }
-
-    var shp=[], shx=[];
-    BE32(shp,9994); for(var i0=0; i0<5; i0++) BE32(shp,0); 
-    var shpLenPos=shp.length; 
-    BE32(shp,0); LE32(shp,1000); LE32(shp,3);
-    F64LE(shp,minX); F64LE(shp,minY); F64LE(shp,maxX); F64LE(shp,maxY); 
-    for(var i1=0; i1<4; i1++) F64LE(shp,0);
-    
-    BE32(shx,9994); for(var i2=0; i2<5; i2++) BE32(shx,0); 
-    var shxLenPos=shx.length; 
-    BE32(shx,0); LE32(shx,1000); LE32(shx,3);
-    F64LE(shx,minX); F64LE(shx,minY); F64LE(shx,maxX); F64LE(shx,maxY); 
-    for(var i3=0; i3<4; i3++) F64LE(shx,0);
-
-    var shpBytes=100, recNum=1;
-    for(var r=0; r<recs.length; r++, recNum++){
-      var rec=recs[r], pts=rec.parts[0], numParts=1, numPoints=pts.length;
-      var rminX=Infinity, rminY=Infinity, rmaxX=-Infinity, rmaxY=-Infinity;
-      for(var j=0; j<numPoints; j++){ 
-        var X=pts[j][0], Y=pts[j][1]; 
-        if(X<rminX) rminX=X; if(Y<rminY) rminY=Y; 
-        if(X>rmaxX) rmaxX=X; if(Y>rmaxY) rmaxY=Y; 
-      }
-      var contentBytes = 4 + 32 + 4 + 4 + (4*numParts) + (16*numPoints);
-      var contentWords = contentBytes/2; 
-      var offsetWords = shpBytes/2;
-      
-      BE32(shx, offsetWords); 
-      BE32(shx, contentWords);
-      
-      BE32(shp, recNum); 
-      BE32(shp, contentWords);
-      LE32(shp, 3); 
-      F64LE(shp, rminX); F64LE(shp, rminY); F64LE(shp, rmaxX); F64LE(shp, rmaxY);
-      LE32(shp, numParts); 
-      LE32(shp, numPoints); 
-      LE32(shp, 0);
-      
-      for(var j=0; j<numPoints; j++){ 
-        F64LE(shp, pts[j][0]); 
-        F64LE(shp, pts[j][1]); 
-      }
-      shpBytes += 8 + contentBytes;
-    }
-    
-    var shpWords = shpBytes/2; 
-    shp[shpLenPos+0] = (shpWords>>>24)&255; 
-    shp[shpLenPos+1] = (shpWords>>>16)&255; 
-    shp[shpLenPos+2] = (shpWords>>>8)&255; 
-    shp[shpLenPos+3] = (shpWords)&255;
-    
-    var shxBytes = 100 + recs.length*8; 
-    var shxWords = shxBytes/2;
-    shx[shxLenPos+0] = (shxWords>>>24)&255; 
-    shx[shxLenPos+1] = (shxWords>>>16)&255; 
-    shx[shxLenPos+2] = (shxWords>>>8)&255; 
-    shx[shxLenPos+3] = (shxWords)&255;
+    var shp = new Uint8Array(shpBuf), shx = new Uint8Array(shxBuf);
 
     var dbf=[];
     function le16(v){ dbf.push(v&255,(v>>8)&255); }
@@ -1457,8 +1422,8 @@ function dePreviewFlip(E, N){
     var prjText = 'PROJCS["Indian_1975_UTM_Zone_47N",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",99],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]';
     
     return { 
-      shp: new Uint8Array(shp), 
-      shx: new Uint8Array(shx), 
+      shp: shp, 
+      shx: shx, 
       dbf: new Uint8Array(dbf), 
       prj: new TextEncoder().encode(prjText), 
       cpg: new TextEncoder().encode('UTF-8') 
@@ -1484,7 +1449,7 @@ function dePreviewFlip(E, N){
         a.href = URL.createObjectURL(content);
         a.download = base + '.zip';
         a.click();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
       });
     }, 50);
   });
@@ -1505,7 +1470,7 @@ function dePreviewFlip(E, N){
         a.href = URL.createObjectURL(blob); 
         a.download = name; 
         a.click();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
       }
       
       var base = 'contours_' + importBase;
@@ -1515,9 +1480,11 @@ function dePreviewFlip(E, N){
       
       var bPrj = new Blob([data.prj], {type:'text/plain'});
       var aPrj = document.createElement('a'); aPrj.href = URL.createObjectURL(bPrj); aPrj.download = base+'.prj'; aPrj.click();
+      setTimeout(function(){ URL.revokeObjectURL(aPrj.href); }, 60000);
       
       var bCpg = new Blob([data.cpg], {type:'text/plain'});
       var aCpg = document.createElement('a'); aCpg.href = URL.createObjectURL(bCpg); aCpg.download = base+'.cpg'; aCpg.click();
+      setTimeout(function(){ URL.revokeObjectURL(aCpg.href); }, 60000);
     }, 50);
   });
 
@@ -1527,6 +1494,7 @@ function dePreviewFlip(E, N){
   flipYEl.addEventListener('change', function(){ 
     flipYBadge.style.display = flipYEl.checked ? 'inline-block' : 'none'; 
     try { localStorage.setItem('xy.flipY', flipYEl.checked ? '1' : '0'); } catch(e){} 
+    if(lastFC && lastFC.properties && lastFC.properties.flipY !== flipYEl.checked){ btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true; status.textContent = 'Flip-Y changed. Re-generating...'; }
     rebuildPreview(); 
     if(values) btnGenerate.click(); 
   });
