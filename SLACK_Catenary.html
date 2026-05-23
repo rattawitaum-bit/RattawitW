@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <title>SLACK - Catenary Calculation</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
     
-    <script crossorigin src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
 
     <script crossorigin src="https://unpkg.com/recharts@2.12.0/umd/Recharts.js"></script>
     
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,23 +77,24 @@
           [SegmentType.FIBER]: 1400 
       };
 
+      const EA_COEFFICIENTS = { [SegmentType.WIRE]: 53, [SegmentType.CHAIN]: 550, [SegmentType.FIBER]: null };
       const SEGMENT_PRESETS = {
-          [SegmentType.WIRE]: { w: 18.5, w_wet: 15.5, EA: 150000, frictionCoeff: 0.5 },
-          [SegmentType.CHAIN]: { w: 120, w_wet: 104, EA: 800000, frictionCoeff: 1.0 },
-          [SegmentType.FIBER]: { w: 3.5, w_wet: 0.8, EA: 25000, frictionCoeff: 0.4 }
+          [SegmentType.WIRE]: { w: 18.5, w_wet: 15.5, EA: 150000, frictionCoeff: 0.5, diameter: '' },
+          [SegmentType.CHAIN]: { w: 120, w_wet: 104, EA: 800000, frictionCoeff: 1.0, diameter: '' },
+          [SegmentType.FIBER]: { w: 3.5, w_wet: 0.8, EA: 25000, frictionCoeff: 0.4, diameter: '' }
       };
 
       const SIZE_STANDARDS = {
           [SegmentType.WIRE]: [
-              { label: '1.5 inch (38mm)', w: 6.35, w_wet: 5.38, ea: 77000, frictionCoeff: 0.5 },
-              { label: '2.5 inch (64mm)', w: 17.0, w_wet: 14.5, ea: 214000, frictionCoeff: 0.5 }
+              { label: '1.5 inch (38mm)', w: 6.35, w_wet: 5.38, ea: 77000, frictionCoeff: 0.5, diameter: 38 },
+              { label: '2.5 inch (64mm)', w: 17.0, w_wet: 14.5, ea: 214000, frictionCoeff: 0.5, diameter: 64 }
           ],
           [SegmentType.CHAIN]: [
-              { label: '1 inch (25mm)', w: 14.1, w_wet: 12.2, ea: 400000, frictionCoeff: 1.0 },
-              { label: '1.5 inch (38mm)', w: 32.0, w_wet: 27.8, ea: 800000, frictionCoeff: 1.0 },
-              { label: '2 inch (51mm)', w: 57.0, w_wet: 49.5, ea: 1400000, frictionCoeff: 1.0 },
-              { label: '2.5 inch (64mm)', w: 89.0, w_wet: 77.4, ea: 2200000, frictionCoeff: 1.0 },
-              { label: '3 inch (76mm)', w: 128.0, w_wet: 111.3, ea: 3200000, frictionCoeff: 1.0 }
+              { label: '1 inch (25mm)', w: 14.1, w_wet: 12.2, ea: 400000, frictionCoeff: 1.0, diameter: 25 },
+              { label: '1.5 inch (38mm)', w: 32.0, w_wet: 27.8, ea: 800000, frictionCoeff: 1.0, diameter: 38 },
+              { label: '2 inch (51mm)', w: 57.0, w_wet: 49.5, ea: 1400000, frictionCoeff: 1.0, diameter: 51 },
+              { label: '2.5 inch (64mm)', w: 89.0, w_wet: 77.4, ea: 2200000, frictionCoeff: 1.0, diameter: 64 },
+              { label: '3 inch (76mm)', w: 128.0, w_wet: 111.3, ea: 3200000, frictionCoeff: 1.0, diameter: 76 }
           ],
           [SegmentType.FIBER]: []
       };
@@ -245,7 +246,7 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v260429</span>
+                              <span>Frontend: v260523</span>
                               <span>Worker: v260429</span>
                           </div>
                           <button onClick={onClose} className="w-full py-2 bg-accent-600 hover:bg-accent-500 text-white rounded font-medium transition-colors shadow-sm text-sm">Close Guide</button>
@@ -276,7 +277,7 @@
           const handleTypeChange = (index, newType) => {
               const defaults = SEGMENT_PRESETS[newType];
               const newSegs = [...segments];
-              newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff };
+              newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff, diameter: defaults.diameter || '', isEAManual: false };
               setSegments(newSegs);
           };
 
@@ -284,7 +285,7 @@
               if (!sizeDataStr) return;
               const sizeData = JSON.parse(sizeDataStr);
               const newSegs = [...segments];
-              newSegs[index] = { ...newSegs[index], w: sizeData.w, w_wet: sizeData.w_wet, EA: sizeData.ea, frictionCoeff: sizeData.frictionCoeff !== undefined ? sizeData.frictionCoeff : newSegs[index].frictionCoeff };
+              newSegs[index] = { ...newSegs[index], w: sizeData.w, w_wet: sizeData.w_wet, EA: sizeData.ea, frictionCoeff: sizeData.frictionCoeff !== undefined ? sizeData.frictionCoeff : newSegs[index].frictionCoeff, diameter: sizeData.diameter || '', isEAManual: false };
               setSegments(newSegs);
           };
 
@@ -292,12 +293,29 @@
               const newSegs = [...segments];
               newSegs[index] = { ...newSegs[index], [field]: value };
               if (field === 'w') { newSegs[index].w_wet = ''; }
+              if (field === 'diameter' && !newSegs[index].isEAManual) {
+                  const d = parseFloat(value) || 0;
+                  const k = EA_COEFFICIENTS[newSegs[index].type];
+                  if (k && d > 0) {
+                      newSegs[index].EA = Math.round(k * d * d);
+                  }
+              }
+              if (field === 'EA') {
+                  const v = parseFloat(value);
+                  const isManual = value !== '' && !isNaN(v) && v > 0;
+                  newSegs[index].isEAManual = isManual;
+                  if (!isManual) {
+                      const d = parseFloat(newSegs[index].diameter) || 0;
+                      const k = EA_COEFFICIENTS[newSegs[index].type];
+                      if (k && d > 0) { newSegs[index].EA = Math.round(k * d * d); }
+                  }
+              }
               setSegments(newSegs);
           };
 
           const addSegment = () => {
               const defaults = SEGMENT_PRESETS[SegmentType.WIRE];
-              setSegments([...segments, { id: `seg-${Date.now()}`, type: SegmentType.WIRE, length: 100, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff }]);
+              setSegments([...segments, { id: `seg-${Date.now()}`, type: SegmentType.WIRE, length: 100, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff, diameter: '', isEAManual: false }]);
           };
 
           const removeSegment = (index) => {
@@ -308,17 +326,28 @@
           const updateBuoy = (index, field, value) => {
               const newBuoys = [...buoys];
               newBuoys[index] = { ...newBuoys[index], [field]: value };
+              if (field === 'pennantWeight') {
+                  const v = parseFloat(value);
+                  const isManual = value !== '' && !isNaN(v) && v !== 0;
+                  newBuoys[index].isPennantWeightManual = isManual;
+                  if (!isManual) {
+                      const len = parseFloat(newBuoys[index].pennantLength) || 0;
+                      newBuoys[index].pennantWeight = parseFloat((len * 0.003).toFixed(3));
+                  }
+              }
               if (field === 'pennantLength') {
                   const len = parseFloat(value) || 0;
-                  const estimatedWeight = len * 0.003;
-                  newBuoys[index].pennantWeight = parseFloat(estimatedWeight.toFixed(3));
+                  if (!newBuoys[index].isPennantWeightManual) {
+                      const estimatedWeight = len * 0.003;
+                      newBuoys[index].pennantWeight = parseFloat(estimatedWeight.toFixed(3));
+                  }
                   if (!newBuoys[index].pennantLoad) { newBuoys[index].pennantLoad = 0.05; }
               }
               setBuoys(newBuoys);
           };
 
           const addBuoy = () => {
-              setBuoys([...buoys, { id: `buoy-${Date.now()}`, distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 10, pennantWeight: 0.2, pennantLoad: 0.05, height: 2.0, pennantSag: 2.0 }]);
+              setBuoys([...buoys, { id: `buoy-${Date.now()}`, distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 10, pennantWeight: 0.2, pennantLoad: 0.05, height: 2.0, pennantSag: 2.0, isPennantWeightManual: false }]);
           };
 
           const removeBuoy = (index) => {
@@ -347,7 +376,7 @@
 
                       <section>
                           <div className="flex justify-between items-center mb-2">
-                              <SectionHeader title="Line Segments" icon={IconAnchor} />
+                              <SectionHeader title="Line Segments (Fairlead → Anchor)" icon={IconAnchor} />
                               <button onClick={addSegment} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
                                   <IconPlus size={12} /> Add
                               </button>
@@ -387,9 +416,8 @@
                                                       </SelectField>
                                                   </div>
                                               )}
-                                              <div className="col-span-2">
-                                                  <InputField label="Length" value={seg.length} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) { updateSegment(idx, 'length', e.target.value) } else if (e.target.value === '') { updateSegment(idx, 'length', '') } }} min="0" unit="m" error={isLenInvalid ? "Len > 0" : undefined} />
-                                              </div>
+                                                                                            <InputField label="Diameter" value={seg.diameter || ''} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'diameter', e.target.value); else if (e.target.value === '') updateSegment(idx, 'diameter', ''); }} unit="mm" placeholder="e.g. 76" />
+                                              <InputField label="Length" value={seg.length} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) { updateSegment(idx, 'length', e.target.value) } else if (e.target.value === '') { updateSegment(idx, 'length', '') } }} min="0" unit="m" error={isLenInvalid ? "Len > 0" : undefined} />
                                               <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
                                               <InputField label="Weight (Dry)" value={seg.w} onChange={e => { updateSegment(idx, 'w', e.target.value); }} unit="kg/m" error={isWeightInvalid ? "W > 0" : undefined} />
                                               <InputField label="Weight (Wet)" value={seg.w_wet || ''} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} unit="kg/m" placeholder={`Auto: ${autoWet.toFixed(2)}`} highlight={hasManualWet}>
@@ -397,7 +425,14 @@
                                                       <button onClick={() => updateSegment(idx, 'w_wet', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
                                                   )}
                                               </InputField>
-                                              <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if(e.target.value==='') updateSegment(idx, 'EA', ''); }} unit="kN" placeholder="Infinite" error={isEAInvalid ? "EA > 0" : undefined} />
+                                              <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if(e.target.value==='') updateSegment(idx, 'EA', ''); }} unit="kN" placeholder={(() => { const d = parseFloat(seg.diameter) || 0; const k = EA_COEFFICIENTS[seg.type]; return (k && d > 0) ? `Auto: ${Math.round(k*d*d)}` : 'Infinite'; })()} error={isEAInvalid ? "EA > 0" : undefined} highlight={seg.isEAManual}>
+                    {seg.isEAManual && (
+                      <button onClick={() => updateSegment(idx, 'EA', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
+                    )}
+                    {!seg.isEAManual && parseFloat(seg.diameter) > 0 && EA_COEFFICIENTS[seg.type] && (
+                      <span className="absolute right-9 top-1.5 text-[9px] text-blue-500 dark:text-blue-400 font-bold pointer-events-none">⚡Ø{seg.diameter}</span>
+                    )}
+                    </InputField>
                                               <InputField label="Friction Coeff" value={seg.frictionCoeff} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'frictionCoeff', e.target.value); else if(e.target.value==='') updateSegment(idx, 'frictionCoeff', ''); }} unit="" error={isFrictionInvalid ? "µ ≥ 0" : undefined} />
                                           </div>
                                       </div>
@@ -436,7 +471,11 @@
                                           <div className="grid grid-cols-2 gap-3">
                                               <InputField label="Net Buoyancy" value={b.netBuoyancy} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'netBuoyancy', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'netBuoyancy', ''); }} unit="ton" error={isBuoyancyInvalid ? "Buoyancy ≥ 0" : undefined} />
                                               <InputField label="Pennant Length" value={b.pennantLength} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLength', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLength', ''); }} unit="m" error={isPennantLInvalid ? "Len ≥ 0" : undefined} />
-                                              <InputField label="Pennant Wt (t) [~3kg/m]" title="Auto-computed as Pennant Length * 0.003 t/m" value={b.pennantWeight} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantWeight', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantWeight', ''); }} unit="ton" error={isPennantWInvalid ? "Wt ≥ 0" : undefined} />
+                                              <InputField label="Pennant Wt (t) [~3kg/m]" title="Auto-computed as Pennant Length * 0.003 t/m" value={b.pennantWeight} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantWeight', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantWeight', ''); }} unit="ton" error={isPennantWInvalid ? "Wt ≥ 0" : undefined} highlight={b.isPennantWeightManual} placeholder={`Auto: ${((parseFloat(b.pennantLength) || 0) * 0.003).toFixed(3)}`}>
+                    {b.isPennantWeightManual && (
+                      <button onClick={() => updateBuoy(idx, 'pennantWeight', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
+                    )}
+                    </InputField>
                                               <InputField label="Misc Load (t)" value={b.pennantLoad || 0} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLoad', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLoad', ''); }} unit="ton" error={isPennantLoadInvalid ? "Load ≥ 0" : undefined} />
                                               <InputField label="Buoy Height" value={b.height} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'height', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'height', ''); }} unit="m" error={isHeightInvalid ? "H ≥ 0" : undefined} />
                                               <InputField label="Pennant Sag (Vis)" value={b.pennantSag || 0} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantSag', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantSag', ''); }} unit="m" error={isPennantSagInvalid ? "Sag ≥ 0" : undefined} />
@@ -816,11 +855,11 @@
           fairleadElev: "3",
           subseaStructuresStr: "0",
           segments: [
-              { id: `seg-wire-${id}-1`, type: SegmentType.WIRE, length: 700, w: 6.35, w_wet: 5.38, EA: 77000, frictionCoeff: 0.5 },
-              { id: `seg-chain-${id}-2`, type: SegmentType.CHAIN, length: 55, w: 32.0, w_wet: 27.8, EA: 800000, frictionCoeff: 1.0 }
+              { id: `seg-wire-${id}-1`, type: SegmentType.WIRE, length: 700, w: 6.35, w_wet: 5.38, EA: 77000, frictionCoeff: 0.5, diameter: 38, isEAManual: false },
+              { id: `seg-chain-${id}-2`, type: SegmentType.CHAIN, length: 55, w: 32.0, w_wet: 27.8, EA: 800000, frictionCoeff: 1.0, diameter: 38, isEAManual: false }
           ],
           buoys: [
-              { id: `buoy-${id}-1`, distanceFromAnchor: 500, netBuoyancy: 5, pennantLength: 30, pennantWeight: 0.2, height: 2.0, pennantSag: 2.0, pennantLoad: 0.05 }
+              { id: `buoy-${id}-1`, distanceFromAnchor: 500, netBuoyancy: 5, pennantLength: 30, pennantWeight: 0.2, height: 2.0, pennantSag: 2.0, pennantLoad: 0.05, isPennantWeightManual: false }
           ],
           tensionsStr: "5, 20, 40",
           calcMode: 'tension',
@@ -1058,7 +1097,7 @@
                       <div className="relative z-10 h-full flex flex-col gap-4">
                           <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800 pb-0">
                               {configs.map(c => (
-                                  <div key={c.id} onClick={() => { setActiveTabId(c.id); setPendingCalc(true); }} className={`cursor-pointer px-4 py-2 rounded-t-lg text-sm font-bold transition-colors ${activeTabId === c.id ? (theme === 'dark' ? 'bg-[#0B0F19] text-accent-400 border-t-2 border-l border-r border-gray-800 border-t-accent-500 relative top-[1px]' : 'bg-white text-accent-600 border-t-2 border-l border-r border-gray-200 border-t-accent-600 relative top-[1px] shadow-sm') : (theme === 'dark' ? 'bg-gray-900/50 text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'bg-gray-200/50 text-gray-500 hover:bg-white hover:text-gray-700')}`}>
+                                  <div key={c.id} onClick={() => { setActiveTabId(c.id); const tgt = configs.find(c2 => c2.id === c.id); if (!tgt || !tgt.results || tgt.results.length === 0) setPendingCalc(true); }} className={`cursor-pointer px-4 py-2 rounded-t-lg text-sm font-bold transition-colors ${activeTabId === c.id ? (theme === 'dark' ? 'bg-[#0B0F19] text-accent-400 border-t-2 border-l border-r border-gray-800 border-t-accent-500 relative top-[1px]' : 'bg-white text-accent-600 border-t-2 border-l border-r border-gray-200 border-t-accent-600 relative top-[1px] shadow-sm') : (theme === 'dark' ? 'bg-gray-900/50 text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'bg-gray-200/50 text-gray-500 hover:bg-white hover:text-gray-700')}`}>
                                       {c.projectName}
                                       {configs.length > 1 && (
                                           <button onClick={(e) => { e.stopPropagation(); setConfigs(configs.filter(config => config.id !== c.id)); if (activeTabId === c.id) { setActiveTabId(configs.find(config => config.id !== c.id).id); } }} className="ml-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-white/20 p-0.5" title="Close Tab">✕</button>
