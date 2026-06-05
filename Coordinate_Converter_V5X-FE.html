@@ -176,6 +176,7 @@
         .status { margin-top: 4px; font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: var(--radius-md); max-height: 0; opacity: 0; overflow: hidden; transition: all 0.3s ease; box-sizing: border-box; border: 1px solid transparent; margin-bottom: 0;}
         .status.ok { color: #065f46; background: #d1fae5; border-color: #34d399; max-height: 200px; opacity: 1; padding: 8px; margin-bottom: 8px;}
         .status.err { color: #991b1b; background: #fee2e2; border-color: #f87171; max-height: 500px; opacity: 1; padding: 8px; margin-bottom: 8px; overflow-y: auto; }
+        .status.warn { color: #92400e; background: #fef3c7; border-color: #f59e0b; max-height: 200px; opacity: 1; padding: 8px; margin-bottom: 8px; }
         
         .toast-container { position: fixed; bottom: 45px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
         .toast { background: #1e293b; color: #fff; padding: 10px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateY(20px); transition: all 0.3s ease; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--primary-accent);}
@@ -432,6 +433,7 @@ const AppState = {
     zoneInfo: { zone: 47, cm: 99 },
     precCfg: { decdeg_dp: 7, dms_sec_dp: 4, dm_min_dp: 5, utm_dp: 2 },
     s1Format: 'dm',
+    dirty: { s1: false, s2: false },
     forceTableReset: true,
     map: { instance: null, markerLayer: null, street: null, sat: null }
 };
@@ -458,13 +460,13 @@ const I18nDict = {
         err_s1_empty: "Row {0}: Provide required coordinates.", err_s1_min: "Row {0}: Minutes must be 0-59.", err_s1_deg: "Row {0}: Lat Deg (-90 to 90) or Lon Deg (-180 to 180) invalid.",
         err_s2_both: "Row {0}: Both Easting and Northing required.", err_s2_utm: "Row {0}: Coordinates invalid for UTM zone.", err_invalid_num: "Row {0}: Numeric parse error.", err_lat_range: "Row {0}: Latitude must be between -90° and 90°.", err_lon_range: "Row {0}: Longitude must be between -180° and 180°.",
         err_out_th: "Row {0}: Coordinates outside valid UTM bounds for region.", err_out_zone: "Row {0}: Longitude exceeds UTM Zone Central Meridian limits.",
-        msg_calc_ok: "✓ {0} row(s) calculated successfully.",
+        msg_calc_ok: "✓ {0} row(s) calculated successfully.", msg_dirty: "⚠ Data changed. Existing result cells may be outdated. Press Enter or Calculate before using results/export.",
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
         app_title: "โปรแกรมแปลงค่าพิกัด v5.4 (260605)", lbl_datum: "พารามิเตอร์แปลงพิกัด:", lbl_zone: "โซนปัจจุบัน:",
         sel_zone: "พิกัด UTM Zone:", sel_datum: "เลือกชุดพารามิเตอร์:",
-        opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "แบบดั้งเดิม v3.13 GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
+        opt_dol: "มาตรฐาน กมร./กรมที่ดิน (dx: -204.5, dy: -837.9, dz: -294.8)", opt_survey: "รังวัดความละเอียดสูง (dx: -204.4798, dy: -837.8940, dz: -294.7765)", opt_legacy: "แบบดั้งเดิม GOT (dx: -204.64, dy: -834.74, dz: -293.80)",
         btn_clear_all: "ล้างข้อมูลทั้งหมด", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
         lbl_format: "รูปแบบการกรอก:", lbl_out_format: "รูปแบบผลลัพธ์:", opt_fmt_dm: "องศา และ ลิปดาทศนิยม (DM)", opt_fmt_d: "ทศนิยมองศา (D)", opt_fmt_dms: "องศา ลิปดา พิลิปดา (DMS)",
         s1_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ WGS84:", s2_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ UTM:",
@@ -479,7 +481,7 @@ const I18nDict = {
         err_s1_empty: "แถว {0}: กรุณากรอกพิกัดให้ครบ", err_s1_min: "แถว {0}: ลิปดาต้องอยู่ระหว่าง 0-59", err_s1_deg: "แถว {0}: องศาผิดพลาด",
         err_s2_both: "แถว {0}: ต้องกรอกข้อมูล X และ Y", err_s2_utm: "แถว {0}: ค่าพิกัดฉากผิดพลาด", err_invalid_num: "แถว {0}: รูปแบบตัวเลขผิด", err_lat_range: "แถว {0}: ละติจูดอยู่นอกช่วง -90 ถึง 90", err_lon_range: "แถว {0}: ลองจิจูดอยู่นอกช่วง -180 ถึง 180",
         err_out_th: "แถว {0}: พิกัดหลุดอาณาบริเวณ", err_out_zone: "แถว {0}: ค่าลองจิจูดผิดโซน CM ที่ตั้งไว้",
-        msg_calc_ok: "✓ คำนวณสำเร็จ {0} แถว",
+        msg_calc_ok: "✓ คำนวณสำเร็จ {0} แถว", msg_dirty: "⚠ ข้อมูลมีการแก้ไข ผลลัพธ์เดิมอาจไม่ตรงกับข้อมูลล่าสุด กด Enter หรือปุ่มคำนวณก่อนใช้ผลลัพธ์/ส่งออก",
         tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
@@ -766,7 +768,7 @@ const AppMethods = {
         document.getElementById('displayParams').innerHTML = `<code>dx= ${AppState.params.dx}</code> <code>dy= ${AppState.params.dy}</code> <code>dz= ${AppState.params.dz}</code>`;
         document.getElementById('displayZone').innerHTML = `<code>${AppState.zoneInfo.zone}N (CM=${AppState.zoneInfo.cm}°E)</code>`;
         
-        AppMethods.calcS1(); AppMethods.calcS2();
+        AppMethods.markDirty('s1'); AppMethods.markDirty('s2');
         if(document.getElementById('coordinateSVG').innerHTML!=='') AppMethods.drawSvg();
         const mapDiv = document.getElementById('leafletMap');
         if(AppState.map.instance && mapDiv && mapDiv.style.display !== 'none') AppMethods.drawLeaflet();
@@ -992,7 +994,7 @@ const AppMethods = {
 
             const uniq = [...new Set(msgs)];
             if (uniq.length) { st.innerHTML = uniq.join('<br>'); st.className = 'status err'; }
-            else if (rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+            else if (rowsCalc > 0) { AppMethods.markClean('s1'); st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
             else { st.innerHTML = ''; st.className = 'status'; }
 
         } catch (error) {
@@ -1084,7 +1086,7 @@ const AppMethods = {
 
             const uniq = [...new Set(msgs)];
             if (uniq.length) { st.innerHTML = uniq.join('<br>'); st.className = 'status err'; }
-            else if (rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+            else if (rowsCalc > 0) { AppMethods.markClean('s2'); st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
             else { st.innerHTML = ''; st.className = 'status'; }
 
         } catch (error) {
@@ -1399,7 +1401,7 @@ const AppMethods = {
                     c[2].querySelector('input').value = coords[1] ? coords[1] : "";
                     [1,2].forEach(i=>AppMethods.updateInputDisplay(c[i])); ri++;
                 }
-            }); AppMethods.calcS1();
+            }); AppMethods.markDirty('s1');
         }; r.readAsText(f);
     },
     
@@ -1580,21 +1582,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.target.tagName !== 'INPUT') return;
         const c = e.target.closest('.input-cell'); if(!c) return;
         AppMethods.updateInputDisplay(c);
-        if(e.target.closest('#table1')) { clearTimeout(ts1); ts1 = setTimeout(AppMethods.calcS1, 300); }
-        if(e.target.closest('#table2')) { clearTimeout(ts2); ts2 = setTimeout(AppMethods.calcS2, 300); }
+        if(e.target.closest('#table1')) AppMethods.markDirty('s1');
+        if(e.target.closest('#table2')) AppMethods.markDirty('s2');
     });
 
+
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        const inS1 = e.target.closest && e.target.closest('#table1');
+        const inS2 = e.target.closest && e.target.closest('#table2');
+        if (!inS1 && !inS2) return;
+        e.preventDefault();
+        if (inS1) AppMethods.calcS1();
+        if (inS2) AppMethods.calcS2();
+    });
     document.getElementById('btnCalcS1').addEventListener('click', AppMethods.calcS1); document.getElementById('btnClearS1').addEventListener('click', AppMethods.clearS1);
-    document.getElementById('btnLoadS1').addEventListener('click', AppMethods.loadF1); document.getElementById('btnCopyS1').addEventListener('click', ()=>AppMethods.copyTable('table1',true));
-    document.getElementById('btnExpCsvS1').addEventListener('click', ()=>AppMethods.exportCsv('table1','S1_Output.csv')); document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1','S1_Output.kml'));
+    document.getElementById('btnLoadS1').addEventListener('click', AppMethods.loadF1); document.getElementById('btnCopyS1').addEventListener('click', () => AppMethods.copyTableFresh('table1',true));
+    document.getElementById('btnExpCsvS1').addEventListener('click', () => AppMethods.exportCsvFresh('table1','S1_Output.csv')); document.getElementById('btnExpKmlS1').addEventListener('click', () => AppMethods.exportKmlFresh('table1','S1_Output.kml'));
     document.getElementById('btnSampS1Csv').addEventListener('click', ()=>AppMethods.downloadSample('s1_csv')); document.getElementById('btnSampS1Txt').addEventListener('click', ()=>AppMethods.downloadSample('s1_txt'));
     
     document.getElementById('btnCalcS2').addEventListener('click', AppMethods.calcS2); document.getElementById('btnClearS2').addEventListener('click', AppMethods.clearS2);
-    document.getElementById('btnLoadS2').addEventListener('click', AppMethods.loadF2); document.getElementById('btnCopyS2').addEventListener('click', ()=>AppMethods.copyTable('table2',true));
-    document.getElementById('btnExpCsvS2').addEventListener('click', ()=>AppMethods.exportCsv('table2','S2_Output.csv')); document.getElementById('btnExpKmlS2').addEventListener('click', ()=>AppMethods.exportKml('table2','S2_Output.kml'));
+    document.getElementById('btnLoadS2').addEventListener('click', AppMethods.loadF2); document.getElementById('btnCopyS2').addEventListener('click', () => AppMethods.copyTableFresh('table2',true));
+    document.getElementById('btnExpCsvS2').addEventListener('click', () => AppMethods.exportCsvFresh('table2','S2_Output.csv')); document.getElementById('btnExpKmlS2').addEventListener('click', () => AppMethods.exportKmlFresh('table2','S2_Output.kml'));
     document.getElementById('btnSampS2Csv').addEventListener('click', ()=>AppMethods.downloadSample('s2_csv')); document.getElementById('btnSampS2Txt').addEventListener('click', ()=>AppMethods.downloadSample('s2_txt'));
     
-    document.getElementById('section1OutputFormat').addEventListener('change', AppMethods.calcS1); document.getElementById('section2OutputFormat').addEventListener('change', AppMethods.calcS2);
+    document.getElementById('section1OutputFormat').addEventListener('change', () => AppMethods.markDirty('s1')); document.getElementById('section2OutputFormat').addEventListener('change', () => AppMethods.markDirty('s2'));
     document.getElementById('btnClearAll').addEventListener('click', AppMethods.clearAll);
     document.getElementById('btnShowSvg').addEventListener('click', AppMethods.drawSvg); document.getElementById('btnExpDxf').addEventListener('click', AppMethods.exportDxf);
     
@@ -1618,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(inp.type === 'number') { const n = Formatter.toNumber(cleaned); inp.value = isNaN(n) ? '' : n; }
             else { inp.value = cleaned; }
             const cell = inp.closest('.input-cell'); if(cell) AppMethods.updateInputDisplay(cell);
-            if(inp.closest('#table1')) { clearTimeout(ts1); ts1 = setTimeout(AppMethods.calcS1, 300); }
+        AppMethods.markDirty('s1');
             return;
         }
         
@@ -1659,7 +1671,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(inp.type === 'number') { const n = Formatter.toNumber(cleaned); inp.value = isNaN(n) ? '' : n; }
             else { inp.value = cleaned; }
             const cell = inp.closest('.input-cell'); if(cell) AppMethods.updateInputDisplay(cell);
-            if(inp.closest('#table2')) { clearTimeout(ts2); ts2 = setTimeout(AppMethods.calcS2, 300); }
+        AppMethods.markDirty('s2');
             return;
         }
         
@@ -1684,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rs = document.getElementById('table1').rows;
     if(rs[1]) { rs[1].cells[1].querySelector('input').value=9; rs[1].cells[2].querySelector('input').value=39.535; rs[1].cells[3].querySelector('input').value=101; rs[1].cells[4].querySelector('input').value=21.718; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs[1].cells[x])); }
     if(rs[2]) { rs[2].cells[1].querySelector('input').value=7; rs[2].cells[2].querySelector('input').value=54.807; rs[2].cells[3].querySelector('input').value=102; rs[2].cells[4].querySelector('input').value=49.359; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs[2].cells[x])); }
-    setTimeout(AppMethods.calcS1, 100);
+    AppMethods.markDirty('s1');
     // [PATCHED] JSZip offline fallback
     setTimeout(() => {
         if (typeof JSZip === 'undefined') {
