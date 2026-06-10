@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.3.2</title>
+    <title>Coordinate Converter v6.4.1</title>
     
     <!-- Offline & System Font Support -->
     
@@ -225,7 +225,7 @@
         table tbody tr:hover .out-wgs { background-color: #bae6fd !important; }
         table tbody tr:hover .out-ind { background-color: #fef08a !important; }
 
-/* v6.3.2: Improve invalid input readability */
+/* v6.3.1: Improve invalid input readability */
 .input-cell.has-error span {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -252,7 +252,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.3.2</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.4.1</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -270,11 +270,10 @@
             
             <label data-i18n="sel_datum">Params:</label>
             <select id="datumSelect">
-                <option value="dol" data-i18n="opt_dol" title="Ref: Department of Lands (DOL), Thailand">DOL</option>
-                <option value="survey" data-i18n="opt_survey" title="Ref: High-Precision Regional Adjustment">High-Prec</option>
-                <option value="legacy" selected data-i18n="opt_legacy" title="Ref: NIMA/DMA Industry Standard (TR8350.2)">Legacy</option>
+                <option value="dol" data-i18n="opt_dol">DOL</option>
+                <option value="survey" data-i18n="opt_survey">High-Prec</option>
+                <option value="legacy" selected data-i18n="opt_legacy">Legacy</option>
             </select>
-            <span class="help-tip" id="datum_tooltip" data-tip="Datum Parameter References:&#10;• Legacy (-204.64, -834.74, -293.80): NIMA/DMA TR8350.2 Industry Standard&#10;• DOL (-204.5, -837.9, -294.8): Department of Lands, Thailand&#10;• High-Prec (-204.4798, -837.8940, -294.7765): High-Precision Regional Survey Adjustment" tabindex="0" onclick="this.toggleAttribute('data-open')" style="vertical-align: middle;">?</span>
             <button class="lang-btn" id="langBtn" data-i18n-title="tt_lang">EN/TH</button>
             <button class="clear-all" data-i18n="btn_clear_all" data-i18n-title="tt_clear_all">Clear All</button>
         </div>
@@ -297,6 +296,7 @@
                     <option value="dm" data-i18n="opt_fmt_dm">Degrees & Decimal Minutes (DM)</option>
                     <option value="d" data-i18n="opt_fmt_d">Decimal Degrees (D)</option>
                     <option value="dms" data-i18n="opt_fmt_dms">Degrees, Minutes, Seconds (DMS)</option>
+                    <option value="utm" data-i18n="opt_fmt_wgs_utm">WGS84 UTM (Meters, E/N)</option>
                 </select>
             </div>
             <div class="inline-field">
@@ -315,6 +315,13 @@
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS1" onchange="document.getElementById('table1').classList.toggle('show-conv', this.checked)">
                     <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
+                </label>
+                <label id="s1HemisphereWrap" class="s1-utm-only hidden" style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
+                    <span data-i18n="lbl_s1_hemisphere" style="font-weight:600;">WGS UTM Hemisphere:</span>
+                    <select id="s1Hemisphere" style="padding: 2px 6px; font-size: 12px; height: 26px;">
+                        <option value="N">North (N)</option>
+                        <option value="S">South (S)</option>
+                    </select>
                 </label>
             </div>
         </div>
@@ -389,6 +396,10 @@
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS2" onchange="document.getElementById('table2').classList.toggle('show-conv', this.checked)">
                     <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
+                    <input type="checkbox" id="chkShowWgsUtmS2" onchange="document.getElementById('table2').classList.toggle('show-wgs-utm', this.checked)">
+                    <span data-i18n="lbl_show_wgs_utm">Show WGS84 UTM</span>
                 </label>
             </div>
         </div>
@@ -531,17 +542,17 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.3.2", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.4.1", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM and Lat/Long to WGS84",
         tab_1: "1: WGS84 ➔ Indian 1975", tab_2: "2: Indian 1975 ➔ WGS84", tab_3: "3: Route Analytics",
         lbl_format: "Input Format:", lbl_s2_format: "Input Format:", lbl_out_format: "Output Format:", 
-        opt_fmt_dm: "Degrees & Decimal Minutes (DM)", opt_fmt_d: "Decimal Degrees (D)", opt_fmt_dms: "Degrees, Minutes, Seconds (DMS)",
+        opt_fmt_dm: "Degrees & Decimal Minutes (DM)", opt_fmt_d: "Decimal Degrees (D)", opt_fmt_dms: "Degrees, Minutes, Seconds (DMS)", opt_fmt_wgs_utm: "WGS84 UTM (Meters, E/N)",
         opt_fmt_utm: "Indian 1975 UTM (Meters, E/N)", opt_fmt_ind_dm: "Indian 1975 Deg & Dec Minutes (DM)", opt_fmt_ind_d: "Indian 1975 Decimal Degrees (D)", opt_fmt_ind_dms: "Indian 1975 Deg, Min, Sec (DMS)",
         s1_import_hint: "Import .txt or .csv file:", s2_import_hint: "Import .txt or .csv file (format: PointID X Y):",
         s2_import_hint_latlon: "Import .txt or .csv file:",
-        lbl_show_wgs_utm: "Show WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
+        lbl_show_wgs_utm: "Show WGS84 UTM", lbl_s1_hemisphere: "WGS UTM Hemisphere:", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing", th_wgs_utm_e_in: "WGS84 UTM Easting (Input)", th_wgs_utm_n_in: "WGS84 UTM Northing (Input)", th_wgs_lat_calc: "WGS84 Latitude (Calc)", th_wgs_lon_calc: "WGS84 Longitude (Calc)",
         btn_load_file: "Load CSV/TXT", btn_samp_csv: "Sample (CSV)", btn_samp_txt: "Sample (TXT)",
         btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_shp: "Export SHP (ZIP)", btn_exp_kml_s1: "Export KML", btn_copy_tsv_s1: "Copy (TSV)",
         btn_calc_s2: "Calculate Section 2", btn_clear_s2: "Clear Section 2", btn_exp_csv_s2: "Export CSV", btn_exp_xlsx_s2: "Export XLSX", btn_exp_kml_s2: "Export KML", btn_copy_tsv_s2: "Copy (TSV)",
@@ -551,31 +562,30 @@ const I18nDict = {
         th_ind_lat_d: "Ind Lat Deg", th_ind_lat_m: "Ind Lat Min", th_ind_lon_d: "Ind Lon Deg", th_ind_lon_m: "Ind Lon Min", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
         lbl_show_conv: "Show Conv (γ)", th_conv: "Conv γ (°)",
-        tooltip_s1: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated", 
+        tooltip_s1: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated", tooltip_s1_utm: "Expected: PointID Easting Northing\nExample: BM-01 661838.12 1523456.79\nUses selected UTM Zone and WGS UTM Hemisphere.", 
         tooltip_s2: "Expected: PointID X Y\nExample: BM-01 759528.17 1068297.15\nAccepts: Comma or Space/Tab-separated",
         tooltip_s2_latlon: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated",
         err_s1_empty: "Row {0}: Provide required coordinates.", err_s1_min: "Row {0}: Minutes must be 0-59.", err_s1_deg: "Row {0}: Lat Deg (-90 to 90) or Lon Deg (-180 to 180) invalid.",
-        err_s2_both: "Row {0}: Both Easting and Northing required.", err_s2_utm: "Row {0}: Coordinates invalid for UTM zone.", err_invalid_num: "Row {0}: Numeric parse error.", err_lat_range: "Row {0}: Latitude must be between -90° and 90°.", err_lon_range: "Row {0}: Longitude must be between -180° and 180°.",
+        err_s2_both: "Row {0}: Both Easting and Northing required.", err_s2_utm: "Row {0}: Coordinates invalid for UTM zone.", err_s1_utm: "Row {0}: WGS84 UTM Easting/Northing invalid for selected zone/hemisphere.", err_invalid_num: "Row {0}: Numeric parse error.", err_lat_range: "Row {0}: Latitude must be between -90° and 90°.", err_lon_range: "Row {0}: Longitude must be between -180° and 180°.",
         err_out_th: "Row {0}: Coordinates outside valid UTM bounds for region.", err_out_zone: "Row {0}: Longitude exceeds UTM Zone Central Meridian limits.",
         msg_calc_ok: "✓ {0} row(s) calculated successfully.",
         err_math: "Row {0}: Math error.",
         route_empty: "No route data. Enter points in Tab 2 to generate analytics.",
         route_need_pts: "Need at least 2 valid points in Section 2 to generate route analytics.",
-        tt_datum_ref: "Datum Parameter References:\n• Legacy (-204.64, -834.74, -293.80): NIMA/DMA TR8350.2 Industry Standard\n• DOL (-204.5, -837.9, -294.8): Department of Lands, Thailand\n• High-Prec (-204.4798, -837.8940, -294.7765): High-Precision Regional Survey Adjustment",
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.3.2", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.4.1", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
         tab_1: "1: WGS84 ➔ Indian 1975", tab_2: "2: Indian 1975 ➔ WGS84", tab_3: "3: วิเคราะห์เส้นทาง",
         lbl_format: "รูปแบบการกรอก:", lbl_s2_format: "รูปแบบการกรอก:", lbl_out_format: "รูปแบบผลลัพธ์:", 
-        opt_fmt_dm: "องศา และ ลิปดาทศนิยม (DM)", opt_fmt_d: "ทศนิยมองศา (D)", opt_fmt_dms: "องศา ลิปดา พิลิปดา (DMS)",
+        opt_fmt_dm: "องศา และ ลิปดาทศนิยม (DM)", opt_fmt_d: "ทศนิยมองศา (D)", opt_fmt_dms: "องศา ลิปดา พิลิปดา (DMS)", opt_fmt_wgs_utm: "WGS84 UTM (Easting / Northing)",
         opt_fmt_utm: "Indian 1975 UTM (Easting / Northing)", opt_fmt_ind_dm: "Indian 1975 องศา และ ลิปดาทศนิยม (DM)", opt_fmt_ind_d: "Indian 1975 ทศนิยมองศา (D)", opt_fmt_ind_dms: "Indian 1975 องศา ลิปดา พิลิปดา (DMS)",
         s1_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ WGS84:", s2_import_hint: "นำเข้าไฟล์ CSV หรือ TXT สำหรับ UTM:",
         s2_import_hint_latlon: "นำเข้าไฟล์ CSV หรือ TXT สำหรับพิกัดภูมิศาสตร์ Indian 1975:",
-        lbl_show_wgs_utm: "แสดง WGS84 UTM", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing",
+        lbl_show_wgs_utm: "แสดง WGS84 UTM", lbl_s1_hemisphere: "ซีกโลก WGS UTM:", th_wgs_utm_e: "WGS84 UTM Easting", th_wgs_utm_n: "WGS84 UTM Northing", th_wgs_utm_e_in: "WGS84 UTM Easting (Input)", th_wgs_utm_n_in: "WGS84 UTM Northing (Input)", th_wgs_lat_calc: "WGS84 Latitude (คำนวณ)", th_wgs_lon_calc: "WGS84 Longitude (คำนวณ)",
         btn_load_file: "โหลดไฟล์", btn_samp_csv: "ตัวอย่าง CSV", btn_samp_txt: "ตัวอย่าง TXT",
         btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_shp: "ส่งออก SHP (ZIP)", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
         btn_calc_s2: "ประมวลผลส่วนที่ 2", btn_clear_s2: "ล้างข้อมูล", btn_exp_csv_s2: "ส่งออก CSV", btn_exp_xlsx_s2: "ส่งออก XLSX", btn_exp_kml_s2: "ส่งออก KML", btn_copy_tsv_s2: "คัดลอกตาราง",
@@ -585,17 +595,16 @@ const I18nDict = {
         th_ind_lat_d: "Ind Lat องศา (N)", th_ind_lat_m: "Ind Lat ลิปดา (N)", th_ind_lon_d: "Ind Lon องศา (E)", th_ind_lon_m: "Ind Lon ลิปดา (E)", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
         lbl_show_conv: "แสดงค่าคอนเวอร์เจนซ์ (γ)", th_conv: "คอนเวอร์เจนซ์ γ (°)",
-        tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv", 
+        tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv", tooltip_s1_utm: "รูปแบบที่รองรับ: ชื่อจุด Easting Northing\nตัวอย่าง: BM-01 661838.12 1523456.79\nใช้ UTM Zone และซีกโลก WGS UTM ที่เลือก", 
         tooltip_s2: "รูปแบบที่รองรับ: ชื่อจุด ค่าEasting ค่าNorthing\nรับไฟล์: .txt (เคาะวรรค) หรือ .csv",
         tooltip_s2_latlon: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv",
         err_s1_empty: "แถว {0}: กรุณากรอกพิกัดให้ครบ", err_s1_min: "แถว {0}: ลิปดาต้องอยู่ระหว่าง 0-59", err_s1_deg: "แถว {0}: องศาผิดพลาด",
-        err_s2_both: "แถว {0}: ต้องกรอกข้อมูลพิกัดให้ครบ", err_s2_utm: "แถว {0}: ค่าพิกัดฉากผิดพลาด", err_invalid_num: "แถว {0}: รูปแบบตัวเลขผิด", err_lat_range: "แถว {0}: ละติจูดอยู่นอกช่วง -90 ถึง 90", err_lon_range: "แถว {0}: ลองจิจูดอยู่นอกช่วง -180 ถึง 180",
+        err_s2_both: "แถว {0}: ต้องกรอกข้อมูลพิกัดให้ครบ", err_s2_utm: "แถว {0}: ค่าพิกัดฉากผิดพลาด", err_s1_utm: "แถว {0}: ค่า WGS84 UTM Easting/Northing ไม่ถูกต้องตามโซน/ซีกโลกที่เลือก", err_invalid_num: "แถว {0}: รูปแบบตัวเลขผิด", err_lat_range: "แถว {0}: ละติจูดอยู่นอกช่วง -90 ถึง 90", err_lon_range: "แถว {0}: ลองจิจูดอยู่นอกช่วง -180 ถึง 180",
         err_out_th: "แถว {0}: พิกัดหลุดอาณาบริเวณ", err_out_zone: "แถว {0}: ค่าลองจิจูดผิดโซน CM ที่ตั้งไว้",
         msg_calc_ok: "✓ คำนวณสำเร็จ {0} แถว",
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
-        tt_datum_ref: "แหล่งอ้างอิงพารามิเตอร์:\n• Legacy (-204.64, -834.74, -293.80): ค่าสากลดั้งเดิมอุตสาหกรรม (NIMA/DMA TR8350.2)\n• DOL (-204.5, -837.9, -294.8): พารามิเตอร์กรมที่ดิน\n• High-Prec (-204.4798, -837.8940, -294.7765): ค่าปรับแก้รังวัดความละเอียดสูงภูมิภาค",
         tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเฉพาะในหน้านี้เป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
@@ -617,9 +626,7 @@ function updateTranslations() {
         el.title = t(el.getAttribute('data-i18n-title'));
     });
     
-    document.getElementById('s1_tooltip').setAttribute('data-tip', t('tooltip_s1'));
-    const datumTip = document.getElementById('datum_tooltip');
-    if (datumTip) datumTip.setAttribute('data-tip', t('tt_datum_ref'));
+    document.getElementById('s1_tooltip').setAttribute('data-tip', AppState.s1Format === 'utm' ? t('tooltip_s1_utm') : t('tooltip_s1'));
     
     if (AppState.s2Format === 'utm') {
         document.getElementById('s2_tooltip').setAttribute('data-tip', t('tooltip_s2'));
@@ -941,7 +948,7 @@ const Formatter = {
         let s = String(str).trim();
         if (s === '') return NaN;
 
-        // v6.3.2 Input Robustness: normalize common DMS punctuation variants.
+        // v6.3.1 Input Robustness: normalize common DMS punctuation variants.
         // Supports: °, º, deg, ', ’, ′, ", ”, ″ and separated/attached N/S/E/W suffixes.
         s = s
             .replace(/[º]/g, '°')
@@ -1003,62 +1010,74 @@ const Formatter = {
  */
 const AppMethods = {
     // Dynamic Columns for S1 based on format
-    getS1Cols: () => AppState.s1Format === 'dm' ? { e: 5, n: 6, lat: 7, lon: 8, w_e: 9, w_n: 10, conv: 11 } : { e: 3, n: 4, lat: 5, lon: 6, w_e: 7, w_n: 8, conv: 9 },
+    getS1Cols: () => {
+        const f = AppState.s1Format;
+        if (f === 'utm') return { pt: 0, wgsE: 1, wgsN: 2, e: 3, n: 4, lat: 5, lon: 6, wgsLat: 7, wgsLon: 8, conv: 9 };
+        return f === 'dm' ? { pt: 0, e: 5, n: 6, lat: 7, lon: 8, w_e: 9, w_n: 10, conv: 11 } : { pt: 0, e: 3, n: 4, lat: 5, lon: 6, w_e: 7, w_n: 8, conv: 9 };
+    },
+    getS1RowHemisphere: (row) => {
+        if (AppState.s1Format === 'utm') return document.getElementById('s1Hemisphere')?.value === 'S';
+        const coords = AppMethods.getS1LatLon(row);
+        return !isNaN(coords.lat) && coords.lat < 0;
+    },
+    updateS1UtmModeUI: () => {
+        const isUtm = AppState.s1Format === 'utm';
+        const wrap = document.getElementById('s1HemisphereWrap');
+        if (wrap) wrap.classList.toggle('hidden', !isUtm);
+        const cb = document.getElementById('chkShowWgsUtmS1');
+        if (cb) {
+            cb.disabled = isUtm;
+            if (isUtm) cb.checked = true;
+            document.getElementById('table1')?.classList.toggle('show-wgs-utm', cb.checked);
+        }
+        const tip = document.getElementById('s1_tooltip');
+        if (tip) tip.setAttribute('data-tip', isUtm ? t('tooltip_s1_utm') : t('tooltip_s1'));
+    },
 
     // Dynamic Columns for S2 based on format
     getS2Cols: () => {
         const f = AppState.s2Format;
-        if (f === 'utm') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, conv: 7 };
-        else if (f === 'dm') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latD: 7, latM: 8, lonD: 9, lonM: 10, conv: 11 };
-        else if (f === 'dms') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latStr: 7, lonStr: 8, conv: 9 };
-        else return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latD: 7, lonD: 8, conv: 9 };
+        if (f === 'utm') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, w_e: 7, w_n: 8, conv: 9 };
+        else if (f === 'dm') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latD: 7, latM: 8, lonD: 9, lonM: 10, w_e: 11, w_n: 12, conv: 13 };
+        else if (f === 'dms') return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latStr: 7, lonStr: 8, w_e: 9, w_n: 10, conv: 11 };
+        else return { pt: 0, wgsLat: 1, wgsLon: 2, indE: 3, indN: 4, indLat: 5, indLon: 6, latD: 7, lonD: 8, w_e: 9, w_n: 10, conv: 11 };
     },
 
     extractRowData: (line, isS1, format) => {
-        if (!line || !line.trim()) return null;
-        const raw = String(line).trim().replace(/\u00A0|\u200B/g, ' ');
-        const hasDelimited = /[	,]/.test(raw);
-        const splitDelimited = s => s.split(/[	,]/).map(x => x.trim()).filter(Boolean);
-        const splitWhitespace = s => s.split(/\s+/).map(x => x.trim()).filter(Boolean);
+        if (!line || !String(line).trim()) return null;
+        const rawOriginal = String(line).replace(/\u00A0/g, ' ').trim();
+        if (!rawOriginal) return null;
+        // v6.4.1 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
+        const splitCsv = (s) => { const out=[]; let cur='', q=false; for(let i=0;i<s.length;i++){ const ch=s[i]; if(q){ if(ch==='"'){ if(s[i+1]==='"'){cur+='"'; i++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ if(cur.trim()!=='') out.push(cur.trim()); cur=''; } else cur+=ch; } } if(cur.trim()!=='') out.push(cur.trim()); return out; };
+        const splitDelimited = (s) => s.includes(',') ? splitCsv(s) : (s.includes('\t') ? s.split(/\t+/).map(x=>x.trim()).filter(Boolean) : s.trim().split(/\s+/).map(x=>x.trim()).filter(Boolean));
         const makeResult = (idParts, coords) => ({ id: idParts.length ? idParts.join(' ').trim() : null, coords });
-
-        // v6.3.2 Input Robustness: DMS is parsed as two complete coordinate strings.
-        // This avoids forcing broken DMS fragments into the wrong columns during bulk paste.
+        const parts = splitDelimited(rawOriginal);
+        const hasHardDelimiter = /[\t,]/.test(rawOriginal);
+        const cleanCoordText = (s) => String(s || '').replace(/[º]/g,'°').replace(/[′’‘]/g,"'").replace(/[″“”]/g,'"').replace(/\bdeg\b/ig,'°').replace(/\s+/g,' ').trim();
+        const numericOK = (v) => isFinite(Formatter.toNumber(v));
+        const roleOK = (lat, lon) => isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+        const coordRoleHintOK = (latStr, lonStr) => !((/(^|\s)[EW]\s*$/i.test(latStr) || /^[EW]\s+/i.test(latStr)) || (/(^|\s)[NS]\s*$/i.test(lonStr) || /^[NS]\s+/i.test(lonStr)));
         if (format === 'dms') {
-            const tokens = hasDelimited ? splitDelimited(raw) : splitWhitespace(raw);
-            if (tokens.length < 2) return null;
-            const isDmsLike = coord => {
-                const nums = String(coord).match(/[-+]?\d+(?:\.\d+)?/g) || [];
-                const hasDmsSymbol = /[°º'′’"″”]/.test(String(coord));
-                // Strict DMS paste guard: accept full symbolic DMS or 3-number DMS groups; reject single-number fragments.
-                return nums.length >= 3 || (hasDmsSymbol && nums.length >= 1);
+            const tryPair = (idParts, latText, lonText) => {
+                const latStr = cleanCoordText(latText), lonStr = cleanCoordText(lonText);
+                const latNums = latStr.match(/[-+]?\d+(?:\.\d+)?/g) || [];
+                const lonNums = lonStr.match(/[-+]?\d+(?:\.\d+)?/g) || [];
+                const latHasSym = /[°'"NSEW]/i.test(latStr), lonHasSym = /[°'"NSEW]/i.test(lonStr);
+                if ((latNums.length < 2 && !latHasSym) || (lonNums.length < 2 && !lonHasSym)) return null;
+                if (!coordRoleHintOK(latStr, lonStr)) return null;
+                const lat = Formatter.parseDMS(latStr), lon = Formatter.parseDMS(lonStr);
+                return roleOK(lat, lon) ? makeResult(idParts, [latStr, lonStr]) : null;
             };
-
-            // Try all tail combinations so Point ID may contain spaces, tabs, or comma-separated text.
-            // Iterate from the earliest plausible coordinate start to avoid accepting trailing fragments such as "30" + "15.2 E".
-            for (let start = 0; start <= tokens.length - 2; start++) {
-                for (let split = start + 1; split < tokens.length; split++) {
-                    const latStr = tokens.slice(start, split).join(' ');
-                    const lonStr = tokens.slice(split).join(' ');
-                    // If N/S is the next token, it belongs to latitude. Do not split before it.
-                    if (/^[NS]$/i.test(tokens[split]) && !/[NS]$/i.test(latStr.trim())) continue;
-                    if (!isDmsLike(latStr) || !isDmsLike(lonStr)) continue;
-                    const lat = Formatter.parseDMS(latStr);
-                    const lon = Formatter.parseDMS(lonStr);
-                    if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
-                        return makeResult(tokens.slice(0, start), [latStr, lonStr]);
-                    }
-                }
-            }
+            if (hasHardDelimiter && parts.length >= 3) { const direct = tryPair(parts.slice(0, -2), parts[parts.length - 2], parts[parts.length - 1]); if (direct) return direct; }
+            const tokens = rawOriginal.replace(/\t/g,' ').replace(/,/g,' ').trim().split(/\s+/).filter(Boolean);
+            for (let start=0; start<=tokens.length-2; start++) { for (let split=start+1; split<tokens.length; split++) { const got = tryPair(tokens.slice(0,start), tokens.slice(start,split).join(' '), tokens.slice(split).join(' ')); if(got) return got; } }
             return null;
         }
-
-        const expected = format === 'dm' ? 4 : 2;
-        const parts = hasDelimited ? splitDelimited(raw) : splitWhitespace(raw);
+        const expected = (format === 'dm') ? 4 : 2;
         if (parts.length < expected) return null;
-
-        const coords = parts.slice(-expected);
-        if (coords.some(v => !isFinite(Formatter.toNumber(v)))) return null;
+        const coords = parts.slice(-expected).map(cleanCoordText);
+        if (coords.length !== expected || coords.some(v => !numericOK(v))) return null;
+        if (format === 'dm') { const latMin = Math.abs(Formatter.toNumber(coords[1])); const lonMin = Math.abs(Formatter.toNumber(coords[3])); if (latMin >= 60 || lonMin >= 60) return null; }
         return makeResult(parts.slice(0, parts.length - expected), coords);
     },
 
@@ -1109,6 +1128,8 @@ const AppMethods = {
             } else {
                 const cbConvS2 = document.getElementById('chkShowConvS2');
                 if (cbConvS2) document.getElementById('table2').classList.toggle('show-conv', cbConvS2.checked);
+                const cbWgsUtmS2 = document.getElementById('chkShowWgsUtmS2');
+                if (cbWgsUtmS2) document.getElementById('table2').classList.toggle('show-wgs-utm', cbWgsUtmS2.checked);
             }
             if(callback) callback();
         });
@@ -1164,7 +1185,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
             }
         });
         
@@ -1197,9 +1218,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); 
             if(gb < 0) gb += 360;
             
-            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
-            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
-            let gamma = applyGamma ? GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm) : 0;
+            const midLat = (pt1.lat + pt2.lat) / 2;
+            const midLon = (pt1.lon + pt2.lon) / 2;
+            let gamma = applyGamma ? GeoMath.calculateConvergence(midLat, midLon, zi.cm) : 0;
             
             let trueBrgStr = isNaN(vRes.bearing) ? `<span style="color:var(--danger);font-weight:700;">ERR_ANTIPODAL</span>` : `${vRes.bearing.toFixed(2)}°`;
             let distKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
@@ -1286,7 +1307,16 @@ const AppMethods = {
         const c = row.cells;
         let lat = NaN, lon = NaN;
         let signLd = 1, signLm = 1, signLod = 1, signLom = 1;
-        if (fmt === 'dm') {
+        if (fmt === 'utm') {
+            const cols = AppMethods.getS1Cols();
+            const e = Formatter.toNumber(c[cols.wgsE].querySelector('input').value);
+            const n = Formatter.toNumber(c[cols.wgsN].querySelector('input').value);
+            if (!isNaN(e) && !isNaN(n)) {
+                const isSouthern = document.getElementById('s1Hemisphere')?.value === 'S';
+                const ll = GeoMath.utmToLatLon(e, n, GeoMath.a_wgs, GeoMath.f_wgs, AppState.zoneInfo.cm, isSouthern);
+                lat = ll[0]; lon = ll[1];
+            }
+        } else if (fmt === 'dm') {
             let rd = c[1].querySelector('input').value, rm = c[2].querySelector('input').value;
             let rod = c[3].querySelector('input').value, rom = c[4].querySelector('input').value;
             
@@ -1373,18 +1403,22 @@ const AppMethods = {
 
     buildS1Table: (count = 10) => {
         const b = document.querySelector('#table1 tbody'), h = document.querySelector('#table1 thead');
-        if(b.innerHTML.trim() !== '' && !AppState.forceTableReset1) { updateTranslations(); return; }
+        if(b.innerHTML.trim() !== '' && !AppState.forceTableReset1) { updateTranslations(); AppMethods.updateS1UtmModeUI(); return; }
         const fmt = AppState.s1Format;
-        h.innerHTML = fmt === 'dm' ? 
-            `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>` 
-            : `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
-        
+        if (fmt === 'utm') {
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_utm_e_in">WGS84 UTM E</th><th data-i18n="th_wgs_utm_n_in">WGS84 UTM N</th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th data-i18n="th_wgs_lat_calc">WGS84 Latitude</th><th data-i18n="th_wgs_lon_calc">WGS84 Longitude</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
+        } else if (fmt === 'dm') {
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
+        } else {
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
+        }
         if (fmt === 'dms') document.getElementById('table1').classList.add('dms-mode');
         else document.getElementById('table1').classList.remove('dms-mode');
-
         let rn = [];
         for(let i=1; i<=count; i++) {
-            if(fmt === 'dm') {
+            if(fmt === 'utm') {
+                rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="output-cell out-wgs"></td><td class="output-cell out-wgs"></td><td class="col-conv output-cell"></td></tr>`);
+            } else if(fmt === 'dm') {
                 rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="col-wgs-utm output-cell out-wgs"></td><td class="col-wgs-utm output-cell out-wgs"></td><td class="col-conv output-cell"></td></tr>`);
             } else if(fmt === 'dms') {
                 rn.push(`<tr><td contenteditable="true" spellcheck="false">${i}</td><td class="input-cell"><span></span><input type="text" placeholder="13°45'23.5\"N" style="text-align:left;"></td><td class="input-cell"><span></span><input type="text" placeholder="100°30'15.2\"E" style="text-align:left;"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="out-ind"></td><td class="col-wgs-utm output-cell out-wgs"></td><td class="col-wgs-utm output-cell out-wgs"></td><td class="col-conv output-cell"></td></tr>`);
@@ -1394,13 +1428,12 @@ const AppMethods = {
         }
         b.innerHTML = rn.join('');
         AppState.forceTableReset1 = false;
-        
         const cbConv = document.getElementById('chkShowConvS1');
         if (cbConv) document.getElementById('table1').classList.toggle('show-conv', cbConv.checked);
         const cbWgsUtm = document.getElementById('chkShowWgsUtmS1');
         if (cbWgsUtm) document.getElementById('table1').classList.toggle('show-wgs-utm', cbWgsUtm.checked);
-        
         updateTranslations();
+        AppMethods.updateS1UtmModeUI();
     },
     
     buildS2Table: (count = 10) => {
@@ -1425,7 +1458,7 @@ const AppMethods = {
         } else if (fmt === 'dms') {
             hdr += `<th data-i18n="th_ind_lat_dec">Indian Latitude (°N)</th><th data-i18n="th_ind_lon_dec">Indian Longitude (°E)</th>`;
         }
-        hdr += `<th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
+        hdr += `<th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         h.innerHTML = hdr;
         
         if (fmt === 'dms') document.getElementById('table2').classList.add('dms-mode');
@@ -1446,7 +1479,7 @@ const AppMethods = {
                     row += `<td class="input-cell"><span></span><input type="text" style="text-align:right;"></td><td class="input-cell"><span></span><input type="text" style="text-align:right;"></td>`;
                 }
             }
-            row += `<td class="col-conv output-cell"></td></tr>`;
+            row += `<td class="col-wgs-utm output-cell"></td><td class="col-wgs-utm output-cell"></td><td class="col-conv output-cell"></td></tr>`;
             rn.push(row);
         }
         b.innerHTML = rn.join('');
@@ -1454,25 +1487,36 @@ const AppMethods = {
         
         const cbConv = document.getElementById('chkShowConvS2');
         if (cbConv) document.getElementById('table2').classList.toggle('show-conv', cbConv.checked);
+        const cbWgsUtmS2 = document.getElementById('chkShowWgsUtmS2');
+        if (cbWgsUtmS2) document.getElementById('table2').classList.toggle('show-wgs-utm', cbWgsUtmS2.checked);
         
         updateTranslations();
     },
 
     fmtSwitcherS1: () => {
-        AppState.caches.s1 = []; 
+        AppState.caches.s1 = [];
         const nf = document.getElementById('section1InputFormat').value;
-        if(AppState.s1Format === nf) return;
+        if(AppState.s1Format === nf) { AppMethods.updateS1UtmModeUI(); return; }
         const b = document.querySelector('#table1 tbody'), saved = [];
         Array.from(b.children).forEach(r => {
             let coords = AppMethods.getS1LatLon(r);
             saved.push({id:r.cells[0].innerText, lat: coords.lat, lon: coords.lon});
         });
-        AppState.s1Format = nf; AppState.forceTableReset1 = true; AppMethods.buildS1Table(Math.max(10, saved.length));
-        
+        AppState.s1Format = nf;
+        AppState.forceTableReset1 = true;
+        AppMethods.buildS1Table(Math.max(10, saved.length));
+        const zi = AppState.zoneInfo;
         Array.from(document.querySelector('#table1 tbody').children).forEach((r,i) => {
             if(!saved[i] || isNaN(saved[i].lat) || isNaN(saved[i].lon)) return;
             const c=r.cells, sd=saved[i]; c[0].innerText = sd.id;
-            if(nf==='dm'){
+            if(nf==='utm'){
+                const utm = GeoMath.latLonToUTM(sd.lat, sd.lon, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
+                c[1].querySelector('input').value = Formatter.toFixedSafe(utm[0], AppState.precCfg.utm_dp);
+                c[2].querySelector('input').value = Formatter.toFixedSafe(utm[1], AppState.precCfg.utm_dp);
+                [1,2].forEach(x => AppMethods.updateInputDisplay(c[x]));
+                const hemi = document.getElementById('s1Hemisphere');
+                if (hemi) hemi.value = sd.lat < 0 ? 'S' : 'N';
+            } else if(nf==='dm'){
                 let al=Math.abs(sd.lat), dl=Math.floor(al)*(sd.lat<0?-1:1), ml=(al-Math.floor(al))*60;
                 let ao=Math.abs(sd.lon), doL=Math.floor(ao)*(sd.lon<0?-1:1), mo=(ao-Math.floor(ao))*60;
                 c[1].querySelector('input').value=dl; c[2].querySelector('input').value=Number(ml.toFixed(5));
@@ -1488,9 +1532,9 @@ const AppMethods = {
                 [1,2].forEach(x => AppMethods.updateInputDisplay(c[x]));
             }
         });
+        AppMethods.updateS1UtmModeUI();
         AppMethods.calcS1();
     },
-    
     fmtSwitcherS2: () => {
         AppState.caches.s2 = []; 
         const nf = document.getElementById('section2InputFormat').value;
@@ -1568,7 +1612,7 @@ const AppMethods = {
         if(!isFinite(lat) || !isFinite(lon)) return [t('err_invalid_num', rIdx)];
         if(lat < -90 || lat > 90) errs.push(t('err_lat_range', rIdx));
         if(lon < -180 || lon > 180) errs.push(t('err_lon_range', rIdx));
-        // v6.3.2: Region boundary is no longer a hard error. Keep global range + UTM zone guard only.
+        // v6.3.1: Region boundary is no longer a hard error. Keep global range + UTM zone guard only.
         if(!errs.length && Math.abs(lon - cmParam) > 4.0) errs.push(t('err_out_zone', rIdx));
         return errs;
     },
@@ -1578,14 +1622,18 @@ const AppMethods = {
         const fmt=AppState.s1Format, outF=document.getElementById('section1OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         Array.from(document.querySelector('#table1 tbody').children).forEach((r, i) => {
             let c=r.cells, rE=false, idx=i+1;
-            
             const cols = AppMethods.getS1Cols();
-            [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.conv].forEach(x=>{if(c[x]) c[x].innerText=''});
-            
+            [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.wgsLat, cols.wgsLon, cols.conv].forEach(x=>{if(x !== undefined && c[x]) c[x].innerText=''});
             let coords = AppMethods.getS1LatLon(r);
             let lD = coords.lat, oD = coords.lon;
-            
-            if(fmt==='dm') {
+            if(fmt==='utm') {
+                const eVal = Formatter.toNumber(c[cols.wgsE].querySelector('input').value);
+                const nVal = Formatter.toNumber(c[cols.wgsN].querySelector('input').value);
+                if(isNaN(eVal) && isNaN(nVal)) return;
+                if(isNaN(eVal) || isNaN(nVal) || eVal < 100000 || eVal > 999999 || nVal < 0 || nVal > 10000000) { msgs.push(t('err_s1_utm', idx)); rE=true; }
+                else { let ev=AppMethods.valQC(lD,oD,idx,zi.cm); if(ev.length){ msgs=msgs.concat(ev); rE=true;} }
+                if(rE) { [cols.wgsE, cols.wgsN].forEach(x => c[x].classList.add('has-error')); return; }
+            } else if(fmt==='dm') {
                 let td=Formatter.toNumber(c[1].querySelector('input').value), tm=Formatter.toNumber(c[2].querySelector('input').value), lod=Formatter.toNumber(c[3].querySelector('input').value), lom=Formatter.toNumber(c[4].querySelector('input').value);
                 if(isNaN(td)&&isNaN(tm)&&isNaN(lod)&&isNaN(lom)) return;
                 if(isNaN(td)||isNaN(tm)||isNaN(lod)||isNaN(lom)){ msgs.push(t('err_s1_empty',idx)); rE=true; }
@@ -1606,11 +1654,16 @@ const AppMethods = {
             try {
                 let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm);
                 let wgsUtm = GeoMath.latLonToUTM(lD, oD, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
-                let gamma = GeoMath.calculateConvergence(res.lat, res.lon, zi.cm);
-                
+                let gamma = GeoMath.calculateConvergence(lD, oD, zi.cm);
                 c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
                 c[cols.lat].innerText = Formatter.formatStr(res.lat, outF, true); c[cols.lon].innerText = Formatter.formatStr(res.lon, outF, false);
-                c[cols.w_e].innerText = Formatter.formatUTM(wgsUtm[0]); c[cols.w_n].innerText = Formatter.formatUTM(wgsUtm[1]);
+                if(fmt === 'utm') {
+                    c[cols.wgsLat].innerText = Formatter.formatStr(lD, outF, true);
+                    c[cols.wgsLon].innerText = Formatter.formatStr(oD, outF, false);
+                } else {
+                    if(c[cols.w_e]) c[cols.w_e].innerText = Formatter.formatUTM(wgsUtm[0]);
+                    if(c[cols.w_n]) c[cols.w_n].innerText = Formatter.formatUTM(wgsUtm[1]);
+                }
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
             } catch(e) {
                 msgs.push(t('err_math', idx));
@@ -1619,17 +1672,15 @@ const AppMethods = {
         const st = document.getElementById('section1Status');
         const uniq = [...new Set(msgs)];
         st.innerHTML = '';
-        if(uniq.length) { 
+        if(uniq.length) {
             uniq.forEach(m => { const div = document.createElement('div'); div.textContent = m; st.appendChild(div); });
-            st.className = 'status err'; 
+            st.className = 'status err';
         }
-        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; } 
+        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
         else { st.className = 'status'; }
-
         if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
         else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
     },
-
     calcS2: () => {
         AppMethods.clearErr('table2'); let msgs = [], rowsCalc = 0;
         const fmt=AppState.s2Format, outF=document.getElementById('section2OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
@@ -1641,6 +1692,7 @@ const AppMethods = {
             
             // Clear outputs aggressively
             [cols.wgsLat, cols.wgsLon, cols.indLat, cols.indLon].forEach(x=>{if(c[x]) c[x].innerText=''});
+            [cols.w_e, cols.w_n].forEach(x=>{if(x !== undefined && c[x]) c[x].innerText=''});
             if(c[cols.conv]) c[cols.conv].innerText='';
             if(fmt !== 'utm') { [cols.indE, cols.indN].forEach(x=>{if(c[x]) c[x].innerText=''}); }
 
@@ -1698,12 +1750,12 @@ const AppMethods = {
                     c[cols.indLon].innerText=Formatter.formatStr(indLon, outF, false);
                 }
                 
-                let convLat, convLon;
-        if (fmt === 'utm') { convLat = wgsRes.ind_lat; convLon = wgsRes.ind_lon; }
-        else { convLat = indLat; convLon = indLon; }
-        let gamma = GeoMath.calculateConvergence(convLat, convLon, zi.cm);
+                let gamma = GeoMath.calculateConvergence(wgsRes.lat, wgsRes.lon, zi.cm);
                 c[cols.wgsLat].innerText=Formatter.formatStr(wgsRes.lat, outF, true); 
                 c[cols.wgsLon].innerText=Formatter.formatStr(wgsRes.lon, outF, false);
+                const wgsUtm = GeoMath.latLonToUTM(wgsRes.lat, wgsRes.lon, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
+                if(c[cols.w_e]) c[cols.w_e].innerText = Formatter.formatUTM(wgsUtm[0]);
+                if(c[cols.w_n]) c[cols.w_n].innerText = Formatter.formatUTM(wgsUtm[1]);
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
             } catch(e) {
                 msgs.push(t('err_math', idx));
@@ -1744,7 +1796,7 @@ const AppMethods = {
         document.querySelectorAll('input[type="checkbox"][id*="chkShowConv"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('input[type="checkbox"][id*="chkShowWgsUtm"]').forEach(cb => cb.checked = false);
         document.getElementById('table1').classList.remove('show-conv', 'show-wgs-utm');
-        document.getElementById('table2').classList.remove('show-conv');
+        document.getElementById('table2').classList.remove('show-conv', 'show-wgs-utm');
 
         document.getElementById('coordinateSVG').innerHTML='';
         if(AppState.map.markerLayer) AppState.map.markerLayer.clearLayers();
@@ -1869,7 +1921,9 @@ const AppMethods = {
                 lat = coords.lat; lon = coords.lon;
                 if(isNaN(lat)||isNaN(lon))continue; 
                 dsc=`ID: ${c[0].innerText}, Indian 1975 UTM E: ${et}, N: ${nt}`;
-                if (tb.classList.contains('show-wgs-utm')) {
+                if (AppState.s1Format === 'utm') {
+                    dsc+=`, WGS84 UTM E: ${c[cols.wgsE].querySelector('input').value}, N: ${c[cols.wgsN].querySelector('input').value}`;
+                } else if (tb.classList.contains('show-wgs-utm') && cols.w_e !== undefined) {
                     dsc+=`, WGS84 UTM E: ${c[cols.w_e].innerText}, N: ${c[cols.w_n].innerText}`;
                 }
             } else {
@@ -1877,7 +1931,7 @@ const AppMethods = {
                 let x=Formatter.toNumber(en.eText), y=Formatter.toNumber(en.nText); 
                 if(isNaN(x)||isNaN(y)) continue;
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(tb.rows[i]);
-                let res=GeoMath.ind1975ToWgs84(x,y,AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm, rowIsSouthern); lat=res.lat; lon=res.lon; dsc=`ID: ${c[s2Cols.pt].innerText}, Indian 1975 UTM E: ${x}, N: ${y}`;
+                let res=GeoMath.ind1975ToWgs84(x,y,AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm, rowIsSouthern); lat=res.lat; lon=res.lon; dsc=`ID: ${c[s2Cols.pt].innerText}, Indian 1975 UTM E: ${x}, N: ${y}`; if(c[s2Cols.w_e]&&c[s2Cols.w_e].innerText) dsc+=`, WGS84 UTM E: ${c[s2Cols.w_e].innerText}, N: ${c[s2Cols.w_n].innerText}`;
             }
             kml+=`<Placemark><name>${Formatter.escapeXml(c[0].innerText)}</name><styleUrl>#pt</styleUrl><description>${Formatter.escapeXml(dsc)}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
         }
@@ -2020,7 +2074,7 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 32, dec: 0},
+            {name: 'ID', type: 'C', len: 12, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'LAT', type: 'C', len: 24, dec: 0},
@@ -2075,7 +2129,9 @@ const AppMethods = {
                         EAST: e,
                         NORTH: n,
                         WGSLAT: r.cells[cols.wgsLat].innerText,
-                        WGSLON: r.cells[cols.wgsLon].innerText
+                        WGSLON: r.cells[cols.wgsLon].innerText,
+                        WGS_E: cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].innerText) || 0 : 0,
+                        WGS_N: cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].innerText) || 0 : 0
                     }
                 });
             }
@@ -2085,11 +2141,13 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 32, dec: 0},
+            {name: 'ID', type: 'C', len: 12, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'WGSLAT', type: 'C', len: 24, dec: 0},
-            {name: 'WGSLON', type: 'C', len: 24, dec: 0}
+            {name: 'WGSLON', type: 'C', len: 24, dec: 0},
+            {name: 'WGS_E', type: 'N', len: 14, dec: 4},
+            {name: 'WGS_N', type: 'N', len: 14, dec: 4}
         ];
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
@@ -2160,7 +2218,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
@@ -2173,9 +2231,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
             const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
             
-            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
-            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
-            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
+            const midLat = (pt1.lat + pt2.lat) / 2;
+            const midLon = (pt1.lon + pt2.lon) / 2;
+            let gamma = GeoMath.calculateConvergence(midLat, midLon, zi.cm);
             
             let trueBrgStr = isNaN(vRes.bearing) ? "ERR_ANTIPODAL" : vRes.bearing.toFixed(2);
             let geoKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
@@ -2203,7 +2261,7 @@ const AppMethods = {
             if(!isNaN(e) && !isNaN(n)) {
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(r);
                 let res = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, rowIsSouthern);
-                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, ind_lat: res.ind_lat, ind_lon: res.ind_lon, isSouthern: rowIsSouthern});
+                pts.push({id: c[s2Cols.pt].innerText, e, n, lat: res.lat, lon: res.lon, isSouthern: rowIsSouthern});
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
@@ -2218,9 +2276,9 @@ const AppMethods = {
             let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
             const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
             
-            const midIndLat = (pt1.ind_lat + pt2.ind_lat) / 2;
-            const midIndLon = (pt1.ind_lon + pt2.ind_lon) / 2;
-            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
+            const midLat = (pt1.lat + pt2.lat) / 2;
+            const midLon = (pt1.lon + pt2.lon) / 2;
+            let gamma = GeoMath.calculateConvergence(midLat, midLon, zi.cm);
             
             let row = [
                 i + 1,
@@ -2299,8 +2357,8 @@ const AppMethods = {
         
         const dbfFields = [
             {name: 'LEG', type: 'N', len: 5, dec: 0},
-            {name: 'FROM', type: 'C', len: 32, dec: 0},
-            {name: 'TO', type: 'C', len: 32, dec: 0},
+            {name: 'FROM', type: 'C', len: 12, dec: 0},
+            {name: 'TO', type: 'C', len: 12, dec: 0},
             {name: 'GRID_BRG', type: 'N', len: 8, dec: 2},
             {name: 'TRUE_BRG', type: 'N', len: 8, dec: 2},
             {name: 'DIST_M', type: 'N', len: 12, dec: 2}
@@ -2343,13 +2401,15 @@ const AppMethods = {
         const fmt2 = AppState.s2Format;
         
         if(type==='s1_csv'){
-            if(fmt1==='dm') txt="PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456";
+            if(fmt1==='utm') txt="PointID,Easting,Northing\nP1,661838.12,1523456.79";
+            else if(fmt1==='dm') txt="PointID,LatDeg,LatMin,LonDeg,LonMin\nP1,13,45.123,100,30.456";
             else if(fmt1==='dms') txt="PointID,Latitude,Longitude\nP1,\"13°45'23.50\"\"N\",\"100°30'15.20\"\"E\"";
             else txt="PointID,Latitude,Longitude\nP1,13.752050,100.507600";
             fn="S1_Sample.csv";
         }
         if(type==='s1_txt'){
-            if(fmt1==='dm') txt="PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456";
+            if(fmt1==='utm') txt="PointID Easting Northing\nP1 661838.12 1523456.79";
+            else if(fmt1==='dm') txt="PointID LatDeg LatMin LonDeg LonMin\nP1 13 45.123 100 30.456";
             else if(fmt1==='dms') txt="PointID Latitude Longitude\nP1 13°45'23.50\"N 100°30'15.20\"E";
             else txt="PointID Latitude Longitude\nP1 13.752050 100.507600";
             fn="S1_Sample.txt";
@@ -2408,7 +2468,7 @@ const AppMethods = {
                 }
                 
                 const cols = AppMethods.getS1Cols();
-                [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.conv].forEach(x=>{if(c[x]) c[x].innerText=''});
+                [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.wgsLat, cols.wgsLon, cols.conv].forEach(x=>{if(x !== undefined && c[x]) c[x].innerText=''});
                 
                 let coords = data.coords;
                 if(AppState.s1Format==='dm'){ 
@@ -2466,6 +2526,7 @@ const AppMethods = {
                 
                 c[s2Cols.pt].innerText = data.id || String(ri);
                 [s2Cols.wgsLat, s2Cols.wgsLon, s2Cols.indLat, s2Cols.indLon].forEach(x=>{if(c[x]) c[x].innerText=''});
+                [s2Cols.w_e, s2Cols.w_n].forEach(x=>{if(x!==undefined&&c[x]) c[x].innerText=''});
                 if(c[s2Cols.conv]) c[s2Cols.conv].innerText = '';
                 if(fmt !== 'utm') { [s2Cols.indE, s2Cols.indN].forEach(x=>{if(c[x]) c[x].innerText=''}); }
                 
@@ -2503,130 +2564,51 @@ const AppMethods = {
 
     handlePaste: (e, tableId) => {
         if(e.target.tagName !== 'INPUT') return;
-        const clip = e.clipboardData || window.clipboardData;
-        if(!clip) return;
-        const txt = clip.getData('text');
-        if(!txt) return;
-        const cleanTxt = txt.replace(/\u00A0|\u200B/g, ' ');
-        const lns = cleanTxt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-        const firstLineHasTab = lns.length > 0 && lns[0].includes('\t');
-        const isMulti = lns.length > 1 || firstLineHasTab;
-        
+        const clip = e.clipboardData || window.clipboardData; if(!clip) return;
+        const txt = clip.getData('text'); if(!txt) return;
+        const tableEl = document.getElementById(tableId), tbody = tableEl.querySelector('tbody'), startRow = e.target.closest('tr');
+        let ri = Array.from(tbody.children).indexOf(startRow); if (ri === -1) return;
+        const fmt = tableId === 'table1' ? AppState.s1Format : AppState.s2Format;
+        const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        const candidate = AppMethods.extractRowData(txt.trim(), tableId === 'table1', fmt === 'utm' ? 'd' : fmt);
+        const isRowLikeSingleLine = lines.length === 1 && candidate && (txt.includes(',') || txt.includes('\t') || /\s/.test(txt.trim()));
+        const isMulti = lines.length > 1 || txt.includes('\t') || isRowLikeSingleLine;
         if(!isMulti) {
             e.preventDefault();
-            const inp = e.target;
-            const cleaned = txt.trim();
-            if(inp.type === 'number' && tableId === 'table1' && AppState.s1Format !== 'dms') { 
-                const n = Formatter.toNumber(cleaned); inp.value = isNaN(n) ? '' : n; 
-            } else { 
-                inp.value = cleaned; 
-            }
-            const cell = inp.closest('.input-cell'); if(cell) AppMethods.updateInputDisplay(cell);
-            if(tableId === 'table1') { clearTimeout(AppState.timers.ts1); AppState.timers.ts1 = setTimeout(AppMethods.calcS1, 300); }
-            if(tableId === 'table2') { clearTimeout(AppState.timers.ts2); AppState.timers.ts2 = setTimeout(AppMethods.calcS2, 300); }
+            const inp=e.target; inp.value = txt.trim().replace(/[º]/g,'°').replace(/[′’‘]/g,"'").replace(/[″“”]/g,'"');
+            const cell=inp.closest('.input-cell'); if(cell){ cell.classList.remove('has-error'); AppMethods.updateInputDisplay(cell); }
+            if(tableId==='table1'){ clearTimeout(AppState.timers.ts1); AppState.timers.ts1=setTimeout(AppMethods.calcS1,300); }
+            if(tableId==='table2'){ clearTimeout(AppState.timers.ts2); AppState.timers.ts2=setTimeout(AppMethods.calcS2,300); }
             return;
         }
-        
-        e.preventDefault();
-        let rows = lns;
-        const tableEl = document.getElementById(tableId);
-        let ri = Array.from(tableEl.querySelector('tbody').children).indexOf(e.target.closest('tr'));
-        if (ri === -1) return; 
-        
-        if(rows.length > 500) { AppMethods.showToast('Max 500 rows per paste operation.', 'warn'); rows = rows.slice(0, 500); }
-        AppMethods.ensureRows(tableEl, ri+rows.length);
-        
-        let destIdx = ri + 1;
-        if(tableId === 'table1') {
-            rows.forEach((l,i)=>{
-                let data = AppMethods.extractRowData(l, true, AppState.s1Format);
-                if (!data) return;
-                if (i === 0 && data.coords.some(AppMethods.isHeaderWord)) return;
-                if (!tableEl.rows[destIdx]) return;
-                
-                const c = tableEl.rows[destIdx].cells;
-                c[0].innerText = data.id || String(destIdx);
-                
-                const cols = AppMethods.getS1Cols();
-                [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.conv].forEach(x=>{if(c[x]) c[x].innerText=''});
-                
-                let coords = data.coords;
-                if(AppState.s1Format==='dm'){
-                    [1,2,3,4].forEach(x=>c[x].classList.remove('has-error'));
-                    c[1].querySelector('input').value = coords[0] || ""; 
-                    c[2].querySelector('input').value = coords[1] || ""; 
-                    c[3].querySelector('input').value = coords[2] || ""; 
-                    c[4].querySelector('input').value = coords[3] || ""; 
-                    [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(c[x]));
-                } else {
-                    [1,2].forEach(x=>c[x].classList.remove('has-error'));
-                    c[1].querySelector('input').value = coords[0] || ""; 
-                    c[2].querySelector('input').value = coords[1] || ""; 
-                    [1,2].forEach(x=>AppMethods.updateInputDisplay(c[x]));
-                }
-                destIdx++;
-            }); 
-            AppMethods.calcS1();
-        } else {
-            const s2Cols = AppMethods.getS2Cols();
-            const getInputCols = () => {
-                if (AppState.s2Format === 'utm') return [s2Cols.indE, s2Cols.indN];
-                if (AppState.s2Format === 'dm') return [s2Cols.latD, s2Cols.latM, s2Cols.lonD, s2Cols.lonM];
-                if (AppState.s2Format === 'dms') return [s2Cols.latStr, s2Cols.lonStr];
-                return [s2Cols.latD, s2Cols.lonD];
-            };
-            const clearS2PasteOutputs = c => {
-                [s2Cols.wgsLat, s2Cols.wgsLon, s2Cols.indLat, s2Cols.indLon, s2Cols.indE, s2Cols.indN].forEach(x=>{if(c[x] && !c[x].querySelector('input')) c[x].innerText=''});
-                if(c[s2Cols.conv]) c[s2Cols.conv].innerText = '';
-            };
-            const rejectS2PasteRow = c => {
-                clearS2PasteOutputs(c);
-                getInputCols().forEach(x=>{
-                    if(!c[x]) return;
-                    c[x].classList.add('has-error');
-                    const inp = c[x].querySelector('input');
-                    if(inp) inp.value = '';
-                    AppMethods.updateInputDisplay(c[x]);
-                });
-            };
-            const coordsValid = coords => {
-                if(!coords) return false;
-                if(AppState.s2Format === 'utm') return coords.length >= 2 && isFinite(Formatter.toNumber(coords[0])) && isFinite(Formatter.toNumber(coords[1]));
-                if(AppState.s2Format === 'dm') return coords.length >= 4 && coords.slice(0,4).every(v => isFinite(Formatter.toNumber(v)));
-                if(AppState.s2Format === 'dms') return coords.length >= 2 && isFinite(Formatter.parseDMS(coords[0])) && isFinite(Formatter.parseDMS(coords[1]));
-                return coords.length >= 2 && isFinite(Formatter.toNumber(coords[0])) && isFinite(Formatter.toNumber(coords[1]));
-            };
-            rows.forEach((l,i)=>{
-                if (i === 0 && l.split(/[	,\s]+/).some(AppMethods.isHeaderWord)) return;
-                let data = AppMethods.extractRowData(l, false, AppState.s2Format === 'utm' ? 'd' : AppState.s2Format);
-                if (!tableEl.rows[destIdx]) return;
-                const c = tableEl.rows[destIdx].cells;
-                c[s2Cols.pt].innerText = (data && data.id) ? data.id : String(destIdx);
-                clearS2PasteOutputs(c);
-                
-                if(!data || !coordsValid(data.coords)) {
-                    rejectS2PasteRow(c);
-                    destIdx++;
-                    return;
-                }
-
-                let coords = data.coords;
-                if(AppState.s2Format === 'utm') {
-                    c[s2Cols.indE].querySelector('input').value = coords[0] || ""; 
-                    c[s2Cols.indN].querySelector('input').value = coords[1] || ""; 
-                    [s2Cols.indE, s2Cols.indN].forEach(x=>{c[x].classList.remove('has-error'); AppMethods.updateInputDisplay(c[x]);});
-                } else if(AppState.s2Format === 'dm') {
-                    [s2Cols.latD, s2Cols.latM, s2Cols.lonD, s2Cols.lonM].forEach((x,j)=>{c[x].classList.remove('has-error'); c[x].querySelector('input').value = coords[j] || ""; AppMethods.updateInputDisplay(c[x]);});
-                } else if(AppState.s2Format === 'dms') {
-                    [s2Cols.latStr, s2Cols.lonStr].forEach((x,j)=>{c[x].classList.remove('has-error'); c[x].querySelector('input').value = coords[j] || ""; AppMethods.updateInputDisplay(c[x]);});
-                } else {
-                    [s2Cols.latD, s2Cols.lonD].forEach((x,j)=>{c[x].classList.remove('has-error'); c[x].querySelector('input').value = coords[j] || ""; AppMethods.updateInputDisplay(c[x]);});
-                }
-                
-                destIdx++;
-            }); 
-            AppMethods.calcS2();
-        }
+        e.preventDefault(); let rows=lines;
+        if(rows.length>500){ AppMethods.showToast('Max 500 rows per paste operation.','warn'); rows=rows.slice(0,500); }
+        AppMethods.ensureRows(tableEl, ri + rows.length);
+        const isHeaderLine = (line) => /\b(point|pt|id|lat|latitude|lon|longitude|east|easting|north|northing|x|y)\b/i.test(line) && !/[-+]?\d+(?:\.\d+)?/.test(line.replace(/\b(19|20)\d{2}\b/g,''));
+        const setStatus = (statusId, messages, okCount) => { const st=document.getElementById(statusId); if(!st)return; st.innerHTML=''; if(messages.length){ [...new Set(messages)].forEach(m=>{const div=document.createElement('div'); div.textContent=m; st.appendChild(div);}); st.className='status err'; } else if(okCount>0){ st.textContent=`${okCount} row(s) pasted.`; st.className='status ok'; } else st.className='status'; };
+        const clearAndReject = (row, inputCols, outputCols, msg) => { const c=row.cells; inputCols.forEach(x=>{ if(!c[x])return; c[x].classList.add('has-error'); const inp=c[x].querySelector('input'); if(inp) inp.value=''; AppMethods.updateInputDisplay(c[x]); }); outputCols.forEach(x=>{ if(c[x]) c[x].innerText=''; }); row.setAttribute('title', msg || 'Invalid pasted row'); };
+        const clearRowErrors = (row, cols) => { cols.forEach(x=>row.cells[x]?.classList.remove('has-error')); row.removeAttribute('title'); };
+        let destIdx=ri+1, accepted=0, rejected=0, messages=[];
+        rows.forEach((line,i)=>{
+            if(i===0 && isHeaderLine(line)) return; if(!tableEl.rows[destIdx]) return;
+            const row=tableEl.rows[destIdx], data=AppMethods.extractRowData(line, tableId==='table1', fmt==='utm'?'d':fmt);
+            if(tableId==='table1'){
+                const c=row.cells, cols=AppMethods.getS1Cols(), inputCols=AppState.s1Format==='dm'?[1,2,3,4]:[1,2], outputCols=[cols.e,cols.n,cols.lat,cols.lon,cols.w_e,cols.w_n,cols.wgsLat,cols.wgsLon,cols.conv].filter(x=>x !== undefined && c[x]);
+                if(!data){ rejected++; messages.push(`Row ${destIdx}: pasted data rejected (cannot extract complete ${AppState.s1Format.toUpperCase()} coordinates).`); clearAndReject(row,inputCols,outputCols,'Rejected pasted row: incomplete or ambiguous coordinates.'); destIdx++; return; }
+                clearRowErrors(row,inputCols); c[0].innerText=data.id||String(destIdx); outputCols.forEach(x=>{c[x].innerText='';}); const coords=data.coords;
+                if(AppState.s1Format==='dm') [1,2,3,4].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);}); else [1,2].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);});
+                accepted++; destIdx++; return;
+            }
+            const c=row.cells, cols=AppMethods.getS2Cols();
+            let inputCols=[]; if(AppState.s2Format==='utm') inputCols=[cols.indE,cols.indN]; else if(AppState.s2Format==='dm') inputCols=[cols.latD,cols.latM,cols.lonD,cols.lonM]; else if(AppState.s2Format==='dms') inputCols=[cols.latStr,cols.lonStr]; else inputCols=[cols.latD,cols.lonD];
+            const outputCols=[cols.wgsLat,cols.wgsLon,cols.indE,cols.indN,cols.indLat,cols.indLon,cols.w_e,cols.w_n,cols.conv].filter(x=>x!==undefined&&c[x]&&!inputCols.includes(x));
+            if(!data){ rejected++; messages.push(`Row ${destIdx}: pasted data rejected (cannot extract complete ${AppState.s2Format.toUpperCase()} coordinates).`); clearAndReject(row,inputCols,outputCols,'Rejected pasted row: incomplete or ambiguous coordinates.'); destIdx++; return; }
+            clearRowErrors(row,inputCols); c[cols.pt].innerText=data.id||String(destIdx); outputCols.forEach(x=>{c[x].innerText='';}); const coords=data.coords;
+            if(AppState.s2Format==='utm') [cols.indE,cols.indN].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);}); else if(AppState.s2Format==='dm') [cols.latD,cols.latM,cols.lonD,cols.lonM].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);}); else if(AppState.s2Format==='dms') [cols.latStr,cols.lonStr].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);}); else [cols.latD,cols.lonD].forEach((x,j)=>{c[x].querySelector('input').value=coords[j]||''; AppMethods.updateInputDisplay(c[x]);});
+            accepted++; destIdx++;
+        });
+        if(tableId==='table1'){ AppMethods.calcS1(); setStatus('section1Status',messages,accepted); } else { AppMethods.calcS2(); setStatus('section2Status',messages,accepted); }
+        if(rejected) AppMethods.showToast(`${rejected} pasted row(s) rejected. Check highlighted cells.`, 'warn');
     },
 
     isHeaderWord: token => /^(point|pt|id|lat|lon|east|north|x|y|e|n|latitude|longitude|easting|northing)$/i.test(String(token).trim()),
@@ -2787,8 +2769,8 @@ const AppMethods = {
             let cy = oY + effH - (p.y - gridMinY) * scale;
             let cTxt=md==='wgs84'?`${p.y.toFixed(5)}\u00b0N, ${p.x.toFixed(5)}\u00b0E`:`E: ${p.x.toFixed(2)}m, N: ${p.y.toFixed(2)}m`;
             let fillCol = AppState.activeTab === 1 ? '#4f46e5' : '#e11d48';
-            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${Formatter.escapeXml(p.id)} (${cTxt})</title></circle></g>`;
-            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${Formatter.escapeXml(p.id)}</text>`;
+            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${p.id} (${cTxt})</title></circle></g>`;
+            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${p.id}</text>`;
         });
         svg.innerHTML = out;
     },
@@ -2899,6 +2881,7 @@ const AppMethods = {
  */
 document.addEventListener('DOMContentLoaded', () => {
     AppMethods.buildS1Table();
+    AppMethods.updateS1UtmModeUI();
     AppMethods.buildS2Table();
     AppMethods.calcS1();
     AppMethods.calcS2();
@@ -2931,7 +2914,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 
     document.getElementById('langBtn').addEventListener('click', () => { AppState.lang = AppState.lang==='th'?'en':'th'; updateTranslations(); });
-    ['zoneSelect', 'datumSelect', 's2Hemisphere'].forEach(id => document.getElementById(id).addEventListener('change', AppMethods.syncSettings));
+    ['zoneSelect', 'datumSelect', 's1Hemisphere', 's2Hemisphere'].forEach(id => document.getElementById(id)?.addEventListener('change', AppMethods.syncSettings));
     document.getElementById('section1InputFormat').addEventListener('change', AppMethods.fmtSwitcherS1);
     document.getElementById('section2InputFormat').addEventListener('change', AppMethods.fmtSwitcherS2);
     
