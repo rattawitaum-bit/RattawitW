@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.4.1</title>
+    <title>Coordinate Converter v6.4.2</title>
     
     <!-- Offline & System Font Support -->
     
@@ -245,14 +245,41 @@
     background-color: #ffffff !important;
     box-shadow: inset 0 0 0 2px var(--danger), 0 0 0 3px rgba(225, 29, 72, 0.15) !important;
 }
-    </style>
+    
+    /* v6.4.2: Print Support */
+    @media print {
+        #globalNav, nav, .tab-bar, .controls-row, .hint-text, .btn-group, .export-group, .file-input-area,
+        button, select, input[type="checkbox"], input[type="file"],
+        #leafletMap, #coordinateSVG, #svgContainer, #visualizationPanel,
+        .toast-container, .help-tip, .route-group,
+        .inline-field, .nav-controls, .lang-btn, .clear-all,
+        #toastContainer { display: none !important; }
+        .hidden { display: none !important; }
+        body { background: #fff !important; margin: 0 !important; padding: 0 !important; font-size: 10pt !important; }
+        .container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 8pt !important; }
+        .table-responsive { overflow: visible !important; border: none !important; box-shadow: none !important; }
+        table { width: 100% !important; font-size: 8pt !important; border-collapse: collapse !important; min-width: 0 !important; }
+        th, td { border: 0.5pt solid #333 !important; padding: 2pt 4pt !important; position: static !important; }
+        th { background: #e0e0e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #000 !important; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        .input-cell input { display: none !important; }
+        .input-cell span { display: inline !important; opacity: 1 !important; visibility: visible !important; }
+        .out-wgs { background: #e8f4fd !important; print-color-adjust: exact; }
+        .out-ind { background: #fef9e7 !important; print-color-adjust: exact; }
+        .status { display: none !important; }
+        * { box-shadow: none !important; }
+        @page { size: A4 landscape; margin: 10mm; }
+        #printHeader { display: block !important; font-size: 11pt; font-weight: bold; border-bottom: 1.5pt solid #000; padding-bottom: 4pt; margin-bottom: 8pt; }
+    }
+</style>
 </head>
 <body>
 
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.4.1</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.4.2</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -285,6 +312,7 @@
     </nav>
 </div>
 
+<div id="printHeader" style="display:none;"></div>
 <div id="tabContent1">
     <div class="container">
         <h2 data-i18n="s1_title">Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long</h2>
@@ -532,7 +560,6 @@ const AppState = {
     forceTableReset1: true,
     forceTableReset2: true,
     activeTab: 1,
-    caches: { s1: [], s2: [] },
     timers: { ts1: null, ts2: null }, 
     map: { instance: null, markerLayer: null, street: null, sat: null, renderTimer: null }
 };
@@ -542,7 +569,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.4.1", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.4.2", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM and Lat/Long to WGS84",
@@ -575,7 +602,7 @@ const I18nDict = {
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.4.1", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.4.2", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -918,7 +945,7 @@ const Formatter = {
         if (typeof v !== 'string') return Number(v);
         const m = {'๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','−':'-'};
         const isNeg = /[sw\-−]/i.test(v); 
-        let s = v.replace(/[\u00A0\s]/g,'').replace(/[°'″”″"’]/g,'').replace(/[๐-๙−]/g, c => m[c] || c);
+        let s = v.replace(/[\u00A0\u200B\s]/g,'').replace(/[°'″”″"’]/g,'').replace(/[๐-๙−]/g, c => m[c] || c);
         if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, ''); 
         s = s.replace(/,/g, '.'); 
         s = s.replace(/[^\d.-]/g, ''); 
@@ -1045,9 +1072,9 @@ const AppMethods = {
 
     extractRowData: (line, isS1, format) => {
         if (!line || !String(line).trim()) return null;
-        const rawOriginal = String(line).replace(/\u00A0/g, ' ').trim();
+        const rawOriginal = String(line).replace(/[\u00A0\u200B]/g, ' ').trim();
         if (!rawOriginal) return null;
-        // v6.4.1 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
+        // v6.4.2 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
         const splitCsv = (s) => { const out=[]; let cur='', q=false; for(let i=0;i<s.length;i++){ const ch=s[i]; if(q){ if(ch==='"'){ if(s[i+1]==='"'){cur+='"'; i++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ if(cur.trim()!=='') out.push(cur.trim()); cur=''; } else cur+=ch; } } if(cur.trim()!=='') out.push(cur.trim()); return out; };
         const splitDelimited = (s) => s.includes(',') ? splitCsv(s) : (s.includes('\t') ? s.split(/\t+/).map(x=>x.trim()).filter(Boolean) : s.trim().split(/\s+/).map(x=>x.trim()).filter(Boolean));
         const makeResult = (idParts, coords) => ({ id: idParts.length ? idParts.join(' ').trim() : null, coords });
@@ -1087,91 +1114,27 @@ const AppMethods = {
         return `${d.getFullYear().toString().slice(-2)}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     },
 
-    flushToCache: (section) => {
-        const tbId = section === 1 ? '#table1 tbody' : '#table2 tbody';
-        const cacheKey = section === 1 ? 's1' : 's2';
-        
-        AppState.caches[cacheKey] = Array.from(document.querySelector(tbId).children).map(r => {
-            let inputs = Array.from(r.querySelectorAll('input')).map(i => i.type==='checkbox'||i.type==='radio'?i.checked:i.value);
-            let texts = Array.from(r.cells).map(c => c.innerText);
-            return { inputs, texts, classNames: Array.from(r.cells).map(c=>c.className) };
-        });
-    },
-
-    restoreFromCache: (section, callback) => {
-        requestAnimationFrame(() => {
-            const tbId = section === 1 ? 'table1' : 'table2';
-            const cacheKey = section === 1 ? 's1' : 's2';
-            const b = document.querySelector(`#${tbId} tbody`);
-            
-            AppMethods.ensureRows(document.getElementById(tbId), AppState.caches[cacheKey].length);
-            AppState.caches[cacheKey].forEach((data, i) => {
-                if(!b.children[i]) return;
-                const r = b.children[i];
-                Array.from(r.querySelectorAll('input')).forEach((inp, j) => { 
-                    if(inp.type==='checkbox'||inp.type==='radio') inp.checked = data.inputs[j];
-                    else inp.value = data.inputs[j] || ''; 
-                });
-                Array.from(r.cells).forEach((c, j) => {
-                    c.className = data.classNames[j] || '';
-                    if(!c.classList.contains('input-cell') && !c.hasAttribute('contenteditable')) c.innerText = data.texts[j] || '';
-                    if(c.hasAttribute('contenteditable')) c.innerText = data.texts[j] || (i+1);
-                    if(c.classList.contains('input-cell')) AppMethods.updateInputDisplay(c);
-                });
-            });
-            
-            if (section === 1) {
-                const cbConvS1 = document.getElementById('chkShowConvS1');
-                if (cbConvS1) document.getElementById('table1').classList.toggle('show-conv', cbConvS1.checked);
-                const cbWgsUtm = document.getElementById('chkShowWgsUtmS1');
-                if (cbWgsUtm) document.getElementById('table1').classList.toggle('show-wgs-utm', cbWgsUtm.checked);
-            } else {
-                const cbConvS2 = document.getElementById('chkShowConvS2');
-                if (cbConvS2) document.getElementById('table2').classList.toggle('show-conv', cbConvS2.checked);
-                const cbWgsUtmS2 = document.getElementById('chkShowWgsUtmS2');
-                if (cbWgsUtmS2) document.getElementById('table2').classList.toggle('show-wgs-utm', cbWgsUtmS2.checked);
-            }
-            if(callback) callback();
-        });
-    },
-
     switchTab: (n) => {
         if(AppState.activeTab === n) return;
-        
         if(AppState.timers.ts1) clearTimeout(AppState.timers.ts1);
         if(AppState.timers.ts2) clearTimeout(AppState.timers.ts2);
-        
         if(AppState.activeTab === 1) AppMethods.calcS1(); else if (AppState.activeTab === 2) AppMethods.calcS2();
 
-        AppMethods.flushToCache(AppState.activeTab);
-        
         [1,2,3].forEach(i => {
             document.getElementById(`tabContent${i}`).classList.add('hidden');
             document.getElementById(`tabBtn${i}`).classList.remove('active');
         });
-        
         document.getElementById(`tabContent${n}`).classList.remove('hidden');
         document.getElementById(`tabBtn${n}`).classList.add('active');
         AppState.activeTab = n;
-        
-        if(n === 1 || n === 2) {
-            AppMethods.restoreFromCache(n, () => {
-                if(!document.getElementById('leafletMap').classList.contains('hidden')) {
-                    AppMethods.drawLeaflet(true);
-                } else if(!document.getElementById('svgContainer').classList.contains('hidden')) {
-                    AppMethods.drawSvg();
-                }
-            });
-        } else if(n === 3) {
-            AppMethods.renderRouteTable();
-            if(!document.getElementById('leafletMap').classList.contains('hidden')) {
-                AppMethods.drawLeaflet(true);
-            } else if(!document.getElementById('svgContainer').classList.contains('hidden')) {
-                AppMethods.drawSvg();
-            }
-        }
-    },
 
+        if(n === 1) AppMethods.calcS1();
+        else if(n === 2) AppMethods.calcS2();
+        else if(n === 3) AppMethods.renderRouteTable();
+
+        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(true);
+        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+    },
     renderRouteTable: () => {
         const p = AppState.params, zi = AppState.zoneInfo;
         const s2Cols = AppMethods.getS2Cols(); // Dynamic index guard
@@ -1193,10 +1156,10 @@ const AppMethods = {
         if(!tbody) return;
         
         if(pts.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="padding: 16px; color: var(--text-secondary);">${t('route_empty')}</td></tr>`;
+            tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--text-secondary)'; _d.textContent = t('route_empty'); _r.appendChild(_d); tbody.appendChild(_r); }
             return;
         } else if(pts.length === 1) {
-            tbody.innerHTML = `<tr><td colspan="9" style="padding: 16px; color: var(--text-secondary);">${t('route_need_pts')}</td></tr>`;
+            tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--text-secondary)'; _d.textContent = t('route_need_pts'); _r.appendChild(_d); tbody.appendChild(_r); }
             return;
         }
 
@@ -1268,8 +1231,6 @@ const AppMethods = {
         
         AppMethods.clearErr('table1'); AppMethods.clearErr('table2');
         AppMethods.calcS1(); AppMethods.calcS2();
-        AppMethods.flushToCache(AppState.activeTab);
-        
         if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
         else AppMethods.drawSvg();
     },
@@ -1494,7 +1455,6 @@ const AppMethods = {
     },
 
     fmtSwitcherS1: () => {
-        AppState.caches.s1 = [];
         const nf = document.getElementById('section1InputFormat').value;
         if(AppState.s1Format === nf) { AppMethods.updateS1UtmModeUI(); return; }
         const b = document.querySelector('#table1 tbody'), saved = [];
@@ -1535,8 +1495,7 @@ const AppMethods = {
         AppMethods.updateS1UtmModeUI();
         AppMethods.calcS1();
     },
-    fmtSwitcherS2: () => {
-        AppState.caches.s2 = []; 
+    fmtSwitcherS2: () => { 
         const nf = document.getElementById('section2InputFormat').value;
         if(AppState.s2Format === nf) return;
         const b = document.querySelector('#table2 tbody'), saved = [];
@@ -1654,15 +1613,15 @@ const AppMethods = {
             try {
                 let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm);
                 let wgsUtm = GeoMath.latLonToUTM(lD, oD, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
-                let gamma = GeoMath.calculateConvergence(lD, oD, zi.cm);
+                let gamma = GeoMath.calculateConvergence(res.lat, res.lon, zi.cm);
                 c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
                 c[cols.lat].innerText = Formatter.formatStr(res.lat, outF, true); c[cols.lon].innerText = Formatter.formatStr(res.lon, outF, false);
                 if(fmt === 'utm') {
                     c[cols.wgsLat].innerText = Formatter.formatStr(lD, outF, true);
                     c[cols.wgsLon].innerText = Formatter.formatStr(oD, outF, false);
                 } else {
-                    if(c[cols.w_e]) c[cols.w_e].innerText = Formatter.formatUTM(wgsUtm[0]);
-                    if(c[cols.w_n]) c[cols.w_n].innerText = Formatter.formatUTM(wgsUtm[1]);
+                    if(c[cols.w_e]) c[cols.w_e].textContent = Formatter.formatUTM(wgsUtm[0]);
+                    if(c[cols.w_n]) c[cols.w_n].textContent = Formatter.formatUTM(wgsUtm[1]);
                 }
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
             } catch(e) {
@@ -1676,7 +1635,7 @@ const AppMethods = {
             uniq.forEach(m => { const div = document.createElement('div'); div.textContent = m; st.appendChild(div); });
             st.className = 'status err';
         }
-        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
         else { st.className = 'status'; }
         if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
         else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
@@ -1750,12 +1709,12 @@ const AppMethods = {
                     c[cols.indLon].innerText=Formatter.formatStr(indLon, outF, false);
                 }
                 
-                let gamma = GeoMath.calculateConvergence(wgsRes.lat, wgsRes.lon, zi.cm);
+                let gamma = (fmt === 'utm') ? GeoMath.calculateConvergence(wgsRes.ind_lat, wgsRes.ind_lon, zi.cm) : GeoMath.calculateConvergence(indLat, indLon, zi.cm);
                 c[cols.wgsLat].innerText=Formatter.formatStr(wgsRes.lat, outF, true); 
                 c[cols.wgsLon].innerText=Formatter.formatStr(wgsRes.lon, outF, false);
                 const wgsUtm = GeoMath.latLonToUTM(wgsRes.lat, wgsRes.lon, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
-                if(c[cols.w_e]) c[cols.w_e].innerText = Formatter.formatUTM(wgsUtm[0]);
-                if(c[cols.w_n]) c[cols.w_n].innerText = Formatter.formatUTM(wgsUtm[1]);
+                if(c[cols.w_e]) c[cols.w_e].textContent = Formatter.formatUTM(wgsUtm[0]);
+                if(c[cols.w_n]) c[cols.w_n].textContent = Formatter.formatUTM(wgsUtm[1]);
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
             } catch(e) {
                 msgs.push(t('err_math', idx));
@@ -1768,7 +1727,7 @@ const AppMethods = {
             uniq.forEach(m => { const div = document.createElement('div'); div.textContent = m; st.appendChild(div); });
             st.className = 'status err'; 
         }
-        else if(rowsCalc > 0) { st.innerHTML = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
         else { st.className = 'status'; }
 
         if(AppState.activeTab === 3) AppMethods.renderRouteTable();
@@ -1791,8 +1750,6 @@ const AppMethods = {
     clearAll: () => {
         if(!confirm(t('msg_clear_warn'))) return;
         AppMethods.clearS1(); AppMethods.clearS2();
-        AppState.caches = { s1: [], s2: [] };
-        
         document.querySelectorAll('input[type="checkbox"][id*="chkShowConv"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('input[type="checkbox"][id*="chkShowWgsUtm"]').forEach(cb => cb.checked = false);
         document.getElementById('table1').classList.remove('show-conv', 'show-wgs-utm');
@@ -1924,14 +1881,14 @@ const AppMethods = {
                 if (AppState.s1Format === 'utm') {
                     dsc+=`, WGS84 UTM E: ${c[cols.wgsE].querySelector('input').value}, N: ${c[cols.wgsN].querySelector('input').value}`;
                 } else if (tb.classList.contains('show-wgs-utm') && cols.w_e !== undefined) {
-                    dsc+=`, WGS84 UTM E: ${c[cols.w_e].innerText}, N: ${c[cols.w_n].innerText}`;
+                    dsc+=`, WGS84 UTM E: ${c[cols.w_e].textContent}, N: ${c[cols.w_n].textContent}`;
                 }
             } else {
                 const en = AppMethods.getS2ENText(tb.rows[i], s2Cols);
                 let x=Formatter.toNumber(en.eText), y=Formatter.toNumber(en.nText); 
                 if(isNaN(x)||isNaN(y)) continue;
                 const rowIsSouthern = AppMethods.getS2RowHemisphere(tb.rows[i]);
-                let res=GeoMath.ind1975ToWgs84(x,y,AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm, rowIsSouthern); lat=res.lat; lon=res.lon; dsc=`ID: ${c[s2Cols.pt].innerText}, Indian 1975 UTM E: ${x}, N: ${y}`; if(c[s2Cols.w_e]&&c[s2Cols.w_e].innerText) dsc+=`, WGS84 UTM E: ${c[s2Cols.w_e].innerText}, N: ${c[s2Cols.w_n].innerText}`;
+                let res=GeoMath.ind1975ToWgs84(x,y,AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm, rowIsSouthern); lat=res.lat; lon=res.lon; dsc=`ID: ${c[s2Cols.pt].innerText}, Indian 1975 UTM E: ${x}, N: ${y}`; if(tb.classList.contains('show-wgs-utm') && c[s2Cols.w_e]&&c[s2Cols.w_e].textContent) dsc+=`, WGS84 UTM E: ${c[s2Cols.w_e].textContent}, N: ${c[s2Cols.w_n].textContent}`;
             }
             kml+=`<Placemark><name>${Formatter.escapeXml(c[0].innerText)}</name><styleUrl>#pt</styleUrl><description>${Formatter.escapeXml(dsc)}</description><Point><coordinates>${lon.toFixed(7)},${lat.toFixed(7)},0</coordinates></Point></Placemark>\n`;
         }
@@ -2048,6 +2005,7 @@ const AppMethods = {
         const tb = document.getElementById('table1');
         const p = AppState.params, zi = AppState.zoneInfo;
         const cols = AppMethods.getS1Cols();
+        const includeWgsUtmS1 = AppState.s1Format === 'utm' || tb.classList.contains('show-wgs-utm');
         let records = [];
         const hemispheres = new Set();
         
@@ -2064,7 +2022,11 @@ const AppMethods = {
                         EAST: res.east,
                         NORTH: res.north,
                         LAT: r.cells[cols.lat].innerText,
-                        LON: r.cells[cols.lon].innerText
+                        LON: r.cells[cols.lon].innerText,
+                        ...(includeWgsUtmS1 ? {
+                            WGS_E: AppState.s1Format === 'utm' ? (parseFloat(r.cells[cols.wgsE].querySelector('input').value) || 0) : (cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].textContent) || 0 : 0),
+                            WGS_N: AppState.s1Format === 'utm' ? (parseFloat(r.cells[cols.wgsN].querySelector('input').value) || 0) : (cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].textContent) || 0 : 0)
+                        } : {})
                     }
                 });
             }
@@ -2074,12 +2036,18 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'ID', type: 'C', len: 32, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'LAT', type: 'C', len: 24, dec: 0},
             {name: 'LON', type: 'C', len: 24, dec: 0}
         ];
+        if (includeWgsUtmS1) {
+            dbfFields.push(
+                {name: 'WGS_E', type: 'N', len: 14, dec: 4},
+                {name: 'WGS_N', type: 'N', len: 14, dec: 4}
+            );
+        }
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
@@ -2111,6 +2079,7 @@ const AppMethods = {
         const tb = document.getElementById('table2');
         const p = AppState.params, zi = AppState.zoneInfo;
         const cols = AppMethods.getS2Cols();
+        const includeWgsUtmS2 = tb.classList.contains('show-wgs-utm');
         let records = [];
         const hemispheres = new Set();
         
@@ -2130,8 +2099,10 @@ const AppMethods = {
                         NORTH: n,
                         WGSLAT: r.cells[cols.wgsLat].innerText,
                         WGSLON: r.cells[cols.wgsLon].innerText,
-                        WGS_E: cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].innerText) || 0 : 0,
-                        WGS_N: cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].innerText) || 0 : 0
+                        ...(includeWgsUtmS2 ? {
+                            WGS_E: cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].textContent) || 0 : 0,
+                            WGS_N: cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].textContent) || 0 : 0
+                        } : {})
                     }
                 });
             }
@@ -2141,14 +2112,18 @@ const AppMethods = {
         if(hemispheres.size > 1){ AppMethods.showToast('SHP export requires one UTM hemisphere only. Split North/South points before export.', 'err'); return; }
         
         const dbfFields = [
-            {name: 'ID', type: 'C', len: 12, dec: 0},
+            {name: 'ID', type: 'C', len: 32, dec: 0},
             {name: 'EAST', type: 'N', len: 14, dec: 4},
             {name: 'NORTH', type: 'N', len: 14, dec: 4},
             {name: 'WGSLAT', type: 'C', len: 24, dec: 0},
-            {name: 'WGSLON', type: 'C', len: 24, dec: 0},
-            {name: 'WGS_E', type: 'N', len: 14, dec: 4},
-            {name: 'WGS_N', type: 'N', len: 14, dec: 4}
+            {name: 'WGSLON', type: 'C', len: 24, dec: 0}
         ];
+        if (includeWgsUtmS2) {
+            dbfFields.push(
+                {name: 'WGS_E', type: 'N', len: 14, dec: 4},
+                {name: 'WGS_N', type: 'N', len: 14, dec: 4}
+            );
+        }
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
@@ -2357,8 +2332,8 @@ const AppMethods = {
         
         const dbfFields = [
             {name: 'LEG', type: 'N', len: 5, dec: 0},
-            {name: 'FROM', type: 'C', len: 12, dec: 0},
-            {name: 'TO', type: 'C', len: 12, dec: 0},
+            {name: 'FROM', type: 'C', len: 32, dec: 0},
+            {name: 'TO', type: 'C', len: 32, dec: 0},
             {name: 'GRID_BRG', type: 'N', len: 8, dec: 2},
             {name: 'TRUE_BRG', type: 'N', len: 8, dec: 2},
             {name: 'DIST_M', type: 'N', len: 12, dec: 2}
@@ -2769,8 +2744,8 @@ const AppMethods = {
             let cy = oY + effH - (p.y - gridMinY) * scale;
             let cTxt=md==='wgs84'?`${p.y.toFixed(5)}\u00b0N, ${p.x.toFixed(5)}\u00b0E`:`E: ${p.x.toFixed(2)}m, N: ${p.y.toFixed(2)}m`;
             let fillCol = AppState.activeTab === 1 ? '#4f46e5' : '#e11d48';
-            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${p.id} (${cTxt})</title></circle></g>`;
-            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${p.id}</text>`;
+            out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${Formatter.escapeXml(p.id)} (${cTxt})</title></circle></g>`;
+            out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${Formatter.escapeXml(p.id)}</text>`;
         });
         svg.innerHTML = out;
     },
@@ -2803,6 +2778,7 @@ const AppMethods = {
     },
 
     drawLeaflet: (recenter = false) => {
+        if (typeof L === 'undefined') { document.getElementById('leafletMap')?.classList.add('hidden'); document.getElementById('svgContainer')?.classList.remove('hidden'); return; }
         const mapDiv = document.getElementById('leafletMap');
         if(mapDiv.classList.contains('hidden')) return;
         
@@ -2880,15 +2856,27 @@ const AppMethods = {
  * Event Binding & Init
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // v6.4.2: Fresh start, no browser persistence/cache restore
     AppMethods.buildS1Table();
     AppMethods.updateS1UtmModeUI();
     AppMethods.buildS2Table();
-    AppMethods.calcS1();
-    AppMethods.calcS2();
-    AppMethods.flushToCache(1);
-    AppMethods.flushToCache(2);
+    AppMethods.syncSettings();
     AppMethods.drawLeaflet(false);
-    
+
+    // v6.4.2: Print support
+    window.addEventListener('beforeprint', () => {
+        const ph = document.getElementById('printHeader');
+        if (ph) {
+            const dSel = document.getElementById('datumSelect');
+            const zSel = document.getElementById('zoneSelect');
+            const datum = dSel.options[dSel.selectedIndex].text;
+            const zone = zSel.options[zSel.selectedIndex].text;
+            const tab = AppState.activeTab;
+            const tabName = tab === 1 ? 'Section 1: WGS84 \u2192 Indian 1975' : tab === 2 ? 'Section 2: Indian 1975 \u2192 WGS84' : 'Route Analytics';
+            const now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+            ph.textContent = 'Coordinate Converter v6.4.2 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
+        }
+    });
     // OFFLINE FALLBACK FOR SHEETJS & JSZIP
     setTimeout(() => {
         if (typeof XLSX === 'undefined') {
@@ -3009,18 +2997,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('table1').addEventListener('paste', e => AppMethods.handlePaste(e, 'table1'));
     document.getElementById('table2').addEventListener('paste', e => AppMethods.handlePaste(e, 'table2'));
-
-    const rs1 = document.getElementById('table1').rows;
-    if(rs1[1]) { rs1[1].cells[1].querySelector('input').value=9; rs1[1].cells[2].querySelector('input').value=39.535; rs1[1].cells[3].querySelector('input').value=101; rs1[1].cells[4].querySelector('input').value=21.718; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs1[1].cells[x])); }
-    if(rs1[2]) { rs1[2].cells[1].querySelector('input').value=7; rs1[2].cells[2].querySelector('input').value=54.807; rs1[2].cells[3].querySelector('input').value=102; rs1[2].cells[4].querySelector('input').value=49.359; [1,2,3,4].forEach(x=>AppMethods.updateInputDisplay(rs1[2].cells[x])); }
-    
-    const rs2 = document.getElementById('table2').rows;
-    const oldCols = AppMethods.getS2Cols();
-    if(rs2[1]) { rs2[1].cells[oldCols.indE].querySelector('input').value=542385.12; rs2[1].cells[oldCols.indN].querySelector('input').value=1068250.33; [oldCols.indE, oldCols.indN].forEach(x=>AppMethods.updateInputDisplay(rs2[1].cells[x])); }
-    if(rs2[2]) { rs2[2].cells[oldCols.indE].querySelector('input').value=591240.50; rs2[2].cells[oldCols.indN].querySelector('input').value=875320.15; [oldCols.indE, oldCols.indN].forEach(x=>AppMethods.updateInputDisplay(rs2[2].cells[x])); }
-    
-    AppMethods.calcS1();
-    AppMethods.calcS2();
 });
 </script>
 </body>
