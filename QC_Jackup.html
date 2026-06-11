@@ -3,32 +3,263 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Jack-up Heading &mdash; v12 (Consolidated)</title>
+<title>Jack-up Heading &mdash; v12.1</title>
 <style>
-  :root{ --bg:#ffffff; --panel:#ffffff; --text:#111827; --muted:#6b7280; --pri:#2563eb; --b:#e5e7eb; --ok:#059669; --bad:#dc2626; }
-  *{box-sizing:border-box}
-  body{margin:0 0 40px 0;background:var(--bg);color:var(--text);font:14px/1.45 ui-sans-serif,system-ui}
-  header{padding:10px 14px;border-bottom:1px solid var(--b)}
-  h1{margin:0;font-size:16px;font-weight:700}
-  main{max-width:1180px;margin:0 auto;padding:10px}
-  .wrap{display:grid;grid-template-columns:520px 1fr;gap:12px;align-items:start}
-  .card{background:var(--panel);border:1px solid var(--b);border-radius:10px;padding:10px}
-  label{color:var(--muted);font-size:12px}
-  select,input{padding:8px 10px;border-radius:10px;border:1px solid var(--b);background:#fff;color:#111827}
-  input:focus,select:focus{outline:2px solid #c7d2fe}
-  button{padding:8px 12px;border-radius:8px;border:1px solid var(--b);background:#f8fafc;color:#111827;cursor:pointer}
-  button.primary{background:var(--pri);color:#fff;border-color:#1d4ed8}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .headgrid,.rowgrid{display:grid;grid-template-columns:80px 100px 100px 100px 100px;gap:6px;align-items:center}
-  .headgrid{color:#374151;margin:4px 0}
-  .wval{font-variant-numeric:tabular-nums; font-size:12.5px; background:#f9fafb; border:1px solid var(--b); border-radius:8px; padding:6px 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .x,.y{padding:6px 8px; font-size:13px}
-  .kv{display:grid;grid-template-columns:150px 1fr;gap:4px 10px;font-variant-numeric:tabular-nums;margin-top:8px}
-  canvas{width:100%;height:auto;border:1px solid var(--b);border-radius:10px;background:#fff;max-height:74vh}
-  .small{font-size:12px;color:#6b7280}
-  .status{margin-top:8px;border-top:1px solid var(--b);padding-top:8px;font-variant-numeric:tabular-nums}
-  .ok{color:#059669} .bad{color:#dc2626}
-  .footer{position:fixed;left:0;right:0;bottom:0;background:#f9fafb;border-top:1px solid var(--b);padding:6px 10px;font-size:12px;color:#334155;text-align:center}
+  /* ── Theme tokens ── */
+  :root{
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --text-muted: #94a3b8;
+    --text-secondary: #64748b;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-glow: rgba(59,130,246,0.18);
+    --ok: #10b981;
+    --ok-bg: rgba(16,185,129,0.10);
+    --bad: #ef4444;
+    --bad-bg: rgba(239,68,68,0.10);
+    --border: #e2e8f0;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-pill: 9999px;
+    --font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0}
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font: 13.5px/1.5 var(--font);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 52px;
+  }
+
+  /* ── Header ── */
+  header{
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 12px 20px;
+    box-shadow: 0 1px 0 var(--border);
+  }
+  h1{
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  /* ── Layout ── */
+  main{ max-width: 1220px; margin: 0 auto; padding: 16px }
+  .wrap{
+    display: grid;
+    grid-template-columns: minmax(480px, 540px) 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ── Cards ── */
+  .card{
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ── Labels ── */
+  label{
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Inputs & Selects ── */
+  select, input[type="number"], input[inputmode="decimal"]{
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  select:focus, input:focus{
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* ── Buttons ── */
+  button{
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  button:hover{
+    background: #f8fafc;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  button:active{
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+  button.primary{
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 1px 3px rgba(59,130,246,0.3);
+  }
+  button.primary:hover{
+    background: var(--accent-hover);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.35);
+  }
+
+  /* ── Toolbars ── */
+  .toolbar{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  /* ── Coordinate grid ── */
+  .headgrid, .rowgrid{
+    display: grid;
+    grid-template-columns: 76px 100px 100px 104px 104px;
+    gap: 5px;
+    align-items: center;
+  }
+  .headgrid{
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 8px 0 4px 0;
+    padding: 0 2px;
+  }
+  .rowgrid{ margin-bottom: 4px; }
+
+  /* ── WGS84 value cells ── */
+  .wval{
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: #f8fafc;
+    border-radius: 6px;
+    padding: 6px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .x, .y{ padding: 6px 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  /* ── Key-Value results ── */
+  .kv{
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 0;
+    font-variant-numeric: tabular-nums;
+    margin-top: 12px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .kv > div{
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .kv > div:nth-child(4n+1), .kv > div:nth-child(4n+2){
+    background: #f8fafc;
+  }
+  .kv > div:nth-child(odd){
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .kv > div:nth-child(even){
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ── Canvas ── */
+  canvas{
+    width: 100%;
+    height: auto;
+    border: none;
+    border-radius: var(--radius);
+    background: #fff;
+    max-height: 74vh;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+  }
+
+  /* ── Small text ── */
+  .small{
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── Status section ── */
+  .status{
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Status pills ── */
+  .ok{
+    color: var(--ok);
+    background: var(--ok-bg);
+    border-radius: var(--radius-pill);
+    padding: 3px 12px;
+    font-weight: 500;
+    font-size: 12px;
+  }
+  .bad{
+    color: var(--bad);
+    background: var(--bad-bg);
+    border-radius: var(--radius-pill);
+    padding: 3px 12px;
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  /* ── Footer ── */
+  .footer{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -41,20 +272,20 @@
 <main>
   <div class="wrap">
     <section class="card">
-      <div class="toolbar" style="margin-bottom:6px">
+      <div class="toolbar" style="margin-bottom:8px">
         <button id="btnCalc" class="primary">Calculate</button>
         <button id="btnRotGrid">Rotate Grid</button>
         <button id="btnRotTrue">Rotate True</button>
         <button id="btnReset">Reset</button>
         <button id="btnDownload">Download PNG</button>
       </div>
-      <div class="toolbar" style="margin-bottom:8px">
+      <div class="toolbar" style="margin-bottom:10px">
         <label>Rig / Spudcan</label>
         <select id="rigSel" style="min-width:140px"></select>
         <label>Circle Diameter (m)</label>
         <input id="circleDia" type="number" value="20" step="0.1" style="width:120px">
         <button id="btnExportDXF" class="primary">Export DWG (DXF R12)</button>
-        <span class="small" style="margin-left:6px">*Units in meters (UTM)</span>
+        <span class="small" style="margin-left:4px">*Units in meters (UTM)</span>
       </div>
 
       <label style="margin-top:4px;display:block">Leg coordinates (UTM Indian 1975 Zone 47N)</label>
@@ -82,20 +313,20 @@
           <div class="wlon wval" title="&mdash;">&mdash;</div>
         </div>
       </div>
-      <div id="pasteStatus" class="small" style="color:#374151;margin-top:4px"></div>
+      <div id="pasteStatus" class="small" style="color:#64748b;margin-top:4px"></div>
       <div class="kv">
         <div>Grid Heading (&deg;)</div><div id="gridH">&mdash;</div>
         <div>True Heading (&deg;)</div><div id="trueH">&mdash;</div>
         <div>&gamma; @ Midpoint (&deg;)</div><div id="gamma">&mdash;</div>
       </div>
-      <div id="err" class="small" style="color:#b91c1c;margin-top:6px;display:none"></div>
+      <div id="err" class="small" style="color:#ef4444;margin-top:6px;display:none"></div>
       <div class="status">
         <div id="distStatus" class="small">Port&ndash;Bow vs Stbd&ndash;Bow: &Delta; = &mdash; m</div>
         <div id="perpStatus" class="small">Perpendicular deviation: &mdash; &deg;</div>
       </div>
     </section>
     <section class="card">
-      <div class="small" style="margin-bottom:6px">Image rotation equals heading (clockwise)</div>
+      <div class="small" style="margin-bottom:8px">Image rotation equals heading (clockwise)</div>
       <canvas id="cnv"></canvas>
     </section>
   </div>
@@ -104,13 +335,13 @@
 
 <script>
 /* ========================================================================
-   Jack-up Heading Calculator — v12 (Consolidated)
+   Jack-up Heading Calculator — v12.1 (Consolidated + UI Refresh)
    Developed by Rattawit W.
    Merged from v8.1 → v11 patches into a single clean codebase.
    Coordinate math from Coordinate_Converter_V3_12.
    ======================================================================== */
 
-var VERSION = "12";
+var VERSION = "12.1";
 
 /* ---------- Rig / Spudcan database ---------- */
 var RIG_SPUDCAN = [
@@ -147,10 +378,8 @@ function radToDeg(r){ return r*180/PI; }
 
 /* ====================================================================
    (c) Coordinate conversion — INLINE patched (Converter_V3_12)
-       R-3: Original dead functions removed; these are the production versions.
    ==================================================================== */
 
-/** Geodetic (lat,lon,h) → ECEF (X,Y,Z) on ellipsoid (a,f) */
 function geodeticToECEF(lat, lon, h, a, f){
   var lr = degToRad(lat), br = degToRad(lon), e2 = f*(2-f);
   var sinl = Math.sin(lr), cosl = Math.cos(lr), cosb = Math.cos(br), sinb = Math.sin(br);
@@ -162,7 +391,6 @@ function geodeticToECEF(lat, lon, h, a, f){
   ];
 }
 
-/** ECEF (X,Y,Z) → Geodetic (lat,lon,h) on ellipsoid (a,f)  — iterative, robust */
 function ecefToGeodetic(X, Y, Z, a, f){
   var e2 = f*(2-f), p = Math.hypot(X,Y);
   var lon = Math.atan2(Y, X), lat = Math.atan2(Z, p*(1-e2)), h = 0;
@@ -177,7 +405,6 @@ function ecefToGeodetic(X, Y, Z, a, f){
   return [radToDeg(lat), radToDeg(lon), h];
 }
 
-/** UTM (E,N) → geodetic (lat,lon) on ellipsoid (a,f).  Full Snyder-series to D⁶. */
 function utmToLatLon(E, N, a, f){
   var _k0 = (typeof k0 === 'number' ? k0 : 0.9996);
   var _zone = (typeof zone === 'number' ? zone : 47);
@@ -217,8 +444,6 @@ function utmToLatLon(E, N, a, f){
   return [radToDeg(lat), radToDeg(lon)];
 }
 
-/** Indian 1975 UTM → WGS84 via 3-param ECEF shift.
-    Returns [lat_wgs, lon_wgs, lat_ind, lon_ind]. */
 function indian1975UTMToWGS84(E, N){
   var geod_ind = utmToLatLon(E, N, a_ind, f_ind);
   var ecef_ind = geodeticToECEF(geod_ind[0], geod_ind[1], 0, a_ind, f_ind);
@@ -318,7 +543,6 @@ function calc(){
   document.getElementById("trueH").textContent  = trueH.toFixed(2);
   document.getElementById("gamma").textContent = gamma.toFixed(5);
 
-  /* QC: distance symmetry */
   var d1 = Math.hypot(bow.x - port.x, bow.y - port.y);
   var d2 = Math.hypot(bow.x - stbd.x, bow.y - stbd.y);
   var delta = Math.abs(d1 - d2);
@@ -326,7 +550,6 @@ function calc(){
   distEl.textContent = "Port\u2013Bow vs Stbd\u2013Bow: \u0394 = " + delta.toFixed(2) + " m";
   distEl.className = "small " + (delta <= 0.20 ? "ok" : "bad");
 
-  /* QC: perpendicularity */
   var v1x = stbd.x - port.x, v1y = stbd.y - port.y;
   var v2x = bow.x - MX,      v2y = bow.y - MY;
   var dot = v1x*v2x + v1y*v2y;
@@ -341,14 +564,13 @@ function calc(){
   perpEl.textContent = "Perpendicular deviation: " + dev.toFixed(3) + "\u00B0";
   perpEl.className = "small " + (dev <= 0.100 ? "ok" : "bad");
 
-  /* Indian 1975 DMS update */
   computeIndianDMS(rows);
 
   return {rows:rows, MX:MX, MY:MY, grid:grid, trueH:trueH};
 }
 
 /* ====================================================================
-   (g) DXF R12 export — R-4: filename uses VERSION
+   (g) DXF R12 export
    ==================================================================== */
 function dxfR12Header(){ return "0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n"; }
 function dxfR12Footer(){ return "0\nENDSEC\n0\nEOF"; }
@@ -385,7 +607,6 @@ function exportDXF(){
   dxf += entLINE(x2, y2, ax2, ay2, "0");
   dxf += entTEXT((x1+x2)/2, (y1+y2)/2, Math.max(r*0.35, 2), "Grid="+grid.toFixed(2)+"\u00B0", "ANNOT");
 
-  /* Rig name annotation (if a rig is selected) */
   var rigSelEl = document.getElementById('rigSel');
   if(rigSelEl){
     var rigIdx = parseInt(rigSelEl.value, 10);
@@ -442,20 +663,16 @@ function rotateToHeading(headingDeg){
 
 /* ====================================================================
    (i) Smart Paste — R-5: comma-aware number parser
-       If pasted text contains ".", treat commas as thousand separators (en-US).
-       Otherwise treat commas as decimal separators (European).
    ==================================================================== */
 function parseSmartNumbers(text){
   text = text.trim();
   if(!text) return [];
   var hasDot = text.indexOf('.') >= 0;
   if(hasDot){
-    /* en-US style: 1,234.56 → strip commas, then extract numbers */
     var cleaned = text.replace(/,/g, '');
     var matches = cleaned.match(/-?\d+(?:\.\d+)?/g);
     return matches ? matches.map(function(t){ return parseFloat(t); }) : [];
   } else {
-    /* European style or no decimals: 1234,56 → comma is decimal */
     var matches = text.match(/-?\d+(?:,\d+)?/g);
     return matches ? matches.map(function(t){ return parseFloat(t.replace(',', '.')); }) : [];
   }
@@ -472,7 +689,7 @@ function setupSmartPaste(){
     var text = clip.getData('text');
     if(!text) return;
     var nums = parseSmartNumbers(text);
-    if(nums.length < 2) return;            /* R-2: ≤1 number → let browser handle natively */
+    if(nums.length < 2) return;
     e.preventDefault();
     var statusEl = document.getElementById('pasteStatus');
     if(nums.length % 2 !== 0){ statusEl.textContent = "Smart Paste: odd number count, ignoring last."; statusEl.style.color = "#dc2626"; nums.pop(); }
@@ -500,14 +717,14 @@ function setupSmartPaste(){
       var clip = (e.clipboardData || window.clipboardData);
       var text = clip ? clip.getData('text') : '';
       var nums = parseSmartNumbers(text);
-      if(nums.length < 2) return;         /* ≤1 number: let default paste through */
+      if(nums.length < 2) return;
     } catch(err){ return; }
     handlePaste(e);
   }, true);
 }
 
 /* ====================================================================
-   (j) Indian 1975 DMS panel — R-6: MutationObserver for dynamic rows
+   (j) Indian 1975 DMS panel — R-6: MutationObserver
    ==================================================================== */
 function toDMS(deg, isLat){
   if(!isFinite(deg)) return "\u2014";
@@ -543,9 +760,7 @@ function computeIndianDMS(rowsArg){
     }).join('');
     var el = document.getElementById('ind_dms_lines');
     if(el) el.innerHTML = out;
-  } catch(e){
-    /* fail silently to avoid impacting core UX */
-  }
+  } catch(e){}
 }
 
 function wireIndianDMSListeners(){
@@ -555,7 +770,6 @@ function wireIndianDMSListeners(){
   });
 }
 
-/* R-6: MutationObserver — auto-wire DMS listeners when rows are added/removed */
 (function(){
   var rowsEl = document.getElementById('rows');
   if(!rowsEl) return;
@@ -574,7 +788,6 @@ function setupRigSelector(){
   var inp = document.getElementById('circleDia');
   if(!sel || !inp) return;
 
-  /* Populate options from RIG_SPUDCAN */
   RIG_SPUDCAN.forEach(function(rig, i){
     var opt = document.createElement('option');
     opt.value = i;
@@ -584,7 +797,6 @@ function setupRigSelector(){
     sel.appendChild(opt);
   });
 
-  /* Wire change event */
   sel.addEventListener('change', function(){
     var idx = parseInt(sel.value, 10);
     var rig = RIG_SPUDCAN[idx];
@@ -592,11 +804,11 @@ function setupRigSelector(){
       inp.value = rig.dia;
       inp.readOnly = true;
       inp.style.background = '#f0f0f0';
-      inp.style.color = '#6b7280';
+      inp.style.color = '#94a3b8';
     } else {
       inp.readOnly = false;
-      inp.style.background = '#fff';
-      inp.style.color = '#111827';
+      inp.style.background = '';
+      inp.style.color = '';
     }
   });
 }
