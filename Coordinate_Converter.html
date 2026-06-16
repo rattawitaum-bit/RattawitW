@@ -342,7 +342,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS1" onchange="document.getElementById('table1').classList.toggle('show-conv', this.checked)">
-                    <span data-i18n="lbl_show_conv">Show Indian Grid Conv (γ)</span>
+                    <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
                 </label>
                 <label id="s1HemisphereWrap" class="s1-utm-only hidden" style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <span data-i18n="lbl_s1_hemisphere" style="font-weight:600;">WGS UTM Hemisphere:</span>
@@ -423,7 +423,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS2" onchange="document.getElementById('table2').classList.toggle('show-conv', this.checked)">
-                    <span data-i18n="lbl_show_conv">Show Indian Grid Conv (γ)</span>
+                    <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowWgsUtmS2" onchange="document.getElementById('table2').classList.toggle('show-wgs-utm', this.checked)">
@@ -477,7 +477,7 @@
             <div class="inline-field" style="margin:0;">
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" id="gammaToggle" checked onchange="AppMethods.renderRouteTable()"> 
-                    Show Indian Grid Conv γ (True = Grid + γ)
+                    Show Grid Convergence (γ)
                 </label>
             </div>
             
@@ -497,8 +497,8 @@
                         <th>Leg</th>
                         <th>From ID</th>
                         <th>To ID</th>
-                        <th>Indian Grid Brg (°)</th>
-                        <th class="col-conv">Indian Conv γ (°)</th>
+                        <th>Grid Brg (°)</th>
+                        <th class="col-conv">Conv γ (°)</th>
                         <th>True Brg (°)</th>
                         <th>Planar (m)</th>
                         <th>Dist (km)</th>
@@ -588,7 +588,7 @@ const I18nDict = {
         th_pt: "Point ID", th_wgs_lat_d: "WGS84 Lat Deg", th_wgs_lat_m: "WGS84 Lat Min", th_wgs_lon_d: "WGS84 Lon Deg", th_wgs_lon_m: "WGS84 Lon Min", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
         th_ind_lat_d: "Ind Lat Deg", th_ind_lat_m: "Ind Lat Min", th_ind_lon_d: "Ind Lon Deg", th_ind_lon_m: "Ind Lon Min", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
-        lbl_show_conv: "Show Indian Grid Conv (γ)", th_conv: "Indian Grid Conv γ (°)",
+        lbl_show_conv: "Show Conv (γ)", th_conv: "Conv γ (°)",
         tooltip_s1: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated", tooltip_s1_utm: "Expected: PointID Easting Northing\nExample: BM-01 661838.12 1523456.79\nUses selected UTM Zone and WGS UTM Hemisphere.", 
         tooltip_s2: "Expected: PointID X Y\nExample: BM-01 759528.17 1068297.15\nAccepts: Comma or Space/Tab-separated",
         tooltip_s2_latlon: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated",
@@ -621,7 +621,7 @@ const I18nDict = {
         th_pt: "ชื่อจุด", th_wgs_lat_d: "WGS84 องศา (N)", th_wgs_lat_m: "WGS84 ลิปดา (N)", th_wgs_lon_d: "WGS84 องศา (E)", th_wgs_lon_m: "WGS84 ลิปดา (E)", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
         th_ind_lat_d: "Ind Lat องศา (N)", th_ind_lat_m: "Ind Lat ลิปดา (N)", th_ind_lon_d: "Ind Lon องศา (E)", th_ind_lon_m: "Ind Lon ลิปดา (E)", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
-        lbl_show_conv: "แสดงคอนเวอร์เจนซ์กริด Indian 1975 (γ)", th_conv: "คอนเวอร์เจนซ์กริด Indian 1975 γ (°)",
+        lbl_show_conv: "แสดงค่าคอนเวอร์เจนซ์ (γ)", th_conv: "คอนเวอร์เจนซ์ γ (°)",
         tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv", tooltip_s1_utm: "รูปแบบที่รองรับ: ชื่อจุด Easting Northing\nตัวอย่าง: BM-01 661838.12 1523456.79\nใช้ UTM Zone และซีกโลก WGS UTM ที่เลือก", 
         tooltip_s2: "รูปแบบที่รองรับ: ชื่อจุด ค่าEasting ค่าNorthing\nรับไฟล์: .txt (เคาะวรรค) หรือ .csv",
         tooltip_s2_latlon: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv",
@@ -1367,11 +1367,11 @@ const AppMethods = {
         if(b.innerHTML.trim() !== '' && !AppState.forceTableReset1) { updateTranslations(); AppMethods.updateS1UtmModeUI(); return; }
         const fmt = AppState.s1Format;
         if (fmt === 'utm') {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_utm_e_in">WGS84 UTM E</th><th data-i18n="th_wgs_utm_n_in">WGS84 UTM N</th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th data-i18n="th_wgs_lat_calc">WGS84 Latitude</th><th data-i18n="th_wgs_lon_calc">WGS84 Longitude</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_utm_e_in">WGS84 UTM E</th><th data-i18n="th_wgs_utm_n_in">WGS84 UTM N</th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th data-i18n="th_wgs_lat_calc">WGS84 Latitude</th><th data-i18n="th_wgs_lon_calc">WGS84 Longitude</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         } else if (fmt === 'dm') {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         } else {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         }
         if (fmt === 'dms') document.getElementById('table1').classList.add('dms-mode');
         else document.getElementById('table1').classList.remove('dms-mode');
@@ -1419,7 +1419,7 @@ const AppMethods = {
         } else if (fmt === 'dms') {
             hdr += `<th data-i18n="th_ind_lat_dec">Indian Latitude (°N)</th><th data-i18n="th_ind_lon_dec">Indian Longitude (°E)</th>`;
         }
-        hdr += `<th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+        hdr += `<th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         h.innerHTML = hdr;
         
         if (fmt === 'dms') document.getElementById('table2').classList.add('dms-mode');
@@ -2198,7 +2198,7 @@ const AppMethods = {
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         
-        let csv = '\uFEFFLeg,From ID,To ID,Indian Grid Bearing(°),Indian Grid Conv γ(°),True Bearing(°),Planar Distance(m),Geodesic Distance(km),Geodesic Distance(NM)\n';
+        let csv = '\uFEFFLeg,From ID,To ID,Grid Bearing(°),Conv γ(°),True Bearing(°),Planar Distance(m),Geodesic Distance(km),Geodesic Distance(NM)\n';
         for(let i=0; i<pts.length-1; i++) {
             const pt1 = pts[i], pt2 = pts[i+1];
             const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
@@ -2242,7 +2242,7 @@ const AppMethods = {
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         
         const aoa = [];
-        aoa.push(['Leg','From ID','To ID','Indian Grid Bearing(°)','Indian Grid Conv γ(°)','True Bearing(°)','Planar Distance(m)','Geodesic Distance(km)','Geodesic Distance(NM)']);
+        aoa.push(['Leg','From ID','To ID','Grid Bearing(°)','Conv γ(°)','True Bearing(°)','Planar Distance(m)','Geodesic Distance(km)','Geodesic Distance(NM)']);
         
         for(let i=0; i<pts.length-1; i++) {
             const pt1 = pts[i], pt2 = pts[i+1];
