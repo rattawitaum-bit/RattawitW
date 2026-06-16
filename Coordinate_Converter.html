@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coordinate Converter v6.4.3</title>
+    <title>Coordinate Converter v6.4.4</title>
     
     <!-- Offline & System Font Support -->
     
@@ -246,9 +246,9 @@
     box-shadow: inset 0 0 0 2px var(--danger), 0 0 0 3px rgba(225, 29, 72, 0.15) !important;
 }
     
-    /* v6.4.3: Print Support */
+    /* v6.4.4: Print Support */
     @media print {
-        #globalNav, nav, .tab-bar, .controls-row, .hint-text, .btn-group, .export-group, .file-input-area,
+        nav, .tab-bar, .controls-row, .hint-text, .btn-group, .export-group, .file-input-area,
         button, select, input[type="checkbox"], input[type="file"],
         #leafletMap, #coordinateSVG, #svgContainer, #visualizationPanel,
         .toast-container, .help-tip, .route-group,
@@ -279,7 +279,7 @@
 <div id="globalNav">
     <div class="nav-top-row">
         <div>
-            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.4.3</span>
+            <span class="v nav-title" data-i18n="app_title">Coordinate Converter v6.4.4</span>
             <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
             <div class="banner-details">
                 <b data-i18n="lbl_datum">Datum:</b> 
@@ -342,7 +342,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS1" onchange="document.getElementById('table1').classList.toggle('show-conv', this.checked)">
-                    <span data-i18n="lbl_show_conv">Show Indian Grid Conv (γ)</span>
+                    <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
                 </label>
                 <label id="s1HemisphereWrap" class="s1-utm-only hidden" style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <span data-i18n="lbl_s1_hemisphere" style="font-weight:600;">WGS UTM Hemisphere:</span>
@@ -423,7 +423,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowConvS2" onchange="document.getElementById('table2').classList.toggle('show-conv', this.checked)">
-                    <span data-i18n="lbl_show_conv">Show Indian Grid Conv (γ)</span>
+                    <span data-i18n="lbl_show_conv">Show Conv (γ)</span>
                 </label>
                 <label style="display:flex; align-items:center; gap:4px; font-weight:normal; font-size:12px; cursor:pointer;">
                     <input type="checkbox" id="chkShowWgsUtmS2" onchange="document.getElementById('table2').classList.toggle('show-wgs-utm', this.checked)">
@@ -477,7 +477,7 @@
             <div class="inline-field" style="margin:0;">
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" id="gammaToggle" checked onchange="AppMethods.renderRouteTable()"> 
-                    Show Indian Grid Conv γ (True = Grid + γ)
+                    Show Grid Convergence (γ)
                 </label>
             </div>
             
@@ -569,7 +569,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.4.3", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.4.4", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM and Lat/Long to WGS84",
@@ -588,7 +588,7 @@ const I18nDict = {
         th_pt: "Point ID", th_wgs_lat_d: "WGS84 Lat Deg", th_wgs_lat_m: "WGS84 Lat Min", th_wgs_lon_d: "WGS84 Lon Deg", th_wgs_lon_m: "WGS84 Lon Min", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
         th_ind_lat_d: "Ind Lat Deg", th_ind_lat_m: "Ind Lat Min", th_ind_lon_d: "Ind Lon Deg", th_ind_lon_m: "Ind Lon Min", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
-        lbl_show_conv: "Show Indian Grid Conv (γ)", th_conv: "Indian Grid Conv γ (°)",
+        lbl_show_conv: "Show Conv (γ)", th_conv: "Conv γ (°)",
         tooltip_s1: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated", tooltip_s1_utm: "Expected: PointID Easting Northing\nExample: BM-01 661838.12 1523456.79\nUses selected UTM Zone and WGS UTM Hemisphere.", 
         tooltip_s2: "Expected: PointID X Y\nExample: BM-01 759528.17 1068297.15\nAccepts: Comma or Space/Tab-separated",
         tooltip_s2_latlon: "Formats Accepted (DM): PointID LatDeg LatMin LonDeg LonMin\nDecimal Degree Formats: PointID Lat Lon\nDMS Format: PointID 13°45'23.45\"N 100°30'15.2\"E\nAccepts: Comma-separated or Tab/Space-separated",
@@ -602,7 +602,7 @@ const I18nDict = {
         tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.4.3", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.4.4", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -621,7 +621,7 @@ const I18nDict = {
         th_pt: "ชื่อจุด", th_wgs_lat_d: "WGS84 องศา (N)", th_wgs_lat_m: "WGS84 ลิปดา (N)", th_wgs_lon_d: "WGS84 องศา (E)", th_wgs_lon_m: "WGS84 ลิปดา (E)", th_wgs_lat_dec: "WGS84 Latitude (°N)", th_wgs_lon_dec: "WGS84 Longitude (°E)",
         th_ind_lat_d: "Ind Lat องศา (N)", th_ind_lat_m: "Ind Lat ลิปดา (N)", th_ind_lon_d: "Ind Lon องศา (E)", th_ind_lon_m: "Ind Lon ลิปดา (E)", th_ind_lat_dec: "Indian Latitude (°N)", th_ind_lon_dec: "Indian Longitude (°E)",
         th_ind_e: "Indian UTM Easting (X)", th_ind_n: "Indian UTM Northing (Y)", th_ind_lat: "Indian Latitude", th_ind_lon: "Indian Longitude", th_wgs_lat_out: "WGS84 Latitude", th_wgs_lon_out: "WGS84 Longitude",
-        lbl_show_conv: "แสดงคอนเวอร์เจนซ์กริด Indian 1975 (γ)", th_conv: "คอนเวอร์เจนซ์กริด Indian 1975 γ (°)",
+        lbl_show_conv: "แสดงค่าคอนเวอร์เจนซ์ (γ)", th_conv: "คอนเวอร์เจนซ์ γ (°)",
         tooltip_s1: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv", tooltip_s1_utm: "รูปแบบที่รองรับ: ชื่อจุด Easting Northing\nตัวอย่าง: BM-01 661838.12 1523456.79\nใช้ UTM Zone และซีกโลก WGS UTM ที่เลือก", 
         tooltip_s2: "รูปแบบที่รองรับ: ชื่อจุด ค่าEasting ค่าNorthing\nรับไฟล์: .txt (เคาะวรรค) หรือ .csv",
         tooltip_s2_latlon: "รูปแบบที่รองรับ (DM): ชื่อจุด องศา(N) ลิปดา(N) องศา(E) ลิปดา(E)\nรูปแบบ (D): ชื่อจุด ละติจูด ลองจิจูด\nรับไฟล์: .txt หรือ .csv",
@@ -1074,7 +1074,7 @@ const AppMethods = {
         if (!line || !String(line).trim()) return null;
         const rawOriginal = String(line).replace(/[\u00A0\u200B]/g, ' ').trim();
         if (!rawOriginal) return null;
-        // v6.4.3 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
+        // v6.4.4 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
         const splitCsv = (s) => { const out=[]; let cur='', q=false; for(let i=0;i<s.length;i++){ const ch=s[i]; if(q){ if(ch==='"'){ if(s[i+1]==='"'){cur+='"'; i++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ if(cur.trim()!=='') out.push(cur.trim()); cur=''; } else cur+=ch; } } if(cur.trim()!=='') out.push(cur.trim()); return out; };
         const splitDelimited = (s) => s.includes(',') ? splitCsv(s) : (s.includes('\t') ? s.split(/\t+/).map(x=>x.trim()).filter(Boolean) : s.trim().split(/\s+/).map(x=>x.trim()).filter(Boolean));
         const makeResult = (idParts, coords) => ({ id: idParts.length ? idParts.join(' ').trim() : null, coords });
@@ -1116,25 +1116,32 @@ const AppMethods = {
 
     switchTab: (n) => {
         if(AppState.activeTab === n) return;
+        
         if(AppState.timers.ts1) clearTimeout(AppState.timers.ts1);
         if(AppState.timers.ts2) clearTimeout(AppState.timers.ts2);
+        
         if(AppState.activeTab === 1) AppMethods.calcS1(); else if (AppState.activeTab === 2) AppMethods.calcS2();
-
         [1,2,3].forEach(i => {
             document.getElementById(`tabContent${i}`).classList.add('hidden');
             document.getElementById(`tabBtn${i}`).classList.remove('active');
         });
+        
         document.getElementById(`tabContent${n}`).classList.remove('hidden');
         document.getElementById(`tabBtn${n}`).classList.add('active');
         AppState.activeTab = n;
-
+        
         if(n === 1) AppMethods.calcS1();
         else if(n === 2) AppMethods.calcS2();
-        else if(n === 3) AppMethods.renderRouteTable();
-
-        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(true);
-        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+        else if(n === 3) {
+            AppMethods.renderRouteTable();
+            if(!document.getElementById('leafletMap').classList.contains('hidden')) {
+                AppMethods.drawLeaflet(true);
+            } else if(!document.getElementById('svgContainer').classList.contains('hidden')) {
+                AppMethods.drawSvg();
+            }
+        }
     },
+
     renderRouteTable: () => {
         const p = AppState.params, zi = AppState.zoneInfo;
         const s2Cols = AppMethods.getS2Cols(); // Dynamic index guard
@@ -1367,11 +1374,11 @@ const AppMethods = {
         if(b.innerHTML.trim() !== '' && !AppState.forceTableReset1) { updateTranslations(); AppMethods.updateS1UtmModeUI(); return; }
         const fmt = AppState.s1Format;
         if (fmt === 'utm') {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_utm_e_in">WGS84 UTM E</th><th data-i18n="th_wgs_utm_n_in">WGS84 UTM N</th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th data-i18n="th_wgs_lat_calc">WGS84 Latitude</th><th data-i18n="th_wgs_lon_calc">WGS84 Longitude</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_utm_e_in">WGS84 UTM E</th><th data-i18n="th_wgs_utm_n_in">WGS84 UTM N</th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th data-i18n="th_wgs_lat_calc">WGS84 Latitude</th><th data-i18n="th_wgs_lon_calc">WGS84 Longitude</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         } else if (fmt === 'dm') {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_d"></th><th data-i18n="th_wgs_lat_m"></th><th data-i18n="th_wgs_lon_d"></th><th data-i18n="th_wgs_lon_m"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         } else {
-            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+            h.innerHTML = `<tr><th data-i18n="th_pt"></th><th data-i18n="th_wgs_lat_dec"></th><th data-i18n="th_wgs_lon_dec"></th><th data-i18n="th_ind_e"></th><th data-i18n="th_ind_n"></th><th data-i18n="th_ind_lat"></th><th data-i18n="th_ind_lon"></th><th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         }
         if (fmt === 'dms') document.getElementById('table1').classList.add('dms-mode');
         else document.getElementById('table1').classList.remove('dms-mode');
@@ -1419,7 +1426,7 @@ const AppMethods = {
         } else if (fmt === 'dms') {
             hdr += `<th data-i18n="th_ind_lat_dec">Indian Latitude (°N)</th><th data-i18n="th_ind_lon_dec">Indian Longitude (°E)</th>`;
         }
-        hdr += `<th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Indian Grid Conv γ (°)</th></tr>`;
+        hdr += `<th class="col-wgs-utm" data-i18n="th_wgs_utm_e">WGS84 UTM E</th><th class="col-wgs-utm" data-i18n="th_wgs_utm_n">WGS84 UTM N</th><th class="col-conv" data-i18n="th_conv">Conv γ (°)</th></tr>`;
         h.innerHTML = hdr;
         
         if (fmt === 'dms') document.getElementById('table2').classList.add('dms-mode');
@@ -2179,6 +2186,30 @@ const AppMethods = {
         AppMethods.download(`Route_${AppMethods.getTimestamp()}.kml`, kml, 'text/xml;charset=utf-8');
     },
 
+
+    formatLocalCoord_: (prefix, value) => {
+        const rounded = Math.round(Number(value));
+        if (!isFinite(rounded)) return '';
+        return `${prefix} ${rounded.toLocaleString('en-US').replace(/,/g, ' ')}`;
+    },
+    formatRouteDM_: (deg, isLat) => {
+        if (!isFinite(deg)) return '';
+        const dir = isLat ? (deg < 0 ? 'S' : 'N') : (deg < 0 ? 'W' : 'E');
+        const abs = Math.abs(deg);
+        const d = Math.floor(abs);
+        const m = (abs - d) * 60;
+        return `${d}° ${m.toFixed(3)}' ${dir}`;
+    },
+    formatRouteNumber_: (v, dp = 1) => {
+        if (!isFinite(v)) return '';
+        const x = Number(v.toFixed(dp));
+        return Number.isInteger(x) ? String(x) : x.toFixed(dp);
+    },
+    formatRouteBearing_: (v) => {
+        if (!isFinite(v)) return '';
+        const x = Number(v.toFixed(1));
+        return Number.isInteger(x) ? String(x) : x.toFixed(1);
+    },
     exportTowRouteCsv: () => {
         AppMethods.calcS2();
         const p = AppState.params, zi = AppState.zoneInfo;
@@ -2197,30 +2228,42 @@ const AppMethods = {
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
-        
-        let csv = '\uFEFFLeg,From ID,To ID,True Bearing for Vessel/Gyro(°),Indian Grid Bearing(°),Indian Grid Conv γ(°),Planar Distance(m),Geodesic Distance(km),Geodesic Distance(NM)\n';
-        for(let i=0; i<pts.length-1; i++) {
-            const pt1 = pts[i], pt2 = pts[i+1];
-            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-            const planarDist = Math.hypot(dx, dy);
-            let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
-            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-            
-            const midIndLat = (pt1.indLat + pt2.indLat) / 2;
-            const midIndLon = (pt1.indLon + pt2.indLon) / 2;
-            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
-            
-            let trueBrgStr = isNaN(vRes.bearing) ? "ERR_ANTIPODAL" : vRes.bearing.toFixed(2);
-            let geoKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
-            let geoNmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1852).toFixed(3);
-            
-            const safeFrom = Formatter.safeSpreadsheetText(pt1.id).replace(/"/g,'""');
-            const safeTo = Formatter.safeSpreadsheetText(pt2.id).replace(/"/g,'""');
-            csv += `${i+1},"${safeFrom}","${safeTo}",${trueBrgStr},${gb.toFixed(2)},${gamma.toFixed(4)},${planarDist.toFixed(2)},${geoKmStr},${geoNmStr}\n`;
+
+        let csv = '\uFEFFWP,LocalE,LocalN,LatWGS84,LongWGS84,Bearing,Dist(NM),Dist(km)\n';
+        let totalNm = 0, totalKm = 0;
+        for(let i = 0; i < pts.length; i++) {
+            let bearing = '', distNm = '', distKm = '';
+            if(i < pts.length - 1) {
+                const pt1 = pts[i], pt2 = pts[i + 1];
+                const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
+                if(!isNaN(vRes.bearing)) bearing = AppMethods.formatRouteBearing_(vRes.bearing);
+                if(!isNaN(vRes.distance)) {
+                    const nm = vRes.distance / 1852;
+                    const km = vRes.distance / 1000;
+                    totalNm += nm;
+                    totalKm += km;
+                    distNm = AppMethods.formatRouteNumber_(nm, 1);
+                    distKm = AppMethods.formatRouteNumber_(km, 1);
+                }
+            }
+            const row = [
+                i,
+                `"${AppMethods.formatLocalCoord_('E', pts[i].e)}"`,
+                `"${AppMethods.formatLocalCoord_('N', pts[i].n)}"`,
+                `"${AppMethods.formatRouteDM_(pts[i].lat, true)}"`,
+                `"${AppMethods.formatRouteDM_(pts[i].lon, false)}"`,
+                bearing,
+                distNm,
+                distKm
+            ];
+            csv += row.join(',') + '\n';
         }
-        AppMethods.download(`Route_Analytics_${AppMethods.getTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
+        csv += `TotalDist,,,,,,${AppMethods.formatRouteNumber_(totalNm, 1)},${AppMethods.formatRouteNumber_(totalKm, 1)}\n`;
+        [1.5, 2.0, 2.5, 3.0].forEach(spd => {
+            csv += `@${spd.toFixed(1)}kts,,,,,,${AppMethods.formatRouteNumber_(totalNm / spd, 1)} hr,\n`;
+        });
+        AppMethods.download(`TowRoute_${AppMethods.getTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
     },
-    
     exportTowRouteXlsx: () => {
         AppMethods.calcS2();
         if(typeof XLSX === 'undefined') return;
@@ -2240,50 +2283,49 @@ const AppMethods = {
             }
         });
         if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
-        
+
         const aoa = [];
-        aoa.push(['Leg','From ID','To ID','True Bearing for Vessel/Gyro(°)','Indian Grid Bearing(°)','Indian Grid Conv γ(°)','Planar Distance(m)','Geodesic Distance(km)','Geodesic Distance(NM)']);
-        
-        for(let i=0; i<pts.length-1; i++) {
-            const pt1 = pts[i], pt2 = pts[i+1];
-            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-            const planarDist = Math.hypot(dx, dy);
-            let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
-            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-            
-            const midIndLat = (pt1.indLat + pt2.indLat) / 2;
-            const midIndLon = (pt1.indLon + pt2.indLon) / 2;
-            let gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
-            
-            let row = [
-                i + 1,
-                Formatter.safeSpreadsheetText(pt1.id),
-                Formatter.safeSpreadsheetText(pt2.id),
-                isNaN(vRes.bearing) ? "ERR_ANTIPODAL" : Number(vRes.bearing.toFixed(2)),
-                Number(gb.toFixed(2)),
-                Number(gamma.toFixed(4)),
-                Number(planarDist.toFixed(2)),
-                isNaN(vRes.distance) ? 0 : Number((vRes.distance / 1000).toFixed(3)),
-                isNaN(vRes.distance) ? 0 : Number((vRes.distance / 1852).toFixed(3))
-            ];
-            aoa.push(row);
+        aoa.push(['WP','LocalE','LocalN','LatWGS84','LongWGS84','Bearing','Dist(NM)','Dist(km)']);
+        let totalNm = 0, totalKm = 0;
+        for(let i = 0; i < pts.length; i++) {
+            let bearing = '', distNm = '', distKm = '';
+            if(i < pts.length - 1) {
+                const pt1 = pts[i], pt2 = pts[i + 1];
+                const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
+                if(!isNaN(vRes.bearing)) bearing = AppMethods.formatRouteBearing_(vRes.bearing);
+                if(!isNaN(vRes.distance)) {
+                    const nm = vRes.distance / 1852;
+                    const km = vRes.distance / 1000;
+                    totalNm += nm;
+                    totalKm += km;
+                    distNm = AppMethods.formatRouteNumber_(nm, 1);
+                    distKm = AppMethods.formatRouteNumber_(km, 1);
+                }
+            }
+            aoa.push([
+                i,
+                AppMethods.formatLocalCoord_('E', pts[i].e),
+                AppMethods.formatLocalCoord_('N', pts[i].n),
+                AppMethods.formatRouteDM_(pts[i].lat, true),
+                AppMethods.formatRouteDM_(pts[i].lon, false),
+                bearing === '' ? '' : Number(bearing),
+                distNm === '' ? '' : Number(distNm),
+                distKm === '' ? '' : Number(distKm)
+            ]);
         }
-        
+        aoa.push(['TotalDist','','','','','',Number(AppMethods.formatRouteNumber_(totalNm, 1)),Number(AppMethods.formatRouteNumber_(totalKm, 1))]);
+        [1.5, 2.0, 2.5, 3.0].forEach(spd => {
+            aoa.push([`@${spd.toFixed(1)}kts`,'','','','','',`${AppMethods.formatRouteNumber_(totalNm / spd, 1)} hr`,'']);
+        });
+
         const ws = XLSX.utils.aoa_to_sheet(aoa);
-        const colWidths = aoa.reduce((acc, row) => {
-            row.forEach((cell, i) => {
-                const len = cell ? String(cell).length : 0;
-                if (!acc[i] || acc[i].wch < len) acc[i] = { wch: len + 3 };
-            });
-            return acc;
-        }, []);
-        ws['!cols'] = colWidths;
-        
+        ws['!cols'] = [
+            {wch: 8}, {wch: 14}, {wch: 14}, {wch: 18}, {wch: 18}, {wch: 10}, {wch: 10}, {wch: 10}
+        ];
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Route Analytics");
-        XLSX.writeFile(wb, `Route_Analytics_${AppMethods.getTimestamp()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'towroute');
+        XLSX.writeFile(wb, `TowRoute_${AppMethods.getTimestamp()}.xlsx`);
     },
-    
     exportTowRouteShp: () => {
         AppMethods.calcS2();
         if(typeof JSZip === 'undefined') return;
@@ -2782,7 +2824,6 @@ const AppMethods = {
     },
 
     drawLeaflet: (recenter = false) => {
-        if (typeof L === 'undefined') { document.getElementById('leafletMap')?.classList.add('hidden'); document.getElementById('svgContainer')?.classList.remove('hidden'); return; }
         const mapDiv = document.getElementById('leafletMap');
         if(mapDiv.classList.contains('hidden')) return;
         
@@ -2860,14 +2901,13 @@ const AppMethods = {
  * Event Binding & Init
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // v6.4.3: Fresh start, no browser persistence/cache restore
+    // v6.4.4: Fresh start, no browser persistence/cache restore
     AppMethods.buildS1Table();
     AppMethods.updateS1UtmModeUI();
     AppMethods.buildS2Table();
     AppMethods.syncSettings();
     AppMethods.drawLeaflet(false);
-
-    // v6.4.3: Print support
+    // v6.4.4: Print support
     window.addEventListener('beforeprint', () => {
         const ph = document.getElementById('printHeader');
         if (ph) {
@@ -2878,7 +2918,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = AppState.activeTab;
             const tabName = tab === 1 ? 'Section 1: WGS84 \u2192 Indian 1975' : tab === 2 ? 'Section 2: Indian 1975 \u2192 WGS84' : 'Route Analytics';
             const now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-            ph.textContent = 'Coordinate Converter v6.4.3 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
+            ph.textContent = 'Coordinate Converter v6.4.4 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
         }
     });
     // OFFLINE FALLBACK FOR SHEETJS & JSZIP
