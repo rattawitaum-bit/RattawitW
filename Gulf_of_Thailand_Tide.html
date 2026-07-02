@@ -1,355 +1,609 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Gulf of Thailand — Tide (API-only)</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0284c7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<title>Gulf of Thailand — Tide Analytics v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://got-tide.rattawit-aum.workers.dev">
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Leaflet (mini-map) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-
-<!-- Chart.js + Luxon adapter -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
 :root {
-  --bg: #f8fafc;
-  --panel: #ffffff;
+  --bg: #f5f7fa;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
   --txt: #0f172a;
-  --muted: #64748b;
+  --txt-2: #334155;
+  --muted: #475569;
   --accent: #0284c7;
   --accent-hover: #0369a1;
+  --accent-soft: #e0f2fe;
+  --accent-soft-txt: #0369a1;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --success: #059669;
+  --warning: #d97706;
+  --high: #0ea5e9;
+  --low: #db2777;
   --border: #e2e8f0;
-  --ring: #bae6fd;
-  --radius-lg: 12px;
-  --radius-md: 8px;
+  --border-strong: #cbd5e1;
+  --ring: rgba(2,132,199,.28);
+  --shadow-1: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-2: 0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.05);
+  --shadow-3: 0 12px 32px rgba(15,23,42,.12);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --font-tab: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --dur: 180ms;
+  --ease: cubic-bezier(.4,0,.2,1);
 }
-
-* {
-  box-sizing: border-box;
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface-1: #111a2b;
+  --surface-2: #0f1826;
+  --surface-3: #1a2438;
+  --txt: #e2e8f0;
+  --txt-2: #cbd5e1;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-soft: #082f49;
+  --accent-soft-txt: #7dd3fc;
+  --danger: #f87171;
+  --danger-soft: #451a1a;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --high: #38bdf8;
+  --low: #f472b6;
+  --border: #1f2a3e;
+  --border-strong: #334155;
+  --ring: rgba(56,189,248,.32);
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-2: 0 4px 12px rgba(0,0,0,.45);
+  --shadow-3: 0 12px 32px rgba(0,0,0,.55);
 }
-html, body {
-  height: 100%;
-  margin: 0;
-  background: var(--bg);
-  color: var(--txt);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-.wrap {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px;
-}
-.hbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.hbar .title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.hbar .sp {
-  font-size: 13px;
-  color: var(--muted);
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-@media(min-width: 1024px) {
-  .grid {
-    grid-template-columns: 380px 1fr;
-    align-items: start;
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --bg: #0b1220;
+    --surface-1: #111a2b;
+    --surface-2: #0f1826;
+    --surface-3: #1a2438;
+    --txt: #e2e8f0;
+    --txt-2: #cbd5e1;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #7dd3fc;
+    --accent-soft: #082f49;
+    --accent-soft-txt: #7dd3fc;
+    --danger: #f87171;
+    --danger-soft: #451a1a;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --high: #38bdf8;
+    --low: #f472b6;
+    --border: #1f2a3e;
+    --border-strong: #334155;
+    --ring: rgba(56,189,248,.32);
+    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-2: 0 4px 12px rgba(0,0,0,.45);
+    --shadow-3: 0 12px 32px rgba(0,0,0,.55);
   }
 }
-.content-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+* { box-sizing: border-box; }
+html, body {
+  height: 100%; margin: 0;
+  background: var(--bg); color: var(--txt);
+  font-family: var(--font-tab);
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+/* Header */
+.hbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.hbar .brand {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+}
+.hbar .logo {
+  width: 32px; height: 32px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--accent), #06b6d4);
+  display: grid; place-items: center; color: white; flex-shrink: 0;
+  box-shadow: var(--shadow-1);
+}
+.hbar .title-block { min-width: 0; }
+.hbar .title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.hbar .sub { font-size: 11px; color: var(--muted); }
+.hbar .actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); background: var(--surface-1);
+  color: var(--txt-2); cursor: pointer; display: grid; place-items: center;
+  transition: all var(--dur) var(--ease); flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--surface-3); color: var(--txt); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Layout grid */
+.layout {
+  display: grid; gap: 16px;
+  grid-template-areas: "controls" "chart" "hl" "meta";
+}
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 340px 1fr;
+    grid-template-areas:
+      "controls chart"
+      "meta     chart"
+      "hl       hl";
+  }
+}
+@media (min-width: 1200px) {
+  .layout {
+    grid-template-columns: 340px 1fr 320px;
+    grid-template-areas:
+      "controls chart hl"
+      "meta     chart hl";
+  }
+}
+.area-controls { grid-area: controls; }
+.area-chart    { grid-area: chart; min-width: 0; }
+.area-meta     { grid-area: meta; }
+.area-hl       { grid-area: hl; min-width: 0; }
+/* Card */
 .card {
-  background: var(--panel);
+  background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
+  transition: border-color var(--dur) var(--ease);
 }
-.card>.hd {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  background: #fafafa;
+.card > .hd {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-.card>.bd {
-  padding: 16px;
-}
+.card > .bd { padding: 14px; }
+.hd-tools { display: flex; gap: 6px; align-items: center; }
 .sub-hd {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  margin: 20px 0 10px 0;
-  padding-top: 14px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted);
+  margin: 16px 0 8px; padding-top: 12px;
   border-top: 1px solid var(--border);
 }
+.sub-hd:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+/* Form */
 label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  display: block;
-  margin-bottom: 6px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  display: block; margin-bottom: 5px;
 }
-select {
-  width: 100%;
-  padding: 10px 12px;
+select, input[type="date"], input[type="number"] {
+  width: 100%; padding: 9px 11px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  font-size: 14px;
-  background-color: var(--panel);
-  color: var(--txt);
-  outline: none;
-  transition: all 0.2s ease;
+  font-size: 13px; font-family: inherit;
+  background: var(--surface-1); color: var(--txt);
+  outline: none; transition: all var(--dur) var(--ease);
+  min-height: 40px;
 }
-select:focus {
+select:focus, input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--ring);
 }
 .btn {
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--panel);
-  color: var(--txt);
+  padding: 9px 14px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all var(--dur) var(--ease);
+  background: var(--surface-1); color: var(--txt);
+  min-height: 40px; touch-action: manipulation;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
-.btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent); border-color: var(--accent); color: white; font-weight: 600;
 }
-#run {
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
-#run:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-.btn-secondary {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--txt);
-}
-.btn-secondary:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.kv {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px 16px;
-  font-size: 13px;
-}
-.kv div:nth-child(odd) {
-  color: var(--muted);
-  font-weight: 500;
-}
-.kv div:nth-child(even) {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  text-align: right;
-}
-.small {
-  font-size: 12px;
-  color: var(--muted);
-}
-canvas {
-  background: #f8fafc;
-  border-radius: var(--radius-md);
-}
-#hl table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-}
-#hl th, #hl td {
-  padding: 10px 12px;
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-#hl th {
-  color: var(--muted);
-  font-weight: 600;
-  background: #f8fafc;
-  text-align: left;
-}
-#hl td {
-  font-variant-numeric: tabular-nums;
-}
-#hl tr:hover td {
-  background: #f8fafc;
-}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-strong); }
+.btn-sm { padding: 5px 10px; min-height: 32px; font-size: 12px; border-radius: var(--radius-sm); }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+/* Segmented control */
 .segment {
-  display: inline-flex;
-  background: #f1f5f9;
-  padding: 3px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  display: inline-flex; background: var(--surface-3);
+  padding: 3px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); gap: 2px;
 }
 .segment .seg {
-  background: transparent;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  transition: all 0.15s ease;
+  background: transparent; border: none;
+  padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  transition: all 150ms var(--ease); min-height: 32px; min-width: 40px;
+  font-family: inherit;
 }
-.segment .seg.active {
-  background: var(--panel);
-  color: var(--txt);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-  font-weight: 600;
+.segment .seg[aria-selected="true"] {
+  background: var(--surface-1); color: var(--txt);
+  box-shadow: var(--shadow-1); font-weight: 600;
 }
-#map {
-  height: 220px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  z-index: 1;
+.segment .seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Compute bar */
+.compute-bar {
+  display: flex; gap: 8px; align-items: center; margin-top: 10px;
 }
-.footer {
-  margin-top: 16px;
-  color: var(--muted);
-  font-size: 12px;
-  text-align: center;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+.compute-bar #run { flex: 1; }
+/* Meta KV */
+.kv {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 6px 12px; font-size: 12.5px;
 }
-.footer a {
-  color: var(--accent);
-  text-decoration: none;
-}
-.footer a:hover {
-  text-decoration: underline;
-}
+.kv div:nth-child(odd) { color: var(--muted); font-weight: 500; }
+.kv div:nth-child(even) { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; word-break: break-word; }
 .pill {
-  display: inline-block;
-  background: #e0f2fe;
-  color: #0369a1;
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-soft); color: var(--accent-soft-txt);
+  border-radius: var(--radius-pill); padding: 2px 8px;
+  font-size: 10.5px; font-weight: 600;
 }
+.pill-muted { background: var(--surface-3); color: var(--muted); }
+/* Msg / status */
 #msg {
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 500;
-  min-height: 18px;
+  min-height: 18px; font-size: 12px; font-weight: 500;
+  margin-top: 8px; display: flex; align-items: center; gap: 6px;
 }
+#msg.info { color: var(--accent); }
+#msg.error { color: var(--danger); }
+#msg.success { color: var(--success); }
+#msg.warn { color: var(--warning); }
+/* Chart wrapper */
+.chart-wrapper {
+  position: relative; width: 100%;
+  aspect-ratio: 16 / 9; min-height: 260px;
+}
+@media (min-width: 1024px) {
+  .chart-wrapper { aspect-ratio: 21 / 9; min-height: 300px; }
+}
+canvas { max-width: 100%; }
+/* Skeleton */
+.skel {
+  position: absolute; inset: 0; display: none;
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-md); pointer-events: none;
+}
+.skel.on { display: block; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+}
+/* HL table */
+#hl { max-height: 620px; overflow-y: auto; }
+#hl .day-hd {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  padding: 8px 4px 6px; position: sticky; top: 0;
+  background: var(--surface-1); z-index: 1;
+  border-bottom: 1px solid var(--border);
+}
+#hl table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+#hl th, #hl td {
+  padding: 7px 8px; font-size: 12.5px;
+  border-bottom: 1px solid var(--border);
+}
+#hl th { color: var(--muted); font-weight: 600; background: var(--surface-2); text-align: left; }
+#hl td { font-variant-numeric: tabular-nums; }
+#hl tr:hover td { background: var(--surface-2); }
+.hl-type { font-weight: 600; }
+.hl-type.High { color: var(--high); }
+.hl-type.Low  { color: var(--low); }
+.hl-station-tag {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle;
+}
+/* Map */
+#map {
+  height: 240px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); z-index: 1; position: relative;
+}
+@media (min-width: 1024px) { #map { height: 260px; } }
+.leaflet-container { background: var(--surface-2); }
+.station-label {
+  background: transparent !important; border: none !important;
+  box-shadow: none !important;
+  color: var(--txt) !important; font: 600 10.5px/1 var(--font-tab) !important;
+  text-shadow: 0 0 3px var(--surface-1), 0 0 3px var(--surface-1), 0 0 3px var(--surface-1);
+}
+.map-locate-btn {
+  position: absolute; bottom: 12px; right: 12px; z-index: 400;
+  width: 36px; height: 36px; border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong); background: var(--surface-1);
+  color: var(--txt-2); cursor: pointer; display: grid; place-items: center;
+  box-shadow: var(--shadow-1);
+}
+.map-locate-btn:hover { background: var(--surface-3); }
+/* Station chips */
+.chips {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 6px;
+  max-height: 180px; overflow-y: auto;
+}
+.chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: var(--radius-md);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 4px solid transparent;
+  font-size: 12px; transition: all var(--dur) var(--ease);
+}
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.chip .name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .coord { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip .rm {
+  border: none; background: transparent; color: var(--muted); cursor: pointer;
+  padding: 3px 5px; border-radius: 4px; font-size: 14px; line-height: 1;
+}
+.chip .rm:hover { color: var(--danger); background: var(--danger-soft); }
+/* Toast */
+#toast-wrap {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none; padding: 0 12px; width: 100%; max-width: 460px;
+}
+.toast {
+  background: var(--surface-1); color: var(--txt);
+  border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  padding: 10px 14px; border-radius: var(--radius-md);
+  box-shadow: var(--shadow-3); font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0; transform: translateY(-8px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  pointer-events: auto;
+}
+.toast.on { opacity: 1; transform: translateY(0); }
+.toast.error { border-left-color: var(--danger); }
+.toast.success { border-left-color: var(--success); }
+.toast.warn { border-left-color: var(--warning); }
+/* Footer */
+.footer {
+  margin-top: 16px; color: var(--muted); font-size: 11px;
+  text-align: center; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+/* Sticky Compute bar on mobile */
+.mobile-compute {
+  display: none;
+}
+@media (max-width: 767px) {
+  .mobile-compute {
+    display: flex; gap: 8px; position: sticky; bottom: 0;
+    background: var(--surface-1); border-top: 1px solid var(--border);
+    padding: 10px; margin: 0 -16px -16px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,.05);
+  }
+  .mobile-compute .btn { flex: 1; }
+  .compute-bar { display: none; }
+}
+/* Keyboard hint */
+.kbd {
+  display: inline-block; padding: 1px 5px; font-size: 10px;
+  font-family: ui-monospace, monospace; color: var(--muted);
+  background: var(--surface-3); border: 1px solid var(--border);
+  border-radius: 4px; margin-left: 4px;
+}
+/* Utilities */
+.small { font-size: 11.5px; color: var(--muted); }
+.hidden { display: none !important; }
+.spinner-inline {
+  width: 12px; height: 12px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 800ms linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-
 <body>
+<div id="toast-wrap" aria-live="polite" aria-atomic="true"></div>
 <div class="wrap">
   <div class="hbar">
-    <div class="title">Gulf of Thailand — Tide Analytics</div>
-    <div class="sp">Developed by <b>Rattawit W.</b></div>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s2-3 5-3 5 3 10 3 5-3 5-3"/><path d="M2 18s2-3 5-3 5 3 10 3 5-3 5-3"/><path d="M2 6s2-3 5-3 5 3 10 3 5-3 5-3"/></svg>
+      </div>
+      <div class="title-block">
+        <div class="title">Gulf of Thailand — Tide Analytics</div>
+        <div class="sub">v2 · Developed by <b>Rattawit W.</b></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="icon-btn" id="themeBtn" title="Toggle theme (D)" aria-label="Toggle theme">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button class="icon-btn" id="helpBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      </button>
+    </div>
   </div>
-
-  <div class="grid">
-    <!-- LEFT -->
-    <div class="card">
-      <div class="hd">Stations & Controls</div>
-      <div class="bd">
-        <label for="station">Choose a station (WGS84)</label>
-        <select id="station"></select>
-
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
-          <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between;">
-            <button id="run" class="btn" style="width: auto; flex-grow: 1;">Compute</button>
-            <div class="segment" id="viewSeg" title="Change viewing window (no extra API calls)">
-              <div class="seg active" data-days="1">1d</div>
-              <div class="seg" data-days="3">3d</div>
-              <div class="seg" data-days="7">7d</div>
+  <div class="layout">
+    <!-- CONTROLS -->
+    <div class="area-controls">
+      <div class="card">
+        <div class="hd">Stations & Controls</div>
+        <div class="bd">
+          <div class="sub-hd">Preset Station</div>
+          <label for="station">Choose a station (WGS84)</label>
+          <select id="station" aria-label="Preset stations"></select>
+          <div class="compute-bar">
+            <button id="run" class="btn btn-primary" aria-label="Compute tide (C)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              Compute
+            </button>
+            <div class="segment" id="viewSeg" role="tablist" aria-label="View window">
+              <button class="seg" role="tab" data-days="1" aria-selected="true">1d</button>
+              <button class="seg" role="tab" data-days="3" aria-selected="false">3d</button>
+              <button class="seg" role="tab" data-days="7" aria-selected="false">7d</button>
             </div>
           </div>
-
-          <div style="display: flex; gap: 8px;">
-            <button id="csv" class="btn btn-secondary">Export CSV</button>
-            <button id="png" class="btn btn-secondary">Export PNG</button>
+          <div id="msg" class="info" role="status"></div>
+          <div class="sub-hd">Custom Coordinates</div>
+          <div class="row">
+            <div>
+              <label for="lat">Lat</label>
+              <input type="number" id="lat" placeholder="e.g. 9.5" step="0.0001" min="-90" max="90">
+            </div>
+            <div>
+              <label for="lon">Lon</label>
+              <input type="number" id="lon" placeholder="e.g. 101.5" step="0.0001" min="-180" max="180">
+            </div>
+          </div>
+          <button id="addCustomBtn" class="btn btn-secondary btn-sm" style="margin-top:8px; width:100%;">
+            + Add Custom Point
+          </button>
+          <div class="small" style="margin-top:6px;">Or click on the map to pick a point.</div>
+          <div class="sub-hd" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Active Stations (<span id="activeCount">0</span>/5)</span>
+            <button id="clearAllBtn" class="btn btn-secondary btn-sm">Clear</button>
+          </div>
+          <div id="chips" class="chips" aria-live="polite"></div>
+          <div class="sub-hd">Date Range (client-only)</div>
+          <div class="row">
+            <div>
+              <label for="dateStart">Start</label>
+              <input type="date" id="dateStart">
+            </div>
+            <div>
+              <label for="dateEnd">End</label>
+              <input type="date" id="dateEnd">
+            </div>
+          </div>
+          <div class="small" style="margin-top:6px;">Range clamped to available window. Segment overrides date range.</div>
+          <div class="sub-hd">Export</div>
+          <div class="row">
+            <button id="csv" class="btn btn-secondary btn-sm" aria-label="Export CSV (E)">CSV</button>
+            <button id="png" class="btn btn-secondary btn-sm" aria-label="Export PNG (P)">PNG</button>
           </div>
         </div>
-        
-        <div id="msg" style="margin-top: 8px;"></div>
-
-        <div class="sub-hd">Result Meta Data</div>
-        <div class="kv" id="metaKV">
-          <div>Lat, Lon</div><div id="kv-ll">—</div>
-          <div>Window</div><div id="kv-win">—</div>
-          <div>Interval</div><div id="kv-int">—</div>
-          <div>z0</div><div id="kv-z0">—</div>
-          <div>Policy</div><div id="kv-policy" style="text-align: left; font-weight: normal; font-size: 12px; margin-top: 4px; grid-column: 1 / -1;">Calculates only <b>15 days before today</b> and <b>next 30 days</b> (API-enforced).</div>
-        </div>
-
-        <div class="sub-hd">Mini Map</div>
-        <div id="map"></div>
-
-        <div class="footer">Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a></div>
       </div>
     </div>
-
-    <!-- RIGHT -->
-    <div class="content-stack">
+    <!-- META -->
+    <div class="area-meta">
       <div class="card">
-        <div class="hd">Tide Curve Visualization</div>
+        <div class="hd">Result Meta</div>
         <div class="bd">
-          <canvas id="chart" height="220"></canvas>
+          <div class="kv" id="metaKV">
+            <div>Stations</div><div id="kv-count">—</div>
+            <div>Primary</div><div id="kv-primary">—</div>
+            <div>Lat, Lon</div><div id="kv-ll">—</div>
+            <div>Window</div><div id="kv-win">—</div>
+            <div>Interval</div><div id="kv-int">—</div>
+            <div>z0</div><div id="kv-z0">—</div>
+            <div>Source</div><div id="kv-src">—</div>
+          </div>
+          <div class="sub-hd">Mini Map</div>
+          <div style="position:relative;">
+            <div id="map" role="application" aria-label="Station map"></div>
+            <button class="map-locate-btn" id="locateBtn" title="Locate me" aria-label="Locate me">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="small" style="margin-top:8px;">
+            API window: <b>−15 d</b> to <b>+30 d</b> (Bangkok, enforced by API).
+            Client cache TTL: 9 min.
+          </div>
         </div>
       </div>
-
+    </div>
+    <!-- CHART -->
+    <div class="area-chart">
       <div class="card">
-        <div class="hd">Daily Highs / Lows (HH:mm, m)</div>
-        <div class="bd" id="hl">
+        <div class="hd">
+          <span>Tide Curve <span class="small" style="margin-left:6px;">(scroll/pinch to zoom · drag to pan)</span></span>
+          <div class="hd-tools">
+            <label class="small" style="display:flex; align-items:center; gap:4px; cursor:pointer; margin:0;">
+              <input type="checkbox" id="showHL" checked style="min-height:auto; width:auto;"> H/L
+            </label>
+            <button id="resetZoomBtn" class="btn btn-secondary btn-sm">Reset Zoom</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="chart-wrapper">
+            <canvas id="chart"></canvas>
+            <div id="chartSkel" class="skel" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- HL -->
+    <div class="area-hl">
+      <div class="card">
+        <div class="hd">
+          <span>Daily Highs / Lows</span>
+          <span class="small">HH:mm · m</span>
+        </div>
+        <div class="bd">
+          <div id="hl" aria-live="polite">
+            <div class="small" style="text-align:center; padding:20px;">Compute to see extrema.</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  <!-- Sticky mobile compute -->
+  <div class="mobile-compute">
+    <button id="runMobile" class="btn btn-primary">Compute</button>
+    <div class="segment" role="tablist" aria-label="View window (mobile)" id="viewSegMobile">
+      <button class="seg" role="tab" data-days="1" aria-selected="true">1d</button>
+      <button class="seg" role="tab" data-days="3" aria-selected="false">3d</button>
+      <button class="seg" role="tab" data-days="7" aria-selected="false">7d</button>
+    </div>
+  </div>
+  <div class="footer">
+    Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a>
+    · Data © Rattawit W. Tide Model (GoT)
+  </div>
 </div>
-
 <script>
+(function(){
+'use strict';
+// ============================================================
+// 1. CONFIG
+// ============================================================
 const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
 const USE_TZ = 'Asia/Bangkok';
-
-// Hard-coded stations
+const MAX_STATIONS = 5;
+const CACHE_TTL_MS = 9 * 60 * 1000;      // 9 min (< edge 10 min)
+const CACHE_PREFIX = 'gotTide_v2_';
+const BREAKER_FAIL_THRESHOLD = 3;
+const BREAKER_WINDOW_MS = 30 * 1000;
+const BREAKER_OPEN_MS = 60 * 1000;
+// Grid bbox (hard-coded, non-sensitive; used only for map framing)
+const GRID_BBOX = { lat_min: 6.0, lat_max: 13.0, lon_min: 99.0, lon_max: 105.0 };
 const STATIONS = {
   "AWP26":{"lat":8.5107,"lon":102.2262},
   "AWP36":{"lat":7.94077,"lon":102.6856},
@@ -368,244 +622,826 @@ const STATIONS = {
   "SKL":{"lat":7.23480,"lon":100.5866},
   "SALQ":{"lat":9.286267,"lon":101.412167}
 };
-
-(function initStations(){
-  const sel = document.getElementById('station');
-  const items = Object.entries(STATIONS)
-    .map(([code, v]) => ({ code, lat:+v.lat, lon:+v.lon }))
-    .sort((a,b)=> a.code.localeCompare(b.code));
-  sel.innerHTML = items.map(({code,lat,lon}) =>
-    `<option value="${code}" data-lat="${lat}" data-lon="${lon}">
-      ${code} (${lat.toFixed(4)}, ${lon.toFixed(4)})
-     </option>`).join('');
-})();
-
-// Utils
+const PALETTE = [
+  '#0284c7','#dc2626','#059669','#d97706','#9333ea',
+  '#0891b2','#db2777','#4f46e5','#ea580c','#65a30d'
+];
 const dt = luxon.DateTime;
-function fmtYYMMDD(ms){
-  return luxon.DateTime.fromMillis(ms).setZone(USE_TZ).toFormat('yyLLdd');
-}
-function fmtDate(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd'); }
-function fmtTime(ms){ return dt.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm'); }
-function todayMidnightMs(){ return dt.now().setZone(USE_TZ).startOf('day').toMillis(); }
-
-// API with Retry Mechanism
-async function fetchTides(lat, lon, maxRetries = 2){
+// ============================================================
+// 2. CACHE (localStorage) + Circuit Breaker
+// ============================================================
+const CacheKV = {
+  key(lat, lon) { return `${CACHE_PREFIX}${(+lat).toFixed(4)}_${(+lon).toFixed(4)}`; },
+  get(lat, lon) {
+    try {
+      const raw = localStorage.getItem(this.key(lat, lon));
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (Date.now() - obj.ts > CACHE_TTL_MS) {
+        localStorage.removeItem(this.key(lat, lon));
+        return null;
+      }
+      return obj.payload;
+    } catch (_) { return null; }
+  },
+  put(lat, lon, payload) {
+    try {
+      localStorage.setItem(this.key(lat, lon), JSON.stringify({ ts: Date.now(), payload }));
+    } catch (e) {
+      // Quota exceeded → sweep old entries
+      this.sweep();
+      try { localStorage.setItem(this.key(lat, lon), JSON.stringify({ ts: Date.now(), payload })); } catch(_){}
+    }
+  },
+  sweep() {
+    const now = Date.now();
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(CACHE_PREFIX)) continue;
+      try {
+        const obj = JSON.parse(localStorage.getItem(k));
+        if (!obj || now - obj.ts > CACHE_TTL_MS) localStorage.removeItem(k);
+      } catch (_) { localStorage.removeItem(k); }
+    }
+  }
+};
+const Breaker = {
+  fails: [],
+  openedAt: 0,
+  isOpen() {
+    if (this.openedAt && Date.now() - this.openedAt < BREAKER_OPEN_MS) return true;
+    if (this.openedAt) { this.openedAt = 0; this.fails = []; }
+    return false;
+  },
+  recordFail() {
+    const now = Date.now();
+    this.fails = this.fails.filter(t => now - t < BREAKER_WINDOW_MS);
+    this.fails.push(now);
+    if (this.fails.length >= BREAKER_FAIL_THRESHOLD) {
+      this.openedAt = now;
+      toast('Too many failures. Pausing requests for 60s.', 'error', 4000);
+    }
+  },
+  recordSuccess() { this.fails = []; this.openedAt = 0; }
+};
+// ============================================================
+// 3. API
+// ============================================================
+async function fetchTides(lat, lon) {
+  const cached = CacheKV.get(lat, lon);
+  if (cached) return { payload: cached, fromCache: true };
+  if (Breaker.isOpen()) throw new Error('Circuit breaker open. Please wait a moment.');
   const u = new URL(API);
   u.searchParams.set('lat', lat);
   u.searchParams.set('lon', lon);
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    let r;
-    try {
-      // Attempt direct fetch
-      r = await fetch(u.toString(), { mode:'cors' });
-    } catch (error) {
-      console.warn(`Direct fetch failed (attempt ${attempt + 1}). Attempting via Proxy...`, error);
-      try {
-        // Fallback to CORS proxy
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u.toString());
-        r = await fetch(proxyUrl);
-      } catch (proxyError) {
-        if (attempt === maxRetries) throw new Error("Network/CORS error. Please check your connection.");
-        continue;
-      }
-    }
-
-    if (!r.ok) {
-      // If Timeout (408) or Server Error (5xx), wait and retry
-      if ((r.status === 408 || r.status >= 500) && attempt < maxRetries) {
-        console.warn(`API ${r.status}. Retrying in 1.5s...`);
-        msg(`API Timeout/Error (${r.status}). Retrying attempt ${attempt + 2}...`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        continue; // Proceed to the next loop iteration to retry
-      }
-      
-      let bodyText = '';
-      try { bodyText = await r.text(); } catch {}
-      throw new Error(`API ${r.status} – ${bodyText || 'no details'}`);
-    }
-    
+  const doFetch = async (useProxy) => {
+    const url = useProxy ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u.toString()) : u.toString();
+    const r = await fetch(url, useProxy ? {} : { mode: 'cors' });
+    if (!r.ok) throw new Error(`API ${r.status}`);
     return r.json();
+  };
+  let payload = null;
+  try {
+    payload = await doFetch(false);
+  } catch (e1) {
+    // one retry via proxy
+    await new Promise(res => setTimeout(res, 800));
+    try {
+      payload = await doFetch(true);
+    } catch (e2) {
+      Breaker.recordFail();
+      throw new Error('Network/API error. ' + (e2.message || ''));
+    }
   }
+  Breaker.recordSuccess();
+  CacheKV.put(lat, lon, payload);
+  return { payload, fromCache: false };
 }
-
-// Chart daily separator
+// ============================================================
+// 4. STATE
+// ============================================================
+const state = {
+  stations: new Map(),      // code -> { code, lat, lon, color, payload, marker, fromCache, isCustom }
+  primaryCode: null,
+  viewDays: 1,
+  useDateRange: false,      // when user picks explicit range
+  dateStartMs: null,
+  dateEndMs: null,
+  showHL: true
+};
+// ============================================================
+// 5. UTILS
+// ============================================================
+const fmtDate = ms => dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+const fmtTime = ms => dt.fromMillis(ms).setZone(USE_TZ).toFormat('HH:mm');
+const fmtYYMMDD = ms => dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyLLdd');
+const todayMidnightMs = () => dt.now().setZone(USE_TZ).startOf('day').toMillis();
+function nextColor() {
+  const used = new Set([...state.stations.values()].map(s => s.color));
+  for (const c of PALETTE) if (!used.has(c)) return c;
+  return PALETTE[state.stations.size % PALETTE.length];
+}
+// ============================================================
+// 6. TOAST
+// ============================================================
+function toast(text, kind='info', ms=2500) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind === 'info' ? '' : kind);
+  el.textContent = text;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('on'));
+  setTimeout(() => {
+    el.classList.remove('on');
+    setTimeout(() => el.remove(), 220);
+  }, ms);
+}
+function setMsg(t, kind='info') {
+  const el = document.getElementById('msg');
+  el.textContent = t || '';
+  el.className = kind;
+}
+// ============================================================
+// 7. CHART
+// ============================================================
+if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
+if (window['chartjs-plugin-zoom'])       Chart.register(window['chartjs-plugin-zoom']);
 const daySeparator = {
-  id:'daySeparator',
-  afterDatasetsDraw(chart){
-    const {ctx, chartArea, scales} = chart; if(!chartArea||!scales?.x) return;
-    const {top,bottom,left,right} = chartArea, x=scales.x, min=x.min, max=x.max;
-    if(!Number.isFinite(min)||!Number.isFinite(max)) return;
+  id: 'daySeparator',
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea || !scales?.x) return;
+    const { top, bottom, left, right } = chartArea, x = scales.x;
+    const min = x.min, max = x.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
     let edge = dt.fromMillis(min).setZone(USE_TZ).startOf('day');
-    if(edge.toMillis()>min) edge=edge.minus({days:1});
-    const edges=[]; for(let t=edge; t.toMillis()<=max+86400000; t=t.plus({days:1})) edges.push(t.toMillis());
-    const mids=edges.filter(ms=>ms>min&&ms<max);
-    ctx.save(); ctx.beginPath(); ctx.rect(left,top,right-left,bottom-top); ctx.clip();
-    ctx.setLineDash([5,5]); ctx.lineWidth=1.25; ctx.strokeStyle='rgba(148,163,184,0.45)';
-    for(const ms of mids){ const px=x.getPixelForValue(ms); ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,bottom); ctx.stroke(); }
+    if (edge.toMillis() > min) edge = edge.minus({ days: 1 });
+    const edges = [];
+    for (let t = edge; t.toMillis() <= max + 86400000; t = t.plus({ days: 1 })) edges.push(t.toMillis());
+    const mids = edges.filter(ms => ms > min && ms < max);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(left, top, right - left, bottom - top); ctx.clip();
+    ctx.setLineDash([5, 5]); ctx.lineWidth = 1;
+    ctx.strokeStyle = getCSS('--border-strong');
+    for (const ms of mids) {
+      const px = x.getPixelForValue(ms);
+      ctx.beginPath(); ctx.moveTo(px, top); ctx.lineTo(px, bottom); ctx.stroke();
+    }
     ctx.setLineDash([]); ctx.restore();
   }
 };
-
-let chart=null;
-function renderChart(series){
-  const ctx=document.getElementById('chart').getContext('2d');
-  if(chart) chart.destroy();
+function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#94a3b8'; }
+let chart = null;
+let nowLineTimer = null;
+function initChart() {
+  const ctx = document.getElementById('chart').getContext('2d');
   chart = new Chart(ctx, {
-    type:'line',
-    data:{ datasets:[{ label:'Tide (m)', data: series.map(([t,y])=>({x:new Date(t), y})), borderWidth:2, pointRadius:0 }] },
-    options:{
-      responsive:true, animation:false,
-      interaction:{ mode:'index', intersect:false, axis:'x' },
-      scales:{ x:{ type:'time', adapters:{date:{zone:USE_TZ}} }, y:{ title:{display:true,text:'m'} } }
+    type: 'line',
+    data: { datasets: [] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      scales: {
+        x: {
+          type: 'time',
+          adapters: { date: { zone: USE_TZ } },
+          time: { displayFormats: { hour: 'HH:mm', day: 'dd LLL' } },
+          ticks: { color: getCSS('--muted'), maxRotation: 0, font: { size: 11 } },
+          grid: { color: getCSS('--border') }
+        },
+        y: {
+          grace: '10%',
+          title: { display: true, text: 'Tide (m)', color: getCSS('--muted'), font: { size: 12, weight: '600' } },
+          ticks: { color: getCSS('--muted'), font: { size: 11 } },
+          grid: { color: getCSS('--border') }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true, position: 'top', align: 'end',
+          labels: {
+            boxWidth: 10, usePointStyle: true, color: getCSS('--txt-2'),
+            font: { size: 11, weight: '500' },
+            filter: (item) => !item.text.endsWith(' · H/L')
+          }
+        },
+        zoom: {
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+          pan: { enabled: true, mode: 'x' }
+        },
+        tooltip: {
+          backgroundColor: getCSS('--surface-1'),
+          borderColor: getCSS('--border'), borderWidth: 1,
+          titleColor: getCSS('--txt'), bodyColor: getCSS('--txt-2'),
+          padding: 10, boxPadding: 4, cornerRadius: 8,
+          titleFont: { size: 12, weight: '600' }, bodyFont: { size: 12 },
+          callbacks: {
+            title: (items) => items.length ? fmtDate(items[0].parsed.x) + ' ' + fmtTime(items[0].parsed.x) : '',
+            label: (c) => {
+              if (c.dataset._isHL) {
+                const p = c.raw;
+                return `${p.type} · ${(+p.y).toFixed(3)} m`;
+              }
+              return ` ${c.dataset.label}: ${(+c.parsed.y).toFixed(3)} m`;
+            }
+          }
+        },
+        annotation: {
+          annotations: {
+            nowLine: {
+              type: 'line', xMin: Date.now(), xMax: Date.now(),
+              borderColor: getCSS('--danger'), borderWidth: 1.5, borderDash: [4, 4],
+              label: { display: true, content: 'now', position: 'start',
+                       backgroundColor: getCSS('--danger'), color: '#fff',
+                       font: { size: 9, weight: '600' }, padding: 3, borderRadius: 4 }
+            }
+          }
+        }
+      }
     },
-    plugins:[daySeparator]
+    plugins: [daySeparator]
   });
+  if (nowLineTimer) clearInterval(nowLineTimer);
+  nowLineTimer = setInterval(() => {
+    if (!chart) return;
+    const now = Date.now();
+    const ann = chart.options.plugins.annotation.annotations.nowLine;
+    ann.xMin = now; ann.xMax = now;
+    chart.update('none');
+  }, 60000);
 }
-
-// High/low
-function groupByDay(pts){
-  const m=new Map(); const key = ms => dt.fromMillis(ms).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  for(const [t,y] of pts){ const k=key(t); if(!m.has(k)) m.set(k,[]); m.get(k).push([t,y]); }
-  return m;
+function refreshChartColors() {
+  if (!chart) return;
+  chart.options.scales.x.ticks.color = getCSS('--muted');
+  chart.options.scales.x.grid.color  = getCSS('--border');
+  chart.options.scales.y.ticks.color = getCSS('--muted');
+  chart.options.scales.y.grid.color  = getCSS('--border');
+  chart.options.scales.y.title.color = getCSS('--muted');
+  chart.options.plugins.legend.labels.color = getCSS('--txt-2');
+  chart.options.plugins.tooltip.backgroundColor = getCSS('--surface-1');
+  chart.options.plugins.tooltip.borderColor = getCSS('--border');
+  chart.options.plugins.tooltip.titleColor = getCSS('--txt');
+  chart.options.plugins.tooltip.bodyColor  = getCSS('--txt-2');
+  chart.options.plugins.annotation.annotations.nowLine.borderColor = getCSS('--danger');
+  chart.options.plugins.annotation.annotations.nowLine.label.backgroundColor = getCSS('--danger');
+  chart.update('none');
 }
-function renderHL(highs, lows){
-  const div=document.getElementById('hl');
-  const hiBy=groupByDay(highs), loBy=groupByDay(lows);
-  const days=[...new Set([...hiBy.keys(),...loBy.keys()])].sort();
-  const out=[];
-  for(const d of days){
-    const merged=[...(hiBy.get(d)||[]).map(v=>({t:v[0],y:v[1],type:'High'})),
-                  ...(loBy.get(d)||[]).map(v=>({t:v[0],y:v[1],type:'Low'}))].sort((a,b)=>a.t-b.t);
-    out.push(`<div style="margin:6px 0 4px;color:#6d28d9;font-weight:600">${d}</div>`);
-    out.push('<table><thead><tr><th>Type</th><th style="text-align:center">Time</th><th style="text-align:right">m</th></tr></thead><tbody>');
-    for(const {t,y,type} of merged){
-      const color = type==='High' ? '#0ea5e9' : '#db2777';
-      out.push(`<tr><td style="color:${color}">${type}</td><td style="text-align:center">${fmtTime(t)}</td><td style="text-align:right">${(+y).toFixed(2)}</td></tr>`);
-    }
-    out.push('</tbody></table>');
+// ============================================================
+// 8. RANGE + REFINE
+// ============================================================
+function currentViewRange() {
+  // Priority: explicit date range (if valid); otherwise segment days from today
+  if (state.useDateRange && Number.isFinite(state.dateStartMs) && Number.isFinite(state.dateEndMs)) {
+    return { startMs: Math.min(state.dateStartMs, state.dateEndMs),
+             endMs:   Math.max(state.dateStartMs, state.dateEndMs) };
   }
-  div.innerHTML = out.join('') || '<div class="small">No extrema in range.</div>';
+  const s = todayMidnightMs();
+  return { startMs: s, endMs: s + state.viewDays * 86400000 - 1 };
 }
-
-// Meta & z0 (2 decimals)
-function renderMeta(meta, z0){
-  document.getElementById('kv-ll').textContent = `${(+meta.lat).toFixed(4)}, ${(+meta.lon).toFixed(4)}`;
-  const s = dt.fromISO(meta.start_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  const e = dt.fromISO(meta.end_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
-  document.getElementById('kv-win').innerHTML = `${s} → ${e} <span class="pill">API-enforced</span>`;
-  document.getElementById('kv-int').textContent = `${meta.interval_min} min`;
-  document.getElementById('kv-z0').textContent = `${Number(z0).toFixed(2)} m`;
+// Client-side parabolic refinement of an extremum given series and coarse index.
+// series is array of [tMs, y] with fixed interval. Returns { t, y } refined.
+function parabolicRefine(series, i) {
+  if (i <= 0 || i >= series.length - 1) return { t: series[i][0], y: series[i][1] };
+  const t0 = series[i-1][0], t1 = series[i][0], t2 = series[i+1][0];
+  const y0 = series[i-1][1], y1 = series[i][1], y2 = series[i+1][1];
+  const dtStep = t1 - t0;
+  const denom = (y0 - 2*y1 + y2);
+  if (Math.abs(denom) < 1e-9) return { t: t1, y: y1 };
+  const delta = 0.5 * (y0 - y2) / denom;         // in units of step
+  const tRef = t1 + delta * dtStep;
+  const yRef = y1 - 0.25 * (y0 - y2) * delta;
+  return { t: tRef, y: yRef };
 }
-
-function msg(t){ document.getElementById('msg').textContent = t || ''; }
-
-// Client-side 1/3/7-day view (no extra API)
-let full=null; let viewDays=1;
-function setActiveSeg(days){
-  document.querySelectorAll('#viewSeg .seg').forEach(el=>{
-    el.classList.toggle('active', +el.dataset.days === days);
+function refinedExtrema(payload) {
+  const series = payload.series || [];
+  const highs = (payload.highs || []).map(([t, y]) => {
+    const i = series.findIndex(p => p[0] === t);
+    if (i < 0) return { t, y, type: 'High' };
+    const r = parabolicRefine(series, i);
+    return { t: r.t, y: r.y, type: 'High' };
   });
+  const lows = (payload.lows || []).map(([t, y]) => {
+    const i = series.findIndex(p => p[0] === t);
+    if (i < 0) return { t, y, type: 'Low' };
+    const r = parabolicRefine(series, i);
+    return { t: r.t, y: r.y, type: 'Low' };
+  });
+  return { highs, lows };
 }
-function updateView(){
-  if(!full) return;
-  const start0 = todayMidnightMs();
-  const startMs = Math.max(start0, full.series[0][0]);
-  const endMs = Math.min(start0 + viewDays*86400000 - 1, full.series[full.series.length-1][0]);
-  const inRange = ([t]) => t >= startMs && t <= endMs;
-  renderChart(full.series.filter(inRange));
-  renderHL((full.highs||[]).filter(inRange), (full.lows||[]).filter(inRange));
-}
-
-// Exports (CSV full range from Worker; PNG current view)
-function wireExports(stationCode){
-  const meta = full.meta || {};
-  const startMs = Date.parse(meta.start_iso);
-  const endMs   = Date.parse(meta.end_iso);
-  const baseNameFull = `${stationCode}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}`;
-
-  document.getElementById('csv').onclick = ()=>{
-    if(!full) return alert('Compute first.');
-    const rows=[['timestamp_ms','date_local','time_local','tide_m']];
-    for(const [t,y] of full.series){
-      const d = dt.fromMillis(t).setZone(USE_TZ);
-      rows.push([t, d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm'), Number(y).toFixed(2)]);
+// ============================================================
+// 9. RENDER
+// ============================================================
+function renderChart() {
+  if (!chart) return;
+  const { startMs, endMs } = currentViewRange();
+  const inRange = (t) => t >= startMs && t <= endMs;
+  const datasets = [];
+  for (const st of state.stations.values()) {
+    if (!st.payload) continue;
+    const series = st.payload.series.filter(([t]) => inRange(t)).map(([t,y]) => ({ x: t, y }));
+    datasets.push({
+      label: st.code,
+      data: series,
+      borderColor: st.color,
+      backgroundColor: st.color,
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 3,
+      tension: 0.3, order: 2
+    });
+    if (state.showHL) {
+      const { highs, lows } = refinedExtrema(st.payload);
+      const pts = [...highs, ...lows]
+        .filter(p => inRange(p.t))
+        .map(p => ({ x: p.t, y: p.y, type: p.type }));
+      datasets.push({
+        label: st.code + ' · H/L',
+        _isHL: true,
+        data: pts,
+        type: 'scatter',
+        borderColor: st.color,
+        backgroundColor: getCSS('--surface-1'),
+        borderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+        pointStyle: (c) => c.raw?.type === 'High' ? 'triangle' : 'rectRot',
+        order: 1
+      });
     }
-    const csv = '\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-    a.download = baseNameFull+'.csv'; document.body.appendChild(a); a.click(); a.remove();
-  };
-
-  document.getElementById('png').onclick = ()=>{
-    if(!chart) return alert('Compute first.');
-    const a=document.createElement('a'); a.href=document.getElementById('chart').toDataURL('image/png');
-    a.download = `${stationCode}_Tide_${fmtYYMMDD(todayMidnightMs())}_${fmtYYMMDD(todayMidnightMs()+viewDays*86400000-1)}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
+  }
+  chart.data.datasets = datasets;
+  chart.options.scales.x.min = startMs;
+  chart.options.scales.x.max = endMs;
+  chart.update('none');
 }
-
-// Mini map (no click-to-select; shows all stations; highlights selected)
-let map, markers={};
-function initMap(){
-  map = L.map('map', { zoomControl:true, dragging:true }).setView([9.5,101.5], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    maxZoom:12, attribution:'&copy; OpenStreetMap contributors'
+function renderHL() {
+  const div = document.getElementById('hl');
+  if (state.stations.size === 0) {
+    div.innerHTML = '<div class="small" style="text-align:center; padding:20px;">Compute to see extrema.</div>';
+    return;
+  }
+  const { startMs, endMs } = currentViewRange();
+  // Merge across stations, group by day
+  const map = new Map(); // dayKey -> [{station, color, type, t, y}]
+  for (const st of state.stations.values()) {
+    if (!st.payload) continue;
+    const { highs, lows } = refinedExtrema(st.payload);
+    for (const p of [...highs, ...lows]) {
+      if (p.t < startMs || p.t > endMs) continue;
+      const k = fmtDate(p.t);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push({ code: st.code, color: st.color, type: p.type, t: p.t, y: p.y });
+    }
+  }
+  const days = [...map.keys()].sort();
+  if (days.length === 0) {
+    div.innerHTML = '<div class="small" style="text-align:center; padding:20px;">No extrema in range.</div>';
+    return;
+  }
+  const parts = [];
+  for (const d of days) {
+    parts.push(`<div class="day-hd">${d}</div>`);
+    parts.push('<table><thead><tr><th>Type</th><th>Station</th><th style="text-align:center;">Time</th><th style="text-align:right;">m</th></tr></thead><tbody>');
+    const rows = map.get(d).sort((a,b) => a.t - b.t);
+    for (const r of rows) {
+      parts.push(
+        `<tr>` +
+        `<td class="hl-type ${r.type}">${r.type}</td>` +
+        `<td><span class="hl-station-tag" style="background:${r.color}"></span>${r.code}</td>` +
+        `<td style="text-align:center;">${fmtTime(r.t)}</td>` +
+        `<td style="text-align:right;">${(+r.y).toFixed(2)}</td>` +
+        `</tr>`
+      );
+    }
+    parts.push('</tbody></table>');
+  }
+  div.innerHTML = parts.join('');
+}
+function renderMeta() {
+  const primary = state.primaryCode ? state.stations.get(state.primaryCode) : null;
+  document.getElementById('kv-count').textContent = state.stations.size;
+  if (!primary || !primary.payload) {
+    document.getElementById('kv-primary').textContent = primary ? primary.code : '—';
+    document.getElementById('kv-ll').textContent = '—';
+    document.getElementById('kv-win').textContent = '—';
+    document.getElementById('kv-int').textContent = '—';
+    document.getElementById('kv-z0').textContent = '—';
+    document.getElementById('kv-src').innerHTML = '—';
+    return;
+  }
+  const m = primary.payload.meta || {};
+  document.getElementById('kv-primary').textContent = primary.code;
+  document.getElementById('kv-ll').textContent = `${(+m.lat).toFixed(4)}, ${(+m.lon).toFixed(4)}`;
+  const s = dt.fromISO(m.start_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  const e = dt.fromISO(m.end_iso).setZone(USE_TZ).toFormat('yyyy-LL-dd');
+  document.getElementById('kv-win').innerHTML = `${s} → ${e} <span class="pill">API</span>`;
+  document.getElementById('kv-int').textContent = `${m.interval_min} min`;
+  document.getElementById('kv-z0').textContent = `${Number(primary.payload.z0).toFixed(2)} m`;
+  const src = primary.fromCache
+    ? '<span class="pill pill-muted">local cache</span>'
+    : '<span class="pill">edge/api</span>';
+  const af = m.af ? `<span class="pill pill-muted" style="margin-left:4px;">AF: ${m.af}</span>` : '';
+  document.getElementById('kv-src').innerHTML = src + af;
+}
+function renderChips() {
+  const wrap = document.getElementById('chips');
+  document.getElementById('activeCount').textContent = state.stations.size;
+  if (state.stations.size === 0) {
+    wrap.innerHTML = '<div class="small" style="text-align:center; padding:8px;">No stations yet.</div>';
+    return;
+  }
+  const parts = [];
+  for (const st of state.stations.values()) {
+    const isPrimary = st.code === state.primaryCode;
+    parts.push(
+      `<div class="chip" style="border-left-color:${st.color}; ${isPrimary?'background:var(--accent-soft);':''}" data-code="${st.code}">` +
+      `<span class="dot" style="background:${st.color}"></span>` +
+      `<div style="min-width:0; flex:1;">` +
+        `<div class="name" style="color:${st.color}">${st.code}${isPrimary ? ' ★' : ''}</div>` +
+        `<div class="coord">${st.lat.toFixed(4)}, ${st.lon.toFixed(4)}</div>` +
+      `</div>` +
+      `<button class="rm" data-rm="${st.code}" aria-label="Remove ${st.code}">✕</button>` +
+      `</div>`
+    );
+  }
+  wrap.innerHTML = parts.join('');
+}
+function renderAll() {
+  renderChart();
+  renderHL();
+  renderMeta();
+  renderChips();
+  highlightMarkers();
+}
+// ============================================================
+// 10. STATION OPS
+// ============================================================
+async function addStation(code, lat, lon, opts = {}) {
+  const isCustom = !!opts.isCustom;
+  if (state.stations.has(code)) {
+    setMsg('Station already added.', 'warn');
+    toast(`${code} already active.`, 'warn');
+    state.primaryCode = code;
+    renderAll();
+    return;
+  }
+  if (state.stations.size >= MAX_STATIONS) {
+    toast(`Max ${MAX_STATIONS} stations. Remove one first.`, 'warn', 3000);
+    return;
+  }
+  const st = {
+    code, lat: +lat, lon: +lon,
+    color: nextColor(),
+    payload: null, marker: null,
+    fromCache: false, isCustom
+  };
+  state.stations.set(code, st);
+  state.primaryCode = code;
+  addMarker(st);
+  renderChips();
+  await computeStation(st);
+}
+async function computeStation(st) {
+  setMsg('Computing ' + st.code + '…', 'info');
+  document.getElementById('chartSkel').classList.add('on');
+  try {
+    const { payload, fromCache } = await fetchTides(st.lat, st.lon);
+    if (!payload || !Array.isArray(payload.series) || payload.series.length === 0) {
+      throw new Error('No data returned by API.');
+    }
+    st.payload = payload;
+    st.fromCache = fromCache;
+    setMsg(fromCache ? `✓ ${st.code} (local cache)` : `✓ ${st.code} (fresh)`, 'success');
+    renderAll();
+  } catch (e) {
+    state.stations.delete(st.code);
+    if (st.marker) map.removeLayer(st.marker);
+    if (state.primaryCode === st.code) {
+      const keys = [...state.stations.keys()];
+      state.primaryCode = keys.length ? keys[keys.length - 1] : null;
+    }
+    setMsg(String(e.message || e), 'error');
+    toast(String(e.message || e), 'error', 3500);
+    renderAll();
+  } finally {
+    document.getElementById('chartSkel').classList.remove('on');
+  }
+}
+function removeStation(code) {
+  const st = state.stations.get(code);
+  if (!st) return;
+  if (st.marker) map.removeLayer(st.marker);
+  state.stations.delete(code);
+  if (state.primaryCode === code) {
+    const keys = [...state.stations.keys()];
+    state.primaryCode = keys.length ? keys[keys.length - 1] : null;
+  }
+  renderAll();
+}
+function clearAllStations() {
+  for (const st of state.stations.values()) {
+    if (st.marker) map.removeLayer(st.marker);
+  }
+  state.stations.clear();
+  state.primaryCode = null;
+  renderAll();
+  setMsg('Cleared.', 'info');
+}
+// ============================================================
+// 11. MAP
+// ============================================================
+let map = null;
+const presetMarkers = {};
+function initMap() {
+  map = L.map('map', { zoomControl: true, dragging: true, tap: true }).setView([9.5, 101.5], 6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 14,
+    attribution: '&copy; OSM &copy; CARTO'
   }).addTo(map);
-
-  const normalStyle = { radius:6, color:'#0ea5e9', fillColor:'#38bdf8', fillOpacity:0.9, weight:2 };
-  const selectedStyle = { radius:7, color:'#ef4444', fillColor:'#f87171', fillOpacity:0.95, weight:2.2 };
-
-  for(const [code, v] of Object.entries(STATIONS)){
-    const m = L.circleMarker([v.lat, v.lon], normalStyle).addTo(map);
-    m.bindTooltip(`${code}`, {permanent:true, direction:'right', offset:[6,0], className:'station-label'});
-    markers[code] = { marker:m, normal:normalStyle, selected:selectedStyle };
-  }
-  // CSS tweak for label
-  const style = document.createElement('style');
-  style.textContent = `.station-label{background:transparent;border:none;box-shadow:none;color:#111827;font:12px/1 Inter,system-ui}`;
-  document.head.appendChild(style);
-}
-function highlightStation(code){
-  for(const [c, obj] of Object.entries(markers)){
-    obj.marker.setStyle(c===code ? obj.selected : obj.normal);
-    if (c===code) { obj.marker.bringToFront(); map.setView(obj.marker.getLatLng(), Math.max(7, map.getZoom())); }
-  }
-}
-
-// Orchestration
-async function runSelected(){
-  const sel=document.getElementById('station');
-  const opt=sel.selectedOptions?.[0]; if(!opt){ return; }
-  const code = opt.value;
-  const lat=+opt.dataset.lat, lon=+opt.dataset.lon;
-  try{
-    msg('Computing…');
-    const res = await fetchTides(lat, lon);
-    if(!Array.isArray(res.series) || res.series.length===0){ msg('No data returned by API.'); return; }
-    full = { series:res.series, highs:res.highs||[], lows:res.lows||[], meta:res.meta||{}, z0:res.z0 };
-    renderMeta(full.meta, full.z0);
-    msg('');
-
-    viewDays = 1; setActiveSeg(viewDays); updateView();
-    wireExports(code);
-    highlightStation(code);
- } catch(e){
-  msg(String(e.message || e));
-  console.error(e);
-}
-
-}
-
-document.getElementById('run').addEventListener('click', runSelected);
-window.addEventListener('DOMContentLoaded', ()=>{
-  initMap();
-  document.getElementById('station').selectedIndex = 0;
-  document.querySelectorAll('#viewSeg .seg').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ viewDays = +btn.dataset.days; setActiveSeg(viewDays); updateView(); });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 14, className: 'basemap-dark'
   });
-  runSelected(); // auto compute first
+  // Grid bbox rectangle (hard-coded, non-sensitive)
+  L.rectangle(
+    [[GRID_BBOX.lat_min, GRID_BBOX.lon_min], [GRID_BBOX.lat_max, GRID_BBOX.lon_max]],
+    { color: '#94a3b8', weight: 1, fill: false, dashArray: '4,4', interactive: false }
+  ).addTo(map);
+  // Preset stations
+  const normal = { radius: 5, color: '#0ea5e9', fillColor: '#38bdf8', fillOpacity: 0.85, weight: 2 };
+  const selected = { radius: 7, color: '#ef4444', fillColor: '#f87171', fillOpacity: 0.95, weight: 2.5 };
+  for (const [code, v] of Object.entries(STATIONS)) {
+    const m = L.circleMarker([v.lat, v.lon], normal).addTo(map);
+    m.bindTooltip(code, { permanent: true, direction: 'right', offset: [6, 0], className: 'station-label' });
+    m.on('click', () => {
+      document.getElementById('station').value = code;
+      addStation(code, v.lat, v.lon);
+    });
+    presetMarkers[code] = { marker: m, normal, selected };
+  }
+  // Click-to-pick custom
+  map.on('click', (e) => {
+    const lat = +e.latlng.lat.toFixed(5);
+    const lon = +e.latlng.lng.toFixed(5);
+    document.getElementById('lat').value = lat;
+    document.getElementById('lon').value = lon;
+    const popup = L.popup()
+      .setLatLng(e.latlng)
+      .setContent(
+        `<div style="font-family:${'var(--font-tab)'.replace(/"/g,'')}; font-size:12px;">` +
+        `<b>Custom Point</b><br>${lat.toFixed(4)}, ${lon.toFixed(4)}<br>` +
+        `<button style="margin-top:6px; padding:4px 10px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer;" id="popupAdd">+ Add to Plot</button>` +
+        `</div>`
+      )
+      .openOn(map);
+    setTimeout(() => {
+      const b = document.getElementById('popupAdd');
+      if (b) b.onclick = () => {
+        map.closePopup();
+        addCustomFromInputs();
+      };
+    }, 30);
+  });
+}
+function addMarker(st) {
+  if (!map) return;
+  if (presetMarkers[st.code]) return;   // preset markers already exist; highlight will handle
+  const m = L.circleMarker([st.lat, st.lon], {
+    radius: 7, color: st.color, fillColor: st.color, fillOpacity: 0.9, weight: 2
+  }).addTo(map);
+  m.bindTooltip(st.code, { permanent: true, direction: 'right', offset: [8, 0], className: 'station-label' });
+  st.marker = m;
+}
+function highlightMarkers() {
+  if (!map) return;
+  for (const [c, obj] of Object.entries(presetMarkers)) {
+    const isActive = state.stations.has(c);
+    const isPrimary = state.primaryCode === c;
+    obj.marker.setStyle(isPrimary ? obj.selected : (isActive ? { ...obj.normal, color: '#059669', fillColor: '#34d399' } : obj.normal));
+    if (isPrimary) obj.marker.bringToFront();
+  }
+  if (state.primaryCode) {
+    const st = state.stations.get(state.primaryCode);
+    if (st) map.setView([st.lat, st.lon], Math.max(7, map.getZoom()));
+  }
+}
+function locateUser() {
+  if (!navigator.geolocation) { toast('Geolocation not supported.', 'error'); return; }
+  toast('Locating…', 'info');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      L.circleMarker([lat, lon], { radius: 6, color: '#059669', fillColor: '#34d399', fillOpacity: 1, weight: 2 })
+        .addTo(map).bindTooltip('You', { permanent: false });
+      map.setView([lat, lon], 8);
+      document.getElementById('lat').value = lat.toFixed(5);
+      document.getElementById('lon').value = lon.toFixed(5);
+      toast('Location acquired.', 'success');
+    },
+    () => toast('Unable to retrieve location.', 'error')
+  );
+}
+// ============================================================
+// 12. EXPORTS
+// ============================================================
+function exportCSV() {
+  if (state.stations.size === 0) { toast('Compute a station first.', 'warn'); return; }
+  // Multi-station wide format: timestamp, date, time, <CODE>_m, <CODE>_m, ...
+  const codes = [...state.stations.keys()];
+  const anyPayload = state.stations.get(codes[0]).payload;
+  if (!anyPayload) { toast('No data yet.', 'warn'); return; }
+  const timeSet = new Set();
+  const perStation = {};
+  for (const c of codes) {
+    const p = state.stations.get(c).payload;
+    perStation[c] = new Map();
+    for (const [t, y] of p.series) {
+      timeSet.add(t);
+      perStation[c].set(t, y);
+    }
+  }
+  const times = [...timeSet].sort((a,b)=>a-b);
+  const header = ['timestamp_ms','date_local','time_local', ...codes.map(c=>c+'_m')];
+  const rows = [header];
+  for (const t of times) {
+    const d = dt.fromMillis(t).setZone(USE_TZ);
+    const row = [t, d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm')];
+    for (const c of codes) {
+      const v = perStation[c].get(t);
+      row.push(v !== undefined ? Number(v).toFixed(3) : '');
+    }
+    rows.push(row);
+  }
+  const primary = state.stations.get(state.primaryCode) || state.stations.get(codes[0]);
+  const m = primary.payload.meta;
+  const startMs = Date.parse(m.start_iso), endMs = Date.parse(m.end_iso);
+  const name = `${primary.code}${codes.length>1?'_multi':''}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}.csv`;
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+  downloadBlob(csv, name, 'text/csv');
+  toast('CSV exported.', 'success');
+}
+function exportPNG() {
+  if (!chart) { toast('Nothing to export.', 'warn'); return; }
+  const { startMs, endMs } = currentViewRange();
+  const primary = state.stations.get(state.primaryCode);
+  const code = primary ? primary.code : 'tide';
+  const name = `${code}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}.png`;
+  const a = document.createElement('a');
+  a.href = document.getElementById('chart').toDataURL('image/png');
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('PNG exported.', 'success');
+}
+function downloadBlob(text, filename, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+// ============================================================
+// 13. THEME
+// ============================================================
+function applyTheme(mode) {
+  if (mode === 'auto') document.documentElement.setAttribute('data-theme', 'auto');
+  else document.documentElement.setAttribute('data-theme', mode);
+  try { localStorage.setItem('gotTide_theme', mode); } catch(_) {}
+  setTimeout(refreshChartColors, 30);
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'auto';
+  const isDark = cur === 'dark' || (cur === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  applyTheme(isDark ? 'light' : 'dark');
+}
+function initTheme() {
+  const saved = (() => { try { return localStorage.getItem('gotTide_theme'); } catch(_) { return null; } })();
+  applyTheme(saved || 'auto');
+}
+// ============================================================
+// 14. EVENTS
+// ============================================================
+function setActiveSeg(days) {
+  ['viewSeg','viewSegMobile'].forEach(id => {
+    document.querySelectorAll(`#${id} .seg`).forEach(el => {
+      el.setAttribute('aria-selected', String(+el.dataset.days === days));
+    });
+  });
+}
+function bindEvents() {
+  // Preset station select
+  const sel = document.getElementById('station');
+  sel.innerHTML = Object.entries(STATIONS)
+    .map(([code, v]) => ({ code, lat: +v.lat, lon: +v.lon }))
+    .sort((a,b) => a.code.localeCompare(b.code))
+    .map(({code,lat,lon}) => `<option value="${code}">${code} (${lat.toFixed(4)}, ${lon.toFixed(4)})</option>`)
+    .join('');
+  const runFn = () => {
+    const code = sel.value;
+    if (!code) return;
+    const v = STATIONS[code];
+    addStation(code, v.lat, v.lon);
+  };
+  document.getElementById('run').addEventListener('click', runFn);
+  document.getElementById('runMobile').addEventListener('click', runFn);
+  // Segment controls (desktop + mobile)
+  ['viewSeg','viewSegMobile'].forEach(id => {
+    document.querySelectorAll(`#${id} .seg`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.viewDays = +btn.dataset.days;
+        state.useDateRange = false;
+        // Clear date range inputs to reflect override
+        setActiveSeg(state.viewDays);
+        renderAll();
+      });
+    });
+  });
+  // Custom coord
+  document.getElementById('addCustomBtn').addEventListener('click', addCustomFromInputs);
+  // Chips remove
+  document.getElementById('chips').addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { removeStation(rm.getAttribute('data-rm')); return; }
+    const chip = e.target.closest('[data-code]');
+    if (chip) {
+      state.primaryCode = chip.getAttribute('data-code');
+      renderAll();
+    }
+  });
+  document.getElementById('clearAllBtn').addEventListener('click', clearAllStations);
+  // Date range
+  const dsr = document.getElementById('dateStart');
+  const der = document.getElementById('dateEnd');
+  const onDateChange = () => {
+    if (!dsr.value || !der.value) { state.useDateRange = false; renderAll(); return; }
+    state.dateStartMs = dt.fromISO(dsr.value, { zone: USE_TZ }).startOf('day').toMillis();
+    state.dateEndMs   = dt.fromISO(der.value, { zone: USE_TZ }).endOf('day').toMillis();
+    state.useDateRange = true;
+    renderAll();
+  };
+  dsr.addEventListener('change', onDateChange);
+  der.addEventListener('change', onDateChange);
+  // Export
+  document.getElementById('csv').addEventListener('click', exportCSV);
+  document.getElementById('png').addEventListener('click', exportPNG);
+  // H/L toggle
+  document.getElementById('showHL').addEventListener('change', (e) => {
+    state.showHL = e.target.checked;
+    renderChart();
+  });
+  // Reset zoom
+  document.getElementById('resetZoomBtn').addEventListener('click', () => {
+    if (chart) chart.resetZoom();
+    renderChart();
+  });
+  // Locate me
+  document.getElementById('locateBtn').addEventListener('click', locateUser);
+  // Theme toggle
+  document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+  // Help
+  document.getElementById('helpBtn').addEventListener('click', () => {
+    toast('C=Compute · 1/3/7=View · E=CSV · P=PNG · D=Theme', 'info', 4200);
+  });
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (e.key.toLowerCase()) {
+      case 'c': runFn(); break;
+      case '1': state.viewDays = 1; state.useDateRange = false; setActiveSeg(1); renderAll(); break;
+      case '3': state.viewDays = 3; state.useDateRange = false; setActiveSeg(3); renderAll(); break;
+      case '7': state.viewDays = 7; state.useDateRange = false; setActiveSeg(7); renderAll(); break;
+      case 'e': exportCSV(); break;
+      case 'p': exportPNG(); break;
+      case 'd': toggleTheme(); break;
+    }
+  });
+  // React to system theme change while in auto
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((document.documentElement.getAttribute('data-theme') || 'auto') === 'auto') refreshChartColors();
+    });
+  }
+}
+function addCustomFromInputs() {
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    toast('Enter valid lat/lon or click the map.', 'warn'); return;
+  }
+  const code = `P_${lat.toFixed(3)}_${lon.toFixed(3)}`;
+  addStation(code, lat, lon, { isCustom: true });
+}
+// ============================================================
+// 15. INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  initMap();
+  initChart();
+  bindEvents();
+  CacheKV.sweep();
+  // Auto-compute first station (respects localStorage cache → maybe 0 API call)
+  document.getElementById('station').selectedIndex = 0;
+  const code = document.getElementById('station').value;
+  if (code && STATIONS[code]) {
+    addStation(code, STATIONS[code].lat, STATIONS[code].lon);
+  }
 });
+})();
 </script>
 </body>
 </html>
