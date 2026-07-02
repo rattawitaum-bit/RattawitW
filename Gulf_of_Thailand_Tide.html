@@ -465,7 +465,100 @@ canvas { max-width: 100%; }
   }
   #hl { max-height: 380px; overflow-y: auto; }
 }
+/* ============================================================
+   GAP FIX — Daily Highs / Lows directly below Tide Curve
+   Root cause fixed: previous 2-row layout used "controls chart" / "meta hl".
+   If controls is taller than chart, CSS Grid makes row 1 as tall as controls,
+   creating a large blank gap below chart before H/L starts.
 
+   This 3-row spanning layout lets controls span chart + H/L rows, so row 1
+   is governed by the chart height and H/L starts immediately under chart.
+   Paste this block at the VERY END of <style>, after all existing layout CSS.
+   ============================================================ */
+
+/* Mobile: natural single-column reading order */
+.layout {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "controls"
+    "chart"
+    "hl"
+    "meta";
+  align-items: start;
+}
+
+.area-chart,
+.area-hl {
+  min-width: 0;
+}
+
+#hl {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* Tablet / laptop / desktop: left controls, right chart + H/L with no vertical gap */
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-areas:
+      "controls chart"
+      "controls hl"
+      "meta     hl";
+    align-items: start;
+  }
+
+  .area-controls {
+    grid-area: controls;
+    align-self: start;
+  }
+
+  .area-chart {
+    grid-area: chart;
+    align-self: start;
+    min-width: 0;
+  }
+
+  .area-hl {
+    grid-area: hl;
+    align-self: start;
+    min-width: 0;
+  }
+
+  .area-meta {
+    grid-area: meta;
+    align-self: start;
+  }
+
+  .area-chart > .card {
+    margin-bottom: 0;
+  }
+
+  .area-hl > .card {
+    margin-top: 0;
+  }
+
+  #hl {
+    max-height: clamp(300px, 38vh, 440px);
+    overflow-y: auto;
+  }
+}
+
+/* Wide desktop: keep only 2 columns; never recreate a right-side third H/L column */
+@media (min-width: 1200px) {
+  .layout {
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-areas:
+      "controls chart"
+      "controls hl"
+      "meta     hl";
+  }
+
+  #hl {
+    max-height: clamp(320px, 40vh, 480px);
+    overflow-y: auto;
+  }
+}
 </style>
 </head>
 <body>
