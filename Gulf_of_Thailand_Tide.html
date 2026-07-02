@@ -428,6 +428,44 @@ canvas { max-width: 100%; }
   animation: spin 800ms linear infinite; display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ============================================================
+   RESPONSIVE LAYOUT PATCH — H/L ALWAYS BELOW TIDE CURVE
+   Purpose: prevent Daily Highs / Lows from appearing beside chart
+   across laptop/tablet/mobile widths.
+   ============================================================ */
+.layout {
+  grid-template-areas:
+    "controls"
+    "chart"
+    "hl"
+    "meta";
+}
+#hl { max-height: none; overflow-y: visible; }
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-areas:
+      "controls chart"
+      "meta     hl";
+    align-items: start;
+  }
+  .area-chart { min-width: 0; }
+  .area-hl { min-width: 0; }
+  #hl { max-height: 360px; overflow-y: auto; }
+}
+@media (min-width: 1200px) {
+  .layout {
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-areas:
+      "controls chart"
+      "meta     hl";
+    align-items: start;
+  }
+  #hl { max-height: 380px; overflow-y: auto; }
+}
+
 </style>
 </head>
 <body>
