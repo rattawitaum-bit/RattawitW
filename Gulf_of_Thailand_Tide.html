@@ -167,11 +167,13 @@ body {
 }
 @media (min-width: 1200px) {
   .layout {
-    grid-template-columns: 340px 1fr 320px;
+    grid-template-columns: 340px 1fr;
     grid-template-areas:
-      "controls chart hl"
-      "meta     chart hl";
+      "controls chart"
+      "meta     chart"
+      "meta     hl";
   }
+  #hl { max-height: 360px; }
 }
 .area-controls { grid-area: controls; }
 .area-chart    { grid-area: chart; min-width: 0; }
@@ -524,6 +526,7 @@ canvas { max-width: 100%; }
             <div>Interval</div><div id="kv-int">—</div>
             <div>z0</div><div id="kv-z0">—</div>
             <div>Source</div><div id="kv-src">—</div>
+            <div>Convention</div><div id="kv-conv">—</div>
           </div>
           <div class="sub-hd">Mini Map</div>
           <div style="position:relative;">
@@ -598,7 +601,7 @@ const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
 const USE_TZ = 'Asia/Bangkok';
 const MAX_STATIONS = 5;
 const CACHE_TTL_MS = 9 * 60 * 1000;      // 9 min (< edge 10 min)
-const CACHE_PREFIX = 'gotTide_v2_';
+const CACHE_PREFIX = 'gotTide_v3_afOff_';
 const BREAKER_FAIL_THRESHOLD = 3;
 const BREAKER_WINDOW_MS = 30 * 1000;
 const BREAKER_OPEN_MS = 60 * 1000;
@@ -694,6 +697,8 @@ async function fetchTides(lat, lon) {
   const u = new URL(API);
   u.searchParams.set('lat', lat);
   u.searchParams.set('lon', lon);
+  u.searchParams.set('af', 'off');
+  u.searchParams.set('af_alpha', '0');
   const doFetch = async (useProxy) => {
     const url = useProxy ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u.toString()) : u.toString();
     const r = await fetch(url, useProxy ? {} : { mode: 'cors' });
@@ -811,7 +816,7 @@ function initChart() {
         },
         y: {
           grace: '10%',
-          title: { display: true, text: 'Tide (m)', color: getCSS('--muted'), font: { size: 12, weight: '600' } },
+          title: { display: true, text: 'Tide level (m above LAT)', color: getCSS('--muted'), font: { size: 12, weight: '600' } },
           ticks: { color: getCSS('--muted'), font: { size: 11 } },
           grid: { color: getCSS('--border') }
         }
@@ -969,6 +974,9 @@ function renderChart() {
   chart.options.scales.x.min = startMs;
   chart.options.scales.x.max = endMs;
   chart.update('none');
+  if (state.stations.size > 0 && datasets.length === 0) {
+    setMsg('Selected range is outside the API payload window.', 'warn');
+  }
 }
 function renderHL() {
   const div = document.getElementById('hl');
@@ -1023,6 +1031,7 @@ function renderMeta() {
     document.getElementById('kv-int').textContent = '—';
     document.getElementById('kv-z0').textContent = '—';
     document.getElementById('kv-src').innerHTML = '—';
+    document.getElementById('kv-conv').textContent = '—';
     return;
   }
   const m = primary.payload.meta || {};
@@ -1038,6 +1047,7 @@ function renderMeta() {
     : '<span class="pill">edge/api</span>';
   const af = m.af ? `<span class="pill pill-muted" style="margin-left:4px;">AF: ${m.af}</span>` : '';
   document.getElementById('kv-src').innerHTML = src + af;
+  document.getElementById('kv-conv').textContent = m.convention || 'effective constants / no nodal correction';
 }
 function renderChips() {
   const wrap = document.getElementById('chips');
@@ -1241,37 +1251,48 @@ function locateUser() {
 // ============================================================
 function exportCSV() {
   if (state.stations.size === 0) { toast('Compute a station first.', 'warn'); return; }
-  // Multi-station wide format: timestamp, date, time, <CODE>_m, <CODE>_m, ...
   const codes = [...state.stations.keys()];
-  const anyPayload = state.stations.get(codes[0]).payload;
-  if (!anyPayload) { toast('No data yet.', 'warn'); return; }
+  const primary = state.stations.get(state.primaryCode) || state.stations.get(codes[0]);
+  if (!primary || !primary.payload) { toast('No data yet.', 'warn'); return; }
+
+  const { startMs, endMs } = currentViewRange();
   const timeSet = new Set();
   const perStation = {};
   for (const c of codes) {
     const p = state.stations.get(c).payload;
     perStation[c] = new Map();
     for (const [t, y] of p.series) {
+      if (t < startMs || t > endMs) continue;
       timeSet.add(t);
       perStation[c].set(t, y);
     }
   }
   const times = [...timeSet].sort((a,b)=>a-b);
-  const header = ['timestamp_ms','date_local','time_local', ...codes.map(c=>c+'_m')];
-  const rows = [header];
+  if (times.length === 0) { toast('Selected range has no data to export.', 'warn'); return; }
+
+  const meta = primary.payload.meta || {};
+  const lines = [];
+  lines.push('sep=,');
+  lines.push('# Gulf of Thailand Tide Analytics export');
+  lines.push('# Convention: effective harmonic constants; NO nodal AF/f/u correction');
+  lines.push('# Datum: z0 = LAT');
+  lines.push('# Model: y(t)=z0+sum(H*cos(omega*(t-t0)-phi))');
+  lines.push('# AF mode: ' + (meta.af || 'off'));
+  lines.push('# API convention: ' + (meta.convention || 'effective_harmonic_constants_no_nodal_correction'));
+  lines.push('# Export window local: ' + fmtDate(startMs) + ' to ' + fmtDate(endMs));
+  lines.push(['timestamp_ms','datetime_local','date_local','time_local', ...codes.map(c=>c+'_m')].join(','));
+
   for (const t of times) {
     const d = dt.fromMillis(t).setZone(USE_TZ);
-    const row = [t, d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm')];
+    const row = [t, d.toFormat('yyyy-LL-dd HH:mm:ss'), d.toFormat('yyyy-LL-dd'), d.toFormat('HH:mm')];
     for (const c of codes) {
       const v = perStation[c].get(t);
       row.push(v !== undefined ? Number(v).toFixed(3) : '');
     }
-    rows.push(row);
+    lines.push(row.join(','));
   }
-  const primary = state.stations.get(state.primaryCode) || state.stations.get(codes[0]);
-  const m = primary.payload.meta;
-  const startMs = Date.parse(m.start_iso), endMs = Date.parse(m.end_iso);
-  const name = `${primary.code}${codes.length>1?'_multi':''}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}.csv`;
-  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+  const name = `${primary.code}${codes.length>1?'_multi':''}_Tide_${fmtYYMMDD(startMs)}_${fmtYYMMDD(endMs)}_afOff.csv`;
+  const csv = '\uFEFF' + lines.join('\r\n');
   downloadBlob(csv, name, 'text/csv');
   toast('CSV exported.', 'success');
 }
