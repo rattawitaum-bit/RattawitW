@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.0.5 (Production Hotfix)</title>
+<title>XY Contour Studio — v9.0.8 (Production DXF-Restore)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,7 +109,7 @@
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.5 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.8 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -204,7 +204,7 @@
 <footer>
   <div>Built for <strong>Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N — v9.0.5 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
+  <div>Indian 1975 UTM 47N — v9.0.8 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
@@ -229,7 +229,7 @@ function dePreviewFlip(E, N){
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.0.5 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.0.8 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -978,45 +978,42 @@ function dePreviewFlip(E, N){
 
   // --- Export: CAD DXF Subroutine ---
   function buildDXF(fc){
-    var NL='\r\n'; 
+    /* v9.0.8: Restored R12-style POLYLINE format from v8.8 (proven CAD compatible) */
+    var NL='\r\n';
     var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
     var labelEvery = Math.max(1, parseFloat(labelEveryEl.value)||100);
     var textHeight = Math.max(0.1, parseFloat(labelSizeEl.value)||2.5);
-
-    for(var i=0; i<fc.features.length; i++){
+    function pointAtDistance(coords,d){
+      var acc=0;
+      for(var i=0;i<coords.length-1;i++){
+        var p=coords[i], q=coords[i+1], L=segLen(p,q);
+        if(acc+L>=d){
+          var t=(d-acc)/L;
+          return {pt:[p[0]+t*(q[0]-p[0]), p[1]+t*(q[1]-p[1])], ang:Math.atan2(q[1]-p[1], q[0]-p[0])*180/Math.PI};
+        }
+        acc+=L;
+      }
+      return null;
+    }
+    for(var i=0;i<fc.features.length;i++){
       var f = fc.features[i];
       if(!f.geometry) continue;
-      if(f.geometry.type === 'LineString'){
+      if(f.geometry.type==='LineString'){
         var coords = f.geometry.coordinates;
         if(!coords || coords.length<2) continue;
-
-        if(typeof simplify === 'function' && coords.length > 4){
-          var dxfPts = coords.map(function(c){ return {x:c[0], y:c[1]}; });
-          dxfPts = simplify(dxfPts, 0.01, true);
-          coords = dxfPts.map(function(pt){ return [pt.x, pt.y]; });
+        /* R12 2D polyline: POLYLINE + VERTEX... + SEQEND */
+        out += ['0','POLYLINE','8','Contour','66','1','70','0'].join(NL)+NL;
+        for(var k=0;k<coords.length;k++){
+          out += ['0','VERTEX','8','Contour','10', String(coords[k][0]), '20', String(coords[k][1])].join(NL)+NL;
         }
-        if(coords.length < 2) continue;
-
-        out += ['0','LWPOLYLINE','8','Contour','90', String(coords.length),'70','0','38', Number(f.properties&&f.properties.elev||0).toFixed(2)].join(NL)+NL;
-        
-        for(var k=0; k<coords.length; k++){ 
-          out += ['10', coords[k][0].toFixed(2), '20', coords[k][1].toFixed(2)].join(NL)+NL; 
-        }
-        
-        if(labelEvery > 0 && textHeight > 0){
-          var acc = 0; 
-          var nextD = labelEvery;
-          for(var k2=0; k2<coords.length-1; k2++){
-            var p = coords[k2], q = coords[k2+1], L = segLen(p,q);
-            while(acc+L >= nextD && L>0){
-              var t = (nextD-acc)/L;
-              var pt = [p[0]+t*(q[0]-p[0]), p[1]+t*(q[1]-p[1])];
-              var ang = Math.atan2(q[1]-p[1], q[0]-p[0])*180/Math.PI;
-              var z = Number(f.properties&&f.properties.elev)||0;
-              out += ['0','TEXT','8','ContourLabel','10', pt[0].toFixed(2),'20', pt[1].toFixed(2),'40', textHeight.toFixed(2),'1', z.toFixed(2)+' m','50', ang.toFixed(4)].join(NL)+NL;
-              nextD += labelEvery;
-            }
-            acc += L;
+        out += ['0','SEQEND'].join(NL)+NL;
+        if(labelEvery>0 && textHeight>0){
+          var total=0;
+          for(var k2=0;k2<coords.length-1;k2++) total+=segLen(coords[k2],coords[k2+1]);
+          for(var d=labelEvery; d<total; d+=labelEvery){
+            var pos = pointAtDistance(coords,d); if(!pos) break;
+            var z = Number(f.properties&&f.properties.elev)||0;
+            out += ['0','TEXT','8','ContourLabel','10', String(pos.pt[0]),'20', String(pos.pt[1]),'40', String(textHeight),'1', z+' m','50', String(pos.ang)].join(NL)+NL;
           }
         }
       }
@@ -1027,48 +1024,50 @@ function dePreviewFlip(E, N){
 
   // --- Quality Control: DXF Re-parsing Engine ---
   function parseDXFToGeoJSON(text){
+    /* v9.0.8: Parse POLYLINE/VERTEX/SEQEND (R12 format) */
     var lines = text.split(/\r?\n/), features = [], i = 0;
-    function readPair(){ 
-      if(i+1 >= lines.length) return null; 
-      return { code: lines[i++].trim(), value: lines[i++].trim() }; 
+    function readPair(){
+      if(i+1 >= lines.length) return null;
+      return { code: lines[i++].trim(), value: lines[i++].trim() };
     }
+    var polyOpen = false;
     var currentPoly = null;
     while(i < lines.length){
-      var pair = readPair(); 
-      if(!pair) break; 
+      var pair = readPair();
+      if(!pair) break;
       if(pair.code !== '0') continue;
-      
       var type = pair.value;
-      
-      // Fix: DXF Validator Parse Logic
-      if(type === 'LWPOLYLINE') { 
+      if(type === 'POLYLINE') {
         currentPoly = [];
-        var reading = true;
-        var xv = null;
-        while(reading) {
+        polyOpen = true;
+      }
+      else if(type === 'VERTEX' && polyOpen) {
+        var xv=null, yv=null;
+        while(true) {
           var vp = readPair();
           if(!vp) break;
-          if(vp.code === '0') { i-=2; break; } 
-          if(vp.code === '10') { xv = parseFloat(vp.value); }
-          if(vp.code === '20' && xv !== null) { 
-            currentPoly.push([xv, parseFloat(vp.value)]);
-            xv = null; 
-          }
+          if(vp.code === '0') { i-=2; break; }
+          if(vp.code === '10') xv = parseFloat(vp.value);
+          else if(vp.code === '20') yv = parseFloat(vp.value);
         }
-        if(currentPoly.length >= 2) {
+        if(isFinite(xv) && isFinite(yv)) currentPoly.push([xv, yv]);
+      }
+      else if(type === 'SEQEND') {
+        if(currentPoly && currentPoly.length >= 2) {
           features.push({type:'Feature', properties:{from:'DXF'}, geometry:{type:'LineString', coordinates:currentPoly}});
         }
         currentPoly = null;
-      } 
+        polyOpen = false;
+      }
       else if(type === 'TEXT'){
-        var x2 = null, y2 = null, label = null, inner2 = true, q;
-        while(inner2){ 
-          q = readPair(); 
-          if(!q) break; 
+        var x2 = null, y2 = null, label = null, q;
+        while(true){
+          q = readPair();
+          if(!q) break;
           if(q.code === '0'){ i-=2; break; }
-          if(q.code === '10'){ x2 = parseFloat(q.value); } 
-          else if(q.code === '20'){ y2 = parseFloat(q.value); } 
-          else if(q.code === '1'){ label = q.value; }
+          if(q.code === '10') x2 = parseFloat(q.value);
+          else if(q.code === '20') y2 = parseFloat(q.value);
+          else if(q.code === '1') label = q.value;
         }
         if(isFinite(x2) && isFinite(y2)) {
           features.push({type:'Feature', properties:{label:label||''}, geometry:{type:'Point', coordinates:[x2,y2]}});
@@ -1406,7 +1405,7 @@ function dePreviewFlip(E, N){
     for(var i4=0; i4<20; i4++) dbf.push(0);
 
     field('NAME','C',32,0); 
-    field('ELEV','N',10,1); 
+    field('ELEVATION','N',10,1); /* v9.0.8: renamed for ArcGIS Pro compatibility */ 
     dbf.push(0x0D);
     
     for(var i5=0; i5<recs.length; i5++){
