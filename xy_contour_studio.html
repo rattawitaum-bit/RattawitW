@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.0.8 (Production DXF-Restore)</title>
+<title>XY Contour Studio — v9.0.9 (Production Parser-Hardened)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,7 +109,7 @@
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.8 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.9 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -204,7 +204,7 @@
 <footer>
   <div>Built for <strong>Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N — v9.0.8 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
+  <div>Indian 1975 UTM 47N — v9.0.9 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
@@ -229,7 +229,7 @@ function dePreviewFlip(E, N){
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.0.8 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.0.9 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -978,7 +978,7 @@ function dePreviewFlip(E, N){
 
   // --- Export: CAD DXF Subroutine ---
   function buildDXF(fc){
-    /* v9.0.8: Restored R12-style POLYLINE format from v8.8 (proven CAD compatible) */
+    /* v9.0.9: Restored R12-style POLYLINE format from v8.8 (proven CAD compatible) */
     var NL='\r\n';
     var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
     var labelEvery = Math.max(1, parseFloat(labelEveryEl.value)||100);
@@ -1024,56 +1024,141 @@ function dePreviewFlip(E, N){
 
   // --- Quality Control: DXF Re-parsing Engine ---
   function parseDXFToGeoJSON(text){
-    /* v9.0.8: Parse POLYLINE/VERTEX/SEQEND (R12 format) */
+    /* v9.0.9: Hardened multi-entity DXF parser with section context + null-safe checks
+       - Supports POLYLINE/VERTEX/SEQEND (R12)
+       - Supports LWPOLYLINE (R14+)
+       - Supports LINE entity
+       - Parses only entities inside ENTITIES section
+       - Null-safe coordinate validation (fixes isFinite(null)===true browser quirk)
+       - Captures layer name for downstream filtering */
     var lines = text.split(/\r?\n/), features = [], i = 0;
     function readPair(){
       if(i+1 >= lines.length) return null;
       return { code: lines[i++].trim(), value: lines[i++].trim() };
     }
+    function coordOK(v){ return v !== null && v !== undefined && isFinite(v); }
+    function sanitizeText(s){ return String(s||'').replace(/[\x00-\x1F\x7F]+/g,' ').slice(0,120); }
+
+    var inEntities = false;
     var polyOpen = false;
     var currentPoly = null;
+    var currentLayer = null;
+
     while(i < lines.length){
       var pair = readPair();
       if(!pair) break;
       if(pair.code !== '0') continue;
       var type = pair.value;
-      if(type === 'POLYLINE') {
-        currentPoly = [];
-        polyOpen = true;
+
+      /* Section context tracking */
+      if(type === 'SECTION'){
+        var sp = readPair();
+        if(sp && sp.code === '2'){
+          inEntities = (sp.value === 'ENTITIES');
+        }
+        continue;
       }
-      else if(type === 'VERTEX' && polyOpen) {
-        var xv=null, yv=null;
-        while(true) {
+      if(type === 'ENDSEC'){
+        if(polyOpen && currentPoly && currentPoly.length >= 2){
+          features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
+        }
+        polyOpen = false; currentPoly = null; currentLayer = null;
+        inEntities = false;
+        continue;
+      }
+      if(type === 'EOF') break;
+      if(!inEntities) continue;
+
+      if(type === 'POLYLINE'){
+        /* Flush any unclosed previous polyline safely */
+        if(polyOpen && currentPoly && currentPoly.length >= 2){
+          features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
+        }
+        currentPoly = [];
+        currentLayer = null;
+        polyOpen = true;
+        /* Consume POLYLINE header pairs until next '0' */
+        while(true){
+          var hp = readPair();
+          if(!hp) break;
+          if(hp.code === '0'){ i-=2; break; }
+          if(hp.code === '8') currentLayer = hp.value;
+        }
+      }
+      else if(type === 'VERTEX' && polyOpen){
+        var xv=null, yv=null, vlayer=null;
+        while(true){
           var vp = readPair();
           if(!vp) break;
-          if(vp.code === '0') { i-=2; break; }
+          if(vp.code === '0'){ i-=2; break; }
           if(vp.code === '10') xv = parseFloat(vp.value);
           else if(vp.code === '20') yv = parseFloat(vp.value);
+          else if(vp.code === '8') vlayer = vp.value;
         }
-        if(isFinite(xv) && isFinite(yv)) currentPoly.push([xv, yv]);
+        if(coordOK(xv) && coordOK(yv)) currentPoly.push([xv, yv]);
       }
-      else if(type === 'SEQEND') {
-        if(currentPoly && currentPoly.length >= 2) {
-          features.push({type:'Feature', properties:{from:'DXF'}, geometry:{type:'LineString', coordinates:currentPoly}});
+      else if(type === 'SEQEND'){
+        if(currentPoly && currentPoly.length >= 2){
+          features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
         }
-        currentPoly = null;
-        polyOpen = false;
+        currentPoly = null; polyOpen = false; currentLayer = null;
+      }
+      else if(type === 'LWPOLYLINE'){
+        var lw = [], xLw = null, layerLw = null;
+        while(true){
+          var lp = readPair();
+          if(!lp) break;
+          if(lp.code === '0'){ i-=2; break; }
+          if(lp.code === '8') layerLw = lp.value;
+          else if(lp.code === '10') xLw = parseFloat(lp.value);
+          else if(lp.code === '20' && coordOK(xLw)){
+            var yLw = parseFloat(lp.value);
+            if(coordOK(yLw)) lw.push([xLw, yLw]);
+            xLw = null;
+          }
+        }
+        if(lw.length >= 2){
+          features.push({type:'Feature', properties:{from:'DXF-LWPOLYLINE', layer:layerLw}, geometry:{type:'LineString', coordinates:lw}});
+        }
+      }
+      else if(type === 'LINE'){
+        var x1=null, y1=null, x2L=null, y2L=null, layerLn=null;
+        while(true){
+          var np = readPair();
+          if(!np) break;
+          if(np.code === '0'){ i-=2; break; }
+          if(np.code === '8') layerLn = np.value;
+          else if(np.code === '10') x1 = parseFloat(np.value);
+          else if(np.code === '20') y1 = parseFloat(np.value);
+          else if(np.code === '11') x2L = parseFloat(np.value);
+          else if(np.code === '21') y2L = parseFloat(np.value);
+        }
+        if(coordOK(x1) && coordOK(y1) && coordOK(x2L) && coordOK(y2L)){
+          features.push({type:'Feature', properties:{from:'DXF-LINE', layer:layerLn}, geometry:{type:'LineString', coordinates:[[x1,y1],[x2L,y2L]]}});
+        }
       }
       else if(type === 'TEXT'){
-        var x2 = null, y2 = null, label = null, q;
+        var tx = null, ty = null, label = null, layerT = null, q;
         while(true){
           q = readPair();
           if(!q) break;
           if(q.code === '0'){ i-=2; break; }
-          if(q.code === '10') x2 = parseFloat(q.value);
-          else if(q.code === '20') y2 = parseFloat(q.value);
+          if(q.code === '8') layerT = q.value;
+          else if(q.code === '10') tx = parseFloat(q.value);
+          else if(q.code === '20') ty = parseFloat(q.value);
           else if(q.code === '1') label = q.value;
         }
-        if(isFinite(x2) && isFinite(y2)) {
-          features.push({type:'Feature', properties:{label:label||''}, geometry:{type:'Point', coordinates:[x2,y2]}});
+        if(coordOK(tx) && coordOK(ty)){
+          features.push({type:'Feature', properties:{label:sanitizeText(label), layer:layerT}, geometry:{type:'Point', coordinates:[tx,ty]}});
         }
       }
     }
+
+    /* Final flush of any unterminated polyline */
+    if(polyOpen && currentPoly && currentPoly.length >= 2){
+      features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
+    }
+
     return { type:'FeatureCollection', features:features };
   }
 
@@ -1405,7 +1490,7 @@ function dePreviewFlip(E, N){
     for(var i4=0; i4<20; i4++) dbf.push(0);
 
     field('NAME','C',32,0); 
-    field('ELEVATION','N',10,1); /* v9.0.8: renamed for ArcGIS Pro compatibility */ 
+    field('ELEVATION','N',10,1); /* v9.0.9: renamed for ArcGIS Pro compatibility */ 
     dbf.push(0x0D);
     
     for(var i5=0; i5<recs.length; i5++){
