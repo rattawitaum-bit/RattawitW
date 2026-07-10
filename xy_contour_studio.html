@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.0.9 (Production Parser-Hardened)</title>
+<title>XY Contour Studio — v9.3.1 (Text-Rendering)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,7 +109,7 @@
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.0.9 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.3.1 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -120,6 +120,7 @@
       <button id="tab-engine" class="tab-btn active" onclick="showTab('engine')">Engine</button>
       <button id="tab-style" class="tab-btn" onclick="showTab('style')">Style & Export</button>
       <button id="tab-validate" class="tab-btn" onclick="showTab('validate')">Verify</button>
+      <button id="tab-foundation" class="tab-btn" onclick="showTab('foundation')">Foundation</button>
     </div>
 
     <!-- ENGINE TAB -->
@@ -171,7 +172,24 @@
       <div class="group-title">DXF Labels</div>
       <div class="row"><label for="labelEvery">Label Every (m)</label><input id="labelEvery" type="number" min="1" step="10" value="100"/></div>
       <div class="row"><label for="labelSize">Text Height</label><input id="labelSize" type="number" min="0.1" step="0.1" value="2.5"/></div>
+      <div class="row"><label for="contourLabelAutoFlip">Auto-flip labels <i class="tooltip-wrap" data-tooltip="v9.3.1: หมุน text ให้อ่านซ้ายไปขวาเสมอ (nautical). ปิดถ้าต้องการ text ตามทิศทาง contour จริง">i</i></label><input type="checkbox" id="contourLabelAutoFlip" checked/></div>
       
+
+      <div class="group-title">Bathymetric Soundings (DXF)</div>
+      <div class="row"><label for="soundSpacing">Grid Spacing (m) <i class="tooltip-wrap" data-tooltip="Regular grid spacing between sounding points. Default 10 m suits chart-scale nautical work.">i</i></label><input id="soundSpacing" type="number" min="1" step="1" value="10"/></div>
+      <div class="row"><label for="soundAutoText">Auto text size <i class="tooltip-wrap" data-tooltip="Text height = spacing x 0.30 automatically.">i</i></label><input type="checkbox" id="soundAutoText" checked/></div>
+      <div class="row"><label for="soundTextH">Text Height (m)</label><input id="soundTextH" type="number" min="0.1" step="0.1" value="3.0" disabled/></div>
+      <div class="row"><label for="soundRotation">Rotation (deg) <i class="tooltip-wrap" data-tooltip="0 = horizontal, 90 = vertical nautical chart style (default).">i</i></label><input id="soundRotation" type="number" min="0" max="360" step="15" value="45"/></div>
+      <div class="row"><label for="soundSubRatio">Subscript Ratio</label><input id="soundSubRatio" type="number" min="0.1" max="1" step="0.05" value="0.6"/></div>
+      <div class="row"><label for="soundDensityMode">Density mode <i class="tooltip-wrap" data-tooltip="All = ทุก grid point (default). Skip = ข้ามทุก N. Local Min = จุดตื้นสุดใน window (nautical safety)">i</i></label><select id="soundDensityMode"><option value="all" selected>All</option><option value="skip">Skip Every N</option><option value="local_min">Local Minimum</option></select></div>
+      <div id="soundSkipRow" class="row" style="display:none"><label for="soundSkipN">Skip N <i class="tooltip-wrap" data-tooltip="1 = ไม่ข้าม, 2 = ข้าม 1 เว้น 1, 3 = ข้าม 2 เว้น 1">i</i></label><input id="soundSkipN" type="number" min="1" step="1" value="2"/></div>
+      <div id="soundWinRow" class="row" style="display:none"><label for="soundWinCells">Window cells <i class="tooltip-wrap" data-tooltip="ขนาด window ในหน่วย pixel/cell สำหรับหาความลึกน้อยสุด. 3 = 3x3, 5 = 5x5">i</i></label><input id="soundWinCells" type="number" min="1" step="2" value="3"/></div>
+      <div class="row"><label for="soundBand1">Band 1 Max (m) [red]</label><input id="soundBand1" type="number" step="1" value="20"/></div>
+      <div class="row"><label for="soundBand2">Band 2 Max (m) [orange]</label><input id="soundBand2" type="number" step="1" value="40"/></div>
+      <div class="row"><label for="soundBand3">Band 3 Max (m) [yellow]</label><input id="soundBand3" type="number" step="1" value="60"/></div>
+      <div class="row"><label for="soundBand4">Band 4 Max (m) [green] <i class="tooltip-wrap" data-tooltip="GoT primary working depth 60-80 m falls in Band 4 (green).">i</i></label><input id="soundBand4" type="number" step="1" value="80"/></div>
+      <div class="row"><label for="soundInclContours">Include contour lines</label><input type="checkbox" id="soundInclContours" checked/></div>
+      <button id="btnSoundingDXF" class="btn primary" style="width:100%; margin-top:10px;">Export Sounding DXF</button>
       <button id="btnZoomExtent" class="btn primary" style="width: 100%; margin-top: 15px; background: var(--c-panel-2); color: #fff;">🔎 Zoom to Extent</button>
     </div>
 
@@ -184,6 +202,52 @@
       <button id="btnClearValidator" class="btn outline-danger" style="width: 100%; margin-top: 8px;">Clear Overlays</button>
     </div>
 
+
+    <!-- FOUNDATION TAB -->
+    <div id="foundation" class="tab-content">
+      <div class="group-title">Jacket Geometry</div>
+      <div class="row"><label for="fcCenterX">Center X (m) <i class="tooltip-wrap" data-tooltip="จุดศูนย์กลาง jacket แกน X (Easting) ในระบบ Indian 1975 UTM 47N หน่วยเมตร. ค่าปกติในอ่าวไทย 550,000-700,000">i</i></label><input id="fcCenterX" type="number" step="0.1" value="0"/></div>
+      <div class="row"><label for="fcCenterY">Center Y (m) <i class="tooltip-wrap" data-tooltip="จุดศูนย์กลาง jacket แกน Y (Northing) ในระบบ Indian 1975 UTM 47N หน่วยเมตร. ค่าปกติในอ่าวไทย 800,000-1,200,000">i</i></label><input id="fcCenterY" type="number" step="0.1" value="0"/></div>
+      <div class="row"><label for="fcRotation">Rotation (deg) <i class="tooltip-wrap" data-tooltip="มุมหมุน jacket ตามเข็มจากทิศเหนือ (0=N, 90=E, 180=S, 270=W). Square jacket: มุมส่งผลต่อ overlay เท่านั้น">i</i></label><input id="fcRotation" type="number" min="0" max="360" step="1" value="0"/></div>
+      <div class="row"><label for="fcWidth">Width (m) <i class="tooltip-wrap" data-tooltip="ขนาด jacket ด้านขวาง (U-axis local) หน่วยเมตร. ปกติ 20 m สำหรับ 4-leg wellhead, 12 m สำหรับ tripod">i</i></label><input id="fcWidth" type="number" min="1" step="0.5" value="20"/></div>
+      <div class="row"><label for="fcLength">Length (m) <i class="tooltip-wrap" data-tooltip="ขนาด jacket ด้านยาว (V-axis local) หน่วยเมตร. ใส่ค่าเท่า Width ถ้าเป็นสี่เหลี่ยมจัตุรัส">i</i></label><input id="fcLength" type="number" min="1" step="0.5" value="20"/></div>
+      <div class="row"><label for="fcBuffer">Buffer (m) <i class="tooltip-wrap" data-tooltip="ระยะเผื่อรอบ footprint (m) สำหรับ mudmat overhang และ installation tolerance. Default 0.5 m">i</i></label><input id="fcBuffer" type="number" min="0" step="0.1" value="0.5"/></div>
+      <div class="group-title">Acceptance Criteria</div>
+      <div class="row"><label for="fcTolerance">dH tolerance (m) <i class="tooltip-wrap" data-tooltip="ค่า dH = max-min สูงสุดที่ยอมรับได้ (m). PASS ≤ tol, CAUTION ≤ tol×1.2, FAIL > tol×1.2. Industry ปกติ 0.20 m">i</i></label><input id="fcTolerance" type="number" min="0.01" step="0.01" value="0.20"/></div>
+      <div class="row"><label for="fcUseSlope">Also check slope <i class="tooltip-wrap" data-tooltip="เปิดเพื่อตรวจ slope เพิ่มเติมจาก dH. ตรวจจับ uniform tilt (พื้นราบแต่เอียง) ที่ dH ไม่จับ">i</i></label><input type="checkbox" id="fcUseSlope"/></div>
+      <div class="row"><label for="fcSlopeTol">Slope tol (deg) <i class="tooltip-wrap" data-tooltip="Slope magnitude สูงสุดยอมรับได้ (°) จาก least-squares plane fit. ปกติ 1.0° สำหรับ level install">i</i></label><input id="fcSlopeTol" type="number" min="0.01" step="0.1" value="1.0"/></div>
+      <div class="row"><label for="fcSampleStep">Sample step (m) <i class="tooltip-wrap" data-tooltip="ระยะห่างจุด sample ภายใน footprint (m). ควรใกล้เคียง raster pixel size (Nyquist warning ถ้าเล็กกว่า pixel/2)">i</i></label><input id="fcSampleStep" type="number" min="0.1" step="0.1" value="1.0"/></div>
+      <div class="row"><label for="fcMinCoverage">Min coverage (%) <i class="tooltip-wrap" data-tooltip="% จุด sample ที่ต้องมี valid data (ไม่ NaN). Default 95% = engineering-grade, 80% = screening only">i</i></label><input id="fcMinCoverage" type="number" min="0" max="100" step="1" value="95"/></div>
+      <div id="fcNyquistWarn" style="display:none;font-size:11px;color:var(--c-warning);background:rgba(245,158,11,0.1);padding:6px;border-radius:4px;margin-top:6px;border-left:3px solid var(--c-warning);">Sample step exceeds 2x raster pixel size. May miss features (Nyquist aliasing).</div>
+      <div class="group-title">Optimal Placement Search</div>
+      <div class="row"><label for="fcSearchRadius">Search radius (m) <i class="tooltip-wrap" data-tooltip="รัศมีค้นหา offset (m) จาก center เดิม. Default 50 m = ยืดหยุ่นพอสมควร. Search area = 2R × 2R">i</i></label><input id="fcSearchRadius" type="number" min="1" step="1" value="50"/></div>
+      <div class="row"><label for="fcSearchStep">Search step (m) <i class="tooltip-wrap" data-tooltip="ระยะห่าง candidate ใน search grid (m). เล็ก = ละเอียดแต่ช้า O(R²). Default 5 m สมดุลดี">i</i></label><input id="fcSearchStep" type="number" min="0.5" step="0.5" value="5"/></div>
+      <div class="row"><label for="fcTopN">Top-N candidates <i class="tooltip-wrap" data-tooltip="จำนวน candidate ที่ดีที่สุดที่จะแสดง. Click row เพื่อ apply เป็น center ใหม่ (coord แสดงทศนิยม 1 ตำแหน่ง)">i</i></label><input id="fcTopN" type="number" min="1" max="20" step="1" value="5"/></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px;">
+        <button id="fcAnalyze" class="btn primary">Analyze</button>
+        <button id="fcSearch" class="btn">Find Best</button>
+      </div>
+      <div id="fcSearchProgress" style="display:none; margin-top:8px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--c-text-2); margin-bottom:4px;">
+          <span id="fcSearchProgLabel">Searching...</span>
+          <button id="fcSearchCancel" class="btn outline-danger" style="font-size:10px; padding:2px 8px;">Cancel</button>
+        </div>
+        <div style="height:6px; background:var(--c-panel-2); border-radius:3px; overflow:hidden;">
+          <div id="fcSearchProgBar" style="height:100%; width:0%; background:var(--c-accent); transition:width 0.2s;"></div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;">
+        <button id="fcHideOverlay" class="btn outline-danger" style="font-size:11px;">Clear Overlay</button>
+        <button id="fcViewLog" class="btn" style="font-size:11px;">View Log</button>
+      </div>
+      <div class="group-title">Result</div>
+      <div id="fcResult" style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#020617;padding:12px;border-radius:8px;color:#94a3b8;min-height:60px;line-height:1.6;border:1px solid var(--c-border);">Awaiting analysis...</div>
+      <div id="fcTopList" style="margin-top:10px;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px;">
+        <button id="fcExportCSV" class="btn" style="font-size:11px;">Export CSV</button>
+        <button id="fcExportJSON" class="btn" style="font-size:11px;">Export JSON</button>
+      </div>
+    </div>
     <div class="action-bar">
       <button id="btnGenerate" class="btn primary" disabled><span class="spinner"></span><span class="icon-label">▶ GENERATE CONTOURS</span></button>
       <div class="export-row">
@@ -201,10 +265,25 @@
   </section>
 </div>
 
+
+<!-- v9.3.1 M6: In-page log modal -->
+<div id="fcLogModal" style="display:none; position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);">
+  <div style="position:absolute; top:5%; left:5%; right:5%; bottom:5%; background:var(--c-panel); border:1px solid var(--c-border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column;">
+    <div style="padding:12px 16px; border-bottom:1px solid var(--c-border); display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:14px;">Foundation Check Log - <span id="fcLogCount">0</span> entries</h3>
+      <div style="display:flex; gap:6px;">
+        <button id="fcLogExportBtn" class="btn" style="font-size:11px; padding:6px 12px;">Export CSV</button>
+        <button id="fcLogClearBtn" class="btn outline-danger" style="font-size:11px; padding:6px 12px;">Clear Log</button>
+        <button id="fcLogCloseBtn" class="btn" style="font-size:11px; padding:6px 12px;">Close</button>
+      </div>
+    </div>
+    <div id="fcLogTableWrap" style="flex:1; overflow:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:11px;"></div>
+  </div>
+</div>
 <footer>
-  <div>Built for <strong>Geomatics Engineering</strong></div>
+  <div>Built by <strong>Rattawit W - Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N — v9.0.9 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
+  <div>Indian 1975 UTM 47N — v9.3.1 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
@@ -229,7 +308,7 @@ function dePreviewFlip(E, N){
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.0.9 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.3.1 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -607,30 +686,66 @@ function dePreviewFlip(E, N){
           GT1 *= dsX; GT4 *= dsX; GT2 *= dsY; GT5 *= dsY;
         }
 
-        var pxResX = Math.abs(GT1||1), pxResY = Math.abs(GT5||1);
+        /* v9.3.1 M5: rotated-grid aware pixel resolution */
+        var pxResX = Math.hypot(GT1||1, GT4||0);
+        var pxResY = Math.hypot(GT2||0, GT5||1);
         var avgPxRes = (pxResX + pxResY) / 2;
+        var skew = Math.abs(GT4||0) + Math.abs(GT2||0);
+        if(skew > 0.01){
+          var rotDeg = Math.atan2(GT4||0, GT1||1) * 180/Math.PI;
+          console.warn("[System Health Check] Rotated/skewed raster detected. Rotation: " + rotDeg.toFixed(2) + " degrees");
+        }
         window.currentPixelResolution = avgPxRes;
-
-        // Data Sanitization: Erase GDAL NoData properties
+        // Data Sanitization (v9.3.1 M4): expanded NoData sentinels
         var originalND = fd.GDAL_NODATA != null ? parseFloat(fd.GDAL_NODATA) : null;
+        var NODATA_SENTINELS = [
+          -9999, -99999, -999999,
+          9999,  99999,  999999,
+          -32768, 32767, 65535,
+          -3.4028234663852886e+38,  3.4028234663852886e+38,
+          -1.7976931348623157e+308, 1.7976931348623157e+308,
+          -1e30, 1e30
+        ];
+        var EPS = 0.5;
         let nanCount = 0, noDataCount = 0;
         for (let idx=0; idx < values.length; idx++) {
             let val = values[idx];
-            if (isNaN(val)) {
+            if (isNaN(val) || !isFinite(val)) {
                 nanCount++;
                 values[idx] = NaN;
-            } else if (val <= -9999 || val === originalND) {
+                continue;
+            }
+            if (originalND !== null && Math.abs(val - originalND) < EPS) {
+                noDataCount++;
+                values[idx] = NaN;
+                continue;
+            }
+            var isSentinel = false;
+            for (var _si = 0; _si < NODATA_SENTINELS.length; _si++) {
+              if (Math.abs(val - NODATA_SENTINELS[_si]) < EPS) { isSentinel = true; break; }
+            }
+            if (isSentinel) {
                 noDataCount++;
                 values[idx] = NaN;
             }
         }
-        
         console.log("[System Health Check] Resolution Applied:", avgPxRes.toFixed(3), "m (" + resSource + ")");
         console.log("[System Health Check] Sanitized", (nanCount + noDataCount), "Missing/-9999 pixels into safe NaN.");
 
         var dsWarning = (origW !== w) ? `<br><span style="color:var(--c-warning)">Downsampled from ${origW}x${origH} to prevent memory crash.</span>` : '';
         loadInfo.innerHTML = `<span class="chip">${width}x${height} px</span> <span class="chip">${avgPxRes.toFixed(3)} m/px</span>${dsWarning}`;
-
+        /* v9.3.1 M7: auto-populate Foundation center if user has not entered coords */
+        try {
+          var _fcX = document.getElementById('fcCenterX');
+          var _fcY = document.getElementById('fcCenterY');
+          if (_fcX && _fcY) {
+            var _cx0 = px2xy(0,0), _cx1 = px2xy(width,0), _cx2 = px2xy(0,height), _cx3 = px2xy(width,height);
+            var _rcx = (_cx0[0]+_cx1[0]+_cx2[0]+_cx3[0])/4;
+            var _rcy = (_cx0[1]+_cx1[1]+_cx2[1]+_cx3[1])/4;
+            if (parseFloat(_fcX.value) === 0) { _fcX.value = _rcx.toFixed(1); }
+            if (parseFloat(_fcY.value) === 0) { _fcY.value = _rcy.toFixed(1); }
+          }
+        } catch(_){}
         autoStretch(values); 
         buildRasterPreview(values); 
         btnGenerate.disabled = false;
@@ -978,7 +1093,7 @@ function dePreviewFlip(E, N){
 
   // --- Export: CAD DXF Subroutine ---
   function buildDXF(fc){
-    /* v9.0.9: Restored R12-style POLYLINE format from v8.8 (proven CAD compatible) */
+    /* v9.0.8: R12 POLYLINE (proven CAD-safe) */
     var NL='\r\n';
     var out=['0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'].join(NL)+NL;
     var labelEvery = Math.max(1, parseFloat(labelEveryEl.value)||100);
@@ -1001,7 +1116,6 @@ function dePreviewFlip(E, N){
       if(f.geometry.type==='LineString'){
         var coords = f.geometry.coordinates;
         if(!coords || coords.length<2) continue;
-        /* R12 2D polyline: POLYLINE + VERTEX... + SEQEND */
         out += ['0','POLYLINE','8','Contour','66','1','70','0'].join(NL)+NL;
         for(var k=0;k<coords.length;k++){
           out += ['0','VERTEX','8','Contour','10', String(coords[k][0]), '20', String(coords[k][1])].join(NL)+NL;
@@ -1013,7 +1127,14 @@ function dePreviewFlip(E, N){
           for(var d=labelEvery; d<total; d+=labelEvery){
             var pos = pointAtDistance(coords,d); if(!pos) break;
             var z = Number(f.properties&&f.properties.elev)||0;
-            out += ['0','TEXT','8','ContourLabel','10', String(pos.pt[0]),'20', String(pos.pt[1]),'40', String(textHeight),'1', z+' m','50', String(pos.ang)].join(NL)+NL;
+            /* v9.3.1 F2: Auto-flip contour label for readability (nautical convention) */
+            var _ang = pos.ang;
+            var _flipEl = document.getElementById('contourLabelAutoFlip');
+            if(_flipEl && _flipEl.checked){
+              while(_ang > 90) _ang -= 180;
+              while(_ang <= -90) _ang += 180;
+            }
+            out += ['0','TEXT','8','ContourLabel','10', String(pos.pt[0]),'20', String(pos.pt[1]),'40', String(textHeight),'1', z+' m','50', String(_ang)].join(NL)+NL;
           }
         }
       }
@@ -1024,13 +1145,7 @@ function dePreviewFlip(E, N){
 
   // --- Quality Control: DXF Re-parsing Engine ---
   function parseDXFToGeoJSON(text){
-    /* v9.0.9: Hardened multi-entity DXF parser with section context + null-safe checks
-       - Supports POLYLINE/VERTEX/SEQEND (R12)
-       - Supports LWPOLYLINE (R14+)
-       - Supports LINE entity
-       - Parses only entities inside ENTITIES section
-       - Null-safe coordinate validation (fixes isFinite(null)===true browser quirk)
-       - Captures layer name for downstream filtering */
+    /* v9.0.9: Hardened multi-entity DXF parser */
     var lines = text.split(/\r?\n/), features = [], i = 0;
     function readPair(){
       if(i+1 >= lines.length) return null;
@@ -1050,12 +1165,9 @@ function dePreviewFlip(E, N){
       if(pair.code !== '0') continue;
       var type = pair.value;
 
-      /* Section context tracking */
       if(type === 'SECTION'){
         var sp = readPair();
-        if(sp && sp.code === '2'){
-          inEntities = (sp.value === 'ENTITIES');
-        }
+        if(sp && sp.code === '2') inEntities = (sp.value === 'ENTITIES');
         continue;
       }
       if(type === 'ENDSEC'){
@@ -1070,14 +1182,12 @@ function dePreviewFlip(E, N){
       if(!inEntities) continue;
 
       if(type === 'POLYLINE'){
-        /* Flush any unclosed previous polyline safely */
         if(polyOpen && currentPoly && currentPoly.length >= 2){
           features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
         }
         currentPoly = [];
         currentLayer = null;
         polyOpen = true;
-        /* Consume POLYLINE header pairs until next '0' */
         while(true){
           var hp = readPair();
           if(!hp) break;
@@ -1086,14 +1196,13 @@ function dePreviewFlip(E, N){
         }
       }
       else if(type === 'VERTEX' && polyOpen){
-        var xv=null, yv=null, vlayer=null;
+        var xv=null, yv=null;
         while(true){
           var vp = readPair();
           if(!vp) break;
           if(vp.code === '0'){ i-=2; break; }
           if(vp.code === '10') xv = parseFloat(vp.value);
           else if(vp.code === '20') yv = parseFloat(vp.value);
-          else if(vp.code === '8') vlayer = vp.value;
         }
         if(coordOK(xv) && coordOK(yv)) currentPoly.push([xv, yv]);
       }
@@ -1154,7 +1263,6 @@ function dePreviewFlip(E, N){
       }
     }
 
-    /* Final flush of any unterminated polyline */
     if(polyOpen && currentPoly && currentPoly.length >= 2){
       features.push({type:'Feature', properties:{from:'DXF-POLYLINE', layer:currentLayer}, geometry:{type:'LineString', coordinates:currentPoly}});
     }
@@ -1490,7 +1598,7 @@ function dePreviewFlip(E, N){
     for(var i4=0; i4<20; i4++) dbf.push(0);
 
     field('NAME','C',32,0); 
-    field('ELEVATION','N',10,1); /* v9.0.9: renamed for ArcGIS Pro compatibility */ 
+    field('ELEVATION','N',10,1); /* v9.0.8: ArcGIS Pro compat */ 
     dbf.push(0x0D);
     
     for(var i5=0; i5<recs.length; i5++){
@@ -1588,6 +1696,703 @@ function dePreviewFlip(E, N){
     if(e.key && e.key.toLowerCase()==='g'){ if(!btnGenerate.disabled) btnGenerate.click(); }
     if(e.key && e.key.toLowerCase()==='d'){ if(!btnDXF.disabled) btnDXF.click(); }
   });
+
+
+  /* v9.3.1 — Bathymetric Sounding DXF Export */
+  var soundAutoTextEl = document.getElementById('soundAutoText');
+  var soundSpacingEl  = document.getElementById('soundSpacing');
+  var soundTextHEl    = document.getElementById('soundTextH');
+  var soundRotationEl = document.getElementById('soundRotation');
+  var soundSubRatioEl = document.getElementById('soundSubRatio');
+  var soundBand1El    = document.getElementById('soundBand1');
+  var soundBand2El    = document.getElementById('soundBand2');
+  var soundBand3El    = document.getElementById('soundBand3');
+  var soundBand4El    = document.getElementById('soundBand4');
+  var soundInclContoursEl = document.getElementById('soundInclContours');
+  var btnSoundingDXF  = document.getElementById('btnSoundingDXF');
+
+  function syncSoundingTextH(){
+    if(!soundAutoTextEl) return;
+    if(soundAutoTextEl.checked){
+      var s = Math.max(1, parseFloat(soundSpacingEl.value)||10);
+      soundTextHEl.value = (s * 0.30).toFixed(2);
+      soundTextHEl.disabled = true;
+    } else {
+      soundTextHEl.disabled = false;
+    }
+  }
+  if(soundAutoTextEl){
+    soundAutoTextEl.addEventListener('change', syncSoundingTextH);
+    soundSpacingEl.addEventListener('input', syncSoundingTextH);
+    syncSoundingTextH();
+  }
+  /* v9.3.1 F4: Density mode row visibility */
+  var soundDensityModeEl = document.getElementById('soundDensityMode');
+  var soundSkipRow = document.getElementById('soundSkipRow');
+  var soundWinRow = document.getElementById('soundWinRow');
+  function toggleDensityRows(){
+    if(!soundDensityModeEl) return;
+    var m = soundDensityModeEl.value;
+    if(soundSkipRow) soundSkipRow.style.display = (m === 'skip') ? '' : 'none';
+    if(soundWinRow)  soundWinRow.style.display  = (m === 'local_min') ? '' : 'none';
+  }
+  if(soundDensityModeEl){
+    soundDensityModeEl.addEventListener('change', toggleDensityRows);
+    toggleDensityRows();
+  }
+
+  function sampleDepthAt(x, y){
+    if(!values || !width || !height) return null;
+    var yy = flipYEl.checked ? -y : y;
+    var a=GT1, b=GT2, c=GT4, d=GT5, det=a*d-b*c;
+    if(!isFinite(det) || Math.abs(det)<1e-12) return null;
+    var dxw=x-GT0, dyw=yy-GT3;
+    var col=( d*dxw - b*dyw)/det;
+    var row=(-c*dxw + a*dyw)/det;
+    var ci = Math.floor(col), ri = Math.floor(row);
+    if(ci<0 || ri<0 || ci>=width || ri>=height) return null;
+    var v = values[ri*width + ci];
+    if(!isFinite(v)) return null;
+    return Math.abs(v);
+  }
+
+  function soundingLayerFor(depth, b1, b2, b3, b4){
+    if(depth < b1) return 'Sounding_Band1';
+    if(depth < b2) return 'Sounding_Band2';
+    if(depth < b3) return 'Sounding_Band3';
+    if(depth < b4) return 'Sounding_Band4';
+    return 'Sounding_Band5';
+  }
+
+  function buildDXF_Soundings(){
+    if(!values || !width || !height){ alert('Please load GeoTIFF first.'); return null; }
+    /* v9.3.1 M2: Flip-Y guard for contour coords consistency */
+    if(lastFC && lastFC.properties && lastFC.properties.flipY !== flipYEl.checked){
+      alert('Contour flip-Y state changed since generation. Please Re-Generate Contours before exporting sounding DXF.');
+      return null;
+    }
+    var NL='\r\n';
+    var spacing = Math.max(1, parseFloat(soundSpacingEl.value)||10);
+    var textH   = Math.max(0.1, parseFloat(soundTextHEl.value)||3);
+    var rot     = parseFloat(soundRotationEl.value)||0;
+    var subRatio = Math.max(0.1, Math.min(1, parseFloat(soundSubRatioEl.value)||0.6));
+    var b1 = parseFloat(soundBand1El.value)||20;
+    var b2 = parseFloat(soundBand2El.value)||40;
+    var b3 = parseFloat(soundBand3El.value)||60;
+    var b4 = parseFloat(soundBand4El.value)||80;
+    var inclCon = !!soundInclContoursEl.checked;
+
+    var corners=[[0,0],[width,0],[0,height],[width,height]].map(function(p){return px2xy(p[0],p[1]);});
+    var xs = corners.map(function(c){return c[0];});
+    var ys = corners.map(function(c){return c[1];});
+    var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
+    var ymin = Math.min.apply(null, ys), ymax = Math.max.apply(null, ys);
+    var x0 = Math.ceil(xmin/spacing)*spacing;
+    var y0 = Math.ceil(ymin/spacing)*spacing;
+
+    var lines=[];
+    function w(){ for(var i=0;i<arguments.length;i++) lines.push(String(arguments[i])); }
+
+    /* v9.3.1 M1: Remove TABLES section (CAD-safe), colors applied per-entity via code 62 */
+    w('0','SECTION','2','HEADER','9','$INSUNITS','70','6','9','$MEASUREMENT','70','1','0','ENDSEC');
+    w('0','SECTION','2','ENTITIES');
+    var layerColors = {
+      'Sounding_Band1': 1,
+      'Sounding_Band2': 30,
+      'Sounding_Band3': 2,
+      'Sounding_Band4': 3,
+      'Sounding_Band5': 5,
+      'Contour':        5,
+      'ContourLabel':   7
+    };
+
+    var count=0;
+    var cosR = Math.cos(rot*Math.PI/180), sinR = Math.sin(rot*Math.PI/180);
+    var perpX = -sinR, perpY = cosR;
+    /* v9.3.1 F4: Density control */
+    var densityModeEl = document.getElementById('soundDensityMode');
+    var densityMode = densityModeEl ? densityModeEl.value : 'all';
+    var skipN = Math.max(1, parseInt((document.getElementById('soundSkipN')||{}).value)||1);
+    var winCells = Math.max(1, parseInt((document.getElementById('soundWinCells')||{}).value)||3);
+    var pxSize = window.currentPixelResolution || 1;
+    var winHalf = Math.floor(winCells/2);
+    var gridIdx = 0;
+    for(var y = y0; y <= ymax; y += spacing){
+      for(var x = x0; x <= xmax; x += spacing){
+        gridIdx++;
+        var emitX = x, emitY = y, d;
+        if(densityMode === 'skip'){
+          if((gridIdx-1) % skipN !== 0) continue;
+          d = sampleDepthAt(x, y);
+          if(d === null) continue;
+        } else if(densityMode === 'local_min'){
+          var shallowest = null, shX = null, shY = null;
+          for(var _wy = -winHalf; _wy <= winHalf; _wy++){
+            for(var _wx = -winHalf; _wx <= winHalf; _wx++){
+              var _tx = x + _wx * pxSize;
+              var _ty = y + _wy * pxSize;
+              var _td = sampleDepthAt(_tx, _ty);
+              if(_td !== null && (shallowest === null || _td < shallowest)){
+                shallowest = _td; shX = _tx; shY = _ty;
+              }
+            }
+          }
+          if(shallowest === null) continue;
+          d = shallowest;
+          emitX = shX; emitY = shY;
+        } else {
+          d = sampleDepthAt(x, y);
+          if(d === null) continue;
+        }
+        var layer = soundingLayerFor(d, b1, b2, b3, b4);
+
+        var intPart = Math.floor(d);
+        var decPart = Math.floor((d - intPart) * 10 + 1e-9);
+        if(decPart > 9) decPart = 9;
+        var mainTxt = String(intPart);
+        var subTxt  = String(decPart);
+
+        var _colMain = layerColors[layer] || 7;
+        w('0','TEXT','62', String(_colMain),'8', layer,
+          '10', emitX.toFixed(3),'20', emitY.toFixed(3),'30','0.0',
+          '40', textH.toFixed(3),
+          '1',  mainTxt,
+          '50', rot.toFixed(2));
+
+        /* v9.3.1 F1: Subscript below-right of main (nautical convention) */
+        var digitWidth = textH * 0.65;
+        var subOffsetAlong = digitWidth * (mainTxt.length - 0.1);
+        var subOffsetRight = textH * 0.15;
+        var subX = emitX + cosR*subOffsetAlong + sinR*subOffsetRight;
+        var subY = emitY + sinR*subOffsetAlong - cosR*subOffsetRight;
+        var subH = textH * subRatio;
+        w('0','TEXT','62', String(_colMain),'8', layer,
+          '10', subX.toFixed(3),'20', subY.toFixed(3),'30','0.0',
+          '40', subH.toFixed(3),
+          '1',  subTxt,
+          '50', rot.toFixed(2));
+        count++;
+      }
+    }
+
+    if(inclCon && lastFC && lastFC.features && lastFC.features.length){
+      var _colCon = layerColors['Contour'] || 5;
+      for(var fi=0; fi<lastFC.features.length; fi++){
+        var f = lastFC.features[fi];
+        if(!f.geometry || f.geometry.type!=='LineString') continue;
+        var coords = f.geometry.coordinates;
+        if(!coords || coords.length<2) continue;
+        w('0','POLYLINE','62', String(_colCon),'8','Contour','66','1','70','0');
+        for(var k=0; k<coords.length; k++){
+          /* v9.3.1 M2: apply dePreviewFlip to contour vertex coords */
+          var _fp = dePreviewFlip(coords[k][0], coords[k][1]);
+          w('0','VERTEX','8','Contour','10', String(_fp[0]),'20', String(_fp[1]));
+        }
+        w('0','SEQEND');
+      }
+    }
+
+    w('0','ENDSEC','0','EOF');
+    return { text: lines.join(NL)+NL, count: count };
+  }
+
+  if(btnSoundingDXF){
+    btnSoundingDXF.addEventListener('click', function(){
+      var r = buildDXF_Soundings();
+      if(!r) return;
+      var blob = new Blob([r.text], {type:'application/dxf'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'soundings_' + importBase + '.dxf';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
+      status.textContent = 'Sounding DXF exported: ' + r.count + ' points at ' + soundSpacingEl.value + ' m spacing.';
+    });
+  }
+
+
+  /* ==================== v9.3.1 Foundation Check ==================== */
+  var fcCenterXEl = document.getElementById('fcCenterX');
+  var fcCenterYEl = document.getElementById('fcCenterY');
+  var fcRotationEl = document.getElementById('fcRotation');
+  var fcWidthEl = document.getElementById('fcWidth');
+  var fcLengthEl = document.getElementById('fcLength');
+  var fcBufferEl = document.getElementById('fcBuffer');
+  var fcToleranceEl = document.getElementById('fcTolerance');
+  var fcUseSlopeEl = document.getElementById('fcUseSlope');
+  var fcSlopeTolEl = document.getElementById('fcSlopeTol');
+  var fcSampleStepEl = document.getElementById('fcSampleStep');
+  var fcMinCoverageEl = document.getElementById('fcMinCoverage');
+  var fcSearchRadiusEl = document.getElementById('fcSearchRadius');
+  var fcSearchStepEl = document.getElementById('fcSearchStep');
+  var fcTopNEl = document.getElementById('fcTopN');
+  var fcAnalyzeBtn = document.getElementById('fcAnalyze');
+  var fcSearchBtn = document.getElementById('fcSearch');
+  var fcHideOverlayBtn = document.getElementById('fcHideOverlay');
+  var fcViewLogBtn = document.getElementById('fcViewLog');
+  var fcExportCSVBtn = document.getElementById('fcExportCSV');
+  var fcExportJSONBtn = document.getElementById('fcExportJSON');
+  var fcResultEl = document.getElementById('fcResult');
+  var fcTopListEl = document.getElementById('fcTopList');
+  var fcNyquistWarn = document.getElementById('fcNyquistWarn');
+  var fcOverlayGroup = null;
+  var fcLastResult = null;
+  var fcLastSearchResults = null;
+
+  function fcNyquistCheck(){
+    if(!fcNyquistWarn) return;
+    var s = parseFloat(fcSampleStepEl.value)||1;
+    var px = window.currentPixelResolution || 1;
+    /* v9.3.1 C1 fix: warn when UNDER-sampled (step too coarse), not over-sampled */
+    var undersampled = (s > 2*px);
+    fcNyquistWarn.style.display = undersampled ? 'block' : 'none';
+    if(undersampled){
+      fcNyquistWarn.innerHTML = 'Sample step (' + s.toFixed(2) + ' m) is coarser than 2x raster pixel size (' + px.toFixed(2) + ' m). May miss small features (Nyquist aliasing).';
+    }
+  }
+  if(fcSampleStepEl){ fcSampleStepEl.addEventListener('input', fcNyquistCheck); fcNyquistCheck(); }
+
+  function fcStats(arr){
+    var n = arr.length; if(n === 0) return null;
+    var sorted = arr.slice().sort(function(a,b){return a-b;});
+    var mn = sorted[0], mx = sorted[n-1];
+    var sum = 0; for(var i=0;i<n;i++) sum += arr[i];
+    var mean = sum/n;
+    var vsum = 0; for(var j=0;j<n;j++){ var d = arr[j]-mean; vsum += d*d; }
+    var std = Math.sqrt(vsum/n);
+    var median = (n%2===1) ? sorted[(n-1)>>1] : (sorted[n/2-1]+sorted[n/2])/2;
+    var p025Idx = Math.floor(n*0.025);
+    var p975Idx = Math.min(n-1, Math.floor(n*0.975));
+    var p95range = sorted[p975Idx] - sorted[p025Idx];
+    return { n:n, min:mn, max:mx, range:mx-mn, mean:mean, median:median, std:std, p95range:p95range };
+  }
+
+  function fcPlaneFit(samples){
+    var n = samples.length; if(n < 3) return null;
+    var Su=0,Sv=0,Sz=0,Suu=0,Svv=0,Suv=0,Suz=0,Svz=0;
+    for(var i=0;i<n;i++){ var s=samples[i]; Su+=s.u;Sv+=s.v;Sz+=s.depth;Suu+=s.u*s.u;Svv+=s.v*s.v;Suv+=s.u*s.v;Suz+=s.u*s.depth;Svz+=s.v*s.depth; }
+    var det = Suu*(Svv*n - Sv*Sv) - Suv*(Suv*n - Sv*Su) + Su*(Suv*Sv - Svv*Su);
+    if(Math.abs(det) < 1e-12) return null;
+    var a = (Suz*(Svv*n - Sv*Sv) - Suv*(Svz*n - Sv*Sz) + Su*(Svz*Sv - Svv*Sz))/det;
+    var b = (Suu*(Svz*n - Sv*Sz) - Suz*(Suv*n - Sv*Su) + Su*(Suv*Sz - Svz*Su))/det;
+    var c = (Suu*(Svv*Sz - Sv*Svz) - Suv*(Suv*Sz - Sv*Suz) + Suz*(Suv*Sv - Svv*Su))/det; /* v9.3.1 C3: Cramer rule col-3 expansion -- Suz not Sz */
+    var resSum = 0;
+    for(var k=0;k<n;k++){ var s2=samples[k], r = s2.depth - (a*s2.u + b*s2.v + c); resSum += r*r; }
+    var rms = Math.sqrt(resSum/n);
+    var slopeMag = Math.atan(Math.sqrt(a*a + b*b)) * 180/Math.PI;
+    var slopeDir = Math.atan2(b, a) * 180/Math.PI;
+    return { a:a, b:b, c:c, slopeMag:slopeMag, slopeDir:slopeDir, residualRms:rms };
+  }
+
+  function analyzeFootprint(cx, cy, rot, W, L, buf, step, opts){
+    if(!values || !width || !height) return { status:'ERROR', message:'No raster loaded' };
+    opts = opts || {};
+    var skipPlane = !!opts.skipPlane;
+    var cosR = Math.cos(rot*Math.PI/180), sinR = Math.sin(rot*Math.PI/180);
+    var halfW = W/2 + buf, halfL = L/2 + buf;
+    var samples = [], validDepths = [], totalCount = 0, validCount = 0;
+    for(var u = -halfW; u <= halfW+1e-9; u += step){
+      for(var v = -halfL; v <= halfL+1e-9; v += step){
+        totalCount++;
+        var x = cx + u*cosR - v*sinR;
+        var y = cy + u*sinR + v*cosR;
+        var d = sampleDepthAt(x, y);
+        if(d !== null){ samples.push({u:u, v:v, x:x, y:y, depth:d}); validDepths.push(d); validCount++; }
+      }
+    }
+    var coverage = totalCount>0 ? (validCount/totalCount)*100 : 0;
+    var stats = fcStats(validDepths);
+    var plane = skipPlane ? null : (samples.length >= 3 ? fcPlaneFit(samples) : null);
+    return { cx:cx, cy:cy, rotation:rot, width:W, length:L, buffer:buf, step:step,
+      totalCount:totalCount, validCount:validCount, coverage:coverage,
+      samples:samples, stats:stats, plane:plane };
+  }
+
+  function evaluateStatus(result){
+    var tol = parseFloat(fcToleranceEl.value)||0.20;
+    var useSlope = !!fcUseSlopeEl.checked;
+    var slopeTol = parseFloat(fcSlopeTolEl.value)||1.0;
+    var minCov = parseFloat(fcMinCoverageEl.value)||95;
+    if(!result.stats) return { status:'INDETERMINATE', reasons:['No valid samples'], tol:tol, slopeTol:slopeTol, minCov:minCov, useSlope:useSlope };
+    var status = 'PASS', reasons = [];
+    if(result.coverage < minCov){ status='FAIL'; reasons.push('Coverage '+result.coverage.toFixed(1)+'% < '+minCov+'%'); }
+    var range = result.stats.range;
+    if(range > tol * 1.2){ status='FAIL'; reasons.push('dH '+range.toFixed(3)+' m > '+(tol*1.2).toFixed(3)+' m (FAIL)'); }
+    else if(range > tol){ if(status!=='FAIL') status='CAUTION'; reasons.push('dH '+range.toFixed(3)+' m > '+tol.toFixed(3)+' m (tolerance)'); }
+    if(useSlope && result.plane){
+      var slope = result.plane.slopeMag;
+      if(slope > slopeTol * 1.2){ status='FAIL'; reasons.push('Slope '+slope.toFixed(2)+' > '+(slopeTol*1.2).toFixed(2)+' deg'); }
+      else if(slope > slopeTol){ if(status!=='FAIL') status='CAUTION'; reasons.push('Slope '+slope.toFixed(2)+' > '+slopeTol.toFixed(2)+' deg'); }
+    }
+    if(status === 'PASS') reasons.push('All criteria met');
+    return { status:status, reasons:reasons, tol:tol, slopeTol:slopeTol, minCov:minCov, useSlope:useSlope };
+  }
+
+  function renderResult(result, evalR){
+    if(!result.stats){
+      fcResultEl.innerHTML = '<span style="color:var(--c-error)">INDETERMINATE</span><br>Not enough valid samples in footprint area.';
+      return;
+    }
+    var s = result.stats, p = result.plane;
+    var color = evalR.status==='PASS' ? '#22c55e' : (evalR.status==='CAUTION' ? '#eab308' : '#ef4444');
+    var badge = '<div style="display:inline-block;padding:4px 12px;background:'+color+';color:#000;font-weight:800;border-radius:4px;font-size:12px;">'+evalR.status+'</div>';
+    var lines = [];
+    lines.push(badge);
+    lines.push('<br><br>');
+    lines.push('<span style="color:#f1f5f9">dH range:</span> '+s.range.toFixed(3)+' m &nbsp;(tol '+evalR.tol.toFixed(2)+')<br>');
+    lines.push('<span style="color:#f1f5f9">p95 range:</span> '+s.p95range.toFixed(3)+' m<br>');
+    lines.push('<span style="color:#f1f5f9">Coverage:</span> '+result.coverage.toFixed(1)+'% ('+result.validCount+'/'+result.totalCount+')<br>');
+    if(p){
+      lines.push('<span style="color:#f1f5f9">Slope:</span> '+p.slopeMag.toFixed(2)+' deg dir '+p.slopeDir.toFixed(0)+' deg<br>');
+      lines.push('<span style="color:#f1f5f9">Plane rms:</span> '+p.residualRms.toFixed(3)+' m<br>');
+    }
+    lines.push('<br><span style="color:#f1f5f9">Depth min/max/mean:</span><br>');
+    lines.push(s.min.toFixed(2)+' / '+s.max.toFixed(2)+' / '+s.mean.toFixed(2)+' m<br>');
+    lines.push('<span style="color:#f1f5f9">Median / stddev:</span> '+s.median.toFixed(2)+' / '+s.std.toFixed(3)+' m<br><br>');
+    lines.push('<span style="color:#f1f5f9">Reasons:</span><br>');
+    for(var i=0;i<evalR.reasons.length;i++) lines.push('- '+evalR.reasons[i]+'<br>');
+    fcResultEl.innerHTML = lines.join('');
+  }
+
+  function fcRenderOverlay(result, evalR, extraCandidates){
+    if(fcOverlayGroup){ map.removeLayer(fcOverlayGroup); fcOverlayGroup = null; }
+    var group = L.layerGroup();
+    var color = evalR.status==='PASS' ? '#22c55e' : (evalR.status==='CAUTION' ? '#eab308' : '#ef4444');
+    var cosR = Math.cos(result.rotation*Math.PI/180), sinR = Math.sin(result.rotation*Math.PI/180);
+    function worldXY(u, v){ return [ result.cx + u*cosR - v*sinR, result.cy + u*sinR + v*cosR ]; }
+    var halfW = result.width/2, halfL = result.length/2;
+    var halfWb = halfW + result.buffer, halfLb = halfL + result.buffer;
+    var corners = [ worldXY(-halfW,-halfL), worldXY(halfW,-halfL), worldXY(halfW,halfL), worldXY(-halfW,halfL) ];
+    var cornersBuf = [ worldXY(-halfWb,-halfLb), worldXY(halfWb,-halfLb), worldXY(halfWb,halfLb), worldXY(-halfWb,halfLb) ];
+    function toLatLng(xy){ return L.latLng(xy[1], xy[0]); }
+    var polyFoot = L.polygon(corners.map(toLatLng), { color:color, weight:3, fillColor:color, fillOpacity:0.20 });
+    var polyBuf = L.polygon(cornersBuf.map(toLatLng), { color:color, weight:2, dashArray:'6 4', fill:false, opacity:0.5 });
+    group.addLayer(polyBuf); group.addLayer(polyFoot);
+    var cross = L.marker(toLatLng([result.cx, result.cy]), { icon: L.divIcon({ className:'', iconSize:[22,22], iconAnchor:[11,11], html:'<div style="width:22px;height:22px;position:relative;"><div style="position:absolute;left:10px;top:0;width:2px;height:22px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,0.9);"></div><div style="position:absolute;top:10px;left:0;width:22px;height:2px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,0.9);"></div><div style="position:absolute;left:8px;top:8px;width:6px;height:6px;background:#00d4aa;border:1px solid #000;border-radius:50%;"></div></div>' }) });
+    group.addLayer(cross);
+    if(extraCandidates && extraCandidates.length){
+      for(var i=0;i<extraCandidates.length;i++){
+        var cand = extraCandidates[i];
+        var ccolor = cand.status==='PASS' ? '#22c55e' : (cand.status==='CAUTION' ? '#eab308' : '#ef4444');
+        function candCorner(u, v){ return [ cand.cx + u*cosR - v*sinR, cand.cy + u*sinR + v*cosR ]; }
+        var ccorners = [ candCorner(-halfW,-halfL), candCorner(halfW,-halfL), candCorner(halfW,halfL), candCorner(-halfW,halfL) ];
+        var cRect = L.polygon(ccorners.map(toLatLng), { color:ccolor, weight:2, fillOpacity:0.10, dashArray:'2 3' });
+        var lbl = L.marker(toLatLng([cand.cx, cand.cy]), { icon: L.divIcon({ className:'', iconSize:[28,18], iconAnchor:[14,9], html:'<div style="background:'+ccolor+';color:#000;padding:1px 6px;font-weight:800;border-radius:3px;font-size:10px;line-height:16px;text-align:center;">#'+(i+2)+'</div>' }) });
+        group.addLayer(cRect); group.addLayer(lbl);
+      }
+    }
+    group.addTo(map);
+    fcOverlayGroup = group;
+  }
+
+  if(fcAnalyzeBtn){
+    fcAnalyzeBtn.addEventListener('click', function(){
+      if(!values){ alert('Please load a GeoTIFF first.'); return; }
+      var cx = parseFloat(fcCenterXEl.value), cy = parseFloat(fcCenterYEl.value);
+      if(!isFinite(cx) || !isFinite(cy)){ alert('Enter numeric Center X and Y.'); return; }
+      var rot = parseFloat(fcRotationEl.value)||0;
+      var W = parseFloat(fcWidthEl.value)||20;
+      var L = parseFloat(fcLengthEl.value)||20;
+      var buf = parseFloat(fcBufferEl.value)||0.5;
+      var step = parseFloat(fcSampleStepEl.value)||1;
+      var result = analyzeFootprint(cx, cy, rot, W, L, buf, step, {});
+      var evalR = evaluateStatus(result);
+      fcLastResult = { result:result, evalR:evalR, timestamp: new Date().toISOString() };
+      renderResult(result, evalR);
+      fcRenderOverlay(result, evalR);
+      fcTopListEl.innerHTML = '';
+      fcSaveLog(fcLastResult);
+    });
+  }
+
+  var fcSearchState = { cancelled:false, running:false };
+  var fcSearchProgEl = document.getElementById('fcSearchProgress');
+  var fcSearchProgBar = document.getElementById('fcSearchProgBar');
+  var fcSearchProgLabel = document.getElementById('fcSearchProgLabel');
+  var fcSearchCancelBtn = document.getElementById('fcSearchCancel');
+  if(fcSearchCancelBtn){
+    fcSearchCancelBtn.addEventListener('click', function(){ fcSearchState.cancelled = true; });
+  }
+  if(fcSearchBtn){
+    fcSearchBtn.addEventListener('click', function(){
+      if(!values){ alert('Please load a GeoTIFF first.'); return; }
+      var cx = parseFloat(fcCenterXEl.value), cy = parseFloat(fcCenterYEl.value);
+      if(!isFinite(cx) || !isFinite(cy)){ alert('Enter numeric Center X and Y.'); return; }
+      var rot = parseFloat(fcRotationEl.value)||0;
+      var W = parseFloat(fcWidthEl.value)||20;
+      var L = parseFloat(fcLengthEl.value)||20;
+      var buf = parseFloat(fcBufferEl.value)||0.5;
+      var step = parseFloat(fcSampleStepEl.value)||1;
+      var R = parseFloat(fcSearchRadiusEl.value)||50;
+      var srchStep = parseFloat(fcSearchStepEl.value)||5;
+      var topN = Math.max(1, parseInt(fcTopNEl.value)||5);
+      var tol = parseFloat(fcToleranceEl.value)||0.20;
+      var minCov = parseFloat(fcMinCoverageEl.value)||95;
+      /* v9.3.1 M3: RAF-chunked search with progress + cancel */
+      fcSearchBtn.disabled = true;
+      fcSearchState.cancelled = false;
+      fcSearchState.running = true;
+      fcSearchProgEl.style.display = 'block';
+      fcSearchProgBar.style.width = '0%';
+      var grid = [];
+      for(var dx=-R; dx<=R+1e-9; dx+=srchStep){
+        for(var dy=-R; dy<=R+1e-9; dy+=srchStep){
+          grid.push([dx, dy]);
+        }
+      }
+      var total = grid.length;
+      var candidates = [];
+      var iter = 0;
+      var BATCH = 40;
+      status.textContent = 'Searching optimal placement... (' + total + ' candidates)';
+      function processBatch(){
+        if(fcSearchState.cancelled){
+          fcSearchProgEl.style.display = 'none';
+          fcSearchBtn.disabled = false;
+          fcSearchState.running = false;
+          status.textContent = 'Search cancelled by user. Discarded ' + iter + ' partial results.';
+          return;
+        }
+        var end = Math.min(iter + BATCH, total);
+        for(var _i = iter; _i < end; _i++){
+          var dx2 = grid[_i][0], dy2 = grid[_i][1];
+          var tx = cx+dx2, ty = cy+dy2;
+          var res = analyzeFootprint(tx, ty, rot, W, L, buf, step, { skipPlane:true });
+          if(!res.stats) continue;
+          var evStatus = (res.coverage < minCov) ? 'FAIL' : (res.stats.range > tol*1.2 ? 'FAIL' : (res.stats.range > tol ? 'CAUTION' : 'PASS'));
+          var priority = evStatus==='PASS' ? 0 : (evStatus==='CAUTION' ? 1 : 2);
+          candidates.push({ cx:tx, cy:ty, dx:dx2, dy:dy2, distance: Math.sqrt(dx2*dx2+dy2*dy2), range: res.stats.range, coverage: res.coverage, status: evStatus, priority: priority });
+        }
+        iter = end;
+        var pct = (iter/total)*100;
+        fcSearchProgBar.style.width = pct.toFixed(1) + '%';
+        fcSearchProgLabel.textContent = 'Evaluated ' + iter + '/' + total + ' (' + pct.toFixed(0) + '%)';
+        if(iter < total){
+          requestAnimationFrame(processBatch);
+        } else {
+          finalizeSearch(candidates, cx, cy, rot, W, L, buf, step, topN);
+        }
+      }
+      function finalizeSearch(candidates, cx, cy, rot, W, L, buf, step, topN){
+        candidates.sort(function(a,b){
+          if(a.priority !== b.priority) return a.priority - b.priority;
+          if(Math.abs(a.range - b.range) > 1e-6) return a.range - b.range;
+          return a.distance - b.distance;
+        });
+        var top = candidates.slice(0, topN);
+        fcLastSearchResults = top;
+        fcSearchProgEl.style.display = 'none';
+        fcSearchState.running = false;
+        if(top.length){
+          var best = top[0];
+          var bestRes = analyzeFootprint(best.cx, best.cy, rot, W, L, buf, step, {});
+          var bestEval = evaluateStatus(bestRes);
+          renderResult(bestRes, bestEval);
+          fcRenderOverlay(bestRes, bestEval, top.slice(1));
+          fcLastResult = { result:bestRes, evalR:bestEval, timestamp: new Date().toISOString(), fromSearch:true };
+          fcSaveLog(fcLastResult);
+        }
+        var listHtml = '<div class="group-title" style="margin-top:8px;">Top-'+top.length+' candidates (click to apply)</div>';
+        listHtml += '<div style="font-family:monospace;font-size:11px;">';
+        for(var i=0;i<top.length;i++){
+          var t = top[i];
+          var col = t.status==='PASS' ? '#22c55e' : (t.status==='CAUTION' ? '#eab308' : '#ef4444');
+          listHtml += '<div style="padding:6px 8px;margin:4px 0;background:var(--c-panel-2);border-left:3px solid '+col+';border-radius:4px;cursor:pointer;" data-idx="'+i+'" class="fcCandRow">';
+          listHtml += '<strong style="color:'+col+'">#'+(i+1)+' '+t.status+'</strong>&nbsp;';
+          listHtml += 'X '+t.cx.toFixed(1)+' &nbsp; Y '+t.cy.toFixed(1);
+          listHtml += '<br><span style="color:var(--c-text-2)">';
+          listHtml += 'dH '+t.range.toFixed(3)+' m &nbsp; cov '+t.coverage.toFixed(1)+'% &nbsp; ';
+          listHtml += 'offset ('+t.dx.toFixed(1)+','+t.dy.toFixed(1)+') d='+t.distance.toFixed(1)+' m';
+          listHtml += '</span></div>';
+        }
+        listHtml += '</div>';
+        fcTopListEl.innerHTML = listHtml;
+        var rows = fcTopListEl.querySelectorAll('.fcCandRow');
+        for(var r=0;r<rows.length;r++){
+          rows[r].addEventListener('click', function(){
+            var idx = parseInt(this.getAttribute('data-idx'));
+            var cand = fcLastSearchResults[idx];
+            fcCenterXEl.value = cand.cx.toFixed(1);
+            fcCenterYEl.value = cand.cy.toFixed(1);
+            var res = analyzeFootprint(cand.cx, cand.cy, rot, W, L, buf, step, {});
+            var evalR2 = evaluateStatus(res);
+            fcLastResult = { result:res, evalR:evalR2, timestamp: new Date().toISOString(), fromCandidate: idx+1 };
+            renderResult(res, evalR2);
+            fcRenderOverlay(res, evalR2, fcLastSearchResults.slice(0, idx).concat(fcLastSearchResults.slice(idx+1)));
+            fcSaveLog(fcLastResult);
+          });
+        }
+        status.textContent = 'Search complete: '+candidates.length+' candidates evaluated.';
+        fcSearchBtn.disabled = false;
+      }
+      requestAnimationFrame(processBatch);
+    });
+  }
+
+  if(fcHideOverlayBtn){
+    fcHideOverlayBtn.addEventListener('click', function(){
+      if(fcOverlayGroup){ map.removeLayer(fcOverlayGroup); fcOverlayGroup=null; }
+      status.textContent = 'Foundation overlay cleared.';
+    });
+  }
+
+  function fcSaveLog(entry){
+    try {
+      var log = JSON.parse(localStorage.getItem('xy.fcLog')||'[]');
+      var summary = {
+        ts: entry.timestamp,
+        cx: entry.result.cx, cy: entry.result.cy,
+        rot: entry.result.rotation, W: entry.result.width, L: entry.result.length,
+        range: entry.result.stats ? entry.result.stats.range : null,
+        coverage: entry.result.coverage,
+        status: entry.evalR.status
+      };
+      log.push(summary);
+      if(log.length > 200) log = log.slice(-200);
+      localStorage.setItem('xy.fcLog', JSON.stringify(log));
+    } catch(e){}
+  }
+
+  /* v9.3.1 M6: In-page log modal (no popup blocker issues) */
+  var fcLogModalEl = document.getElementById('fcLogModal');
+  var fcLogTableWrap = document.getElementById('fcLogTableWrap');
+  var fcLogCountEl = document.getElementById('fcLogCount');
+  var fcLogCloseBtn = document.getElementById('fcLogCloseBtn');
+  var fcLogExportBtn = document.getElementById('fcLogExportBtn');
+  var fcLogClearBtn = document.getElementById('fcLogClearBtn');
+  function fcRenderLogTable(){
+    var log = [];
+    try { log = JSON.parse(localStorage.getItem('xy.fcLog')||'[]'); } catch(e){}
+    fcLogCountEl.textContent = log.length;
+    if(!log.length){
+      fcLogTableWrap.innerHTML = '<div style="text-align:center; padding:40px; color:var(--c-text-2);">Log is empty. Run Analyze or Find Best to populate.</div>';
+      return;
+    }
+    var h = '<table style="border-collapse:collapse; width:100%;">';
+    h += '<thead><tr>';
+    var cols = ['Timestamp','Center X','Center Y','Rot','W x L','dH (m)','Cov %','Status'];
+    for(var _c=0;_c<cols.length;_c++){
+      h += '<th style="border:1px solid var(--c-border); padding:6px 10px; text-align:left; background:var(--c-panel-2); position:sticky; top:0;">'+cols[_c]+'</th>';
+    }
+    h += '</tr></thead><tbody>';
+    for(var i=log.length-1;i>=0;i--){
+      var e = log[i];
+      var stColor = e.status==='PASS' ? '#22c55e' : (e.status==='CAUTION' ? '#eab308' : (e.status==='FAIL' ? '#ef4444' : '#94a3b8'));
+      var bg = (i%2===0) ? 'var(--c-panel-2)' : 'transparent';
+      h += '<tr style="background:'+bg+';">';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+e.ts+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+(e.cx!=null?e.cx.toFixed(1):'-')+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+(e.cy!=null?e.cy.toFixed(1):'-')+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+e.rot+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+e.W+' x '+e.L+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+(e.range!=null?e.range.toFixed(3):'-')+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px;">'+(e.coverage!=null?e.coverage.toFixed(1):'-')+'</td>';
+      h += '<td style="border:1px solid var(--c-border); padding:4px 8px; color:'+stColor+'; font-weight:800;">'+e.status+'</td>';
+      h += '</tr>';
+    }
+    h += '</tbody></table>';
+    fcLogTableWrap.innerHTML = h;
+  }
+  if(fcViewLogBtn){
+    fcViewLogBtn.addEventListener('click', function(){
+      fcRenderLogTable();
+      fcLogModalEl.style.display = 'block';
+    });
+  }
+  if(fcLogCloseBtn){
+    fcLogCloseBtn.addEventListener('click', function(){ fcLogModalEl.style.display = 'none'; });
+  }
+  if(fcLogModalEl){
+    fcLogModalEl.addEventListener('click', function(e){ if(e.target === fcLogModalEl){ fcLogModalEl.style.display = 'none'; } });
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && fcLogModalEl && fcLogModalEl.style.display === 'block'){
+      fcLogModalEl.style.display = 'none';
+    }
+  });
+  if(fcLogExportBtn){
+    fcLogExportBtn.addEventListener('click', function(){
+      var log = [];
+      try { log = JSON.parse(localStorage.getItem('xy.fcLog')||'[]'); } catch(e){}
+      if(!log.length){ alert('Nothing to export.'); return; }
+      var csv = 'timestamp,center_x,center_y,rotation,width,length,range_m,coverage_pct,status\r\n';
+      for(var i=0;i<log.length;i++){
+        var e = log[i];
+        csv += e.ts+','+(e.cx!=null?e.cx.toFixed(3):'')+','+(e.cy!=null?e.cy.toFixed(3):'')+','+e.rot+','+e.W+','+e.L+','+(e.range!=null?e.range.toFixed(3):'')+','+(e.coverage!=null?e.coverage.toFixed(1):'')+','+e.status+'\r\n';
+      }
+      var blob = new Blob([csv], {type:'text/csv'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'foundation_log_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
+    });
+  }
+  if(fcLogClearBtn){
+    fcLogClearBtn.addEventListener('click', function(){
+      if(confirm('Clear all Foundation Check log entries? This cannot be undone.')){
+        try { localStorage.removeItem('xy.fcLog'); } catch(e){}
+        fcRenderLogTable();
+      }
+    });
+  }
+
+  if(fcExportCSVBtn){
+    fcExportCSVBtn.addEventListener('click', function(){
+      if(!fcLastResult){ alert('Run an analysis first.'); return; }
+      var r = fcLastResult.result, e = fcLastResult.evalR, s = r.stats;
+      var csv = 'timestamp,center_x,center_y,rotation,width,length,buffer,tolerance,range,slope,coverage,status,samples,min,max,mean,median,stddev,p95range\r\n';
+      csv += fcLastResult.timestamp+','+r.cx.toFixed(3)+','+r.cy.toFixed(3)+','+r.rotation+','+r.width+','+r.length+','+r.buffer+','+e.tol+',';
+      csv += (s?s.range.toFixed(3):'')+','+(r.plane?r.plane.slopeMag.toFixed(2):'')+','+r.coverage.toFixed(1)+','+e.status+','+r.validCount+',';
+      csv += (s?s.min.toFixed(3):'')+','+(s?s.max.toFixed(3):'')+','+(s?s.mean.toFixed(3):'')+','+(s?s.median.toFixed(3):'')+','+(s?s.std.toFixed(3):'')+','+(s?s.p95range.toFixed(3):'');
+      var blob = new Blob([csv], {type:'text/csv'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'foundation_'+importBase+'.csv';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
+    });
+  }
+  if(fcExportJSONBtn){
+    fcExportJSONBtn.addEventListener('click', function(){
+      if(!fcLastResult){ alert('Run an analysis first.'); return; }
+      var payload = {
+        timestamp: fcLastResult.timestamp,
+        source_raster: importBase,
+        input: {
+          center: [fcLastResult.result.cx, fcLastResult.result.cy],
+          rotation_deg: fcLastResult.result.rotation,
+          footprint_m: [fcLastResult.result.width, fcLastResult.result.length],
+          buffer_m: fcLastResult.result.buffer,
+          sample_step_m: fcLastResult.result.step
+        },
+        criteria: {
+          tolerance_range_m: fcLastResult.evalR.tol,
+          slope_tolerance_deg: fcLastResult.evalR.slopeTol,
+          min_coverage_pct: fcLastResult.evalR.minCov,
+          use_slope: fcLastResult.evalR.useSlope
+        },
+        result: {
+          status: fcLastResult.evalR.status,
+          coverage_pct: fcLastResult.result.coverage,
+          statistics: fcLastResult.result.stats,
+          plane_fit: fcLastResult.result.plane,
+          reasons: fcLastResult.evalR.reasons
+        },
+        top_candidates: fcLastSearchResults ? fcLastSearchResults.map(function(t){
+          return { cx: +t.cx.toFixed(1), cy: +t.cy.toFixed(1), dx: +t.dx.toFixed(1), dy: +t.dy.toFixed(1),
+                   distance_m: +t.distance.toFixed(1), range_m: +t.range.toFixed(3),
+                   coverage_pct: +t.coverage.toFixed(1), status: t.status };
+        }) : null
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'foundation_'+importBase+'.json';
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
+    });
+  }
 
 })();
 </script>
