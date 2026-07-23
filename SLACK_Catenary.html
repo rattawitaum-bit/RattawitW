@@ -230,6 +230,114 @@
       const IconImport = ({ size = 24, ...props }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> );
       const IconExport = ({ size = 24, ...props }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> );
 
+      // --- v10 NEW: Toast notification component (non-blocking) ---
+      function Toast({ toasts, removeToast }) {
+          return (
+              <div className="fixed bottom-4 right-4 z-\[100\] flex flex-col gap-2" role="region" aria-live="polite" aria-label="Notifications">
+                  {toasts.map(t => (
+                      <div key={t.id}
+                           className={`flex items-start gap-2 px-4 py-2.5 rounded-lg shadow-lg border animate-in fade-in slide-in-from-right-4 duration-300 min-w-\[240px\] max-w-\[380px\]
+                               ${t.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200' :
+                                 t.type === 'error'   ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200' :
+                                 t.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200' :
+                                                        'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'}`}
+                           role="status">
+                          <span className="text-lg leading-none mt-0.5" aria-hidden="true">
+                              {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : t.type === 'warning' ? '⚠' : 'ℹ'}
+                          </span>
+                          <div className="flex-1 text-xs whitespace-pre-wrap leading-snug">{t.message}</div>
+                          <button onClick={() => removeToast(t.id)} className="text-current opacity-60 hover:opacity-100 shrink-0" aria-label="Dismiss notification">
+                              <IconX size={14} />
+                          </button>
+                      </div>
+                  ))}
+              </div>
+          );
+      }
+
+      // --- v10 NEW: Confirm modal (non-blocking replacement for window.confirm) ---
+      function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
+          if (!open) return null;
+          return (
+              <div className="fixed inset-0 z-\[95\] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+                  <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-w-sm w-full border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                          <h3 id="confirm-title" className="text-base font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                              <IconWarning size={16} className="text-amber-500" aria-hidden="true"/> {title || 'Confirm Action'}
+                          </h3>
+                      </div>
+                      <div className="p-4 text-sm text-gray-600 dark:text-gray-300">{message}</div>
+                      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 flex gap-2 justify-end rounded-b-lg">
+                          <button onClick={onCancel} className="px-3 py-1.5 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label="Cancel action">
+                              {cancelLabel || 'Cancel'}
+                          </button>
+                          <button onClick={onConfirm} className="px-3 py-1.5 text-xs font-bold rounded bg-red-600 hover:bg-red-500 text-white transition-colors" aria-label="Confirm action">
+                              {confirmLabel || 'Confirm'}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
+      // --- v10 NEW: PromptDialog (inline replacement for window.prompt) ---
+      function PromptDialog({ open, title, message, defaultValue, onConfirm, onCancel }) {
+          const [val, setVal] = useState(defaultValue || '');
+          useEffect(() => { if (open) setVal(defaultValue || ''); }, [open, defaultValue]);
+          if (!open) return null;
+          return (
+              <div className="fixed inset-0 z-\[95\] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+                  <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-w-sm w-full border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+                          <h3 id="prompt-title" className="text-base font-bold text-gray-800 dark:text-gray-100">{title || 'Enter value'}</h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                          {message && <p className="text-xs text-gray-600 dark:text-gray-300">{message}</p>}
+                          <input type="text" value={val} onChange={e => setVal(e.target.value)} autoFocus
+                                 onKeyDown={e => { if (e.key === 'Enter') onConfirm(val); if (e.key === 'Escape') onCancel(); }}
+                                 className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1.5 text-sm text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none"
+                                 aria-label="Input value"/>
+                      </div>
+                      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 flex gap-2 justify-end rounded-b-lg">
+                          <button onClick={onCancel} className="px-3 py-1.5 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Cancel">Cancel</button>
+                          <button onClick={() => onConfirm(val)} className="px-3 py-1.5 text-xs font-bold rounded bg-accent-600 hover:bg-accent-500 text-white" aria-label="Save">Save</button>
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
+      // --- v10 NEW: useDebounce hook (300ms) ---
+      function useDebounce(value, delay = 300) {
+          const [debounced, setDebounced] = useState(value);
+          useEffect(() => {
+              const h = setTimeout(() => setDebounced(value), delay);
+              return () => clearTimeout(h);
+          }, [value, delay]);
+          return debounced;
+      }
+
+      // --- v10 NEW: Error classifier for actionable messages ---
+      const classifyError = (err) => {
+          const msg = err?.message || String(err);
+          if (err?.name === 'AbortError' || msg.includes('aborted')) {
+              return { title: 'Request Timed Out', hint: 'The worker took too long to respond. Try fewer targets or turn off Find Max.', canRetry: true, category: 'timeout' };
+          }
+          if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('CORS')) {
+              return { title: 'Network / CORS Error', hint: 'Possible causes:\n• You opened the file via file:// — please serve via http:// (e.g. python -m http.server)\n• Recent Cloudflare CPU errors triggered a temporary rate-limit — wait 30s\n• Browser CORS cache poisoned — try Ctrl+Shift+R', canRetry: true, category: 'network' };
+          }
+          if (msg.includes('exceeded CPU') || msg.includes('CPU')) {
+              return { title: 'Worker CPU Limit Exceeded', hint: 'Reduce the number of tension targets, or disable Find Max. Free tier = 10ms CPU per request.', canRetry: true, category: 'cpu' };
+          }
+          if (msg.includes('exceeds physical')) {
+              return { title: 'Target Beyond Physical Limit', hint: 'The requested offset is longer than the total line can reach. Check segment lengths.', canRetry: false, category: 'validation' };
+          }
+          if (msg.startsWith('HTTP 5')) {
+              return { title: 'Server Error', hint: msg + '\nThis is usually transient — try again in a moment.', canRetry: true, category: 'server' };
+          }
+          return { title: 'Calculation Error', hint: msg, canRetry: true, category: 'unknown' };
+      };
+
       // --- COMPONENTS ---
       function SectionHeader({ title, icon: Icon }) {
           return (
@@ -240,13 +348,31 @@
           );
       }
 
-      function ErrorBanner({ message, onClose }) {
+      // v10 M1: ErrorBanner now shows classified error with actionable hint + Retry button
+      function ErrorBanner({ error, onClose, onRetry }) {
+          if (!error) return null;
+          // error can be a string (backward compat) or an object with title/hint/canRetry
+          const isString = typeof error === 'string';
+          const title = isString ? 'Error' : (error.title || 'Error');
+          const hint  = isString ? error : (error.hint || '');
+          const canRetry = isString ? true : (error.canRetry !== false);
           return (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
-                  <IconWarning className="shrink-0 mt-0.5" size={18} />
-                  <div className="flex-1 text-sm whitespace-pre-wrap">{message}</div>
-                  <button onClick={onClose} className="text-red-500 hover:text-red-700 dark:hover:text-red-200 transition-colors">
-                      <IconX size={16} />
+              <div role="alert" aria-live="assertive"
+                   className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+                  <IconWarning className="shrink-0 mt-0.5" size={18} aria-hidden="true"/>
+                  <div className="flex-1 text-sm">
+                      <div className="font-bold mb-0.5">{title}</div>
+                      {hint && <div className="text-xs whitespace-pre-wrap opacity-90">{hint}</div>}
+                  </div>
+                  {canRetry && onRetry && (
+                      <button onClick={onRetry} aria-label="Retry calculation"
+                              className="text-xs font-bold px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded shadow-sm shrink-0 flex items-center gap-1">
+                          <IconRefresh size={12} aria-hidden="true"/> Retry
+                      </button>
+                  )}
+                  <button onClick={onClose} aria-label="Dismiss error"
+                          className="text-red-500 hover:text-red-700 dark:hover:text-red-200 transition-colors shrink-0">
+                      <IconX size={16} aria-hidden="true"/>
                   </button>
               </div>
           );
@@ -370,6 +496,19 @@
                               </ul>
                           </div>
                           <div>
+                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">9. v10 UX Improvements (NEW)</h3>
+                              <ul className="list-disc pl-4 space-y-1">
+                                  <li><strong>Toast notifications</strong> replace blocking dialogs — Save/Load/Import feedback appears bottom-right without interrupting your workflow.</li>
+                                  <li><strong>Better error messages</strong> with a Retry button — instead of raw "Failed to fetch", you get classified hints (Network/CORS, CPU limit, timeout) with actionable guidance.</li>
+                                  <li><strong>Fleet preset dropdown remembers selection</strong> — see which vessel is currently loaded at a glance.</li>
+                                  <li><strong>Import restores results</strong> — if the JSON was exported with results, no re-calculation is triggered (saves API quota).</li>
+                                  <li><strong>Export includes anchor pattern & bearings</strong> — Top View survives round-trip export/import.</li>
+                                  <li><strong>Overwrite confirmation</strong> when Save Setup name already exists — no silent data loss.</li>
+                                  <li><strong>Debounced inputs (300ms)</strong> — heavy typing in Water Depth / Fairlead Z / Tension no longer causes re-render lag.</li>
+                                  <li><strong>ARIA labels & focus management</strong> throughout — improved accessibility for keyboard and screen-reader users.</li>
+                              </ul>
+                          </div>
+                          <div>
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">8. Smart Auto-Fill (NEW)</h3>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>⚡ Auto tension</strong> (button next to tension input): suggests tension list based on wire Ø. Jackup (≤40mm) → 5,10,15 · Tender (≥60mm) → 5,10,20,40 · AWB (44-52mm) → 3,5,20,35. Combined with Find Max, total solver runs stay ≤4 per calc to fit free Cloudflare CPU quota.</li>
@@ -380,7 +519,7 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v260723-v9</span>
+                              <span>Frontend: v260723-v10</span>
                               <span>Worker: v260727</span>
                           </div>
                           <div className="text-center text-[10px] text-gray-500 dark:text-gray-400">
@@ -405,7 +544,13 @@
           calcMode, setCalcMode,
           projectName, setProjectName,
           patternType, setPatternType,
-          anchorBearings, setAnchorBearings
+          anchorBearings, setAnchorBearings,
+          // v10 NEW: injected from App
+          activePresetKey, setActivePresetKey,   // M2: remember selection
+          bulkUpdateConfig,                       // M6: batch state updates
+          pushToast,                              // M5: non-blocking notifications
+          openConfirm,                            // M7: overwrite dialog
+          openPrompt                              // M5: save name dialog
       }) => {
 
           const validatePositive = (val, allowZero = true) => {
@@ -519,21 +664,46 @@
               setBuoys(newBuoys);
           };
 
+          // v10 M6: consolidate 11 setState calls into ONE bulkUpdateConfig call
+          //         M2: remember which preset was loaded
           const applyFleetPreset = (key) => {
               if (!key || !FLEET_PRESETS[key]) return;
               const p = FLEET_PRESETS[key];
               const stamp = Date.now();
-              setProjectName(p.projectName);
-              setWaterDepth(p.waterDepth);
-              setFairleadElev(p.fairleadElev);
-              setSubseaStructures(p.subseaStructuresStr || '');
-              setSegments(p.segments.map((sg, i) => ({ ...sg, id: `seg-${stamp}-${i}` })));
-              setBuoys(p.buoys.map((b, i) => ({ ...b, id: `buoy-${stamp}-${i}` })));
-              setCalcMode(p.calcMode || 'tension');
-              setShowMaxTension(!!p.showMaxTension);
-              setTensions(p.tensionsStr || '5, 20, 40');
-              if (setPatternType) setPatternType(p.patternType || 'tender_8pt');
-              if (setAnchorBearings) setAnchorBearings((PATTERN_TEMPLATES[p.patternType || 'tender_8pt'] || []).map(a => ({ ...a })));
+              const pType = p.patternType || 'tender_8pt';
+              const updates = {
+                  projectName: p.projectName,
+                  waterDepth: p.waterDepth,
+                  fairleadElev: p.fairleadElev,
+                  subseaStructuresStr: p.subseaStructuresStr || '',
+                  segments: p.segments.map((sg, i) => ({ ...sg, id: `seg-${stamp}-${i}` })),
+                  buoys: p.buoys.map((b, i) => ({ ...b, id: `buoy-${stamp}-${i}` })),
+                  calcMode: p.calcMode || 'tension',
+                  showMaxTension: !!p.showMaxTension,
+                  tensionsStr: p.tensionsStr || '5, 20, 40',
+                  patternType: pType,
+                  anchorBearings: (PATTERN_TEMPLATES[pType] || []).map(a => ({ ...a }))
+              };
+              if (bulkUpdateConfig) {
+                  bulkUpdateConfig(updates);
+              } else {
+                  // Fallback for compatibility - shouldn't happen in v10
+                  setProjectName(updates.projectName);
+                  setWaterDepth(updates.waterDepth);
+                  setFairleadElev(updates.fairleadElev);
+                  setSubseaStructures(updates.subseaStructuresStr);
+                  setSegments(updates.segments);
+                  setBuoys(updates.buoys);
+                  setCalcMode(updates.calcMode);
+                  setShowMaxTension(updates.showMaxTension);
+                  setTensions(updates.tensionsStr);
+                  setPatternType(updates.patternType);
+                  setAnchorBearings(updates.anchorBearings);
+              }
+              // v10 M2: remember active preset (persist to localStorage as last-used)
+              if (setActivePresetKey) setActivePresetKey(key);
+              try { localStorage.setItem('slack_last_preset', key); } catch(e) {}
+              if (pushToast) pushToast('success', `Loaded: ${p.label}`);
           };
 
           const suggestTension = () => {
@@ -547,9 +717,8 @@
               setShowMaxTension(true);
           };
 
-          const saveMySetup = () => {
-              const name = prompt('Save current setup as (name):', projectName);
-              if (!name) return;
+          // v10 M5+M7: prompt via non-blocking dialog, confirm overwrite, toast on success/error
+          const persistSetup = (name) => {
               const setup = { projectName, waterDepth, fairleadElev,
                   subseaStructuresStr: subseaStructures, segments, buoys,
                   tensionsStr: tensions, calcMode, showMaxTension,
@@ -560,8 +729,43 @@
                   all[name] = setup;
                   localStorage.setItem('slack_my_setups', JSON.stringify(all));
                   setMySetupNames(Object.keys(all));
-                  alert(`Saved "${name}"`);
-              } catch(e) { alert('Save failed: ' + e.message); }
+                  if (pushToast) pushToast('success', `Saved "${name}"`);
+              } catch(e) {
+                  if (pushToast) pushToast('error', 'Save failed: ' + e.message);
+                  else alert('Save failed: ' + e.message);
+              }
+          };
+          const saveMySetup = () => {
+              const doSave = (name) => {
+                  if (!name || !name.trim()) return;
+                  name = name.trim();
+                  try {
+                      const all = JSON.parse(localStorage.getItem('slack_my_setups') || '{}');
+                      if (all[name] && openConfirm) {
+                          // M7: confirm overwrite via non-blocking dialog
+                          openConfirm({
+                              title: 'Overwrite Existing Setup?',
+                              message: `A setup named "${name}" already exists (saved ${new Date(all[name].savedAt).toLocaleString()}). Overwrite it?`,
+                              confirmLabel: 'Overwrite',
+                              cancelLabel: 'Cancel',
+                              onConfirm: () => persistSetup(name)
+                          });
+                      } else {
+                          persistSetup(name);
+                      }
+                  } catch(e) { persistSetup(name); }
+              };
+              if (openPrompt) {
+                  openPrompt({
+                      title: 'Save Current Setup',
+                      message: 'Setups are stored in your browser (localStorage) for quick recall.',
+                      defaultValue: projectName,
+                      onConfirm: doSave
+                  });
+              } else {
+                  const name = window.prompt('Save current setup as:', projectName);
+                  if (name) doSave(name);
+              }
           };
           const loadMySetup = (name) => {
               if (!name) return;
@@ -569,18 +773,35 @@
                   const all = JSON.parse(localStorage.getItem('slack_my_setups') || '{}');
                   const p = all[name]; if (!p) return;
                   const stamp = Date.now();
-                  setProjectName(p.projectName || name);
-                  setWaterDepth(p.waterDepth);
-                  setFairleadElev(p.fairleadElev);
-                  setSubseaStructures(p.subseaStructuresStr || '');
-                  setSegments((p.segments || []).map((sg, i) => ({ ...sg, id: `seg-${stamp}-${i}` })));
-                  setBuoys((p.buoys || []).map((b, i) => ({ ...b, id: `buoy-${stamp}-${i}` })));
-                  setCalcMode(p.calcMode || 'tension');
-                  setShowMaxTension(!!p.showMaxTension);
-                  setTensions(p.tensionsStr || '5, 20, 40');
-                  if (setPatternType && p.patternType) setPatternType(p.patternType);
-                  if (setAnchorBearings && p.anchorBearings) setAnchorBearings(p.anchorBearings);
-              } catch(e) { alert('Load failed: ' + e.message); }
+                  const pType = p.patternType || 'tender_8pt';
+                  const updates = {
+                      projectName: p.projectName || name,
+                      waterDepth: p.waterDepth,
+                      fairleadElev: p.fairleadElev,
+                      subseaStructuresStr: p.subseaStructuresStr || '',
+                      segments: (p.segments || []).map((sg, i) => ({ ...sg, id: `seg-${stamp}-${i}` })),
+                      buoys: (p.buoys || []).map((b, i) => ({ ...b, id: `buoy-${stamp}-${i}` })),
+                      calcMode: p.calcMode || 'tension',
+                      showMaxTension: !!p.showMaxTension,
+                      tensionsStr: p.tensionsStr || '5, 20, 40',
+                      patternType: pType,
+                      anchorBearings: p.anchorBearings || (PATTERN_TEMPLATES[pType] || []).map(a => ({...a}))
+                  };
+                  if (bulkUpdateConfig) bulkUpdateConfig(updates);
+                  else {
+                      // Fallback
+                      setProjectName(updates.projectName); setWaterDepth(updates.waterDepth);
+                      setFairleadElev(updates.fairleadElev); setSubseaStructures(updates.subseaStructuresStr);
+                      setSegments(updates.segments); setBuoys(updates.buoys);
+                      setCalcMode(updates.calcMode); setShowMaxTension(updates.showMaxTension);
+                      setTensions(updates.tensionsStr); setPatternType(updates.patternType);
+                      setAnchorBearings(updates.anchorBearings);
+                  }
+                  if (pushToast) pushToast('success', `Loaded "${name}"`);
+              } catch(e) {
+                  if (pushToast) pushToast('error', 'Load failed: ' + e.message);
+                  else alert('Load failed: ' + e.message);
+              }
           };
           const [mySetupNames, setMySetupNames] = useState([]);
           useEffect(() => {
@@ -589,6 +810,29 @@
           }, []);
 
           const isFairleadInvalid = !validatePositive(parseFloat(fairleadElev), true);
+
+          // v10 S2: debounced buffers for text-heavy inputs (300ms flush)
+          // UI stays snappy while typing; global config updates only after user pauses
+          const [wdBuf, setWdBuf] = useState(String(waterDepth));
+          const [flBuf, setFlBuf] = useState(String(fairleadElev));
+          const [tensBuf, setTensBuf] = useState(tensions);
+          const [subseaBuf, setSubseaBuf] = useState(subseaStructures);
+          // Sync buffers when external state changes (e.g. preset load, import)
+          useEffect(() => { setWdBuf(String(waterDepth)); }, [waterDepth]);
+          useEffect(() => { setFlBuf(String(fairleadElev)); }, [fairleadElev]);
+          useEffect(() => { setTensBuf(tensions); }, [tensions]);
+          useEffect(() => { setSubseaBuf(subseaStructures); }, [subseaStructures]);
+          const dbWd = useDebounce(wdBuf, 300);
+          const dbFl = useDebounce(flBuf, 300);
+          const dbTens = useDebounce(tensBuf, 300);
+          const dbSubsea = useDebounce(subseaBuf, 300);
+          useEffect(() => {
+              const v = parseFloat(dbWd);
+              if (!isNaN(v) && v !== waterDepth) setWaterDepth(Math.max(0, v));
+          }, [dbWd]);
+          useEffect(() => { if (dbFl !== String(fairleadElev)) setFairleadElev(dbFl); }, [dbFl]);
+          useEffect(() => { if (dbTens !== tensions) setTensions(dbTens); }, [dbTens]);
+          useEffect(() => { if (dbSubsea !== subseaStructures) setSubseaStructures(dbSubsea); }, [dbSubsea]);
 
           return (
               <div className="flex flex-col h-full relative">
@@ -602,7 +846,8 @@
                                       <IconAnchor size={11} /> Quick Fill: Fleet Vessel
                                   </label>
                                   <div className="relative">
-                                      <select defaultValue="" onChange={e => { applyFleetPreset(e.target.value); e.target.value = ''; }} className="w-full bg-white dark:bg-gray-900 border border-accent-400 dark:border-accent-500 rounded px-2 py-2 text-xs font-medium text-accent-700 dark:text-accent-300 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm cursor-pointer">
+                                      {/* v10 M2: dropdown remembers active preset (via activePresetKey), no auto-reset */}
+                                      <select value={activePresetKey || ''} onChange={e => { if (e.target.value) applyFleetPreset(e.target.value); }} className="w-full bg-white dark:bg-gray-900 border border-accent-400 dark:border-accent-500 rounded px-2 py-2 text-xs font-medium text-accent-700 dark:text-accent-300 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm cursor-pointer" aria-label="Fleet preset selector">
                                           <option value="">-- Select vessel: auto-loads all fields --</option>
                                           <optgroup label="🔵 TENDER (Large wire)">
                                               {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='TENDER').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].label}</option>))}
@@ -617,12 +862,12 @@
                                       <IconChevronDown size={12} className="absolute right-2 top-2.5 text-accent-500 pointer-events-none" />
                                   </div>
                                   <div className="flex gap-2 mt-2">
-                                      <button onClick={saveMySetup} className="flex-1 text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 transition-colors uppercase tracking-wider">
+                                      <button onClick={saveMySetup} aria-label="Save current setup to browser storage" className="flex-1 text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 transition-colors uppercase tracking-wider">
                                           💾 Save Setup
                                       </button>
                                       {mySetupNames.length > 0 && (
                                           <div className="flex-1 relative">
-                                              <select defaultValue="" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-full text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-700 uppercase tracking-wider cursor-pointer appearance-none">
+                                              <select defaultValue="" aria-label="Load saved setup" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-full text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-700 uppercase tracking-wider cursor-pointer appearance-none">
                                                   <option value="">📂 Load ({mySetupNames.length})</option>
                                                   {mySetupNames.map(n => <option key={n} value={n}>{n}</option>)}
                                               </select>
@@ -635,11 +880,12 @@
                               </div>
                               <InputField label="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} type="text" placeholder="e.g. Mooring_Line_A" className="col-span-2" />
                               <div className="grid grid-cols-2 gap-3">
-                                  <InputField label="Water Depth" value={waterDepth} onChange={e => { const val = parseFloat(e.target.value); setWaterDepth(isNaN(val) ? 0 : Math.max(0, val)); }} unit="m" min={0} error={waterDepth <= 0 ? "Depth > 0" : undefined} />
-                                  <InputField label="Fairlead Z" value={fairleadElev} onChange={e => setFairleadElev(e.target.value)} unit="m" error={isFairleadInvalid ? "Z ≥ 0" : undefined} />
+                                  {/* v10 S2: debounced local buffer for smoother typing */}
+                                  <InputField label="Water Depth" value={wdBuf} onChange={e => setWdBuf(e.target.value)} unit="m" min={0} error={waterDepth <= 0 ? "Depth > 0" : undefined} />
+                                  <InputField label="Fairlead Z" value={flBuf} onChange={e => setFlBuf(e.target.value)} unit="m" error={isFairleadInvalid ? "Z ≥ 0" : undefined} />
                               </div>
                               <div className="border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
-                                  <InputField label="Subsea Structures (Dist from FL)" value={subseaStructures} onChange={e => setSubseaStructures(e.target.value)} type="text" placeholder="e.g. 150, 400" />
+                                  <InputField label="Subsea Structures (Dist from FL)" value={subseaBuf} onChange={e => setSubseaBuf(e.target.value)} type="text" placeholder="e.g. 150, 400" />
                               </div>
                           </div>
                       </section>
@@ -647,7 +893,7 @@
                       <section>
                           <div className="flex justify-between items-center mb-2">
                               <SectionHeader title="Line Segments (Fairlead → Anchor)" icon={IconAnchor} />
-                              <button onClick={addSegment} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                              <button onClick={addSegment} aria-label="Add new segment" className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
                                   <IconPlus size={12} /> Add
                               </button>
                           </div>
@@ -669,10 +915,10 @@
                                           <div className="flex justify-between items-start mb-2">
                                               <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[10px] px-1.5 rounded">#{idx + 1}</span>{seg.type}</span>
                                               <div className="flex items-center gap-1">
-                                                  <button onClick={() => duplicateSegment(idx)} className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this segment">
+                                                  <button onClick={() => duplicateSegment(idx)} aria-label="Duplicate this segment" className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this segment">
                                                       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                                                   </button>
-                                                  <button onClick={() => removeSegment(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconX size={14} /></button>
+                                                  <button onClick={() => removeSegment(idx)} aria-label="Remove this segment" className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconX size={14} aria-hidden="true"/></button>
                                               </div>
                                           </div>
                                           <div className="grid grid-cols-2 gap-3">
@@ -719,7 +965,7 @@
                       <section>
                           <div className="flex justify-between items-center mb-2">
                               <SectionHeader title="Buoys" icon={IconLifeBuoy} />
-                              <button onClick={addBuoy} className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                              <button onClick={addBuoy} aria-label="Add new buoy" className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
                                   <IconPlus size={12} /> Add
                               </button>
                           </div>
@@ -739,10 +985,10 @@
                                       <div className="flex justify-between items-start mb-2">
                                           <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500">Buoy #{idx + 1}</span>
                                           <div className="flex items-center gap-1">
-                                              <button onClick={() => duplicateBuoy(idx)} className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this buoy">
+                                              <button onClick={() => duplicateBuoy(idx)} aria-label="Duplicate this buoy" className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this buoy">
                                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                                               </button>
-                                              <button onClick={() => removeBuoy(idx)} className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconTrash2 size={12} /></button>
+                                              <button onClick={() => removeBuoy(idx)} aria-label="Remove this buoy" className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconTrash2 size={12} aria-hidden="true"/></button>
                                           </div>
                                       </div>
                                       <div className="space-y-3">
@@ -793,21 +1039,22 @@
                               {calcMode === 'tension' ? 'Target Tensions (t)' : 'Target Offsets (m)'}
                           </label>
                           {calcMode === 'tension' && (
-                              <button onClick={suggestTension} className="absolute -top-2 right-2 z-10 px-1.5 py-0.5 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider border border-fuchsia-300 dark:border-fuchsia-800 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/30 transition-colors" title="Auto-suggest tension: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35">
+                              <button onClick={suggestTension} aria-label="Auto-suggest tension based on wire diameter" className="absolute -top-2 right-2 z-10 px-1.5 py-0.5 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider border border-fuchsia-300 dark:border-fuchsia-800 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/30 transition-colors" title="Auto-suggest tension: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35">
                                   ⚡ Auto
                               </button>
                           )}
                           <input
                               type="text"
-                              value={tensions}
-                              onChange={e => setTensions(e.target.value)}
+                              value={tensBuf}
+                              onChange={e => setTensBuf(e.target.value)}
                               disabled={loading}
+                              aria-label={calcMode === 'tension' ? 'Target tensions (tonnes, comma-separated)' : 'Target offsets (meters, comma-separated)'}
                               className={`w-full bg-white dark:bg-gray-900 border-2 rounded px-3 py-2 text-sm font-mono mb-3 focus:outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200 disabled:opacity-50 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`}
                               placeholder={calcMode === 'tension' ? "e.g. 10, 50, 100" : "e.g. 50, 100, 200"}
                           />
                       </div>
 
-                      <button onClick={calculate} disabled={loading} className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
+                      <button onClick={calculate} disabled={loading} aria-label="Run calculation" className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
                           {loading ? <span>Processing Engine...</span> : <>{calcMode === 'tension' ? <IconPlay size={16} fill="currentColor" /> : <IconRefresh size={16} />} {calcMode === 'tension' ? 'Calculate Profile' : 'Find Tensions'}</>}
                       </button>
                   </div>
@@ -1427,9 +1674,38 @@
           const [exportToast, setExportToast] = useState(false);
           const [loading, setLoading] = useState(false);
 
+          // v10 M2: track active fleet preset (persisted)
+          const [activePresetKey, setActivePresetKey] = useState(() => {
+              try { return localStorage.getItem('slack_last_preset') || ''; } catch(e) { return ''; }
+          });
+
+          // v10 M5: toast notification queue
+          const [toasts, setToasts] = useState([]);
+          const pushToast = (type, message, duration = 3000) => {
+              const id = Date.now() + Math.random();
+              setToasts(prev => [...prev, { id, type, message }]);
+              if (duration > 0) setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
+          };
+          const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+
+          // v10 M7: confirm dialog state
+          const [confirmState, setConfirmState] = useState({ open: false });
+          const openConfirm = (opts) => setConfirmState({ open: true, ...opts });
+          const closeConfirm = () => setConfirmState({ open: false });
+
+          // v10 M5: prompt dialog state
+          const [promptState, setPromptState] = useState({ open: false });
+          const openPrompt = (opts) => setPromptState({ open: true, ...opts });
+          const closePrompt = () => setPromptState({ open: false });
+
           const activeConfig = configs.find(c => c.id === activeTabId) || configs[0];
 
           const updateConfig = (updates) => {
+              setConfigs(prev => prev.map(c => c.id === activeTabId ? { ...c, ...updates } : c));
+          };
+
+          // v10 M6: batched update alias (semantic name for preset load / bulk changes)
+          const bulkUpdateConfig = (updates) => {
               setConfigs(prev => prev.map(c => c.id === activeTabId ? { ...c, ...updates } : c));
           };
 
@@ -1469,11 +1745,18 @@
 
           const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+          // v10 M4: export includes anchor pattern + bearings + results (optional)
           const exportToJson = () => {
               const data = {
                   projectName, waterDepth, fairleadElev, subseaStructuresStr,
                   segments, buoys, tensionsStr, calcMode, showMaxTension,
-                  version: "1.1", timestamp: new Date().toISOString()
+                  // v10 NEW fields
+                  patternType: activeConfig.patternType || 'tender_8pt',
+                  anchorBearings: activeConfig.anchorBearings || [],
+                  results: activeConfig.results || [],
+                  activePresetKey: activePresetKey || null,
+                  version: "1.2",
+                  timestamp: new Date().toISOString()
               };
               const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
@@ -1484,6 +1767,7 @@
               URL.revokeObjectURL(url);
               setExportToast(true);
               setTimeout(() => setExportToast(false), 2000);
+              pushToast('success', `Exported ${projectName}.json`);
           };
 
           const handleImport = (e) => {
@@ -1514,10 +1798,23 @@
                       if (data.calcMode !== undefined) updates.calcMode = data.calcMode;
                       if (data.showMaxTension !== undefined) updates.showMaxTension = data.showMaxTension;
                       
+                      // v10 M4: import new fields (patternType, anchorBearings)
+                      if (data.patternType !== undefined) updates.patternType = data.patternType;
+                      if (data.anchorBearings !== undefined) updates.anchorBearings = data.anchorBearings;
+                      // v10 M3: restore results if present -> skip auto-calc (save API quota)
+                      const hasResults = Array.isArray(data.results) && data.results.length > 0;
+                      if (hasResults) updates.results = data.results;
+                      // v10 M2: restore preset selector
+                      if (data.activePresetKey !== undefined) setActivePresetKey(data.activePresetKey || '');
                       updateConfig(updates);
-                      setPendingCalc(true);
+                      if (hasResults) {
+                          pushToast('success', `Imported "${data.projectName || 'setup'}" with ${data.results.length} cached results (no re-calc)`);
+                      } else {
+                          setPendingCalc(true);
+                          pushToast('info', `Imported "${data.projectName || 'setup'}" — recalculating...`);
+                      }
                   } catch (err) {
-                      alert("Error: Invalid JSON Mooring Configuration File.");
+                      pushToast('error', 'Invalid JSON configuration file: ' + err.message, 5000);
                   } finally {
                       if (fileInputRef.current) fileInputRef.current.value = '';
                   }
@@ -1525,55 +1822,77 @@
               reader.readAsText(file);
           };
 
-          const handleCalculate = async () => {
+          // v10 M1: handleCalculate with retry, timeout, and classified error state
+          const handleCalculate = async (isRetry = false) => {
               setCalcError(null);
-              
               const inputs = tensionsStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
-              if (inputs.length === 0 && !showMaxTension) return;
-
+              // v10: de-duplicate targets (B3 fix from deep review)
+              const dedupInputs = inputs.filter((v, i, arr) => arr.indexOf(v) === i);
+              if (dedupInputs.length === 0 && !showMaxTension) return;
               setLoading(true);
               const flZ = -1 * (parseFloat(fairleadElev) || 0);
-
-              // ----------------------------------------------------
-              // CLOUD ENGINE INTEGRATION - FETCH API TO WORKER
-              // ----------------------------------------------------
               const processedSegments = segments.map(seg => ({
                   ...seg,
-                  EA: (seg.EA && parseFloat(seg.EA) > 0) ? parseFloat(seg.EA) : 1e9 
+                  length: parseFloat(seg.length) || 0,   // v10: normalize types
+                  EA: (seg.EA && parseFloat(seg.EA) > 0) ? parseFloat(seg.EA) : 1e9
               }));
-
               const payload = {
                   waterDepth: parseFloat(waterDepth),
                   targetZ: flZ,
                   segments: processedSegments,
                   buoys: buoys,
-                  targets: inputs,
+                  targets: dedupInputs,
                   calcMode: calcMode,
                   calculateMax: showMaxTension
               };
-
-              try {
-                  const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
-                  
-                  const response = await fetch(WORKER_URL, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(payload)
-                  });
-
-                  if (!response.ok) {
-                      const errData = await response.json().catch(() => ({}));
-                      throw new Error(errData.error || `Server engine failed to respond. HTTP Status: ${response.status}`);
+              const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
+              const MAX_RETRIES = 2;
+              const TIMEOUT_MS = 20000;
+              let lastErr = null;
+              for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+                  try {
+                      const controller = new AbortController();
+                      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+                      const response = await fetch(WORKER_URL, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(payload),
+                          signal: controller.signal
+                      });
+                      clearTimeout(timer);
+                      if (!response.ok) {
+                          const errData = await response.json().catch(() => ({}));
+                          const errMsg = errData.error || `HTTP ${response.status}`;
+                          // retry on 5xx (transient CPU / server errors)
+                          if (response.status >= 500 && attempt <= MAX_RETRIES) {
+                              lastErr = new Error(errMsg);
+                              await new Promise(r => setTimeout(r, attempt * 500));
+                              continue;
+                          }
+                          throw new Error(errMsg);
+                      }
+                      const data = await response.json();
+                      setResults(data);
+                      setLoading(false);
+                      if (isRetry) pushToast('success', 'Calculation succeeded on retry');
+                      return;
+                  } catch (err) {
+                      lastErr = err;
+                      // retry AbortError and TypeErrors (network) once
+                      if (attempt <= MAX_RETRIES && (err.name === 'AbortError' || err.message === 'Failed to fetch' || err.message.includes('NetworkError'))) {
+                          await new Promise(r => setTimeout(r, attempt * 500));
+                          continue;
+                      }
+                      console.error('[SLACK v10] calc error:', err);
+                      setCalcError(classifyError(err));
+                      setLoading(false);
+                      return;
                   }
-
-                  const data = await response.json();
-                  setResults(data);
-              } catch (err) {
-                  console.error(err);
-                  setCalcError(err.message);
-              } finally {
-                  setLoading(false);
               }
+              // Fallback: exhausted retries
+              console.error('[SLACK v10] exhausted retries:', lastErr);
+              setCalcError(classifyError(lastErr || new Error('Unknown error')));
+              setLoading(false);
           };
 
           useEffect(() => { handleCalculate(); }, []);
@@ -1598,6 +1917,10 @@
               /* ROOT CONTAINER USING DVH - OPTION 2 */
               <div className={`flex h-[100dvh] w-screen overflow-hidden font-sans selection:bg-accent-500/30 ${bgClass}`}>
                   {showGuide && <UserGuideModal onClose={() => setShowGuide(false)} />}
+                  {/* v10 M5+M7: Toast + Confirm + Prompt dialogs */}
+                  <Toast toasts={toasts} removeToast={removeToast} />
+                  <ConfirmDialog {...confirmState} onCancel={() => { if (confirmState.onCancel) confirmState.onCancel(); closeConfirm(); }} onConfirm={() => { if (confirmState.onConfirm) confirmState.onConfirm(); closeConfirm(); }} />
+                  <PromptDialog {...promptState} onCancel={() => { if (promptState.onCancel) promptState.onCancel(); closePrompt(); }} onConfirm={(v) => { if (promptState.onConfirm) promptState.onConfirm(v); closePrompt(); }} />
                   
                   <div className={`w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-colors duration-300 z-20`}>
                       <div className={`p-4 border-b ${sidebarBorder}`}>
@@ -1610,14 +1933,14 @@
                                   </div>
                               </h1>
                               <div className="flex gap-2">
-                                  <button onClick={() => fileInputRef.current.click()} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Import JSON"><IconImport size={18} /></button>
-                                  <button onClick={exportToJson} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors relative" title="Export JSON">
-                                      <IconExport size={18} />
-                                      {exportToast && <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] py-0.5 px-2 rounded font-bold shadow animate-in fade-in zoom-in whitespace-nowrap">✓ EXPORTED</div>}
+                                  <button onClick={() => fileInputRef.current.click()} aria-label="Import JSON configuration" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Import JSON"><IconImport size={18} aria-hidden="true"/></button>
+                                  <button onClick={exportToJson} aria-label="Export current configuration as JSON" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors relative" title="Export JSON">
+                                      <IconExport size={18} aria-hidden="true"/>
+                                      {exportToast && <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] py-0.5 px-2 rounded font-bold shadow animate-in fade-in zoom-in whitespace-nowrap" role="status">✓ EXPORTED</div>}
                                   </button>
-                                  <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
-                                  <button onClick={() => setShowGuide(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Guide"><IconHelp size={18} /></button>
-                                  <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Theme">{theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}</button>
+                                  <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" aria-label="JSON file input"/>
+                                  <button onClick={() => setShowGuide(true)} aria-label="Open user guide" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Guide"><IconHelp size={18} aria-hidden="true"/></button>
+                                  <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Theme">{theme === 'dark' ? <IconSun size={18} aria-hidden="true"/> : <IconMoon size={18} aria-hidden="true"/>}</button>
                               </div>
                           </div>
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-1">Catenary Analysis & Cloud Engine Solver</p>
@@ -1645,6 +1968,11 @@
                               projectName={projectName} setProjectName={setProjectName}
                               patternType={patternType} setPatternType={setPatternType}
                               anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings}
+                              activePresetKey={activePresetKey} setActivePresetKey={setActivePresetKey}
+                              bulkUpdateConfig={bulkUpdateConfig}
+                              pushToast={pushToast}
+                              openConfirm={openConfirm}
+                              openPrompt={openPrompt}
                           />
                       </div>
                   </div>
@@ -1664,7 +1992,8 @@
                               <button onClick={() => { const newId = Math.max(0, ...configs.map(c => c.id)) + 1; setConfigs([...configs, createDefaultConfig(newId)]); setActiveTabId(newId); setPendingCalc(true); }} className="px-3 py-2 text-gray-500 hover:text-accent-500 transition-colors self-end mb-1" title="New Tab"><IconPlus size={18} /></button>
                           </div>
                       
-                          {calcError && <ErrorBanner message={calcError} onClose={() => setCalcError(null)} />}
+                          {/* v10 M1: structured error banner with Retry button */}
+                          {calcError && <ErrorBanner error={calcError} onClose={() => setCalcError(null)} onRetry={() => { setCalcError(null); handleCalculate(true); }} />}
                           {/* NEW v6: View switcher (Profile <-> Top View) */}
                           <div className="flex gap-1 mb-1">
                               <button onClick={() => setActiveView('profile')} className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'profile' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
