@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0284c7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Gulf of Thailand tide analytics — effective harmonic constants convention, LAT datum, no nodal correction.">
-<title>Gulf of Thailand — Tide Analytics v2.3.1 Production</title>
+<title>Gulf of Thailand — Tide Analytics v2.3.2 Production</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://got-tide.rattawit-aum.workers.dev">
@@ -353,7 +353,7 @@ canvas { max-width: 100%; }
       </div>
       <div class="title-block">
         <div class="title">Gulf of Thailand — Tide Analytics</div>
-        <div class="sub">v2.3.1 · Production · Developed by <b>Rattawit W.</b></div>
+        <div class="sub">v2.3.2 · Production · Developed by <b>Rattawit W.</b></div>
       </div>
     </div>
     <div class="actions">
@@ -386,7 +386,7 @@ canvas { max-width: 100%; }
             </div>
           </div>
           <div id="msg" class="info" role="status"></div>
-          <!-- v2.3.1: Custom-point entry DISABLED — API serves preset stations only.
+          <!-- v2.3.2: Custom-point entry DISABLED — API serves preset stations only.
                Elements kept (hidden) so existing JS references resolve safely. -->
           <div id="customCoordsBlock" class="hidden" aria-hidden="true">
             <div class="sub-hd">Custom Coordinates</div>
@@ -503,7 +503,7 @@ canvas { max-width: 100%; }
   </div>
   <div class="footer">
     Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a>
-    · Data © Rattawit W. Tide Model (GoT) · v2.3.1 Production
+    · Data © Rattawit W. Tide Model (GoT) · v2.3.2 Production
   </div>
 </div>
 <script>
@@ -523,12 +523,12 @@ const USE_TZ = 'Asia/Bangkok';
 // The API interval is fixed at 15 min server-side for the same reason
 // (fewer harmonic samples per request = less Worker CPU); it is NOT a
 // client setting and must not be "optimised" here.
-// Custom (arbitrary lat/lon) points are DISABLED in v2.3.1: the API only
+// Custom (arbitrary lat/lon) points are DISABLED in v2.3.2: the API only
 // serves the vetted preset stations. Do not re-enable without API support.
 // If you need more stations, upgrade the Worker plan first.
 // ============================================================================
 const MAX_STATIONS = 5;
-const ALLOW_CUSTOM_POINTS = false; // v2.3.1: API serves preset stations only
+const ALLOW_CUSTOM_POINTS = false; // v2.3.2: API serves preset stations only
 const CACHE_TTL_MS = 9 * 60 * 1000;
 const CACHE_PREFIX = 'gotTide_v3_afOff_';
 const BREAKER_FAIL_THRESHOLD = 3;
@@ -880,6 +880,10 @@ function onNavComplete() {
     if (!Number.isFinite(min) || !Number.isFinite(max)) return;
     state.userPanned = true;
     state.viewMinMs = min; state.viewMaxMs = max;
+    // v2.3.2: mirror the panned/zoomed window onto the day-axis
+    chart.options.scales.xDate.min = min;
+    chart.options.scales.xDate.max = max;
+    chart.update('none');
     renderHL(); renderSunMoon();
   }, 220);
 }
@@ -895,9 +899,21 @@ function initChart() {
         x: {
           type: 'time',
           adapters: { date: { zone: USE_TZ } },
-          time: { displayFormats: { hour: 'HH:mm', day: 'dd LLL' } },
+          time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
           ticks: { color: getCSS('--muted'), maxRotation: 0, font: { size: 11 }, autoSkip: true, maxTicksLimit: 14 },
-          grid: { color: getCSS('--border') }
+          grid: { color: getCSS('--border') },
+          position: 'bottom'
+        },
+        // v2.3.2 fix: dedicated day-axis so the DATE is always visible
+        // (single time-axis only showed HH:mm for intraday views).
+        xDate: {
+          type: 'time',
+          display: true, // v2.3.1: force-render even though no dataset binds here
+          adapters: { date: { zone: USE_TZ } },
+          time: { unit: 'day', displayFormats: { day: 'EEE dd LLL' } },
+          ticks: { color: getCSS('--txt-2'), font: { size: 11, weight: '600' }, autoSkip: true, maxTicksLimit: 16 },
+          grid: { drawOnChartArea: false, tickLength: 8, color: getCSS('--border-strong') },
+          position: 'bottom'
         },
         y: {
           grace: '10%',
@@ -961,6 +977,8 @@ function refreshChartColors() {
   if (!chart) return;
   chart.options.scales.x.ticks.color = getCSS('--muted');
   chart.options.scales.x.grid.color  = getCSS('--border');
+  chart.options.scales.xDate.ticks.color = getCSS('--txt-2');
+  chart.options.scales.xDate.grid.color  = getCSS('--border-strong');
   chart.options.scales.y.ticks.color = getCSS('--muted');
   chart.options.scales.y.grid.color  = getCSS('--border');
   chart.options.scales.y.title.color = getCSS('--muted');
@@ -995,15 +1013,20 @@ function currentViewRange() {
   }
   return { startMs, endMs };
 }
-// v2.3.1: force the visible x-range through the zoom plugin so a stored
+// v2.3.2: force the visible x-range through the zoom plugin so a stored
 // zoom/pan transform cannot "stick" and block quick-range buttons.
 function applyXRange(startMs, endMs) {
   if (!chart) return;
   chart.options.scales.x.min = startMs;
   chart.options.scales.x.max = endMs;
+  chart.options.scales.xDate.min = startMs;   // v2.3.2: keep day-axis in sync
+  chart.options.scales.xDate.max = endMs;
   chart.update('none');
   if (typeof chart.zoomScale === 'function') {
-    try { chart.zoomScale('x', { min: startMs, max: endMs }, 'none'); } catch (_) {}
+    try {
+      chart.zoomScale('x', { min: startMs, max: endMs }, 'none');
+      chart.zoomScale('xDate', { min: startMs, max: endMs }, 'none');
+    } catch (_) {}
   }
 }
 function parabolicRefine(series, i) {
@@ -1071,7 +1094,7 @@ function renderChart() {
   }
   chart.data.datasets = datasets;
   if (!state.userPanned) {
-    // v2.3.1: use applyXRange (zoomScale) instead of only setting options,
+    // v2.3.2: use applyXRange (zoomScale) instead of only setting options,
     // so quick-range/date-range changes always move the axis.
     applyXRange(startMs, endMs);
   } else {
@@ -1173,7 +1196,7 @@ function renderAll() {
 // ============================================================
 async function addStation(code, lat, lon, opts = {}) {
   const isCustom = !!opts.isCustom;
-  // v2.3.1: custom points disabled — API only serves preset stations.
+  // v2.3.2: custom points disabled — API only serves preset stations.
   if (isCustom || !ALLOW_CUSTOM_POINTS && !STATIONS[code]) {
     toast('Custom points are disabled — please pick a preset station.', 'warn', 3000);
     return;
@@ -1295,7 +1318,7 @@ function initMap() {
     });
     presetMarkers[code] = { marker: m, normal, selected };
   }
-  // v2.3.1: custom-point map clicks DISABLED (API serves preset stations only).
+  // v2.3.2: custom-point map clicks DISABLED (API serves preset stations only).
   // Preset markers above remain clickable. No arbitrary lat/lon "Add to Plot".
   if (ALLOW_CUSTOM_POINTS) {
     map.on('click', (e) => {
@@ -1379,7 +1402,7 @@ function exportCSV() {
   const meta = primary.payload.meta || {};
   const lines = [];
   lines.push('sep=,');
-  lines.push('# Gulf of Thailand Tide Analytics v2.3.1 export');
+  lines.push('# Gulf of Thailand Tide Analytics v2.3.2 export');
   lines.push('# Convention: effective harmonic constants; NO nodal AF/f/u correction');
   lines.push('# Datum: z0 = LAT');
   lines.push('# Model: y(t)=z0+sum(H*cos(omega*(t-t0)-phi))');
@@ -1454,7 +1477,7 @@ function setActiveSeg(days) {
     });
   });
 }
-// v2.3.1: clear the date-range inputs so a lingering custom range can't
+// v2.3.2: clear the date-range inputs so a lingering custom range can't
 // silently override the quick-range selection.
 function clearDateInputs() {
   const dsr = document.getElementById('dateStart');
@@ -1505,7 +1528,7 @@ function bindEvents() {
       });
     });
   });
-  // v2.3.1: custom-point add button is hidden & guarded; keep listener defensive.
+  // v2.3.2: custom-point add button is hidden & guarded; keep listener defensive.
   const addBtn = document.getElementById('addCustomBtn');
   if (addBtn) addBtn.addEventListener('click', addCustomFromInputs);
   document.getElementById('chips').addEventListener('click', (e) => {
@@ -1524,7 +1547,7 @@ function bindEvents() {
     state.useDateRange = true;
     state.userPanned = false;
     state.viewMinMs = null; state.viewMaxMs = null;
-    setActiveSeg(null); // v2.3.1: clear segment highlight when using explicit range
+    setActiveSeg(null); // v2.3.2: clear segment highlight when using explicit range
     renderAll();
   };
   dsr.addEventListener('change', onDateChange);
@@ -1566,7 +1589,7 @@ function bindEvents() {
     });
   }
 }
-// v2.3.1: retained but guarded — custom points disabled at API level.
+// v2.3.2: retained but guarded — custom points disabled at API level.
 function addCustomFromInputs() {
   if (!ALLOW_CUSTOM_POINTS) {
     toast('Custom points are disabled — please pick a preset station.', 'warn', 3000);
