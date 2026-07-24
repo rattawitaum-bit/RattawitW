@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0284c7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Gulf of Thailand tide analytics — effective harmonic constants convention, LAT datum, no nodal correction.">
-<title>Gulf of Thailand — Tide Analytics v2.3 Production</title>
+<title>Gulf of Thailand — Tide Analytics v2.3.1 Production</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://got-tide.rattawit-aum.workers.dev">
@@ -353,7 +353,7 @@ canvas { max-width: 100%; }
       </div>
       <div class="title-block">
         <div class="title">Gulf of Thailand — Tide Analytics</div>
-        <div class="sub">v2.3 · Production · Developed by <b>Rattawit W.</b></div>
+        <div class="sub">v2.3.1 · Production · Developed by <b>Rattawit W.</b></div>
       </div>
     </div>
     <div class="actions">
@@ -386,25 +386,28 @@ canvas { max-width: 100%; }
             </div>
           </div>
           <div id="msg" class="info" role="status"></div>
-          <div class="sub-hd">Custom Coordinates</div>
-          <div class="row">
-            <div><label for="lat">Lat</label><input type="number" id="lat" placeholder="e.g. 9.5" step="0.0001" min="-90" max="90"></div>
-            <div><label for="lon">Lon</label><input type="number" id="lon" placeholder="e.g. 101.5" step="0.0001" min="-180" max="180"></div>
+          <!-- v2.3.1: Custom-point entry DISABLED — API serves preset stations only.
+               Elements kept (hidden) so existing JS references resolve safely. -->
+          <div id="customCoordsBlock" class="hidden" aria-hidden="true">
+            <div class="sub-hd">Custom Coordinates</div>
+            <div class="row">
+              <div><label for="lat">Lat</label><input type="number" id="lat" step="0.0001" min="-90" max="90"></div>
+              <div><label for="lon">Lon</label><input type="number" id="lon" step="0.0001" min="-180" max="180"></div>
+            </div>
+            <button id="addCustomBtn" class="btn btn-secondary btn-sm" style="margin-top:8px; width:100%;">+ Add Custom Point</button>
           </div>
-          <button id="addCustomBtn" class="btn btn-secondary btn-sm" style="margin-top:8px; width:100%;">+ Add Custom Point</button>
-          <div class="small" style="margin-top:6px;">Or click on the map to pick a point.</div>
           <div class="sub-hd" style="display:flex; justify-content:space-between; align-items:center;">
             <span>Active Stations (<span id="activeCount">0</span>/5)</span>
             <button id="clearAllBtn" class="btn btn-secondary btn-sm">Clear</button>
           </div>
           <div id="chips" class="chips" aria-live="polite"></div>
-          <div class="limit-hint">Limited to 5 stations for performance.</div>
+          <div class="limit-hint">Limited to 5 preset stations for performance.</div>
           <div class="sub-hd">Date Range (client-only)</div>
           <div class="row">
             <div><label for="dateStart">Start</label><input type="date" id="dateStart"></div>
             <div><label for="dateEnd">End</label><input type="date" id="dateEnd"></div>
           </div>
-          <div class="small" style="margin-top:6px;">Range clamped to available API window. Segment overrides date range.</div>
+          <div class="small" style="margin-top:6px;">Range clamped to available API window. Segment (Today/1d/3d/7d) overrides date range.</div>
           <div class="sub-hd">Export</div>
           <div class="row">
             <button id="csv" class="btn btn-secondary btn-sm" aria-label="Export CSV (E)">CSV</button>
@@ -435,7 +438,7 @@ canvas { max-width: 100%; }
             </button>
           </div>
           <div class="small" style="margin-top:8px;">
-            API window: <b>−15 d</b> to <b>+30 d</b> (Bangkok, enforced by API). Client cache TTL: 9 min.
+            API window: <b>−15 d</b> to <b>+30 d</b> (Bangkok, enforced by API). Client cache TTL: 9 min. Click a preset marker to add it.
           </div>
         </div>
       </div>
@@ -500,7 +503,7 @@ canvas { max-width: 100%; }
   </div>
   <div class="footer">
     Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a>
-    · Data © Rattawit W. Tide Model (GoT) · v2.3 Production
+    · Data © Rattawit W. Tide Model (GoT) · v2.3.1 Production
   </div>
 </div>
 <script>
@@ -520,15 +523,18 @@ const USE_TZ = 'Asia/Bangkok';
 // The API interval is fixed at 15 min server-side for the same reason
 // (fewer harmonic samples per request = less Worker CPU); it is NOT a
 // client setting and must not be "optimised" here.
+// Custom (arbitrary lat/lon) points are DISABLED in v2.3.1: the API only
+// serves the vetted preset stations. Do not re-enable without API support.
 // If you need more stations, upgrade the Worker plan first.
 // ============================================================================
 const MAX_STATIONS = 5;
+const ALLOW_CUSTOM_POINTS = false; // v2.3.1: API serves preset stations only
 const CACHE_TTL_MS = 9 * 60 * 1000;
 const CACHE_PREFIX = 'gotTide_v3_afOff_';
 const BREAKER_FAIL_THRESHOLD = 3;
 const BREAKER_WINDOW_MS = 30 * 1000;
 const BREAKER_OPEN_MS = 60 * 1000;
-const ADD_COOLDOWN_MS = 700; // v2.3: anti-spam cooldown between station adds
+const ADD_COOLDOWN_MS = 700; // anti-spam cooldown between station adds
 const GRID_BBOX = { lat_min: 6.0, lat_max: 13.0, lon_min: 99.0, lon_max: 105.0 };
 const LTTB_THRESHOLD = 1200;
 const SM_SHADE_MAX_DAYS = 16;
@@ -635,8 +641,8 @@ const state = {
   userPanned: false,
   viewMinMs: null,
   viewMaxMs: null,
-  busy: false,       // v2.3: in-flight fetch guard (anti-spam)
-  lastAddTs: 0       // v2.3: cooldown timestamp
+  busy: false,
+  lastAddTs: 0
 };
 // ============================================================
 // 5. UTILS
@@ -651,7 +657,6 @@ function nextColor() {
   return PALETTE[state.stations.size % PALETTE.length];
 }
 function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#94a3b8'; }
-// v2.3: toggle busy state — disables Compute buttons to prevent rapid re-clicks
 function setBusy(on) {
   state.busy = on;
   ['run','runMobile'].forEach(id => {
@@ -990,6 +995,17 @@ function currentViewRange() {
   }
   return { startMs, endMs };
 }
+// v2.3.1: force the visible x-range through the zoom plugin so a stored
+// zoom/pan transform cannot "stick" and block quick-range buttons.
+function applyXRange(startMs, endMs) {
+  if (!chart) return;
+  chart.options.scales.x.min = startMs;
+  chart.options.scales.x.max = endMs;
+  chart.update('none');
+  if (typeof chart.zoomScale === 'function') {
+    try { chart.zoomScale('x', { min: startMs, max: endMs }, 'none'); } catch (_) {}
+  }
+}
 function parabolicRefine(series, i) {
   if (i <= 0 || i >= series.length - 1) return { t: series[i][0], y: series[i][1] };
   const t0 = series[i-1][0], t1 = series[i][0], t2 = series[i+1][0];
@@ -1055,10 +1071,12 @@ function renderChart() {
   }
   chart.data.datasets = datasets;
   if (!state.userPanned) {
-    chart.options.scales.x.min = startMs;
-    chart.options.scales.x.max = endMs;
+    // v2.3.1: use applyXRange (zoomScale) instead of only setting options,
+    // so quick-range/date-range changes always move the axis.
+    applyXRange(startMs, endMs);
+  } else {
+    chart.update('none');
   }
-  chart.update('none');
   if (state.stations.size > 0 && datasets.length === 0) {
     setMsg('Selected range is outside the API payload window.', 'warn');
   }
@@ -1155,9 +1173,12 @@ function renderAll() {
 // ============================================================
 async function addStation(code, lat, lon, opts = {}) {
   const isCustom = !!opts.isCustom;
-  // v2.3 anti-spam: ignore rapid re-clicks while a fetch is in-flight
+  // v2.3.1: custom points disabled — API only serves preset stations.
+  if (isCustom || !ALLOW_CUSTOM_POINTS && !STATIONS[code]) {
+    toast('Custom points are disabled — please pick a preset station.', 'warn', 3000);
+    return;
+  }
   if (state.busy) { toast('Please wait for the current request…', 'warn'); return; }
-  // v2.3 anti-spam: enforce a short cooldown between adds
   const now = Date.now();
   if (now - state.lastAddTs < ADD_COOLDOWN_MS) { toast('Slow down a moment…', 'warn', 1500); return; }
   state.lastAddTs = now;
@@ -1169,14 +1190,13 @@ async function addStation(code, lat, lon, opts = {}) {
     return;
   }
   if (state.stations.size >= MAX_STATIONS) {
-    // v2.3: explain WHY the cap exists (protects free Cloudflare Worker quota)
     setMsg(`จำกัด ${MAX_STATIONS} สถานีเพื่อประสิทธิภาพ`, 'warn');
     toast(`จำกัด ${MAX_STATIONS} สถานีเพื่อประสิทธิภาพ (ลดภาระเซิร์ฟเวอร์ฟรี) — ลบสถานีหนึ่งก่อนเพิ่มใหม่ · Max ${MAX_STATIONS} stations for performance.`, 'warn', 4200);
     return;
   }
   const st = {
     code, lat: +lat, lon: +lon, color: nextColor(),
-    payload: null, marker: null, fromCache: false, isCustom,
+    payload: null, marker: null, fromCache: false, isCustom: false,
     _refinedCache: null
   };
   state.stations.set(code, st);
@@ -1186,7 +1206,7 @@ async function addStation(code, lat, lon, opts = {}) {
   await computeStation(st);
 }
 async function computeStation(st) {
-  setBusy(true); // v2.3: lock Compute buttons during fetch
+  setBusy(true);
   setMsg('Computing ' + st.code + '…', 'info');
   document.getElementById('chartSkel').classList.add('on');
   try {
@@ -1209,7 +1229,7 @@ async function computeStation(st) {
     renderAll();
   } finally {
     document.getElementById('chartSkel').classList.remove('on');
-    setBusy(false); // v2.3: always release lock
+    setBusy(false);
   }
 }
 function removeStation(code) {
@@ -1275,24 +1295,28 @@ function initMap() {
     });
     presetMarkers[code] = { marker: m, normal, selected };
   }
-  map.on('click', (e) => {
-    const lat = +e.latlng.lat.toFixed(5);
-    const lon = +e.latlng.lng.toFixed(5);
-    document.getElementById('lat').value = lat;
-    document.getElementById('lon').value = lon;
-    const popupId = 'popupAdd_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-    const p = L.popup()
-      .setLatLng(e.latlng)
-      .setContent(
-        `<div style="font-size:12px;"><b>Custom Point</b><br>${lat.toFixed(4)}, ${lon.toFixed(4)}<br>` +
-        `<button style="margin-top:6px; padding:4px 10px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer;" id="${popupId}">+ Add to Plot</button></div>`
-      );
-    p.on('add', () => {
-      const b = document.getElementById(popupId);
-      if (b) b.addEventListener('click', () => { map.closePopup(); addCustomFromInputs(); }, { once: true });
+  // v2.3.1: custom-point map clicks DISABLED (API serves preset stations only).
+  // Preset markers above remain clickable. No arbitrary lat/lon "Add to Plot".
+  if (ALLOW_CUSTOM_POINTS) {
+    map.on('click', (e) => {
+      const lat = +e.latlng.lat.toFixed(5);
+      const lon = +e.latlng.lng.toFixed(5);
+      document.getElementById('lat').value = lat;
+      document.getElementById('lon').value = lon;
+      const popupId = 'popupAdd_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      const p = L.popup()
+        .setLatLng(e.latlng)
+        .setContent(
+          `<div style="font-size:12px;"><b>Custom Point</b><br>${lat.toFixed(4)}, ${lon.toFixed(4)}<br>` +
+          `<button style="margin-top:6px; padding:4px 10px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer;" id="${popupId}">+ Add to Plot</button></div>`
+        );
+      p.on('add', () => {
+        const b = document.getElementById(popupId);
+        if (b) b.addEventListener('click', () => { map.closePopup(); addCustomFromInputs(); }, { once: true });
+      });
+      p.openOn(map);
     });
-    p.openOn(map);
-  });
+  }
 }
 function addMarker(st) {
   if (!map) return;
@@ -1325,8 +1349,6 @@ function locateUser() {
       L.circleMarker([lat, lon], { radius: 6, color: '#059669', fillColor: '#34d399', fillOpacity: 1, weight: 2 })
         .addTo(map).bindTooltip('You', { permanent: false });
       map.setView([lat, lon], 8);
-      document.getElementById('lat').value = lat.toFixed(5);
-      document.getElementById('lon').value = lon.toFixed(5);
       toast('Location acquired.', 'success');
     },
     () => toast('Unable to retrieve location.', 'error')
@@ -1357,7 +1379,7 @@ function exportCSV() {
   const meta = primary.payload.meta || {};
   const lines = [];
   lines.push('sep=,');
-  lines.push('# Gulf of Thailand Tide Analytics v2.3 export');
+  lines.push('# Gulf of Thailand Tide Analytics v2.3.1 export');
   lines.push('# Convention: effective harmonic constants; NO nodal AF/f/u correction');
   lines.push('# Datum: z0 = LAT');
   lines.push('# Model: y(t)=z0+sum(H*cos(omega*(t-t0)-phi))');
@@ -1432,11 +1454,21 @@ function setActiveSeg(days) {
     });
   });
 }
+// v2.3.1: clear the date-range inputs so a lingering custom range can't
+// silently override the quick-range selection.
+function clearDateInputs() {
+  const dsr = document.getElementById('dateStart');
+  const der = document.getElementById('dateEnd');
+  if (dsr) dsr.value = '';
+  if (der) der.value = '';
+  state.dateStartMs = null; state.dateEndMs = null;
+}
 function applyViewDays(days) {
   state.viewDays = days;
   state.useDateRange = false;
   state.userPanned = false;
   state.viewMinMs = null; state.viewMaxMs = null;
+  clearDateInputs();
   setActiveSeg(days);
   renderAll();
 }
@@ -1445,6 +1477,7 @@ function goToday() {
   state.useDateRange = false;
   state.userPanned = false;
   state.viewMinMs = null; state.viewMaxMs = null;
+  clearDateInputs();
   setActiveSeg('today');
   renderAll();
 }
@@ -1472,7 +1505,9 @@ function bindEvents() {
       });
     });
   });
-  document.getElementById('addCustomBtn').addEventListener('click', addCustomFromInputs);
+  // v2.3.1: custom-point add button is hidden & guarded; keep listener defensive.
+  const addBtn = document.getElementById('addCustomBtn');
+  if (addBtn) addBtn.addEventListener('click', addCustomFromInputs);
   document.getElementById('chips').addEventListener('click', (e) => {
     const rm = e.target.closest('[data-rm]');
     if (rm) { removeStation(rm.getAttribute('data-rm')); return; }
@@ -1489,6 +1524,7 @@ function bindEvents() {
     state.useDateRange = true;
     state.userPanned = false;
     state.viewMinMs = null; state.viewMaxMs = null;
+    setActiveSeg(null); // v2.3.1: clear segment highlight when using explicit range
     renderAll();
   };
   dsr.addEventListener('change', onDateChange);
@@ -1530,7 +1566,12 @@ function bindEvents() {
     });
   }
 }
+// v2.3.1: retained but guarded — custom points disabled at API level.
 function addCustomFromInputs() {
+  if (!ALLOW_CUSTOM_POINTS) {
+    toast('Custom points are disabled — please pick a preset station.', 'warn', 3000);
+    return;
+  }
   const lat = parseFloat(document.getElementById('lat').value);
   const lon = parseFloat(document.getElementById('lon').value);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
