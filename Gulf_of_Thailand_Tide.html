@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; connect-src 'self' https://got-tide.rattawit-aum.workers.dev; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; connect-src 'self' https://got-tide.rattawit-aum.workers.dev https://cloudflareinsights.com; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#0284c7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Gulf of Thailand tide analytics — effective harmonic constants convention, LAT datum, no nodal correction.">
-<title>Gulf of Thailand — Tide Analytics v2.2 Production</title>
+<title>Gulf of Thailand — Tide Analytics v2.3 Production</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://got-tide.rattawit-aum.workers.dev">
@@ -23,6 +23,7 @@
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js" onerror="window.__sunCalcErr=true"></script>
 <style>
 :root {
   --bg: #f5f7fa; --surface-1: #ffffff; --surface-2: #f8fafc; --surface-3: #f1f5f9;
@@ -32,6 +33,7 @@
   --high: #0ea5e9; --low: #db2777;
   --border: #e2e8f0; --border-strong: #cbd5e1;
   --ring: rgba(2,132,199,.28);
+  --night: rgba(30,41,59,.10); --twi: rgba(99,102,241,.07);
   --shadow-1: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
   --shadow-2: 0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.05);
   --shadow-3: 0 12px 32px rgba(15,23,42,.12);
@@ -47,6 +49,7 @@
   --high: #38bdf8; --low: #f472b6;
   --border: #1f2a3e; --border-strong: #334155;
   --ring: rgba(56,189,248,.32);
+  --night: rgba(2,6,23,.34); --twi: rgba(129,140,248,.12);
   --shadow-1: 0 1px 2px rgba(0,0,0,.4);
   --shadow-2: 0 4px 12px rgba(0,0,0,.45);
   --shadow-3: 0 12px 32px rgba(0,0,0,.55);
@@ -60,6 +63,7 @@
     --high: #38bdf8; --low: #f472b6;
     --border: #1f2a3e; --border-strong: #334155;
     --ring: rgba(56,189,248,.32);
+    --night: rgba(2,6,23,.34); --twi: rgba(129,140,248,.12);
     --shadow-1: 0 1px 2px rgba(0,0,0,.4);
     --shadow-2: 0 4px 12px rgba(0,0,0,.45);
     --shadow-3: 0 12px 32px rgba(0,0,0,.55);
@@ -81,7 +85,6 @@ body { padding-bottom: env(safe-area-inset-bottom); }
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
 }
-/* Header */
 .hbar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 16px; padding-bottom: 12px;
@@ -106,16 +109,16 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 }
 .icon-btn:hover { background: var(--surface-3); color: var(--txt); }
 .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* Layout — single source of truth. Mobile: stack. Desktop: controls left; chart+hl right stack. */
 .layout {
   display: grid; gap: 16px;
   grid-template-columns: 1fr;
-  grid-template-areas: "controls" "chart" "hl" "meta";
+  grid-template-areas: "controls" "chart" "hl" "sm" "meta";
   align-items: start;
 }
 .area-controls { grid-area: controls; align-self: start; }
 .area-chart    { grid-area: chart;    align-self: start; min-width: 0; }
 .area-hl       { grid-area: hl;       align-self: start; min-width: 0; }
+.area-sm       { grid-area: sm;       align-self: start; min-width: 0; }
 .area-meta     { grid-area: meta;     align-self: start; }
 @media (min-width: 768px) {
   .layout {
@@ -123,7 +126,7 @@ body { padding-bottom: env(safe-area-inset-bottom); }
     grid-template-areas:
       "controls chart"
       "controls hl"
-      "meta     hl";
+      "meta     sm";
   }
   #hl { max-height: clamp(300px, 38vh, 440px); overflow-y: auto; }
 }
@@ -133,11 +136,10 @@ body { padding-bottom: env(safe-area-inset-bottom); }
     grid-template-areas:
       "controls chart"
       "controls hl"
-      "meta     hl";
+      "meta     sm";
   }
   #hl { max-height: clamp(320px, 40vh, 480px); overflow-y: auto; }
 }
-/* Card */
 .card {
   background: var(--surface-1); border: 1px solid var(--border);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-1);
@@ -158,7 +160,6 @@ body { padding-bottom: env(safe-area-inset-bottom); }
   border-top: 1px solid var(--border);
 }
 .sub-hd:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-/* Form */
 label { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 5px; }
 select, input[type="date"], input[type="number"] {
   width: 100%; padding: 9px 11px;
@@ -185,7 +186,6 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .btn-sm { padding: 5px 10px; min-height: 32px; font-size: 12px; border-radius: var(--radius-sm); }
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; }
-/* Segmented control */
 .segment {
   display: inline-flex; background: var(--surface-3);
   padding: 3px; border-radius: var(--radius-md);
@@ -202,10 +202,10 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
   background: var(--surface-1); color: var(--txt);
   box-shadow: var(--shadow-1); font-weight: 600;
 }
+.segment .seg.today-seg { color: var(--accent); font-weight: 600; }
 .segment .seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.compute-bar { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.compute-bar { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .compute-bar #run { flex: 1; }
-/* Meta KV */
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12.5px; }
 .kv div:nth-child(odd) { color: var(--muted); font-weight: 500; }
 .kv div:nth-child(even) { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; word-break: break-word; }
@@ -216,7 +216,6 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
   font-size: 10.5px; font-weight: 600;
 }
 .pill-muted { background: var(--surface-3); color: var(--muted); }
-/* Msg */
 #msg {
   min-height: 18px; font-size: 12px; font-weight: 500;
   margin-top: 8px; display: flex; align-items: center; gap: 6px;
@@ -225,7 +224,7 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 #msg.error { color: var(--danger); }
 #msg.success { color: var(--success); }
 #msg.warn { color: var(--warning); }
-/* Chart */
+.limit-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 .chart-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; min-height: 260px; }
 @media (min-width: 1024px) { .chart-wrapper { aspect-ratio: 21 / 9; min-height: 300px; } }
 canvas { max-width: 100%; }
@@ -238,7 +237,6 @@ canvas { max-width: 100%; }
 .skel.on { display: block; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
-/* HL table */
 #hl .day-hd {
   font-size: 12px; font-weight: 700; color: var(--accent);
   padding: 8px 4px 6px; position: sticky; top: 0;
@@ -257,7 +255,17 @@ canvas { max-width: 100%; }
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   margin-right: 6px; vertical-align: middle;
 }
-/* Map */
+.sm-day { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 8px; }
+.sm-day-hd { display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 6px 10px; font-size: 12px; font-weight: 700; }
+.sm-moon-badge { display: flex; align-items: center; gap: 5px; font-weight: 600; color: var(--muted); font-size: 11.5px; }
+.moon-emoji { font-size: 15px; line-height: 1; }
+.sm-rows { display: flex; flex-wrap: wrap; }
+.sm-cell { flex: 1 1 50%; display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 12px; border-top: 1px dashed var(--border); }
+.sm-cell .ic { width: 14px; text-align: center; font-size: 12px; }
+.sm-ico-sun { color: var(--warning); }
+.sm-ico-moon { color: var(--muted); }
+.sm-cell b { font-variant-numeric: tabular-nums; }
+.sm-spring { background: var(--accent-soft); color: var(--accent-soft-txt); font-weight: 700; border-radius: var(--radius-pill); padding: 1px 8px; font-size: 10px; margin-left: 6px; }
 #map { height: 240px; border-radius: var(--radius-md); border: 1px solid var(--border); z-index: 1; position: relative; }
 @media (min-width: 1024px) { #map { height: 260px; } }
 .leaflet-container { background: var(--surface-2); }
@@ -278,7 +286,6 @@ canvas { max-width: 100%; }
   box-shadow: var(--shadow-1);
 }
 .map-locate-btn:hover { background: var(--surface-3); }
-/* Chips */
 .chips { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 180px; overflow-y: auto; }
 .chip {
   display: flex; align-items: center; gap: 8px;
@@ -295,7 +302,6 @@ canvas { max-width: 100%; }
   padding: 3px 5px; border-radius: 4px; font-size: 14px; line-height: 1;
 }
 .chip .rm:hover { color: var(--danger); background: var(--danger-soft); }
-/* Toast */
 #toast-wrap {
   position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
   z-index: 9999; display: flex; flex-direction: column; gap: 8px;
@@ -315,14 +321,12 @@ canvas { max-width: 100%; }
 .toast.error { border-left-color: var(--danger); }
 .toast.success { border-left-color: var(--success); }
 .toast.warn { border-left-color: var(--warning); }
-/* Footer */
 .footer {
   margin-top: 16px; color: var(--muted); font-size: 11px;
   text-align: center; padding-top: 12px; border-top: 1px solid var(--border);
 }
 .footer a { color: var(--accent); text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
-/* Sticky Compute bar on mobile */
 .mobile-compute { display: none; }
 @media (max-width: 767px) {
   .mobile-compute {
@@ -349,7 +353,7 @@ canvas { max-width: 100%; }
       </div>
       <div class="title-block">
         <div class="title">Gulf of Thailand — Tide Analytics</div>
-        <div class="sub">v2.2 · Production · Developed by <b>Rattawit W.</b></div>
+        <div class="sub">v2.3 · Production · Developed by <b>Rattawit W.</b></div>
       </div>
     </div>
     <div class="actions">
@@ -375,6 +379,7 @@ canvas { max-width: 100%; }
               Compute
             </button>
             <div class="segment" id="viewSeg" role="tablist" aria-label="View window">
+              <button class="seg today-seg" role="tab" data-days="today" aria-selected="false">Today</button>
               <button class="seg" role="tab" data-days="1" aria-selected="true">1d</button>
               <button class="seg" role="tab" data-days="3" aria-selected="false">3d</button>
               <button class="seg" role="tab" data-days="7" aria-selected="false">7d</button>
@@ -393,6 +398,7 @@ canvas { max-width: 100%; }
             <button id="clearAllBtn" class="btn btn-secondary btn-sm">Clear</button>
           </div>
           <div id="chips" class="chips" aria-live="polite"></div>
+          <div class="limit-hint">จำกัด 5 สถานีเพื่อประสิทธิภาพ (ลดภาระเซิร์ฟเวอร์ฟรี) · Limited to 5 stations for performance.</div>
           <div class="sub-hd">Date Range (client-only)</div>
           <div class="row">
             <div><label for="dateStart">Start</label><input type="date" id="dateStart"></div>
@@ -442,6 +448,9 @@ canvas { max-width: 100%; }
             <label class="small" style="display:flex; align-items:center; gap:4px; cursor:pointer; margin:0;">
               <input type="checkbox" id="showHL" checked style="min-height:auto; width:auto;"> H/L
             </label>
+            <label class="small" style="display:flex; align-items:center; gap:4px; cursor:pointer; margin:0;">
+              <input type="checkbox" id="showSM" checked style="min-height:auto; width:auto;"> ☀️🌙
+            </label>
             <button id="resetZoomBtn" class="btn btn-secondary btn-sm">Reset Zoom</button>
           </div>
         </div>
@@ -466,10 +475,24 @@ canvas { max-width: 100%; }
         </div>
       </div>
     </div>
+    <div class="area-sm">
+      <div class="card">
+        <div class="hd">
+          <span>Sun &amp; Moon</span>
+          <span class="small" id="smPrimaryTag"></span>
+        </div>
+        <div class="bd">
+          <div id="sm" aria-live="polite">
+            <div class="small" style="text-align:center; padding:20px;">Compute a station to see sun &amp; moon.</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="mobile-compute">
     <button id="runMobile" class="btn btn-primary">Compute</button>
     <div class="segment" role="tablist" aria-label="View window (mobile)" id="viewSegMobile">
+      <button class="seg today-seg" role="tab" data-days="today" aria-selected="false">Today</button>
       <button class="seg" role="tab" data-days="1" aria-selected="true">1d</button>
       <button class="seg" role="tab" data-days="3" aria-selected="false">3d</button>
       <button class="seg" role="tab" data-days="7" aria-selected="false">7d</button>
@@ -477,7 +500,7 @@ canvas { max-width: 100%; }
   </div>
   <div class="footer">
     Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a>
-    · Data © Rattawit W. Tide Model (GoT) · v2.2 Production
+    · Data © Rattawit W. Tide Model (GoT) · v2.3 Production
   </div>
 </div>
 <script>
@@ -488,13 +511,27 @@ canvas { max-width: 100%; }
 // ============================================================
 const API = 'https://got-tide.rattawit-aum.workers.dev/api/tides';
 const USE_TZ = 'Asia/Bangkok';
+// ============================================================================
+// ⚠️  PRODUCTION LIMIT — DO NOT INCREASE WITHOUT REVIEWING WORKER QUOTA  ⚠️
+// Each active station triggers exactly ONE Cloudflare Worker fetch.
+// The backend runs on the Cloudflare FREE tier (limited CPU-ms & daily
+// request quota). Raising MAX_STATIONS multiplies concurrent fetches and
+// risks HTTP 429 / "Worker exceeded CPU" errors for ALL external users.
+// The API interval is fixed at 15 min server-side for the same reason
+// (fewer harmonic samples per request = less Worker CPU); it is NOT a
+// client setting and must not be "optimised" here.
+// If you need more stations, upgrade the Worker plan first.
+// ============================================================================
 const MAX_STATIONS = 5;
 const CACHE_TTL_MS = 9 * 60 * 1000;
 const CACHE_PREFIX = 'gotTide_v3_afOff_';
 const BREAKER_FAIL_THRESHOLD = 3;
 const BREAKER_WINDOW_MS = 30 * 1000;
 const BREAKER_OPEN_MS = 60 * 1000;
+const ADD_COOLDOWN_MS = 700; // v2.3: anti-spam cooldown between station adds
 const GRID_BBOX = { lat_min: 6.0, lat_max: 13.0, lon_min: 99.0, lon_max: 105.0 };
+const LTTB_THRESHOLD = 1200;
+const SM_SHADE_MAX_DAYS = 16;
 const STATIONS = {
   "AWP26":{"lat":8.5107,"lon":102.2262},"AWP36":{"lat":7.94077,"lon":102.6856},
   "B832":{"lat":10.520936,"lon":101.27638},"G365":{"lat":7.586336,"lon":102.121412},
@@ -507,6 +544,7 @@ const STATIONS = {
 };
 const PALETTE = ['#0284c7','#dc2626','#059669','#d97706','#9333ea','#0891b2','#db2777','#4f46e5','#ea580c','#65a30d'];
 const dt = luxon.DateTime;
+const HAS_SUNCALC = (typeof SunCalc !== 'undefined') && !window.__sunCalcErr;
 // ============================================================
 // 2. CACHE + BREAKER
 // ============================================================
@@ -592,7 +630,13 @@ const state = {
   useDateRange: false,
   dateStartMs: null,
   dateEndMs: null,
-  showHL: true
+  showHL: true,
+  showSM: true,
+  userPanned: false,
+  viewMinMs: null,
+  viewMaxMs: null,
+  busy: false,       // v2.3: in-flight fetch guard (anti-spam)
+  lastAddTs: 0       // v2.3: cooldown timestamp
 };
 // ============================================================
 // 5. UTILS
@@ -607,7 +651,14 @@ function nextColor() {
   return PALETTE[state.stations.size % PALETTE.length];
 }
 function getCSS(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#94a3b8'; }
-// Payload window helpers (v2.2 clamp fix)
+// v2.3: toggle busy state — disables Compute buttons to prevent rapid re-clicks
+function setBusy(on) {
+  state.busy = on;
+  ['run','runMobile'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = on;
+  });
+}
 function payloadWindow() {
   let min = Infinity, max = -Infinity;
   for (const st of state.stations.values()) {
@@ -619,6 +670,89 @@ function payloadWindow() {
   }
   if (min === Infinity || max === -Infinity) return null;
   return { min, max };
+}
+function lttb(data, threshold) {
+  const n = data.length;
+  if (threshold >= n || threshold <= 2) return data;
+  const sampled = [];
+  const every = (n - 2) / (threshold - 2);
+  let a = 0;
+  sampled.push(data[a]);
+  for (let i = 0; i < threshold - 2; i++) {
+    let avgX = 0, avgY = 0, avgRangeStart = Math.floor((i + 1) * every) + 1, avgRangeEnd = Math.floor((i + 2) * every) + 1;
+    avgRangeEnd = avgRangeEnd < n ? avgRangeEnd : n;
+    const avgRangeLen = avgRangeEnd - avgRangeStart;
+    for (let j = avgRangeStart; j < avgRangeEnd; j++) { avgX += data[j].x; avgY += data[j].y; }
+    avgX /= avgRangeLen; avgY /= avgRangeLen;
+    let rangeOffs = Math.floor(i * every) + 1, rangeTo = Math.floor((i + 1) * every) + 1;
+    const pax = data[a].x, pay = data[a].y;
+    let maxArea = -1, nextA = rangeOffs;
+    for (let j = rangeOffs; j < rangeTo; j++) {
+      const area = Math.abs((pax - avgX) * (data[j].y - pay) - (pax - data[j].x) * (avgY - pay)) * 0.5;
+      if (area > maxArea) { maxArea = area; nextA = j; }
+    }
+    sampled.push(data[nextA]); a = nextA;
+  }
+  sampled.push(data[n - 1]);
+  return sampled;
+}
+// ============================================================
+// 5b. SUN & MOON
+// ============================================================
+function moonPhaseInfo(phase) {
+  const p = ((phase % 1) + 1) % 1;
+  let name, emoji;
+  if (p < 0.03 || p > 0.97) { name = 'New Moon'; emoji = '🌑'; }
+  else if (p < 0.22) { name = 'Waxing Crescent'; emoji = '🌒'; }
+  else if (p < 0.28) { name = 'First Quarter'; emoji = '🌓'; }
+  else if (p < 0.47) { name = 'Waxing Gibbous'; emoji = '🌔'; }
+  else if (p < 0.53) { name = 'Full Moon'; emoji = '🌕'; }
+  else if (p < 0.72) { name = 'Waning Gibbous'; emoji = '🌖'; }
+  else if (p < 0.78) { name = 'Last Quarter'; emoji = '🌗'; }
+  else { name = 'Waning Crescent'; emoji = '🌘'; }
+  return { name, emoji, isSpring: (p < 0.06 || p > 0.94 || Math.abs(p - 0.5) < 0.06) };
+}
+function smTime(d) { return (d && !isNaN(d.getTime())) ? dt.fromJSDate(d).setZone(USE_TZ).toFormat('HH:mm') : '—'; }
+function sunMoonForDay(dateKey, lat, lon) {
+  const noon = dt.fromISO(dateKey, { zone: USE_TZ }).set({ hour: 12 }).toJSDate();
+  const s = SunCalc.getTimes(noon, lat, lon);
+  const m = SunCalc.getMoonTimes(noon, lat, lon, true);
+  const ill = SunCalc.getMoonIllumination(noon);
+  return {
+    sunrise: s.sunrise, sunset: s.sunset, dawn: s.dawn, dusk: s.dusk,
+    moonrise: m.rise, moonset: m.set,
+    illum: Math.round(ill.fraction * 100), phase: moonPhaseInfo(ill.phase)
+  };
+}
+function renderSunMoon() {
+  const div = document.getElementById('sm');
+  const tag = document.getElementById('smPrimaryTag');
+  if (!state.showSM) return;
+  if (!HAS_SUNCALC) { tag.textContent=''; div.innerHTML = '<div class="small" style="text-align:center; padding:20px;">Sun/Moon library unavailable (offline).</div>'; return; }
+  const primary = state.primaryCode ? state.stations.get(state.primaryCode) : null;
+  if (!primary) { tag.textContent=''; div.innerHTML = '<div class="small" style="text-align:center; padding:20px;">Compute a station to see sun &amp; moon.</div>'; return; }
+  tag.textContent = primary.code;
+  const { startMs, endMs } = currentViewRange();
+  let d = dt.fromMillis(startMs).setZone(USE_TZ).startOf('day');
+  const last = dt.fromMillis(endMs).setZone(USE_TZ).startOf('day');
+  const parts = []; let guard = 0;
+  while (d <= last && guard < 70) {
+    const key = d.toFormat('yyyy-LL-dd');
+    const sm = sunMoonForDay(key, primary.lat, primary.lon);
+    const spring = sm.phase.isSpring ? '<span class="sm-spring">Spring tide</span>' : '';
+    parts.push(
+      `<div class="sm-day"><div class="sm-day-hd"><span>${d.toFormat('EEE, dd MMM')}${spring}</span>` +
+      `<span class="sm-moon-badge"><span class="moon-emoji">${sm.phase.emoji}</span>${sm.illum}% · ${sm.phase.name}</span></div>` +
+      `<div class="sm-rows">` +
+      `<div class="sm-cell"><span class="ic sm-ico-sun">▲</span>Sunrise <b>${smTime(sm.sunrise)}</b></div>` +
+      `<div class="sm-cell"><span class="ic sm-ico-sun">▼</span>Sunset <b>${smTime(sm.sunset)}</b></div>` +
+      `<div class="sm-cell"><span class="ic sm-ico-moon">▲</span>Moonrise <b>${smTime(sm.moonrise)}</b></div>` +
+      `<div class="sm-cell"><span class="ic sm-ico-moon">▼</span>Moonset <b>${smTime(sm.moonset)}</b></div>` +
+      `</div></div>`
+    );
+    d = d.plus({ days: 1 }); guard++;
+  }
+  div.innerHTML = parts.join('');
 }
 // ============================================================
 // 6. TOAST
@@ -666,8 +800,84 @@ const daySeparator = {
     ctx.setLineDash([]); ctx.restore();
   }
 };
+const sunShade = {
+  id: 'sunShade',
+  beforeDatasetsDraw(chart) {
+    if (!state.showSM || !HAS_SUNCALC) return;
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea || !scales?.x) return;
+    const x = scales.x, min = x.min, max = x.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+    if ((max - min) / 86400000 > SM_SHADE_MAX_DAYS) return;
+    const primary = state.primaryCode ? state.stations.get(state.primaryCode) : null;
+    if (!primary) return;
+    const { top, bottom, left, right } = chartArea;
+    const clamp = v => Math.max(left, Math.min(right, v));
+    const band = (t1, t2, color) => {
+      if (t1 == null || t2 == null) return;
+      const a = clamp(x.getPixelForValue(t1)), b = clamp(x.getPixelForValue(t2));
+      if (b <= a) return;
+      ctx.fillStyle = color; ctx.fillRect(a, top, b - a, bottom - top);
+    };
+    const NIGHT = getCSS('--night'), TWI = getCSS('--twi');
+    const ms = d => (d && !isNaN(d.getTime())) ? d.getTime() : null;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(left, top, right - left, bottom - top); ctx.clip();
+    let day = dt.fromMillis(min).setZone(USE_TZ).startOf('day').minus({ days: 1 });
+    const lastDay = dt.fromMillis(max).setZone(USE_TZ).startOf('day').plus({ days: 1 });
+    let guard = 0;
+    for (; day <= lastDay && guard < 70; day = day.plus({ days: 1 }), guard++) {
+      const noon = day.set({ hour: 12 }).toJSDate();
+      const s = SunCalc.getTimes(noon, primary.lat, primary.lon);
+      const nextNoon = day.plus({ days: 1 }).set({ hour: 12 }).toJSDate();
+      const sn = SunCalc.getTimes(nextNoon, primary.lat, primary.lon);
+      band(ms(s.dusk), ms(sn.dawn), NIGHT);
+      band(ms(s.dawn), ms(s.sunrise), TWI);
+      band(ms(s.sunset), ms(s.dusk), TWI);
+    }
+    ctx.restore();
+  }
+};
+const moonMarker = {
+  id: 'moonMarker',
+  afterDatasetsDraw(chart) {
+    if (!state.showSM || !HAS_SUNCALC) return;
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea || !scales?.x) return;
+    const x = scales.x, min = x.min, max = x.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+    if ((max - min) / 86400000 > SM_SHADE_MAX_DAYS) return;
+    const { top } = chartArea;
+    let day = dt.fromMillis(min).setZone(USE_TZ).startOf('day');
+    const lastDay = dt.fromMillis(max).setZone(USE_TZ).startOf('day');
+    ctx.save(); ctx.textAlign = 'center'; ctx.font = '13px ' + getCSS('--font-tab');
+    let guard = 0;
+    for (; day <= lastDay && guard < 70; day = day.plus({ days: 1 }), guard++) {
+      const noon = day.set({ hour: 12 });
+      const ill = SunCalc.getMoonIllumination(noon.toJSDate());
+      const ph = moonPhaseInfo(ill.phase);
+      if (!ph.isSpring) continue;
+      const t = noon.toMillis();
+      if (t < min || t > max) continue;
+      ctx.fillText(ph.emoji, x.getPixelForValue(t), top + 14);
+    }
+    ctx.restore();
+  }
+};
 let chart = null;
 let nowLineTimer = null;
+let _syncTimer = null;
+function onNavComplete() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    if (!chart) return;
+    const min = chart.scales.x.min, max = chart.scales.x.max;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+    state.userPanned = true;
+    state.viewMinMs = min; state.viewMaxMs = max;
+    renderHL(); renderSunMoon();
+  }, 220);
+}
 function initChart() {
   const ctx = document.getElementById('chart').getContext('2d');
   chart = new Chart(ctx, {
@@ -681,7 +891,7 @@ function initChart() {
           type: 'time',
           adapters: { date: { zone: USE_TZ } },
           time: { displayFormats: { hour: 'HH:mm', day: 'dd LLL' } },
-          ticks: { color: getCSS('--muted'), maxRotation: 0, font: { size: 11 } },
+          ticks: { color: getCSS('--muted'), maxRotation: 0, font: { size: 11 }, autoSkip: true, maxTicksLimit: 14 },
           grid: { color: getCSS('--border') }
         },
         y: {
@@ -701,8 +911,8 @@ function initChart() {
           }
         },
         zoom: {
-          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
-          pan: { enabled: true, mode: 'x' }
+          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', onZoomComplete: onNavComplete },
+          pan: { enabled: true, mode: 'x', onPanComplete: onNavComplete }
         },
         tooltip: {
           backgroundColor: getCSS('--surface-1'),
@@ -731,7 +941,7 @@ function initChart() {
         }
       }
     },
-    plugins: [daySeparator]
+    plugins: [sunShade, daySeparator, moonMarker]
   });
   if (nowLineTimer) clearInterval(nowLineTimer);
   nowLineTimer = setInterval(() => {
@@ -759,12 +969,14 @@ function refreshChartColors() {
   chart.update('none');
 }
 // ============================================================
-// 8. RANGE + REFINE (v2.2: clamp to payload window)
+// 8. RANGE + REFINE
 // ============================================================
 function currentViewRange() {
   const pw = payloadWindow();
   let startMs, endMs;
-  if (state.useDateRange && Number.isFinite(state.dateStartMs) && Number.isFinite(state.dateEndMs)) {
+  if (state.userPanned && Number.isFinite(state.viewMinMs) && Number.isFinite(state.viewMaxMs)) {
+    startMs = state.viewMinMs; endMs = state.viewMaxMs;
+  } else if (state.useDateRange && Number.isFinite(state.dateStartMs) && Number.isFinite(state.dateEndMs)) {
     startMs = Math.min(state.dateStartMs, state.dateEndMs);
     endMs   = Math.max(state.dateStartMs, state.dateEndMs);
   } else {
@@ -778,7 +990,6 @@ function currentViewRange() {
   }
   return { startMs, endMs };
 }
-// Parabolic refinement (v2.2: memoized via st._refinedCache)
 function parabolicRefine(series, i) {
   if (i <= 0 || i >= series.length - 1) return { t: series[i][0], y: series[i][1] };
   const t0 = series[i-1][0], t1 = series[i][0], t2 = series[i+1][0];
@@ -818,11 +1029,11 @@ function refinedExtremaFor(st) {
 function renderChart() {
   if (!chart) return;
   const { startMs, endMs } = currentViewRange();
-  const inRange = (t) => t >= startMs && t <= endMs;
   const datasets = [];
   for (const st of state.stations.values()) {
     if (!st.payload) continue;
-    const series = st.payload.series.filter(([t]) => inRange(t)).map(([t,y]) => ({ x: t, y }));
+    let series = st.payload.series.map(([t, y]) => ({ x: t, y }));
+    series = lttb(series, LTTB_THRESHOLD);
     datasets.push({
       label: st.code, data: series,
       borderColor: st.color, backgroundColor: st.color,
@@ -831,8 +1042,7 @@ function renderChart() {
     });
     if (state.showHL) {
       const { highs, lows } = refinedExtremaFor(st);
-      const pts = [...highs, ...lows].filter(p => inRange(p.t))
-        .map(p => ({ x: p.t, y: p.y, type: p.type }));
+      const pts = [...highs, ...lows].map(p => ({ x: p.t, y: p.y, type: p.type }));
       datasets.push({
         label: st.code + ' · H/L', _isHL: true,
         data: pts, type: 'scatter',
@@ -844,10 +1054,10 @@ function renderChart() {
     }
   }
   chart.data.datasets = datasets;
-  chart.options.scales.x.min = startMs;
-  chart.options.scales.x.max = endMs;
-  // v2.2: reset zoom when range changes so scale.min/max stick
-  if (chart.resetZoom) chart.resetZoom('none');
+  if (!state.userPanned) {
+    chart.options.scales.x.min = startMs;
+    chart.options.scales.x.max = endMs;
+  }
   chart.update('none');
   if (state.stations.size > 0 && datasets.length === 0) {
     setMsg('Selected range is outside the API payload window.', 'warn');
@@ -938,13 +1148,19 @@ function renderChips() {
   wrap.innerHTML = parts.join('');
 }
 function renderAll() {
-  renderChart(); renderHL(); renderMeta(); renderChips(); highlightMarkers();
+  renderChart(); renderHL(); renderMeta(); renderChips(); renderSunMoon(); highlightMarkers();
 }
 // ============================================================
 // 10. STATION OPS
 // ============================================================
 async function addStation(code, lat, lon, opts = {}) {
   const isCustom = !!opts.isCustom;
+  // v2.3 anti-spam: ignore rapid re-clicks while a fetch is in-flight
+  if (state.busy) { toast('Please wait for the current request…', 'warn'); return; }
+  // v2.3 anti-spam: enforce a short cooldown between adds
+  const now = Date.now();
+  if (now - state.lastAddTs < ADD_COOLDOWN_MS) { toast('Slow down a moment…', 'warn', 1500); return; }
+  state.lastAddTs = now;
   if (state.stations.has(code)) {
     setMsg('Station already added.', 'warn');
     toast(`${code} already active.`, 'warn');
@@ -953,7 +1169,9 @@ async function addStation(code, lat, lon, opts = {}) {
     return;
   }
   if (state.stations.size >= MAX_STATIONS) {
-    toast(`Max ${MAX_STATIONS} stations. Remove one first.`, 'warn', 3000);
+    // v2.3: explain WHY the cap exists (protects free Cloudflare Worker quota)
+    setMsg(`จำกัด ${MAX_STATIONS} สถานีเพื่อประสิทธิภาพ`, 'warn');
+    toast(`จำกัด ${MAX_STATIONS} สถานีเพื่อประสิทธิภาพ (ลดภาระเซิร์ฟเวอร์ฟรี) — ลบสถานีหนึ่งก่อนเพิ่มใหม่ · Max ${MAX_STATIONS} stations for performance.`, 'warn', 4200);
     return;
   }
   const st = {
@@ -968,6 +1186,7 @@ async function addStation(code, lat, lon, opts = {}) {
   await computeStation(st);
 }
 async function computeStation(st) {
+  setBusy(true); // v2.3: lock Compute buttons during fetch
   setMsg('Computing ' + st.code + '…', 'info');
   document.getElementById('chartSkel').classList.add('on');
   try {
@@ -990,6 +1209,7 @@ async function computeStation(st) {
     renderAll();
   } finally {
     document.getElementById('chartSkel').classList.remove('on');
+    setBusy(false); // v2.3: always release lock
   }
 }
 function removeStation(code) {
@@ -1011,7 +1231,7 @@ function clearAllStations() {
   setMsg('Cleared.', 'info');
 }
 // ============================================================
-// 11. MAP (v2.2: light/dark tile swap + safe popup event)
+// 11. MAP
 // ============================================================
 let map = null;
 const presetMarkers = {};
@@ -1137,7 +1357,7 @@ function exportCSV() {
   const meta = primary.payload.meta || {};
   const lines = [];
   lines.push('sep=,');
-  lines.push('# Gulf of Thailand Tide Analytics v2.2 export');
+  lines.push('# Gulf of Thailand Tide Analytics v2.3 export');
   lines.push('# Convention: effective harmonic constants; NO nodal AF/f/u correction');
   lines.push('# Datum: z0 = LAT');
   lines.push('# Model: y(t)=z0+sum(H*cos(omega*(t-t0)-phi))');
@@ -1159,7 +1379,6 @@ function exportCSV() {
   downloadBlob(csv, name, 'text/csv;charset=utf-8');
   toast('CSV exported.', 'success');
 }
-// v2.2: PNG with solid background from current theme
 function exportPNG() {
   if (!chart) { toast('Nothing to export.', 'warn'); return; }
   const src = document.getElementById('chart');
@@ -1209,9 +1428,25 @@ function initTheme() {
 function setActiveSeg(days) {
   ['viewSeg','viewSegMobile'].forEach(id => {
     document.querySelectorAll(`#${id} .seg`).forEach(el => {
-      el.setAttribute('aria-selected', String(+el.dataset.days === days));
+      el.setAttribute('aria-selected', String(el.dataset.days === String(days)));
     });
   });
+}
+function applyViewDays(days) {
+  state.viewDays = days;
+  state.useDateRange = false;
+  state.userPanned = false;
+  state.viewMinMs = null; state.viewMaxMs = null;
+  setActiveSeg(days);
+  renderAll();
+}
+function goToday() {
+  state.viewDays = 1;
+  state.useDateRange = false;
+  state.userPanned = false;
+  state.viewMinMs = null; state.viewMaxMs = null;
+  setActiveSeg('today');
+  renderAll();
 }
 function bindEvents() {
   const sel = document.getElementById('station');
@@ -1221,6 +1456,7 @@ function bindEvents() {
     .map(({code,lat,lon}) => `<option value="${code}">${code} (${lat.toFixed(4)}, ${lon.toFixed(4)})</option>`)
     .join('');
   const runFn = () => {
+    if (state.busy) { toast('Please wait for the current request…', 'warn'); return; }
     const code = sel.value;
     if (!code) return;
     const v = STATIONS[code];
@@ -1231,10 +1467,8 @@ function bindEvents() {
   ['viewSeg','viewSegMobile'].forEach(id => {
     document.querySelectorAll(`#${id} .seg`).forEach(btn => {
       btn.addEventListener('click', () => {
-        state.viewDays = +btn.dataset.days;
-        state.useDateRange = false;
-        setActiveSeg(state.viewDays);
-        renderAll();
+        if (btn.dataset.days === 'today') { goToday(); return; }
+        applyViewDays(+btn.dataset.days);
       });
     });
   });
@@ -1253,6 +1487,8 @@ function bindEvents() {
     state.dateStartMs = dt.fromISO(dsr.value, { zone: USE_TZ }).startOf('day').toMillis();
     state.dateEndMs   = dt.fromISO(der.value, { zone: USE_TZ }).endOf('day').toMillis();
     state.useDateRange = true;
+    state.userPanned = false;
+    state.viewMinMs = null; state.viewMaxMs = null;
     renderAll();
   };
   dsr.addEventListener('change', onDateChange);
@@ -1260,20 +1496,27 @@ function bindEvents() {
   document.getElementById('csv').addEventListener('click', exportCSV);
   document.getElementById('png').addEventListener('click', exportPNG);
   document.getElementById('showHL').addEventListener('change', (e) => { state.showHL = e.target.checked; renderChart(); });
-  document.getElementById('resetZoomBtn').addEventListener('click', () => { if (chart) chart.resetZoom(); renderChart(); });
+  document.getElementById('showSM').addEventListener('change', (e) => {
+    state.showSM = e.target.checked;
+    document.querySelector('.area-sm').style.display = state.showSM ? '' : 'none';
+    if (state.showSM) renderSunMoon();
+    if (chart) chart.update('none');
+  });
+  document.getElementById('resetZoomBtn').addEventListener('click', () => { if (chart) chart.resetZoom(); goToday(); });
   document.getElementById('locateBtn').addEventListener('click', locateUser);
   document.getElementById('themeBtn').addEventListener('click', toggleTheme);
   document.getElementById('helpBtn').addEventListener('click', () => {
-    toast('C=Compute · 1/3/7=View · E=CSV · P=PNG · D=Theme', 'info', 4200);
+    toast('C=Compute · T=Today · 1/3/7=View · E=CSV · P=PNG · D=Theme', 'info', 4200);
   });
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, select, textarea')) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     switch (e.key.toLowerCase()) {
       case 'c': runFn(); break;
-      case '1': state.viewDays = 1; state.useDateRange = false; setActiveSeg(1); renderAll(); break;
-      case '3': state.viewDays = 3; state.useDateRange = false; setActiveSeg(3); renderAll(); break;
-      case '7': state.viewDays = 7; state.useDateRange = false; setActiveSeg(7); renderAll(); break;
+      case 't': goToday(); break;
+      case '1': applyViewDays(1); break;
+      case '3': applyViewDays(3); break;
+      case '7': applyViewDays(7); break;
       case 'e': exportCSV(); break;
       case 'p': exportPNG(); break;
       case 'd': toggleTheme(); break;
@@ -1305,12 +1548,13 @@ window.addEventListener('DOMContentLoaded', () => {
   initChart();
   bindEvents();
   CacheKV.sweep();
+  if (!HAS_SUNCALC) { document.getElementById('showSM').checked = false; state.showSM = false; document.querySelector('.area-sm').style.display = 'none'; }
   document.getElementById('station').selectedIndex = 0;
   const code = document.getElementById('station').value;
   if (code && STATIONS[code]) addStation(code, STATIONS[code].lat, STATIONS[code].lon);
 });
 })();
 </script>
-  <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
