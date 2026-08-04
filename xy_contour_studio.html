@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.3.1 (Text-Rendering)</title>
+<title>XY Contour Studio — v9.4.2</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,6 +66,10 @@
   .btn.outline-danger { background: transparent; border-color: var(--c-error); color: var(--c-error); }
 
   .export-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .aoi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .aoi-lbl { display: flex; flex-direction: column; gap: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: var(--c-text-2); text-transform: uppercase; }
+  .aoi-lbl input { width: 100%; }
+  .aoi-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .content { flex: 1; position: relative; background: #0f172a; }
   #map { position: absolute; inset: 0; background: #0f172a; }
 
@@ -109,7 +113,7 @@
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.3.1 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.4.2 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -172,7 +176,7 @@
       <div class="group-title">DXF Labels</div>
       <div class="row"><label for="labelEvery">Label Every (m)</label><input id="labelEvery" type="number" min="1" step="10" value="100"/></div>
       <div class="row"><label for="labelSize">Text Height</label><input id="labelSize" type="number" min="0.1" step="0.1" value="2.5"/></div>
-      <div class="row"><label for="contourLabelAutoFlip">Auto-flip labels <i class="tooltip-wrap" data-tooltip="v9.3.1: หมุน text ให้อ่านซ้ายไปขวาเสมอ (nautical). ปิดถ้าต้องการ text ตามทิศทาง contour จริง">i</i></label><input type="checkbox" id="contourLabelAutoFlip" checked/></div>
+      <div class="row"><label for="contourLabelAutoFlip">Auto-flip labels <i class="tooltip-wrap" data-tooltip="Rotate text to always read left-to-right (nautical). Disable to align text with the true contour direction.">i</i></label><input type="checkbox" id="contourLabelAutoFlip" checked/></div>
       
 
       <div class="group-title">Bathymetric Soundings (DXF)</div>
@@ -181,9 +185,9 @@
       <div class="row"><label for="soundTextH">Text Height (m)</label><input id="soundTextH" type="number" min="0.1" step="0.1" value="3.0" disabled/></div>
       <div class="row"><label for="soundRotation">Rotation (deg) <i class="tooltip-wrap" data-tooltip="0 = horizontal, 90 = vertical nautical chart style (default).">i</i></label><input id="soundRotation" type="number" min="0" max="360" step="15" value="45"/></div>
       <div class="row"><label for="soundSubRatio">Subscript Ratio</label><input id="soundSubRatio" type="number" min="0.1" max="1" step="0.05" value="0.6"/></div>
-      <div class="row"><label for="soundDensityMode">Density mode <i class="tooltip-wrap" data-tooltip="All = ทุก grid point (default). Skip = ข้ามทุก N. Local Min = จุดตื้นสุดใน window (nautical safety)">i</i></label><select id="soundDensityMode"><option value="all" selected>All</option><option value="skip">Skip Every N</option><option value="local_min">Local Minimum</option></select></div>
-      <div id="soundSkipRow" class="row" style="display:none"><label for="soundSkipN">Skip N <i class="tooltip-wrap" data-tooltip="1 = ไม่ข้าม, 2 = ข้าม 1 เว้น 1, 3 = ข้าม 2 เว้น 1">i</i></label><input id="soundSkipN" type="number" min="1" step="1" value="2"/></div>
-      <div id="soundWinRow" class="row" style="display:none"><label for="soundWinCells">Window cells <i class="tooltip-wrap" data-tooltip="ขนาด window ในหน่วย pixel/cell สำหรับหาความลึกน้อยสุด. 3 = 3x3, 5 = 5x5">i</i></label><input id="soundWinCells" type="number" min="1" step="2" value="3"/></div>
+      <div class="row"><label for="soundDensityMode">Density mode <i class="tooltip-wrap" data-tooltip="All = every grid point (default). Skip = keep every Nth. Local Min = shallowest point within the window (nautical safety).">i</i></label><select id="soundDensityMode"><option value="all" selected>All</option><option value="skip">Skip Every N</option><option value="local_min">Local Minimum</option></select></div>
+      <div id="soundSkipRow" class="row" style="display:none"><label for="soundSkipN">Skip N <i class="tooltip-wrap" data-tooltip="1 = no skip, 2 = keep every 2nd point, 3 = keep every 3rd point.">i</i></label><input id="soundSkipN" type="number" min="1" step="1" value="2"/></div>
+      <div id="soundWinRow" class="row" style="display:none"><label for="soundWinCells">Window cells <i class="tooltip-wrap" data-tooltip="Window size in pixels/cells used to find the minimum depth. 3 = 3x3, 5 = 5x5.">i</i></label><input id="soundWinCells" type="number" min="1" step="2" value="3"/></div>
       <div class="row"><label for="soundBand1">Band 1 Max (m) [red]</label><input id="soundBand1" type="number" step="1" value="20"/></div>
       <div class="row"><label for="soundBand2">Band 2 Max (m) [orange]</label><input id="soundBand2" type="number" step="1" value="40"/></div>
       <div class="row"><label for="soundBand3">Band 3 Max (m) [yellow]</label><input id="soundBand3" type="number" step="1" value="60"/></div>
@@ -206,23 +210,23 @@
     <!-- FOUNDATION TAB -->
     <div id="foundation" class="tab-content">
       <div class="group-title">Jacket Geometry</div>
-      <div class="row"><label for="fcCenterX">Center X (m) <i class="tooltip-wrap" data-tooltip="จุดศูนย์กลาง jacket แกน X (Easting) ในระบบ Indian 1975 UTM 47N หน่วยเมตร. ค่าปกติในอ่าวไทย 550,000-700,000">i</i></label><input id="fcCenterX" type="number" step="0.1" value="0"/></div>
-      <div class="row"><label for="fcCenterY">Center Y (m) <i class="tooltip-wrap" data-tooltip="จุดศูนย์กลาง jacket แกน Y (Northing) ในระบบ Indian 1975 UTM 47N หน่วยเมตร. ค่าปกติในอ่าวไทย 800,000-1,200,000">i</i></label><input id="fcCenterY" type="number" step="0.1" value="0"/></div>
-      <div class="row"><label for="fcRotation">Rotation (deg) <i class="tooltip-wrap" data-tooltip="มุมหมุน jacket ตามเข็มจากทิศเหนือ (0=N, 90=E, 180=S, 270=W). Square jacket: มุมส่งผลต่อ overlay เท่านั้น">i</i></label><input id="fcRotation" type="number" min="0" max="360" step="1" value="0"/></div>
-      <div class="row"><label for="fcWidth">Width (m) <i class="tooltip-wrap" data-tooltip="ขนาด jacket ด้านขวาง (U-axis local) หน่วยเมตร. ปกติ 20 m สำหรับ 4-leg wellhead, 12 m สำหรับ tripod">i</i></label><input id="fcWidth" type="number" min="1" step="0.5" value="20"/></div>
-      <div class="row"><label for="fcLength">Length (m) <i class="tooltip-wrap" data-tooltip="ขนาด jacket ด้านยาว (V-axis local) หน่วยเมตร. ใส่ค่าเท่า Width ถ้าเป็นสี่เหลี่ยมจัตุรัส">i</i></label><input id="fcLength" type="number" min="1" step="0.5" value="20"/></div>
-      <div class="row"><label for="fcBuffer">Buffer (m) <i class="tooltip-wrap" data-tooltip="ระยะเผื่อรอบ footprint (m) สำหรับ mudmat overhang และ installation tolerance. Default 0.5 m">i</i></label><input id="fcBuffer" type="number" min="0" step="0.1" value="0.5"/></div>
+      <div class="row"><label for="fcCenterX">Center X (m) <i class="tooltip-wrap" data-tooltip="Jacket center X (Easting) in Indian 1975 UTM 47N, meters. Typical Gulf of Thailand range 550,000-700,000.">i</i></label><input id="fcCenterX" type="number" step="0.1" value="0"/></div>
+      <div class="row"><label for="fcCenterY">Center Y (m) <i class="tooltip-wrap" data-tooltip="Jacket center Y (Northing) in Indian 1975 UTM 47N, meters. Typical Gulf of Thailand range 800,000-1,200,000.">i</i></label><input id="fcCenterY" type="number" step="0.1" value="0"/></div>
+      <div class="row"><label for="fcRotation">Rotation (deg) <i class="tooltip-wrap" data-tooltip="Jacket rotation clockwise from North (0=N, 90=E, 180=S, 270=W). For a square jacket, the angle affects the overlay only.">i</i></label><input id="fcRotation" type="number" min="0" max="360" step="1" value="0"/></div>
+      <div class="row"><label for="fcWidth">Width (m) <i class="tooltip-wrap" data-tooltip="Jacket transverse size (local U-axis), meters. Typically 20 m for a 4-leg wellhead, 12 m for a tripod.">i</i></label><input id="fcWidth" type="number" min="1" step="0.5" value="20"/></div>
+      <div class="row"><label for="fcLength">Length (m) <i class="tooltip-wrap" data-tooltip="Jacket longitudinal size (local V-axis), meters. Set equal to Width for a square footprint.">i</i></label><input id="fcLength" type="number" min="1" step="0.5" value="20"/></div>
+      <div class="row"><label for="fcBuffer">Buffer (m) <i class="tooltip-wrap" data-tooltip="Margin around the footprint (m) for mudmat overhang and installation tolerance. Default 0.5 m.">i</i></label><input id="fcBuffer" type="number" min="0" step="0.1" value="0.5"/></div>
       <div class="group-title">Acceptance Criteria</div>
-      <div class="row"><label for="fcTolerance">dH tolerance (m) <i class="tooltip-wrap" data-tooltip="ค่า dH = max-min สูงสุดที่ยอมรับได้ (m). PASS ≤ tol, CAUTION ≤ tol×1.2, FAIL > tol×1.2. Industry ปกติ 0.20 m">i</i></label><input id="fcTolerance" type="number" min="0.01" step="0.01" value="0.20"/></div>
-      <div class="row"><label for="fcUseSlope">Also check slope <i class="tooltip-wrap" data-tooltip="เปิดเพื่อตรวจ slope เพิ่มเติมจาก dH. ตรวจจับ uniform tilt (พื้นราบแต่เอียง) ที่ dH ไม่จับ">i</i></label><input type="checkbox" id="fcUseSlope"/></div>
-      <div class="row"><label for="fcSlopeTol">Slope tol (deg) <i class="tooltip-wrap" data-tooltip="Slope magnitude สูงสุดยอมรับได้ (°) จาก least-squares plane fit. ปกติ 1.0° สำหรับ level install">i</i></label><input id="fcSlopeTol" type="number" min="0.01" step="0.1" value="1.0"/></div>
-      <div class="row"><label for="fcSampleStep">Sample step (m) <i class="tooltip-wrap" data-tooltip="ระยะห่างจุด sample ภายใน footprint (m). ควรใกล้เคียง raster pixel size (Nyquist warning ถ้าเล็กกว่า pixel/2)">i</i></label><input id="fcSampleStep" type="number" min="0.1" step="0.1" value="1.0"/></div>
-      <div class="row"><label for="fcMinCoverage">Min coverage (%) <i class="tooltip-wrap" data-tooltip="% จุด sample ที่ต้องมี valid data (ไม่ NaN). Default 95% = engineering-grade, 80% = screening only">i</i></label><input id="fcMinCoverage" type="number" min="0" max="100" step="1" value="95"/></div>
+      <div class="row"><label for="fcTolerance">dH tolerance (m) <i class="tooltip-wrap" data-tooltip="Maximum acceptable dH = max-min (m). PASS ≤ tol, CAUTION ≤ tol×1.2, FAIL > tol×1.2. Industry norm 0.20 m.">i</i></label><input id="fcTolerance" type="number" min="0.01" step="0.01" value="0.20"/></div>
+      <div class="row"><label for="fcUseSlope">Also check slope <i class="tooltip-wrap" data-tooltip="Enable to check slope in addition to dH. Detects uniform tilt (flat but inclined) that dH misses.">i</i></label><input type="checkbox" id="fcUseSlope"/></div>
+      <div class="row"><label for="fcSlopeTol">Slope tol (deg) <i class="tooltip-wrap" data-tooltip="Maximum acceptable slope magnitude (°) from a least-squares plane fit. Typically 1.0° for a level install.">i</i></label><input id="fcSlopeTol" type="number" min="0.01" step="0.1" value="1.0"/></div>
+      <div class="row"><label for="fcSampleStep">Sample step (m) <i class="tooltip-wrap" data-tooltip="Sample spacing within the footprint (m). Should be close to the raster pixel size (Nyquist warning if smaller than pixel/2).">i</i></label><input id="fcSampleStep" type="number" min="0.1" step="0.1" value="1.0"/></div>
+      <div class="row"><label for="fcMinCoverage">Min coverage (%) <i class="tooltip-wrap" data-tooltip="% of sample points that must have valid data (non-NaN). Default 95% = engineering-grade, 80% = screening only.">i</i></label><input id="fcMinCoverage" type="number" min="0" max="100" step="1" value="95"/></div>
       <div id="fcNyquistWarn" style="display:none;font-size:11px;color:var(--c-warning);background:rgba(245,158,11,0.1);padding:6px;border-radius:4px;margin-top:6px;border-left:3px solid var(--c-warning);">Sample step exceeds 2x raster pixel size. May miss features (Nyquist aliasing).</div>
       <div class="group-title">Optimal Placement Search</div>
-      <div class="row"><label for="fcSearchRadius">Search radius (m) <i class="tooltip-wrap" data-tooltip="รัศมีค้นหา offset (m) จาก center เดิม. Default 50 m = ยืดหยุ่นพอสมควร. Search area = 2R × 2R">i</i></label><input id="fcSearchRadius" type="number" min="1" step="1" value="50"/></div>
-      <div class="row"><label for="fcSearchStep">Search step (m) <i class="tooltip-wrap" data-tooltip="ระยะห่าง candidate ใน search grid (m). เล็ก = ละเอียดแต่ช้า O(R²). Default 5 m สมดุลดี">i</i></label><input id="fcSearchStep" type="number" min="0.5" step="0.5" value="5"/></div>
-      <div class="row"><label for="fcTopN">Top-N candidates <i class="tooltip-wrap" data-tooltip="จำนวน candidate ที่ดีที่สุดที่จะแสดง. Click row เพื่อ apply เป็น center ใหม่ (coord แสดงทศนิยม 1 ตำแหน่ง)">i</i></label><input id="fcTopN" type="number" min="1" max="20" step="1" value="5"/></div>
+      <div class="row"><label for="fcSearchRadius">Search radius (m) <i class="tooltip-wrap" data-tooltip="Search offset radius (m) from the original center. Default 50 m = reasonably flexible. Search area = 2R × 2R.">i</i></label><input id="fcSearchRadius" type="number" min="1" step="1" value="50"/></div>
+      <div class="row"><label for="fcSearchStep">Search step (m) <i class="tooltip-wrap" data-tooltip="Candidate spacing in the search grid (m). Smaller = finer but slower O(R²). Default 5 m is well balanced.">i</i></label><input id="fcSearchStep" type="number" min="0.5" step="0.5" value="5"/></div>
+      <div class="row"><label for="fcTopN">Top-N candidates <i class="tooltip-wrap" data-tooltip="Number of top candidates to display. Click a row to apply it as the new center (coords shown to 1 decimal place).">i</i></label><input id="fcTopN" type="number" min="1" max="20" step="1" value="5"/></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px;">
         <button id="fcAnalyze" class="btn primary">Analyze</button>
         <button id="fcSearch" class="btn">Find Best</button>
@@ -250,17 +254,36 @@
     </div>
     <div class="action-bar">
       <button id="btnGenerate" class="btn primary" disabled><span class="spinner"></span><span class="icon-label">▶ GENERATE CONTOURS</span></button>
+      <div class="group-title">Export</div>
       <div class="export-row">
-        <button id="btnDXF" class="btn" disabled>DXF</button>
-        <button id="btnKML" class="btn" title="Exports to WGS84 (Assumes Indian 1975 UTM 47N Input)" disabled>KML</button>
-        <button id="btnSHPZip" class="btn" disabled>SHP ZIP</button>
+        <button id="btnDXF" class="btn" title="AutoCAD DXF (contours)" disabled>⬇ DXF</button>
+        <button id="btnKML" class="btn" title="Google Earth KML (WGS84; assumes Indian 1975 UTM 47N input)" disabled>⬇ KML</button>
+        <button id="btnSHPZip" class="btn" title="Shapefile bundle (.zip)" disabled>⬇ SHP ZIP</button>
       </div>
       <button id="btnSHPFiles" class="btn" style="font-size: 10px; padding: 4px;" disabled>⬇ Individual SHP Files</button>
+      <!-- v9.4.1 P2/P3/P4: AOI clip panel (group header, balanced buttons, labeled inputs) -->
+      <div class="group-title">Area of Interest (Clip)</div>
+      <div id="aoiPanel">
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin-bottom:8px; cursor:pointer;">
+          <input type="checkbox" id="aoiClipChk"/> <strong>Clip export to AOI</strong>
+        </label>
+        <div class="aoi-actions">
+          <button id="btnAoiDraw" class="btn" style="font-size:11px;" title="Drag a rectangle on the map">✏ Draw AOI</button>
+          <button id="btnAoiClear" class="btn outline-danger" style="font-size:11px;">✕ Clear</button>
+        </div>
+        <div class="aoi-grid">
+          <label class="aoi-lbl">X min<input id="aoiMinX" type="number" step="0.01" placeholder="e.g. 650000" title="AOI minimum X (Easting)"/></label>
+          <label class="aoi-lbl">Y min<input id="aoiMinY" type="number" step="0.01" placeholder="e.g. 990000" title="AOI minimum Y (Northing)"/></label>
+          <label class="aoi-lbl">X max<input id="aoiMaxX" type="number" step="0.01" placeholder="e.g. 655000" title="AOI maximum X (Easting)"/></label>
+          <label class="aoi-lbl">Y max<input id="aoiMaxY" type="number" step="0.01" placeholder="e.g. 995000" title="AOI maximum Y (Northing)"/></label>
+        </div>
+        <button id="btnAoiApply" class="btn" style="font-size:11px; width:100%; margin-top:8px;">Apply BBox</button>
+      </div>
     </div>
   </aside>
 
   <section class="content">
-    <div class="floating-status"><div id="status">Ready. Awaiting GeoTIFF.</div><span id="flipYBadge" class="tag" style="display:none; background: var(--c-error); border-color: var(--c-error); color: white;">Flip-Y ON</span></div>
+    <div class="floating-status"><div id="status">Ready. Awaiting GeoTIFF.</div><span id="flipYBadge" class="tag" style="display:none; background: var(--c-error); border-color: var(--c-error); color: white;">Flip-Y ON</span><span id="aoiChip" class="tag" style="display:none; background: var(--c-accent-dim); border-color: var(--c-accent); color: var(--c-accent);">◱ AOI ON</span></div>
     <div id="map"></div>
   </section>
 </div>
@@ -283,7 +306,7 @@
 <footer>
   <div>Built by <strong>Rattawit W - Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N — v9.3.1 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
+  <div>Indian 1975 UTM 47N — v9.4.2 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
@@ -308,7 +331,7 @@ function dePreviewFlip(E, N){
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.3.1 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.4.2 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -386,10 +409,52 @@ function dePreviewFlip(E, N){
   useResamplingEl.addEventListener('change', function(){ if(lastFC) generate(); });
   maxBridgeDistEl.addEventListener('change', function(){ if(lastFC) generate(); });
 
+  /* ===== v9.4.0 Phase A: Area-of-Interest (AOI) export-clip state ===== */
+  /* AOI bounds are stored in WORLD XY *flip-space* (same space as lastFC contour coords &
+     Leaflet CRS.Simple latlng: lat=Y, lng=X), so no datum/flip transform is needed at clip time. */
+  var aoiEnabled=false, aoiBounds=null, aoiRectLayer=null, aoiDrawing=false, aoiStart=null, aoiTempLayer=null;
   var map=L.map('map',{crs:L.CRS.Simple,preferCanvas:true,zoomControl:true}).setView([0,0],1);
   map.createPane('rasterPane'); 
   map.getPane('rasterPane').style.zIndex='200';
   L.control.scale({ imperial: false, metric: true }).addTo(map);
+
+  /* ===== v9.4.0 Phase A: AOI event wiring ===== */
+  (function(){
+    var btnDraw=document.getElementById('btnAoiDraw'), btnClear=document.getElementById('btnAoiClear'),
+        btnApply=document.getElementById('btnAoiApply'), chk=document.getElementById('aoiClipChk');
+    if(btnDraw){ btnDraw.addEventListener('click', function(){
+      aoiDrawing=!aoiDrawing;
+      var mc=map.getContainer();
+      if(aoiDrawing){ map.dragging.disable(); mc.style.cursor='crosshair'; btnDraw.classList.add('primary');
+        if(typeof status!=='undefined'&&status) status.textContent='AOI draw: drag a rectangle on the map.'; }
+      else { map.dragging.enable(); mc.style.cursor=''; btnDraw.classList.remove('primary'); }
+    }); }
+    if(btnClear){ btnClear.addEventListener('click', function(){ _aoiClear(); if(btnDraw) btnDraw.classList.remove('primary'); if(typeof status!=='undefined'&&status) status.textContent='AOI cleared.'; }); }
+    if(btnApply){ btnApply.addEventListener('click', function(){
+      var x0=parseFloat((document.getElementById('aoiMinX')||{}).value), y0=parseFloat((document.getElementById('aoiMinY')||{}).value),
+          x1=parseFloat((document.getElementById('aoiMaxX')||{}).value), y1=parseFloat((document.getElementById('aoiMaxY')||{}).value);
+      if(![x0,y0,x1,y1].every(isFinite)){ if(typeof status!=='undefined'&&status) status.textContent='AOI bbox: enter numeric min/max X,Y.'; return; }
+      _aoiSet(_aoiNorm(x0,y0,x1,y1));
+    }); }
+    if(chk){ chk.addEventListener('change', function(){
+      if(chk.checked && !_aoiValid(aoiBounds)){ chk.checked=false; if(typeof status!=='undefined'&&status) status.textContent='Set an AOI (draw or bbox) before enabling clip.'; return; }
+      aoiEnabled=chk.checked; _aoiUpdateChip();
+    }); }
+    /* rubber-band drawing */
+    map.on('mousedown', function(e){ if(!aoiDrawing) return; aoiStart=e.latlng; if(aoiTempLayer){ map.removeLayer(aoiTempLayer); aoiTempLayer=null; } });
+    map.on('mousemove', function(e){ if(!aoiDrawing || !aoiStart) return;
+      var b=_aoiNorm(aoiStart.lng, aoiStart.lat, e.latlng.lng, e.latlng.lat);
+      if(aoiTempLayer){ map.removeLayer(aoiTempLayer); }
+      aoiTempLayer=L.rectangle([[b.ymin,b.xmin],[b.ymax,b.xmax]], {color:'#ff9800', weight:1, dashArray:'4 3', fill:false, interactive:false}).addTo(map);
+    });
+    map.on('mouseup', function(e){ if(!aoiDrawing || !aoiStart) return;
+      if(aoiTempLayer){ map.removeLayer(aoiTempLayer); aoiTempLayer=null; }
+      var bb=_aoiNorm(aoiStart.lng, aoiStart.lat, e.latlng.lng, e.latlng.lat);
+      aoiStart=null; aoiDrawing=false; map.dragging.enable(); map.getContainer().style.cursor='';
+      if(btnDraw) btnDraw.classList.remove('primary');
+      if(_aoiValid(bb)) _aoiSet(bb); else if(typeof status!=='undefined'&&status) status.textContent='AOI too small — drag a larger rectangle.';
+    });
+  })();
 
   // --- Rendering: Coordinates Tracker with RAF ---
   (function(){
@@ -742,8 +807,11 @@ function dePreviewFlip(E, N){
             var _cx0 = px2xy(0,0), _cx1 = px2xy(width,0), _cx2 = px2xy(0,height), _cx3 = px2xy(width,height);
             var _rcx = (_cx0[0]+_cx1[0]+_cx2[0]+_cx3[0])/4;
             var _rcy = (_cx0[1]+_cx1[1]+_cx2[1]+_cx3[1])/4;
-            if (parseFloat(_fcX.value) === 0) { _fcX.value = _rcx.toFixed(1); }
-            if (parseFloat(_fcY.value) === 0) { _fcY.value = _rcy.toFixed(1); }
+            /* v9.3.4 FIX(3.3): keep px2xy (it composes with sampleDepthAt's internal flip as an exact inverse --
+               verified by QC round-trip; a raw-space center would MISlocate under flipY). Replace the '=== 0'
+               test that blocked updates on the 2nd file load with a dirty-flag: overwrite on every new load
+               UNLESS the user manually typed a value. */
+            if (!_fcCenterDirty) { _fcX.value = _rcx.toFixed(1); _fcY.value = _rcy.toFixed(1); }
           }
         } catch(_){}
         autoStretch(values); 
@@ -831,7 +899,15 @@ function dePreviewFlip(E, N){
       self.postMessage({ type: 'progress', msg: 'Module A: Bridging internal gaps (IDW)...' });
       const filledGrid = new Float32Array(grid);
       
-      const R = Math.min(Math.ceil(maxBridgePixels), 25); 
+      let R = Math.min(Math.ceil(maxBridgePixels), 25);
+      /* v9.3.3 FIX(2.1): bound worst-case IDW cost nanCount*(2R+1)^2 to stop Worker freeze/OOM; auto-reduce R (>=1). */
+      var R0 = R, nanCount = 0;
+      for (let i = 0; i < grid.length; i++){ if (isNaN(grid[i])) nanCount++; }
+      var IDW_BUDGET = 4e8;
+      if (R > 0 && nanCount > 0){
+        while (R > 1 && nanCount * (2*R+1)*(2*R+1) > IDW_BUDGET) R--;
+        if (R < R0) self.postMessage({ type:'progress', msg:'Module A: IDW radius auto-reduced '+R0+'->'+R+' px ('+nanCount+' gap cells) to avoid freeze...' });
+      }
       
       if (R > 0) {
           for (let y = 0; y < height; y++) {
@@ -909,7 +985,9 @@ function dePreviewFlip(E, N){
                 }
               }
             }
-            upsampled[y * newWidth + x] = Math.abs(weightSum) > 0.0001 ? (val / weightSum) : NaN;
+            /* v9.3.4 FIX(NEW-3): require POSITIVE weightSum. Catmull-Rom weights (a=-0.5) go negative near NaN
+               edges; Math.abs() passed negative sums -> val/negative sign-flip overshoot spikes at pit edges. */
+            upsampled[y * newWidth + x] = (weightSum > 1e-4) ? (val / weightSum) : NaN;
           }
         }
       }
@@ -1092,6 +1170,103 @@ function dePreviewFlip(E, N){
   btnGenerate.addEventListener('click', generate);
 
   // --- Export: CAD DXF Subroutine ---
+  /* ===== v9.4.0 Phase A: AOI clip helpers (Cohen-Sutherland line clipping) ===== */
+  function _aoiNorm(x0,y0,x1,y1){ return {xmin:Math.min(x0,x1), xmax:Math.max(x0,x1), ymin:Math.min(y0,y1), ymax:Math.max(y0,y1)}; }
+  function _aoiValid(bb){ return bb && isFinite(bb.xmin)&&isFinite(bb.ymin)&&isFinite(bb.xmax)&&isFinite(bb.ymax) && (bb.xmax>bb.xmin) && (bb.ymax>bb.ymin); }
+  function _aoiInside(x,y,bb){ return x>=bb.xmin && x<=bb.xmax && y>=bb.ymin && y<=bb.ymax; }
+  function _csCode(x,y,bb){ var c=0; if(x<bb.xmin)c|=1; else if(x>bb.xmax)c|=2; if(y<bb.ymin)c|=4; else if(y>bb.ymax)c|=8; return c; }
+  /* Clip one segment to bbox; returns [[x0,y0],[x1,y1]] (clipped) or null if fully outside. */
+  function _clipSeg(x0,y0,x1,y1,bb){
+    var c0=_csCode(x0,y0,bb), c1=_csCode(x1,y1,bb), guard=0;
+    while(guard++ < 64){
+      if(!(c0|c1)) return [[x0,y0],[x1,y1]];   /* both inside */
+      if(c0 & c1) return null;                  /* trivially reject (same outside zone) */
+      var co = c0 || c1, x, y;
+      if(co & 8){ x = x0 + (x1-x0)*(bb.ymax-y0)/(y1-y0); y = bb.ymax; }
+      else if(co & 4){ x = x0 + (x1-x0)*(bb.ymin-y0)/(y1-y0); y = bb.ymin; }
+      else if(co & 2){ y = y0 + (y1-y0)*(bb.xmax-x0)/(x1-x0); x = bb.xmax; }
+      else { y = y0 + (y1-y0)*(bb.xmin-x0)/(x1-x0); x = bb.xmin; }
+      if(co === c0){ x0=x; y0=y; c0=_csCode(x0,y0,bb); } else { x1=x; y1=y; c1=_csCode(x1,y1,bb); }
+    }
+    return null;
+  }
+  /* Clip a polyline; returns array of polyline runs (a crossing line may split into several). */
+  function _clipLine(coords, bb){
+    var runs=[], cur=null, eps=1e-6;
+    for(var i=0;i+1<coords.length;i++){
+      var seg=_clipSeg(coords[i][0],coords[i][1],coords[i+1][0],coords[i+1][1],bb);
+      if(!seg){ cur=null; continue; }
+      if(cur && Math.abs(cur[cur.length-1][0]-seg[0][0])<eps && Math.abs(cur[cur.length-1][1]-seg[0][1])<eps){
+        cur.push(seg[1]);
+      } else { cur=[seg[0], seg[1]]; runs.push(cur); }
+    }
+    return runs.filter(function(r){ return r.length>=2; });
+  }
+  /* Return a NEW FeatureCollection with all LineString/MultiLineString features clipped to bb. */
+  function clipFCToAOI(fc, bb){
+    if(!fc || !fc.features || !_aoiValid(bb)) return fc;
+    var props = {}; for(var kp in fc.properties){ props[kp]=fc.properties[kp]; }
+    props.clippedAOI = [bb.xmin, bb.ymin, bb.xmax, bb.ymax];
+    var out={ type:'FeatureCollection', crs: fc.crs, properties: props, features: [] };
+    for(var i=0;i<fc.features.length;i++){
+      var f=fc.features[i]; if(!f.geometry) continue;
+      var lines=[];
+      if(f.geometry.type==='LineString'){ lines=[f.geometry.coordinates]; }
+      else if(f.geometry.type==='MultiLineString'){ lines=f.geometry.coordinates; }
+      else { continue; }  /* Points/others: dropped from clipped export (contours are lines) */
+      for(var m=0;m<lines.length;m++){
+        var runs=_clipLine(lines[m], bb);
+        for(var r=0;r<runs.length;r++){
+          out.features.push({ type:'Feature', properties:f.properties, geometry:{ type:'LineString', coordinates:runs[r] } });
+        }
+      }
+    }
+    return out;
+  }
+  /* Single source of truth used by every exporter. */
+  function getExportFC(){
+    if(aoiEnabled && _aoiValid(aoiBounds) && lastFC){ return clipFCToAOI(lastFC, aoiBounds); }
+    return lastFC;
+  }
+  /* ---- AOI map/UI helpers (share state; called from event wiring & flip-Y handler) ---- */
+  function _aoiDrawRect(bb){
+    if(aoiRectLayer){ map.removeLayer(aoiRectLayer); aoiRectLayer=null; }
+    if(!_aoiValid(bb)) return;
+    aoiRectLayer = L.rectangle([[bb.ymin,bb.xmin],[bb.ymax,bb.xmax]], {color:'#ff9800', weight:2, dashArray:'6 4', fill:true, fillOpacity:0.06, interactive:false});
+    aoiRectLayer.addTo(map);
+  }
+  function _aoiSyncInputs(bb){
+    var a=document.getElementById('aoiMinX'), b=document.getElementById('aoiMinY'), c=document.getElementById('aoiMaxX'), d=document.getElementById('aoiMaxY');
+    if(a) a.value=bb.xmin.toFixed(2); if(b) b.value=bb.ymin.toFixed(2); if(c) c.value=bb.xmax.toFixed(2); if(d) d.value=bb.ymax.toFixed(2);
+  }
+  function _aoiUpdateChip(){
+    var chip=document.getElementById('aoiChip'); if(!chip) return;
+    if(aoiEnabled && _aoiValid(aoiBounds)){
+      chip.textContent='\u25f1 AOI ON '+Math.round(aoiBounds.xmax-aoiBounds.xmin)+'\u00d7'+Math.round(aoiBounds.ymax-aoiBounds.ymin)+' m';
+      chip.style.display='';
+    } else if(_aoiValid(aoiBounds)){
+      chip.textContent='\u25f1 AOI set (clip off)'; chip.style.opacity='0.6'; chip.style.display='';
+    } else { chip.style.display='none'; }
+    if(aoiEnabled) chip.style.opacity='1';
+  }
+  function _aoiSet(bb){
+    if(!_aoiValid(bb)){ if(typeof status!=='undefined'&&status) status.textContent='AOI invalid: max must exceed min.'; return; }
+    aoiBounds=bb; aoiEnabled=true;
+    var chk=document.getElementById('aoiClipChk'); if(chk) chk.checked=true;
+    _aoiDrawRect(bb); _aoiSyncInputs(bb); _aoiUpdateChip();
+    if(typeof status!=='undefined'&&status) status.textContent='AOI set: X['+bb.xmin.toFixed(1)+'..'+bb.xmax.toFixed(1)+'] Y['+bb.ymin.toFixed(1)+'..'+bb.ymax.toFixed(1)+'] — export will be clipped.';
+  }
+  function _aoiClear(){
+    aoiEnabled=false; aoiBounds=null; aoiDrawing=false; aoiStart=null;
+    if(aoiRectLayer){ map.removeLayer(aoiRectLayer); aoiRectLayer=null; }
+    if(aoiTempLayer){ map.removeLayer(aoiTempLayer); aoiTempLayer=null; }
+    var chk=document.getElementById('aoiClipChk'); if(chk) chk.checked=false;
+    ['aoiMinX','aoiMinY','aoiMaxX','aoiMaxY'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    if(map && map.dragging) map.dragging.enable();
+    var mc=map?map.getContainer():null; if(mc) mc.style.cursor='';
+    _aoiUpdateChip();
+  }
+
   function buildDXF(fc){
     /* v9.0.8: R12 POLYLINE (proven CAD-safe) */
     var NL='\r\n';
@@ -1317,7 +1492,7 @@ function dePreviewFlip(E, N){
     temporaryDisable(btnDXF, 'SAVING...');
     // Fix: Unblock UI Thread
     setTimeout(function() {
-        var dxf = buildDXF(lastFC); 
+        var dxf = buildDXF(getExportFC()); /* v9.4.0: AOI clip */ 
         lastDXFText = dxf;
         var blob = new Blob([dxf], {type:'application/dxf'});
         var a = document.createElement('a');
@@ -1443,8 +1618,8 @@ function dePreviewFlip(E, N){
         ll = indian1975UTMToWGS84(__tmp[0], __tmp[1]);
         lon = ll[1].toFixed(6); 
         lat = ll[0].toFixed(6);
-        // Fix: Add Elevation to KML
-        parts.push(lon+','+lat+','+Number(elevVal||0).toFixed(3)); /* preserve depth/Z; clampToGround controls display */
+        // v9.3.2 FIX(NEW-1): sub-sea altitude must be NEGATIVE (Z=-depth); clampToGround display unchanged, triplet now correct for GIS/absolute.
+        parts.push(lon+','+lat+','+(-Math.abs(Number(elevVal)||0)).toFixed(3));
       }
       return parts.join(' ');
     }
@@ -1489,7 +1664,7 @@ function dePreviewFlip(E, N){
     temporaryDisable(btnKML, 'SAVING...');
     // Fix: Unblock UI Thread
     setTimeout(function() {
-      var kml = buildKML_WGS84_from_IndianUTM(lastFC);
+      var kml = buildKML_WGS84_from_IndianUTM(getExportFC()); /* v9.4.0: AOI clip */
       var blob = new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob); 
@@ -1627,7 +1802,7 @@ function dePreviewFlip(E, N){
     temporaryDisable(btnSHPZip, 'PACKING...');
     // Fix: Unblock UI Thread
     setTimeout(function() {
-      var data = buildSHP_47N_FromFC(lastFC); 
+      var data = buildSHP_47N_FromFC(getExportFC()); /* v9.4.0: AOI clip */ 
       if(!data) return;
       var zip = new JSZip();
       var base = 'contours_' + importBase;
@@ -1653,7 +1828,7 @@ function dePreviewFlip(E, N){
     temporaryDisable(btnSHPFiles, 'SAVING...');
     // Fix: Unblock UI Thread
     setTimeout(function() {
-      var data = buildSHP_47N_FromFC(lastFC); 
+      var data = buildSHP_47N_FromFC(getExportFC()); /* v9.4.0: AOI clip */ 
       if(!data) return;
       
       function saveBytes(bytes, name){
@@ -1686,7 +1861,7 @@ function dePreviewFlip(E, N){
   flipYEl.addEventListener('change', function(){ 
     flipYBadge.style.display = flipYEl.checked ? 'inline-block' : 'none'; 
     try { localStorage.setItem('xy.flipY', flipYEl.checked ? '1' : '0'); } catch(e){} 
-    if(lastFC && lastFC.properties && lastFC.properties.flipY !== flipYEl.checked){ btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true; status.textContent = 'Flip-Y changed. Re-generating...'; }
+    if(lastFC && lastFC.properties && lastFC.properties.flipY !== flipYEl.checked){ btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true; _aoiClear(); status.textContent = 'Flip-Y changed. AOI cleared. Re-generating...'; }
     rebuildPreview(); 
     if(values) btnGenerate.click(); 
   });
@@ -1817,6 +1992,9 @@ function dePreviewFlip(E, N){
     var pxSize = window.currentPixelResolution || 1;
     var winHalf = Math.floor(winCells/2);
     var gridIdx = 0;
+    /* v9.3.4 FIX(3.2): dedup local-min emissions -- when window physical size (winHalf*pxSize) exceeds grid
+       spacing, adjacent nodes resolve to the SAME shallowest pixel, stacking duplicate DXF TEXT at one point. */
+    var _lmSeen = (densityMode === 'local_min') ? Object.create(null) : null;
     for(var y = y0; y <= ymax; y += spacing){
       for(var x = x0; x <= xmax; x += spacing){
         gridIdx++;
@@ -1840,10 +2018,15 @@ function dePreviewFlip(E, N){
           if(shallowest === null) continue;
           d = shallowest;
           emitX = shX; emitY = shY;
+          var _lmKey = shX.toFixed(3) + ',' + shY.toFixed(3);
+          if(_lmSeen[_lmKey]) continue;
+          _lmSeen[_lmKey] = 1;
         } else {
           d = sampleDepthAt(x, y);
           if(d === null) continue;
         }
+        /* v9.4.0 Phase A: drop soundings outside AOI (emitX/emitY are final here, flip-space). */
+        if(aoiEnabled && _aoiValid(aoiBounds) && !_aoiInside(emitX, emitY, aoiBounds)) continue;
         var layer = soundingLayerFor(d, b1, b2, b3, b4);
 
         var intPart = Math.floor(d);
@@ -1875,18 +2058,18 @@ function dePreviewFlip(E, N){
       }
     }
 
-    if(inclCon && lastFC && lastFC.features && lastFC.features.length){
+    var _sndFC = getExportFC(); /* v9.4.0: contour re-emit respects AOI */
+    if(inclCon && _sndFC && _sndFC.features && _sndFC.features.length){
       var _colCon = layerColors['Contour'] || 5;
-      for(var fi=0; fi<lastFC.features.length; fi++){
-        var f = lastFC.features[fi];
+      for(var fi=0; fi<_sndFC.features.length; fi++){
+        var f = _sndFC.features[fi];
         if(!f.geometry || f.geometry.type!=='LineString') continue;
         var coords = f.geometry.coordinates;
         if(!coords || coords.length<2) continue;
         w('0','POLYLINE','62', String(_colCon),'8','Contour','66','1','70','0');
         for(var k=0; k<coords.length; k++){
-          /* v9.3.1 M2: apply dePreviewFlip to contour vertex coords */
-          var _fp = dePreviewFlip(coords[k][0], coords[k][1]);
-          w('0','VERTEX','8','Contour','10', String(_fp[0]),'20', String(_fp[1]));
+          /* v9.3.2 FIX(1.2): contour coords already in flip-Y space (pxCenter2xy->maybeFlipY), same as sounding text; dePreviewFlip double-flipped them. Write directly, matching main buildDXF. */
+          w('0','VERTEX','8','Contour','10', String(coords[k][0]),'20', String(coords[k][1]));
         }
         w('0','SEQEND');
       }
@@ -1914,6 +2097,11 @@ function dePreviewFlip(E, N){
   /* ==================== v9.3.1 Foundation Check ==================== */
   var fcCenterXEl = document.getElementById('fcCenterX');
   var fcCenterYEl = document.getElementById('fcCenterY');
+  /* v9.3.4 FIX(3.3): dirty-flag -- programmatic auto-fill & search-writeback set .value (no 'input' event) so
+     they never mark dirty; only real user typing does, and is then preserved across subsequent file loads. */
+  var _fcCenterDirty = false;
+  if(fcCenterXEl){ fcCenterXEl.addEventListener('input', function(){ _fcCenterDirty = true; }); }
+  if(fcCenterYEl){ fcCenterYEl.addEventListener('input', function(){ _fcCenterDirty = true; }); }
   var fcRotationEl = document.getElementById('fcRotation');
   var fcWidthEl = document.getElementById('fcWidth');
   var fcLengthEl = document.getElementById('fcLength');
@@ -1975,7 +2163,7 @@ function dePreviewFlip(E, N){
     if(Math.abs(det) < 1e-12) return null;
     var a = (Suz*(Svv*n - Sv*Sv) - Suv*(Svz*n - Sv*Sz) + Su*(Svz*Sv - Svv*Sz))/det;
     var b = (Suu*(Svz*n - Sv*Sz) - Suz*(Suv*n - Sv*Su) + Su*(Suv*Sz - Svz*Su))/det;
-    var c = (Suu*(Svv*Sz - Sv*Svz) - Suv*(Suv*Sz - Sv*Suz) + Suz*(Suv*Sv - Svv*Su))/det; /* v9.3.1 C3: Cramer rule col-3 expansion -- Suz not Sz */
+    var c = (Suu*(Svv*Sz - Sv*Svz) - Suv*(Suv*Sz - Su*Svz) + Suz*(Suv*Sv - Svv*Su))/det; /* v9.3.2 FIX(1.3): col-3 middle minor (Suv*Sz - Su*Svz); was (Sv*Suz) -> wrong c/residualRms on asymmetric coverage. Verified vs numpy. */
     var resSum = 0;
     for(var k=0;k<n;k++){ var s2=samples[k], r = s2.depth - (a*s2.u + b*s2.v + c); resSum += r*r; }
     var rms = Math.sqrt(resSum/n);
@@ -1997,7 +2185,7 @@ function dePreviewFlip(E, N){
         var x = cx + u*cosR - v*sinR;
         var y = cy + u*sinR + v*cosR;
         var d = sampleDepthAt(x, y);
-        if(d !== null){ samples.push({u:u, v:v, x:x, y:y, depth:d}); validDepths.push(d); validCount++; }
+        if(d !== null){ if(!skipPlane){ samples.push({u:u, v:v, x:x, y:y, depth:d}); } validDepths.push(d); validCount++; } /* v9.3.3 FIX(2.2): skip per-sample object alloc when skipPlane (fcSearch); stats use validDepths, unaffected. */
       }
     }
     var coverage = totalCount>0 ? (validCount/totalCount)*100 : 0;
