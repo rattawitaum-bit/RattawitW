@@ -4,8 +4,16 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Coordinate Converter v6.6.1</title>
+<title>Coordinate Converter v6.6.2</title>
 <!-- CHANGELOG
+     v6.6.2 (from v6.6.1) — GeoJSON export (RFC 7946)
+       E5 exportGeoJson(tid): unified S1/S2 Point export; reads raw decimals from
+          dataset (P3 stash) → format-independent, single source of truth, auto-skips
+          empty/error rows. WGS84 [lon,lat] @7dp; Indian 1975 E/N as numeric properties.
+       E5 exportGeoJsonRoute: LineString + waypoint Points in one FeatureCollection.
+          Buttons: btnExpGeoJsonS1/S2, btnTowRouteGeoJson. MIME application/geo+json.
+          Additive only — no change to calc/validation/visualization/existing exporters.
+
      v6.6.1 (from v6.6) — Export QC pass
        E1 getCleanIdText helper: all exports/renders strip ⇄ cross-link from Point ID
           Sites patched: copyTable, exportCsv, exportXlsx, exportKml, exportDxf,
@@ -111,7 +119,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <body><a class="skip-link" href="#tabContent1" id="skipToActive">Skip to active workbench</a><div class="page"><header class="masthead" id="globalNav">
 <div class="nav-top-row">
 <div>
-<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.6.1</span><span class="version-badge">v6.6.1 · UI v2.1</span>
+<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.6.2</span><span class="version-badge">v6.6.2 · UI v2.1</span>
 <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
 <details class="datum-details" id="datumDetails" open=""><summary data-i18n-aria-label="lbl_datum" data-ui-i18n="datum_summary">Datum · Zone metadata</summary><div class="banner-details">
 <b data-i18n="lbl_datum">Datum:</b>
@@ -211,6 +219,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <button class="btn-excel" data-i18n="btn_exp_xlsx_s1" data-i18n-title="tt_exp_xlsx" id="btnExpXlsxS1">Export XLSX</button>
 <button class="btn-shp" data-i18n="btn_exp_shp" data-i18n-title="tt_exp_shp" id="btnExpShpS1">Export SHP (ZIP)</button>
 <button data-i18n="btn_exp_kml_s1" data-i18n-title="tt_exp_kml" id="btnExpKmlS1">Export KML</button>
+<button data-i18n="btn_exp_geojson" data-i18n-title="tt_exp_geojson" id="btnExpGeoJsonS1">Export GeoJSON</button>
 <button class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf" id="btnExpDxf1">Export DXF</button>
 <button data-i18n="btn_copy_tsv_s1" data-i18n-title="tt_copy" id="btnCopyS1">Copy (TSV)</button>
 </div>
@@ -283,6 +292,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <button class="btn-excel" data-i18n="btn_exp_xlsx_s2" data-i18n-title="tt_exp_xlsx" id="btnExpXlsxS2">Export XLSX</button>
 <button class="btn-shp" data-i18n="btn_exp_shp" data-i18n-title="tt_exp_shp" id="btnExpShpS2">Export SHP (ZIP)</button>
 <button data-i18n="btn_exp_kml_s2" data-i18n-title="tt_exp_kml" id="btnExpKmlS2">Export KML</button>
+<button data-i18n="btn_exp_geojson" data-i18n-title="tt_exp_geojson" id="btnExpGeoJsonS2">Export GeoJSON</button>
 <button class="btn-secondary" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf" id="btnExpDxf2">Export DXF</button>
 <button data-i18n="btn_copy_tsv_s2" data-i18n-title="tt_copy" id="btnCopyS2">Copy (TSV)</button>
 </div>
@@ -300,6 +310,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <button class="btn-route-csv" data-i18n-title="tt_route_csv" data-ui-i18n="tow_csv" id="btnTowRouteCsv">TowRoute (CSV)</button>
 <button class="btn-excel" data-i18n-title="tt_route_xlsx" data-ui-i18n="tow_xlsx" id="btnTowRouteXlsx">TowRoute (XLSX)</button>
 <button class="btn-shp" data-i18n-title="tt_route_shp" data-ui-i18n="tow_shp" id="btnTowRouteShp">TowRoute (SHP)</button>
+<button class="btn-route" data-i18n-title="tt_route_geojson" data-ui-i18n="tow_geojson" id="btnTowRouteGeoJson">TowRoute (GeoJSON)</button>
 <button class="btn-route" data-i18n="btn_exp_dxf" data-i18n-title="tt_exp_dxf" id="btnExpDxf3" style="background-color: #2563eb;">Export DXF</button>
 </div>
 </div>
@@ -374,7 +385,7 @@ const AppState = {
  */
 const I18nDict = {
     en: {
-        app_title: "Coordinate Converter v6.6.1", lbl_datum: "Datum:", lbl_zone: "Zone:",
+        app_title: "Coordinate Converter v6.6.2", lbl_datum: "Datum:", lbl_zone: "Zone:",
         sel_zone: "UTM Zone:", sel_datum: "Transformation Params:", lbl_hemisphere: "Hemisphere:",
         opt_dol: "DOL", opt_survey: "High-Prec", opt_legacy: "Legacy",
         btn_clear_all: "Clear All Inputs", s1_title: "Section 1: WGS84 Lat/Long to Indian 1975 UTM and Lat/Long", s2_title: "Section 2: Indian 1975 UTM and Lat/Long to WGS84",
@@ -389,7 +400,7 @@ const I18nDict = {
         f2_datum_delta: "Switching {0} → {1}: Δ ≈ {2} m at {3}", f2_last_point: "last valid point", f2_bangkok: "Bangkok (default anchor)",
         f1_roundtrip: "Round-trip Δ: {0} m", f1_cross_send_s2: "Send row to Section 2 (reverse convert)", f1_cross_send_s1: "Send row to Section 1 (reverse convert)",
         f3_paste_empty: "Clipboard is empty.", f3_paste_manual: "Press Ctrl+V in the first row to paste.", f3_paste_ok: "{0} row(s) pasted from clipboard.",
-        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_shp: "Export SHP (ZIP)", btn_exp_kml_s1: "Export KML", btn_copy_tsv_s1: "Copy (TSV)",
+        btn_calc_s1: "Calculate Section 1", btn_clear_s1: "Clear Section 1", btn_exp_csv_s1: "Export CSV", btn_exp_xlsx_s1: "Export XLSX", btn_exp_shp: "Export SHP (ZIP)", btn_exp_kml_s1: "Export KML", btn_exp_geojson: "Export GeoJSON", btn_copy_tsv_s1: "Copy (TSV)",
         btn_calc_s2: "Calculate Section 2", btn_clear_s2: "Clear Section 2", btn_exp_csv_s2: "Export CSV", btn_exp_xlsx_s2: "Export XLSX", btn_exp_kml_s2: "Export KML", btn_copy_tsv_s2: "Copy (TSV)",
         vis_title: "Coordinate Visualization", opt_vis_wgs: "WGS84 Lat/Long", opt_vis_utm: "Indian 1975 UTM", btn_show_svg: "Show Points on Chart", btn_exp_dxf: "Export DXF (R12)",
         vis_panel_title: "🗺️ Coordinate Visualization (Map & Grid)", btn_view_map: "🗺️ Interactive Map", btn_view_svg: "📐 Legacy SVG", btn_refresh_map: "Refresh Map",
@@ -407,10 +418,10 @@ const I18nDict = {
         err_math: "Row {0}: Math error.",
         route_empty: "No route data. Enter points in Tab 2 to generate analytics.",
         route_need_pts: "Need at least 2 valid points in Section 2 to generate route analytics.",
-        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
+        tt_lang: "Switch interface language", tt_clear_all: "Erase all tables and map overlays", tt_load: "Import coordinates from a file", tt_samp_csv: "Download sample CSV template", tt_samp_txt: "Download sample TXT template", tt_gps: "Fetch current device location to Row 1", tt_calc_s1: "Process table and calculate Indian 1975 UTM", tt_clear_s1: "Clear all data in Section 1", tt_exp_csv: "Export table data to CSV", tt_exp_xlsx: "Export table data to Excel (.xlsx)", tt_exp_shp: "Export to ESRI Shapefile (.zip)", tt_exp_kml: "Export points to KML for Google Earth", tt_exp_geojson: "Export points to GeoJSON (WGS84, RFC 7946)", tt_route_geojson: "Export route as GeoJSON LineString + waypoints (WGS84)", tt_copy: "Copy table data to clipboard (TSV)", tt_calc_s2: "Process table and calculate WGS84 Lat/Lon", tt_clear_s2: "Clear all data in Section 2", tt_route_kml: "Export route with 1NM/2NM buffers and bearing/distance", tt_route_csv: "Export route waypoints, bearings, and distances to CSV", tt_route_xlsx: "Export route waypoints, bearings, and distances to Excel (.xlsx)", tt_route_shp: "Export route line segments to ESRI Shapefile (.zip)", tt_show_svg: "Plot active points on a grid", tt_exp_dxf: "Export points and labels to AutoCAD DXF (R12)", tt_show_map: "Plot active points on an interactive map", msg_clear_warn: "Are you sure you want to clear all data in both sections?", msg_no_pts: "No valid points available.", lbl_route_exp: "Route Export ▸", lbl_s2_input_hint: "Input: Indian 1975 UTM (meters, E / N)"
     },
     th: {
-        app_title: "โปรแกรมแปลงค่าพิกัด v6.6.1", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
+        app_title: "โปรแกรมแปลงค่าพิกัด v6.6.2", lbl_datum: "พารามิเตอร์:", lbl_zone: "โซน:",
         sel_zone: "พิกัด UTM:", sel_datum: "พารามิเตอร์:", lbl_hemisphere: "ซีกโลก:",
         opt_dol: "กรมที่ดิน", opt_survey: "รังวัดความละเอียดสูง", opt_legacy: "แบบดั้งเดิม",
         btn_clear_all: "ล้างข้อมูล", s1_title: "ส่วนที่ 1: แปลงพิกัด WGS84 เป็น Indian 1975", s2_title: "ส่วนที่ 2: แปลงพิกัด Indian 1975 เป็น WGS84",
@@ -425,7 +436,7 @@ const I18nDict = {
         f2_datum_delta: "เปลี่ยน {0} → {1}: Δ ≈ {2} ม. ที่ {3}", f2_last_point: "จุดล่าสุด", f2_bangkok: "กรุงเทพฯ (จุดอ้างอิงเริ่มต้น)",
         f1_roundtrip: "ความคลาดเคลื่อน Round-trip: {0} ม.", f1_cross_send_s2: "ส่งแถวไปยัง Section 2 (แปลงย้อนกลับ)", f1_cross_send_s1: "ส่งแถวไปยัง Section 1 (แปลงย้อนกลับ)",
         f3_paste_empty: "คลิปบอร์ดว่างเปล่า", f3_paste_manual: "กด Ctrl+V ในแถวแรกเพื่อวางข้อมูล", f3_paste_ok: "วางข้อมูล {0} แถวจากคลิปบอร์ดแล้ว",
-        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_shp: "ส่งออก SHP (ZIP)", btn_exp_kml_s1: "ส่งออก KML", btn_copy_tsv_s1: "คัดลอกตาราง",
+        btn_calc_s1: "ประมวลผลส่วนที่ 1", btn_clear_s1: "ล้างข้อมูล", btn_exp_csv_s1: "ส่งออก CSV", btn_exp_xlsx_s1: "ส่งออก XLSX", btn_exp_shp: "ส่งออก SHP (ZIP)", btn_exp_kml_s1: "ส่งออก KML", btn_exp_geojson: "ส่งออก GeoJSON", btn_copy_tsv_s1: "คัดลอกตาราง",
         btn_calc_s2: "ประมวลผลส่วนที่ 2", btn_clear_s2: "ล้างข้อมูล", btn_exp_csv_s2: "ส่งออก CSV", btn_exp_xlsx_s2: "ส่งออก XLSX", btn_exp_kml_s2: "ส่งออก KML", btn_copy_tsv_s2: "คัดลอกตาราง",
         vis_title: "ระบบแสดงกราฟิกพิกัดฉาก", opt_vis_wgs: "พิกัดภูมิศาสตร์ WGS84", opt_vis_utm: "พิกัดฉาก Indian 1975 UTM", btn_show_svg: "สร้างกราฟแสดงจุด", btn_exp_dxf: "ส่งออก CAD DXF",
         vis_panel_title: "🗺️ ระบบแสดงผลพิกัด (แผนที่ & กราฟ)", btn_view_map: "🗺️ แผนที่ Interactive", btn_view_svg: "📐 กราฟ SVG", btn_refresh_map: "รีเฟรชแผนที่",
@@ -443,7 +454,7 @@ const I18nDict = {
         err_math: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์",
         route_empty: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ",
         route_need_pts: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง",
-        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเฉพาะในหน้านี้เป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
+        tt_lang: "เปลี่ยนภาษาของโปรแกรม", tt_clear_all: "ลบข้อมูลทั้งหมดในตารางและแผนที่", tt_load: "นำเข้าพิกัดจากไฟล์", tt_samp_csv: "ดาวน์โหลดไฟล์ตัวอย่าง CSV", tt_samp_txt: "ดาวน์โหลดไฟล์ตัวอย่าง TXT", tt_gps: "ดึงพิกัด GPS ปัจจุบันลงในแถวที่ 1", tt_calc_s1: "คำนวณและแปลงพิกัดเป็น Indian 1975 UTM", tt_clear_s1: "ล้างข้อมูลในส่วนที่ 1 ทั้งหมด", tt_exp_csv: "ส่งออกข้อมูลตารางเป็นไฟล์ CSV", tt_exp_xlsx: "ส่งออกข้อมูลตารางเป็นไฟล์ Excel (.xlsx)", tt_exp_shp: "ส่งออกเป็นไฟล์ ESRI Shapefile (.zip)", tt_exp_kml: "ส่งออกจุดพิกัดเป็นไฟล์ KML", tt_exp_geojson: "ส่งออกจุดพิกัดเป็น GeoJSON (WGS84)", tt_route_geojson: "ส่งออกเส้นทางเป็น GeoJSON (เส้น + จุด, WGS84)", tt_copy: "คัดลอกข้อมูลในตาราง", tt_calc_s2: "คำนวณและแปลงพิกัดเป็น WGS84", tt_clear_s2: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด", tt_route_kml: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ", tt_route_csv: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV", tt_route_xlsx: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)", tt_route_shp: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)", tt_show_svg: "แสดงจุดพิกัดทั้งหมดบนกราฟ", tt_exp_dxf: "ส่งออกพิกัดและป้ายชื่อเฉพาะในหน้านี้เป็นไฟล์ DXF", tt_show_map: "แสดงจุดพิกัดบนแผนที่", msg_clear_warn: "คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในโปรแกรม?", msg_no_pts: "ไม่มีจุดพิกัดที่ถูกต้องให้ดำเนินการ", lbl_route_exp: "ส่งออกเส้นทาง ▸", lbl_s2_input_hint: "พิกัดนำเข้า: Indian 1975 UTM (Easting / Northing)"
     }
 };
 
@@ -2339,6 +2350,56 @@ const AppMethods = {
         AppMethods.download(`Route_${AppMethods.getTimestamp()}.kml`, kml, 'text/xml;charset=utf-8');
     },
 
+    // v6.6.2 E5: GeoJSON export (RFC 7946). Reads raw decimals stashed in dataset (P3),
+    // so geometry is format-independent and matches the table exactly. Empty/error rows
+    // have no dataset (cleared at calc loop top) → skipped by the isNaN guard.
+    exportGeoJson: (tid, fn) => {
+        AppMethods.ensureFreshForTable(tid);
+        const tb = document.getElementById(tid);
+        const zSel = document.getElementById('zoneSelect'), dSel = document.getElementById('datumSelect');
+        const zoneLabel = zSel.options[zSel.selectedIndex].text;
+        const datumLabel = dSel.options[dSel.selectedIndex].text;
+        const features = [];
+        for (let i = 1; i < tb.rows.length; i++) {
+            const r = tb.rows[i];
+            if (r.querySelector('.has-error')) continue;
+            const lon = parseFloat(r.dataset.wgsLon), lat = parseFloat(r.dataset.wgsLat);
+            if (isNaN(lon) || isNaN(lat)) continue;
+            const indE = parseFloat(r.dataset.indE), indN = parseFloat(r.dataset.indN);
+            features.push({
+                type: 'Feature',
+                properties: {
+                    id: AppMethods.getCleanIdText(r.cells[0]),
+                    datum: datumLabel,
+                    utmZone: zoneLabel,
+                    indianEasting: isNaN(indE) ? null : indE,
+                    indianNorthing: isNaN(indN) ? null : indN
+                },
+                geometry: { type: 'Point', coordinates: [ +lon.toFixed(7), +lat.toFixed(7) ] }
+            });
+        }
+        if (!features.length) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
+        const fc = { type: 'FeatureCollection', name: tid === 'table1' ? 'Section 1 Points' : 'Section 2 Points', features };
+        AppMethods.download(fn, JSON.stringify(fc, null, 2), 'application/geo+json;charset=utf-8');
+    },
+
+    exportGeoJsonRoute: () => {
+        AppMethods.calcS2();
+        const pts = [];
+        Array.from(document.getElementById('table2').rows).slice(1).forEach(r => {
+            if (r.querySelector('.has-error')) return;
+            const lon = parseFloat(r.dataset.wgsLon), lat = parseFloat(r.dataset.wgsLat);
+            if (!isNaN(lon) && !isNaN(lat)) pts.push({ id: AppMethods.getCleanIdText(r.cells[0]), lon: +lon.toFixed(7), lat: +lat.toFixed(7) });
+        });
+        if (pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const features = [
+            { type: 'Feature', properties: { name: 'Route Path' }, geometry: { type: 'LineString', coordinates: pts.map(p => [p.lon, p.lat]) } },
+            ...pts.map((p, i) => ({ type: 'Feature', properties: { id: p.id, seq: i + 1 }, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } }))
+        ];
+        const fc = { type: 'FeatureCollection', name: 'Tow Route Track', features };
+        AppMethods.download(`Route_${AppMethods.getTimestamp()}.geojson`, JSON.stringify(fc, null, 2), 'application/geo+json;charset=utf-8');
+    },
+
 
     formatLocalCoord_: (prefix, value) => {
         const rounded = Math.round(Number(value));
@@ -3092,7 +3153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = AppState.activeTab;
             const tabName = tab === 1 ? 'Section 1: WGS84 \u2192 Indian 1975' : tab === 2 ? 'Section 2: Indian 1975 \u2192 WGS84' : 'Route Analytics';
             const now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-            ph.textContent = 'Coordinate Converter v6.6.1 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
+            ph.textContent = 'Coordinate Converter v6.6.2 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
         }
     });
     // OFFLINE FALLBACK FOR SHEETJS & JSZIP
@@ -3162,6 +3223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnExpXlsxS1').addEventListener('click', ()=>AppMethods.exportXlsx('table1', `S1_${AppMethods.getTimestamp()}.xlsx`)); 
     document.getElementById('btnExpShpS1').addEventListener('click', AppMethods.exportShpS1);
     document.getElementById('btnExpKmlS1').addEventListener('click', ()=>AppMethods.exportKml('table1', `S1_${AppMethods.getTimestamp()}.kml`));
+    document.getElementById('btnExpGeoJsonS1').addEventListener('click', ()=>AppMethods.exportGeoJson('table1', `S1_${AppMethods.getTimestamp()}.geojson`));
     document.getElementById('btnSampS1Csv').addEventListener('click', ()=>AppMethods.downloadSample('s1_csv')); document.getElementById('btnSampS1Txt').addEventListener('click', ()=>AppMethods.downloadSample('s1_txt'));
     
     document.getElementById('btnCalcS2').addEventListener('click', AppMethods.calcS2); document.getElementById('btnClearS2').addEventListener('click', AppMethods.clearS2);
@@ -3170,6 +3232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnExpXlsxS2').addEventListener('click', ()=>AppMethods.exportXlsx('table2', `S2_${AppMethods.getTimestamp()}.xlsx`));
     document.getElementById('btnExpShpS2').addEventListener('click', AppMethods.exportShpS2);
     document.getElementById('btnExpKmlS2').addEventListener('click', ()=>AppMethods.exportKml('table2', `S2_${AppMethods.getTimestamp()}.kml`));
+    document.getElementById('btnExpGeoJsonS2').addEventListener('click', ()=>AppMethods.exportGeoJson('table2', `S2_${AppMethods.getTimestamp()}.geojson`));
     document.getElementById('btnSampS2Csv').addEventListener('click', ()=>AppMethods.downloadSample('s2_csv')); document.getElementById('btnSampS2Txt').addEventListener('click', ()=>AppMethods.downloadSample('s2_txt'));
     
     document.getElementById('section1OutputFormat').addEventListener('change', AppMethods.calcS1); document.getElementById('section2OutputFormat').addEventListener('change', AppMethods.calcS2);
@@ -3186,6 +3249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnTowRouteCsv').addEventListener('click', AppMethods.exportTowRouteCsv);
     document.getElementById('btnTowRouteXlsx').addEventListener('click', AppMethods.exportTowRouteXlsx);
     document.getElementById('btnTowRouteShp').addEventListener('click', AppMethods.exportTowRouteShp);
+    document.getElementById('btnTowRouteGeoJson').addEventListener('click', AppMethods.exportGeoJsonRoute);
 
     document.getElementById('gammaToggle').addEventListener('change', AppMethods.renderRouteTable);
     
@@ -3239,7 +3303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script id="uiV2Enhancement">
 (()=>{'use strict';
-const uiV2Dict={en:{app_title:'Coordinate Converter v6.6.1',datum_summary:'Datum · Zone metadata',gps_button:'📍 Get GPS to Row 1',tow_kml:'TowRoute (KML)',tow_csv:'TowRoute (CSV)',tow_xlsx:'TowRoute (XLSX)',tow_shp:'TowRoute (SHP)',vis_heading:'🗺️ Coordinate Visualization (Map & Grid)',svg_legend:'● Plotting Active Tab Data',route_conv:'Show Grid Convergence (γ)',north:'North (N)',south:'South (S)',file_s1:'Section 1 coordinate file',encoding_s1:'Section 1 file encoding',file_s2:'Section 2 coordinate file',encoding_s2:'Section 2 file encoding',canvas_mode:'Visualization coordinate system',caption_s1:'Coordinate conversion workbench — Section 1',caption_s2:'Coordinate conversion workbench — Section 2',caption_route:'Route analytics results'},th:{app_title:'โปรแกรมแปลงค่าพิกัด v6.6.1',datum_summary:'รายละเอียด Datum และ Zone',gps_button:'📍 รับพิกัด GPS ลงแถวที่ 1',tow_kml:'ส่งออก TowRoute (KML)',tow_csv:'ส่งออก TowRoute (CSV)',tow_xlsx:'ส่งออก TowRoute (XLSX)',tow_shp:'ส่งออก TowRoute (SHP)',vis_heading:'🗺️ การแสดงผลพิกัด (แผนที่และกริด)',svg_legend:'● แสดงข้อมูลจากแท็บที่ใช้งาน',route_conv:'แสดง Grid Convergence (γ)',north:'เหนือ (N)',south:'ใต้ (S)',file_s1:'ไฟล์พิกัด Section 1',encoding_s1:'รหัสอักขระไฟล์ Section 1',file_s2:'ไฟล์พิกัด Section 2',encoding_s2:'รหัสอักขระไฟล์ Section 2',canvas_mode:'ระบบพิกัดสำหรับการแสดงผล',caption_s1:'ตารางแปลงค่าพิกัด — Section 1',caption_s2:'ตารางแปลงค่าพิกัด — Section 2',caption_route:'ผลการวิเคราะห์เส้นทาง'}};
+const uiV2Dict={en:{app_title:'Coordinate Converter v6.6.2',datum_summary:'Datum · Zone metadata',gps_button:'📍 Get GPS to Row 1',tow_kml:'TowRoute (KML)',tow_csv:'TowRoute (CSV)',tow_xlsx:'TowRoute (XLSX)',tow_shp:'TowRoute (SHP)',tow_geojson:'TowRoute (GeoJSON)',vis_heading:'🗺️ Coordinate Visualization (Map & Grid)',svg_legend:'● Plotting Active Tab Data',route_conv:'Show Grid Convergence (γ)',north:'North (N)',south:'South (S)',file_s1:'Section 1 coordinate file',encoding_s1:'Section 1 file encoding',file_s2:'Section 2 coordinate file',encoding_s2:'Section 2 file encoding',canvas_mode:'Visualization coordinate system',caption_s1:'Coordinate conversion workbench — Section 1',caption_s2:'Coordinate conversion workbench — Section 2',caption_route:'Route analytics results'},th:{app_title:'โปรแกรมแปลงค่าพิกัด v6.6.2',datum_summary:'รายละเอียด Datum และ Zone',gps_button:'📍 รับพิกัด GPS ลงแถวที่ 1',tow_kml:'ส่งออก TowRoute (KML)',tow_csv:'ส่งออก TowRoute (CSV)',tow_xlsx:'ส่งออก TowRoute (XLSX)',tow_shp:'ส่งออก TowRoute (SHP)',tow_geojson:'ส่งออก TowRoute (GeoJSON)',vis_heading:'🗺️ การแสดงผลพิกัด (แผนที่และกริด)',svg_legend:'● แสดงข้อมูลจากแท็บที่ใช้งาน',route_conv:'แสดง Grid Convergence (γ)',north:'เหนือ (N)',south:'ใต้ (S)',file_s1:'ไฟล์พิกัด Section 1',encoding_s1:'รหัสอักขระไฟล์ Section 1',file_s2:'ไฟล์พิกัด Section 2',encoding_s2:'รหัสอักขระไฟล์ Section 2',canvas_mode:'ระบบพิกัดสำหรับการแสดงผล',caption_s1:'ตารางแปลงค่าพิกัด — Section 1',caption_s2:'ตารางแปลงค่าพิกัด — Section 2',caption_route:'ผลการวิเคราะห์เส้นทาง'}};
 const uiV2T=key=>(uiV2Dict[AppState.lang]||uiV2Dict.en)[key]||uiV2Dict.en[key]||key;
 const syncUiV2Text=()=>{document.documentElement.lang=AppState.lang==='th'?'th':'en';document.querySelectorAll('[data-ui-i18n]').forEach(el=>{const v=uiV2T(el.getAttribute('data-ui-i18n'));if(el.tagName==='OPTION')el.text=v;else el.textContent=v});document.querySelectorAll('[data-ui-i18n-aria-label]').forEach(el=>el.setAttribute('aria-label',uiV2T(el.getAttribute('data-ui-i18n-aria-label'))));document.querySelectorAll('table caption[data-ui-caption]').forEach(c=>c.textContent=uiV2T(c.getAttribute('data-ui-caption')))};
 const tabs=[...document.querySelectorAll('.tab-btn')],panels=[1,2,3].map(n=>document.getElementById(`tabContent${n}`)),skip=document.getElementById('skipToActive');
