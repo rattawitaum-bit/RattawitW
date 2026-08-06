@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>XY Contour Studio — v9.4.2</title>
+<title>XY Contour Studio — v9.4.7</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,11 +63,20 @@
   .btn:active:not(:disabled) { transform: scale(0.98); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn.primary { background: var(--c-accent); color: #000; border: none; width: 100%; box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2); }
+  .map-ctrl-btn { position: absolute; top: 12px; right: 12px; z-index: 1000; display: inline-flex; align-items: center; gap: 6px;
+    background: var(--c-panel); color: var(--c-text); border: 1px solid var(--c-border); border-radius: 6px;
+    padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: background 0.15s, transform 0.1s; }
+  .map-ctrl-btn:hover { background: var(--c-panel-2); }
+  .map-ctrl-btn:active { transform: scale(0.97); }
+  .map-ctrl-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .btn.outline-danger { background: transparent; border-color: var(--c-error); color: var(--c-error); }
 
   .export-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
   .aoi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
   .aoi-lbl { display: flex; flex-direction: column; gap: 2px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: var(--c-text-2); text-transform: uppercase; }
+  .opt-gated.is-disabled { opacity: 0.45; cursor: not-allowed !important; }
+  .opt-gated.is-disabled input { cursor: not-allowed; }
   .aoi-lbl input { width: 100%; }
   .aoi-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .content { flex: 1; position: relative; background: #0f172a; }
@@ -113,7 +122,7 @@
 <body>
 
 <header>
-  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.4.2 Production</span></div>
+  <div class="brand"><div class="logo">A</div><h1>XY Contour Studio</h1><span class="tag">v9.4.7 Production</span></div>
   <div style="flex:1"></div>
   <span id="cdnStatus" class="chip">System Ready</span>
 </header>
@@ -194,7 +203,6 @@
       <div class="row"><label for="soundBand4">Band 4 Max (m) [green] <i class="tooltip-wrap" data-tooltip="GoT primary working depth 60-80 m falls in Band 4 (green).">i</i></label><input id="soundBand4" type="number" step="1" value="80"/></div>
       <div class="row"><label for="soundInclContours">Include contour lines</label><input type="checkbox" id="soundInclContours" checked/></div>
       <button id="btnSoundingDXF" class="btn primary" style="width:100%; margin-top:10px;">Export Sounding DXF</button>
-      <button id="btnZoomExtent" class="btn primary" style="width: 100%; margin-top: 15px; background: var(--c-panel-2); color: #fff;">🔎 Zoom to Extent</button>
     </div>
 
     <!-- VALIDATE TAB -->
@@ -267,6 +275,10 @@
         <label style="display:flex; align-items:center; gap:6px; font-size:12px; margin-bottom:8px; cursor:pointer;">
           <input type="checkbox" id="aoiClipChk"/> <strong>Clip export to AOI</strong>
         </label>
+        <label id="cropModeLabel" class="opt-gated is-disabled" style="display:flex; align-items:center; gap:6px; font-size:12px; margin-bottom:8px; cursor:pointer;">
+          <input type="checkbox" id="cropModeChk" disabled/> <strong>Crop &amp; regenerate (faster)</strong>
+          <i class="tooltip-wrap" data-tooltip="Requires an AOI. Crops the raster to the AOI (plus a halo) before generating contours, cutting generate time roughly in proportion to the area reduction. The map then shows only the AOI region; output coordinates are identical to a full generate.">i</i>
+        </label>
         <div class="aoi-actions">
           <button id="btnAoiDraw" class="btn" style="font-size:11px;" title="Drag a rectangle on the map">✏ Draw AOI</button>
           <button id="btnAoiClear" class="btn outline-danger" style="font-size:11px;">✕ Clear</button>
@@ -285,6 +297,8 @@
   <section class="content">
     <div class="floating-status"><div id="status">Ready. Awaiting GeoTIFF.</div><span id="flipYBadge" class="tag" style="display:none; background: var(--c-error); border-color: var(--c-error); color: white;">Flip-Y ON</span><span id="aoiChip" class="tag" style="display:none; background: var(--c-accent-dim); border-color: var(--c-accent); color: var(--c-accent);">◱ AOI ON</span></div>
     <div id="map"></div>
+    <!-- v9.4.6 U1/U5: Zoom-to-Extent promoted to a floating map control (accessible from every tab). -->
+    <button id="btnZoomExtent" class="map-ctrl-btn" title="Zoom to full data extent">🔎 Zoom to Extent</button>
   </section>
 </div>
 
@@ -306,7 +320,7 @@
 <footer>
   <div>Built by <strong>Rattawit W - Geomatics Engineering</strong></div>
   <div id="xyCursor">X: — , Y: — , Depth: —</div>
-  <div>Indian 1975 UTM 47N — v9.4.2 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
+  <div>Indian 1975 UTM 47N — v9.4.7 &nbsp;|&nbsp; <kbd>G</kbd> Generate &middot; <kbd>D</kbd> DXF</div>
 </footer>
 
 <!-- Libraries -->
@@ -331,7 +345,7 @@ function dePreviewFlip(E, N){
 }
 
 (function(){
-  console.log("xy_contour_studio_v9.4.2 - Production Boot Sequence Initiated");
+  console.log("xy_contour_studio_v9.4.7 - Production Boot Sequence Initiated");
 
   function $(id){ return document.getElementById(id); }
 
@@ -413,7 +427,19 @@ function dePreviewFlip(E, N){
   /* AOI bounds are stored in WORLD XY *flip-space* (same space as lastFC contour coords &
      Leaflet CRS.Simple latlng: lat=Y, lng=X), so no datum/flip transform is needed at clip time. */
   var aoiEnabled=false, aoiBounds=null, aoiRectLayer=null, aoiDrawing=false, aoiStart=null, aoiTempLayer=null;
-  var map=L.map('map',{crs:L.CRS.Simple,preferCanvas:true,zoomControl:true}).setView([0,0],1);
+  /* v9.4.3 FIX(B1): permissive zoom range so CRS.Simple can reach NEGATIVE zoom levels a large
+     world-extent needs to fit a small viewport (default minZoom=0 clamped fitBounds on big TIFFs). */
+  var map=L.map('map',{crs:L.CRS.Simple,minZoom:-20,maxZoom:24,zoomSnap:0.25,preferCanvas:true,zoomControl:true}).setView([0,0],1);
+
+  function fitToBounds(b){
+    if(!b || (b.isValid && !b.isValid())) return false;
+    if(map.getMinZoom() > -20) map.setMinZoom(-20);
+    var z = map.getBoundsZoom(b, false);
+    if(!isFinite(z)) z = 0;
+    map.setMinZoom(Math.floor(z) - 2);
+    map.fitBounds(b, { padding:[16,16] });
+    return true;
+  }
   map.createPane('rasterPane'); 
   map.getPane('rasterPane').style.zIndex='200';
   L.control.scale({ imperial: false, metric: true }).addTo(map);
@@ -439,6 +465,13 @@ function dePreviewFlip(E, N){
     if(chk){ chk.addEventListener('change', function(){
       if(chk.checked && !_aoiValid(aoiBounds)){ chk.checked=false; if(typeof status!=='undefined'&&status) status.textContent='Set an AOI (draw or bbox) before enabling clip.'; return; }
       aoiEnabled=chk.checked; _aoiUpdateChip();
+    }); }
+    /* v9.4.5 Phase B2.2: crop-mode toggle gated behind a valid AOI. */
+    var cropChk=document.getElementById('cropModeChk');
+    if(cropChk){ cropChk.addEventListener('change', function(){
+      if(cropChk.checked && !_aoiValid(aoiBounds)){ cropChk.checked=false; if(typeof status!=='undefined'&&status) status.textContent='Set an AOI first — crop needs an area to work on.'; return; }
+      _aoiUpdateChip();
+      if(typeof status!=='undefined'&&status) status.textContent = cropChk.checked ? 'Crop mode ON — next Generate will process only the AOI (+halo).' : 'Crop mode OFF — Generate uses the full raster.';
     }); }
     /* rubber-band drawing */
     map.on('mousedown', function(e){ if(!aoiDrawing) return; aoiStart=e.latlng; if(aoiTempLayer){ map.removeLayer(aoiTempLayer); aoiTempLayer=null; } });
@@ -592,12 +625,13 @@ function dePreviewFlip(E, N){
 
   btnZoomExtent.addEventListener('click', function(){
     try {
-      if(rasterLayer && rasterLayer.getBounds){ map.fitBounds(rasterLayer.getBounds()); return; }
+      if(rasterLayer && rasterLayer.getBounds){ fitToBounds(rasterLayer.getBounds()); return; }
+      if(!width || !height){ return; }
       var c0=px2xy(0,0), c1=px2xy(width,0), c2=px2xy(0,height), c3=px2xy(width,height);
       var minX=Math.min(c0[0],c1[0],c2[0],c3[0]); var maxX=Math.max(c0[0],c1[0],c2[0],c3[0]);
       var minY=Math.min(c0[1],c1[1],c2[1],c3[1]); var maxY=Math.max(c0[1],c1[1],c2[1],c3[1]);
       var b=L.latLngBounds([[minY,minX],[maxY,maxX]]);
-      map.fitBounds(b);
+      fitToBounds(b);
     } catch(e){ 
       console.warn('zoom extent failed', e); 
     }
@@ -642,7 +676,7 @@ function dePreviewFlip(E, N){
       pane: 'rasterPane'
     }); 
     if(showRasterEl.checked) rasterLayer.addTo(map);
-    map.fitBounds(bounds);
+    fitToBounds(bounds); /* v9.4.3 FIX(B1) */
 
     status.textContent = 'Raster stretch ' + sMin.toFixed(2) + ' to ' + sMax.toFixed(2) + ' • size ' + width + '×' + height;
     stretchMinEl.value = sMin.toFixed(2); 
@@ -1032,6 +1066,9 @@ function dePreviewFlip(E, N){
   function generate(){
     if(!values) return; 
     
+    /* v9.4.4 Phase B2.1: crop-to-AOI state (globals stay full; these are local temporaries). */
+    var cropCol0=0, cropRow0=0, cropW=width, cropH=height, useCrop=false;
+    
     var jobId = ++_currentJobId;
     lastFC = null; lastDXFText = null;
     btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = true;
@@ -1056,7 +1093,39 @@ function dePreviewFlip(E, N){
         console.warn("Coordinate system looks like Lat/Lon degrees. Adjusted Bridge search radius.");
     }
 
-    var clonedBufferCopy = values.slice().buffer; 
+    /* v9.4.4 Phase B2.1: derive pixel crop window from AOI (+halo) when crop-mode is on.
+       v9.4.7: DECOUPLED from the clip-export checkbox -- crop triggers on a valid AOI + crop toggle,
+       independent of 'Clip export to AOI'. */
+    var cropModeEl = $('cropModeChk');
+    if(cropModeEl && cropModeEl.checked && _aoiValid(aoiBounds)){
+      var _cs=[ xy2px(aoiBounds.xmin,aoiBounds.ymin), xy2px(aoiBounds.xmax,aoiBounds.ymin),
+                xy2px(aoiBounds.xmin,aoiBounds.ymax), xy2px(aoiBounds.xmax,aoiBounds.ymax) ];
+      if(_cs.every(function(p){ return p && isFinite(p[0]) && isFinite(p[1]); })){
+        var _cols=[_cs[0][0],_cs[1][0],_cs[2][0],_cs[3][0]];
+        var _rows=[_cs[0][1],_cs[1][1],_cs[2][1],_cs[3][1]];
+        var _halo=Math.ceil(Math.max(maxBridgePixels, paekR/pxRes, 4));
+        cropCol0=Math.max(0,      Math.floor(Math.min(_cols[0],_cols[1],_cols[2],_cols[3]))-_halo);
+        cropRow0=Math.max(0,      Math.floor(Math.min(_rows[0],_rows[1],_rows[2],_rows[3]))-_halo);
+        var _col1=Math.min(width, Math.ceil (Math.max(_cols[0],_cols[1],_cols[2],_cols[3]))+_halo);
+        var _row1=Math.min(height,Math.ceil (Math.max(_rows[0],_rows[1],_rows[2],_rows[3]))+_halo);
+        cropW=_col1-cropCol0; cropH=_row1-cropRow0;
+        useCrop = (cropW>=8 && cropH>=8 && (cropW*cropH) < width*height*0.95);
+      }
+    }
+
+    var clonedBufferCopy;
+    if(useCrop){
+      var _crop=new Float32Array(cropW*cropH);
+      for(var _r=0; _r<cropH; _r++){
+        var _srcOff=(cropRow0+_r)*width + cropCol0, _dstOff=_r*cropW;
+        for(var _c=0; _c<cropW; _c++) _crop[_dstOff+_c]=values[_srcOff+_c];
+      }
+      clonedBufferCopy=_crop.buffer;
+      var _areaPct=Math.round((cropW*cropH)/(width*height)*100);
+      status.textContent='Generating (cropped '+cropW+'\u00d7'+cropH+', '+_areaPct+'% of raster)...';
+    } else {
+      clonedBufferCopy=values.slice().buffer;
+    }
 
     if(bathymetryWorker){ bathymetryWorker.terminate(); bathymetryWorker=null; }
     var _wUrl = URL.createObjectURL(buildWorkerBlob());
@@ -1091,7 +1160,9 @@ function dePreviewFlip(E, N){
             coords=[]; 
             var ring = contours[ci].coordinates[a][r];
             for(p=0; p<ring.length; p++) {
-               coords.push(pxCenter2xy(ring[p][0]/scale, ring[p][1]/scale));
+               /* v9.4.4 Phase B2.1: add crop origin so cropped-pixel coords map to the SAME world
+                  coords as a full generate (cropCol0/cropRow0 are 0 when crop is off). */
+               coords.push(pxCenter2xy(cropCol0 + ring[p][0]/scale, cropRow0 + ring[p][1]/scale));
             }
             if(useSmooth && coords.length > 4){
               if(method === 'simplify'){ 
@@ -1131,6 +1202,12 @@ function dePreviewFlip(E, N){
         properties: {flipY: flipYEl.checked, interval: step, smooth: useSmooth?method:'none'} 
       };
       window.__contourFlipY = flipYEl.checked; /* HOTFIX: snapshot for export */
+      /* v9.4.7 Phase B2.3: crop processed AOI+halo; the halo ring produces contour overspill just
+         outside the AOI. Trim it so the MAP shows only the AOI region. lastFC becomes the tight-AOI
+         contours (Cohen-Sutherland), keeping display AND export perfectly consistent. No-op when crop off. */
+      if(useCrop && _aoiValid(aoiBounds) && typeof clipFCToAOI==='function'){
+        lastFC = clipFCToAOI(lastFC, aoiBounds);
+      }
 
       map.eachLayer(function(l){ 
         if(l && typeof l.toGeoJSON === 'function' && l !== validatorLayer) {
@@ -1142,8 +1219,8 @@ function dePreviewFlip(E, N){
       contourLayer = makeGeoJsonLayer(lastFC, style).addTo(map);
 
       var bVec = contourLayer.getBounds(), bRas = rasterLayer ? rasterLayer.getBounds() : null;
-      if(bRas && bRas.isValid() && bVec.isValid()) map.fitBounds(bVec.extend(bRas)); 
-      else if(bVec.isValid()) map.fitBounds(bVec);
+      if(bRas && bRas.isValid() && bVec.isValid()) fitToBounds(bVec.extend(bRas)); /* v9.4.3 FIX(B1) */
+      else if(bVec.isValid()) fitToBounds(bVec);
 
       btnDXF.disabled = btnKML.disabled = btnSHPFiles.disabled = btnSHPZip.disabled = !features.length; 
       
@@ -1160,8 +1237,8 @@ function dePreviewFlip(E, N){
 
     bathymetryWorker.postMessage({
        buffer: clonedBufferCopy,
-       width: width,
-       height: height,
+       width: useCrop?cropW:width,
+       height: useCrop?cropH:height,
        step: step,
        maxBridgePixels: maxBridgePixels,
        useResampling: useResampling
@@ -1241,11 +1318,12 @@ function dePreviewFlip(E, N){
   }
   function _aoiUpdateChip(){
     var chip=document.getElementById('aoiChip'); if(!chip) return;
+    var _cropOn=(function(){var e=document.getElementById('cropModeChk');return e&&e.checked&&!e.disabled;})();
     if(aoiEnabled && _aoiValid(aoiBounds)){
-      chip.textContent='\u25f1 AOI ON '+Math.round(aoiBounds.xmax-aoiBounds.xmin)+'\u00d7'+Math.round(aoiBounds.ymax-aoiBounds.ymin)+' m';
+      chip.textContent='\u25f1 AOI ON '+Math.round(aoiBounds.xmax-aoiBounds.xmin)+'\u00d7'+Math.round(aoiBounds.ymax-aoiBounds.ymin)+' m'+(_cropOn?' \u00b7 CROP':'');
       chip.style.display='';
     } else if(_aoiValid(aoiBounds)){
-      chip.textContent='\u25f1 AOI set (clip off)'; chip.style.opacity='0.6'; chip.style.display='';
+      chip.textContent='\u25f1 AOI set (clip off)'+(_cropOn?' \u00b7 CROP':''); chip.style.opacity='0.6'; chip.style.display='';
     } else { chip.style.display='none'; }
     if(aoiEnabled) chip.style.opacity='1';
   }
@@ -1253,6 +1331,8 @@ function dePreviewFlip(E, N){
     if(!_aoiValid(bb)){ if(typeof status!=='undefined'&&status) status.textContent='AOI invalid: max must exceed min.'; return; }
     aoiBounds=bb; aoiEnabled=true;
     var chk=document.getElementById('aoiClipChk'); if(chk) chk.checked=true;
+    var _cropChk=document.getElementById('cropModeChk'), _cropLbl=document.getElementById('cropModeLabel');
+    if(_cropChk) _cropChk.disabled=false; if(_cropLbl) _cropLbl.classList.remove('is-disabled');
     _aoiDrawRect(bb); _aoiSyncInputs(bb); _aoiUpdateChip();
     if(typeof status!=='undefined'&&status) status.textContent='AOI set: X['+bb.xmin.toFixed(1)+'..'+bb.xmax.toFixed(1)+'] Y['+bb.ymin.toFixed(1)+'..'+bb.ymax.toFixed(1)+'] — export will be clipped.';
   }
@@ -1261,6 +1341,8 @@ function dePreviewFlip(E, N){
     if(aoiRectLayer){ map.removeLayer(aoiRectLayer); aoiRectLayer=null; }
     if(aoiTempLayer){ map.removeLayer(aoiTempLayer); aoiTempLayer=null; }
     var chk=document.getElementById('aoiClipChk'); if(chk) chk.checked=false;
+    var _cropChk=document.getElementById('cropModeChk'), _cropLbl=document.getElementById('cropModeLabel');
+    if(_cropChk){ _cropChk.checked=false; _cropChk.disabled=true; } if(_cropLbl) _cropLbl.classList.add('is-disabled');
     ['aoiMinX','aoiMinY','aoiMaxX','aoiMaxY'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
     if(map && map.dragging) map.dragging.enable();
     var mc=map?map.getContainer():null; if(mc) mc.style.cursor='';
