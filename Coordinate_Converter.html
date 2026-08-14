@@ -3323,5 +3323,6 @@ const d=document.getElementById('datumDetails');if(d){const mq=matchMedia('(max-
 const available={Leaflet:'L'in window,SheetJS:'XLSX'in window,JSZip:'JSZip'in window};if(!available.Leaflet){['btnViewLeaflet','btnRefreshLeaflet'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.title='Interactive map unavailable: Leaflet did not load'}});document.getElementById('leafletMap')?.classList.add('hidden');document.getElementById('leafletTools')?.classList.add('hidden')}
 const missing=Object.entries(available).filter(([,ok])=>!ok).map(([name])=>name);if(missing.length&&AppMethods.showToast)AppMethods.showToast(`Unavailable library: ${missing.join(', ')}`,'warn');document.getElementById('langBtn')?.addEventListener('click',()=>setTimeout(syncUiV2Text,0));syncTableSemantics();syncInvalid();syncUiV2Text();syncUI(1)})();
 </script>
+         <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
