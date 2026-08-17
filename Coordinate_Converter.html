@@ -173,7 +173,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <body><a class="skip-link" href="#tabContent1" id="skipToActive">Skip to active workbench</a><div class="page"><header class="masthead" id="globalNav">
 <div class="nav-top-row">
 <div>
-<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.7.3</span><span class="version-badge">v6.8.0 · UI v2.3</span>
+<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.7.3</span><span class="version-badge">v6.7.3 · UI v2.3</span>
 <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
 <details class="datum-details" id="datumDetails" open=""><summary data-i18n-aria-label="lbl_datum" data-ui-i18n="datum_summary" aria-label="Datum:">Datum · Zone metadata</summary><div class="banner-details">
 <b data-i18n="lbl_datum">Datum:</b>
@@ -198,6 +198,15 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <option data-i18n="opt_th_legacy" selected="" value="legacy">Thailand - Indian 1975 (Legacy DMR)</option>
 <option data-i18n="opt_th_dol" value="dol">Thailand - Indian 1975 (DOL / กรมที่ดิน)</option>
 <option data-i18n="opt_th_survey" value="survey">Thailand - Indian 1975 (High-Prec Survey)</option>
+</optgroup>
+<optgroup data-i18n-label="opt_group_mm" label="🌏 Indian 1954 / 1960 (Myanmar · Vietnam)">
+<option data-i18n="opt_mm_1960" value="mm_1960">Vietnam - Indian 1960 (EPSG:1542)</option>
+<option data-i18n="opt_mm_1954" value="mm_1954">Myanmar/Thailand - Indian 1954 (EPSG:1149)</option>
+</optgroup>
+<optgroup data-i18n-label="opt_group_my" label="🇲🇾 Malaysia &amp; Borneo (Kertau / Timbalai)">
+<option data-i18n="opt_my_kertau" value="my_kertau">Malaysia (Peninsular) - Kertau 1968 (EPSG:4245)</option>
+<option data-i18n="opt_my_timbalai" value="my_timbalai">Malaysia (Sabah/Sarawak) - Timbalai 1948 (EPSG:1228)</option>
+<option data-i18n="opt_my_brunei" value="my_brunei">Brunei - Timbalai 1948 (EPSG:1592)</option>
 </optgroup>
 </select>
 <button aria-label="Switch interface language" class="lang-btn" data-i18n-aria-label="tt_lang" data-i18n-title="tt_lang" id="langBtn" title="Switch interface language">EN/TH</button>
@@ -476,6 +485,8 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
 var AppState = {
     lang: 'en',
     params: { dx: -204.64, dy: -834.74, dz: -293.80 },
+    indEllip: { a: 6377276.345, f: 1 / 300.8017 }, // Indian-side ellipsoid (set per datum)
+    datumMeta: null,                               // active datum registry entry (PRJ metadata)
     zoneInfo: { zone: 47, cm: 99 },
     precCfg: { decdeg_dp: 7, dms_sec_dp: 4, dm_min_dp: 5, utm_dp: 2 },
     s1Format: 'dm',
@@ -483,8 +494,19 @@ var AppState = {
     forceTableReset1: true,
     forceTableReset2: true,
     activeTab: 1,
-    timers: { ts1: null, ts2: null }, 
+    timers: { ts1: null, ts2: null, tsRender: null }, 
     map: { instance: null, markerLayer: null, street: null, sat: null, renderTimer: null }
+};
+
+const DATUMS = {
+    legacy:      { dx: -204.64,   dy: -834.74,  dz: -293.80,  a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975',  datum: 'D_Indian_1975',  spheroid: 'Everest_Adjustment_1937', utm_dp: 2 },
+    dol:         { dx: -204.5,    dy: -837.9,   dz: -294.8,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975',  datum: 'D_Indian_1975',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3 },
+    survey:      { dx: -204.4798, dy: -837.8940, dz: -294.7765, a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975', datum: 'D_Indian_1975', spheroid: 'Everest_Adjustment_1937', utm_dp: 4 },
+    mm_1954:     { dx: -217.0,    dy: -823.0,   dz: -299.0,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1954',  datum: 'D_Indian_1954',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3, epsg: '1149', acc_m: 25 },
+    mm_1960:     { dx: -198.0,    dy: -881.0,   dz: -317.0,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1960',  datum: 'D_Indian_1960',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3, epsg: '1542', acc_m: 44 },
+    my_kertau:   { dx: 11.0,      dy: -851.0,   dz: -5.0,     a: 6377304.063, invf: 300.8017, gcs: 'GCS_Kertau_1968',   datum: 'D_Kertau_1968',   spheroid: 'Everest_1830_Modified',   utm_dp: 3, epsg: '4245', acc_m: 8 },
+    my_timbalai: { dx: 679.0,     dy: -669.0,   dz: 48.0,     a: 6377298.556, invf: 300.8017, gcs: 'GCS_Timbalai_1948', datum: 'D_Timbalai_1948', spheroid: 'Everest_1830_1967_Definition', utm_dp: 3, epsg: '1228', acc_m: 19 },
+    my_brunei:   { dx: 678.0,     dy: -670.0,   dz: 48.0,     a: 6377298.556, invf: 300.8017, gcs: 'GCS_Timbalai_1948', datum: 'D_Timbalai_1948', spheroid: 'Everest_1830_1967_Definition', utm_dp: 3, epsg: '1592', acc_m: 5 }
 };
 
 /**
@@ -826,22 +848,22 @@ const GeoMath = {
         ];
     },
 
-    wgs84ToInd1975: (lat, lon, dx, dy, dz, cm) => {
+    wgs84ToInd1975: (lat, lon, dx, dy, dz, cm, aInd = GeoMath.a_ind, fInd = GeoMath.f_ind) => {
         const ecef = GeoMath.geodeticToECEF(lat, lon, 0, GeoMath.a_wgs, GeoMath.f_wgs);
-        const indGeod = GeoMath.ecefToGeodetic(ecef[0] + dx, ecef[1] + dy, ecef[2] + dz, GeoMath.a_ind, GeoMath.f_ind);
-        const utm = GeoMath.latLonToUTM(indGeod[0], indGeod[1], GeoMath.a_ind, GeoMath.f_ind, cm);
+        const indGeod = GeoMath.ecefToGeodetic(ecef[0] + dx, ecef[1] + dy, ecef[2] + dz, aInd, fInd);
+        const utm = GeoMath.latLonToUTM(indGeod[0], indGeod[1], aInd, fInd, cm);
         return { east: utm[0], north: utm[1], lat: indGeod[0], lon: indGeod[1] };
     },
 
-    ind1975ToWgs84: (east, north, dx, dy, dz, cm, isSouthern = false) => {
-        const indGeod = GeoMath.utmToLatLon(east, north, GeoMath.a_ind, GeoMath.f_ind, cm, isSouthern);
-        const ecef = GeoMath.geodeticToECEF(indGeod[0], indGeod[1], 0, GeoMath.a_ind, GeoMath.f_ind);
+    ind1975ToWgs84: (east, north, dx, dy, dz, cm, isSouthern = false, aInd = GeoMath.a_ind, fInd = GeoMath.f_ind) => {
+        const indGeod = GeoMath.utmToLatLon(east, north, aInd, fInd, cm, isSouthern);
+        const ecef = GeoMath.geodeticToECEF(indGeod[0], indGeod[1], 0, aInd, fInd);
         const wgsGeod = GeoMath.ecefToGeodetic(ecef[0] - dx, ecef[1] - dy, ecef[2] - dz, GeoMath.a_wgs, GeoMath.f_wgs);
         return { lat: wgsGeod[0], lon: wgsGeod[1], ind_lat: indGeod[0], ind_lon: indGeod[1] };
     },
-    
-    indGeodeticToWgs84: (indLat, indLon, dx, dy, dz) => {
-        const ecef = GeoMath.geodeticToECEF(indLat, indLon, 0, GeoMath.a_ind, GeoMath.f_ind);
+
+    indGeodeticToWgs84: (indLat, indLon, dx, dy, dz, aInd = GeoMath.a_ind, fInd = GeoMath.f_ind) => {
+        const ecef = GeoMath.geodeticToECEF(indLat, indLon, 0, aInd, fInd);
         const wgsGeod = GeoMath.ecefToGeodetic(ecef[0] - dx, ecef[1] - dy, ecef[2] - dz, GeoMath.a_wgs, GeoMath.f_wgs);
         return { lat: wgsGeod[0], lon: wgsGeod[1] };
     }
@@ -1457,16 +1479,11 @@ var AppMethods = {
         AppState.zoneInfo.zone = parseInt(document.getElementById('zoneSelect').value);
         AppState.zoneInfo.cm = 6 * AppState.zoneInfo.zone - 183;
         const dat = dSel.value;
-        if (dat === 'survey') { AppState.params = { dx: -204.4798, dy: -837.8940, dz: -294.7765 }; AppState.precCfg.utm_dp = 4; }
-        else if (dat === 'dol') { AppState.params = { dx: -204.5, dy: -837.9, dz: -294.8 }; AppState.precCfg.utm_dp = 3; }
-        else if (dat === 'mm_1960') { AppState.params = { dx: -282.0, dy: -726.0, dz: -254.0 }; AppState.precCfg.utm_dp = 3; }
-        else if (dat === 'mm_1954') { AppState.params = { dx: -217.0, dy: -823.0, dz: -299.0 }; AppState.precCfg.utm_dp = 3; }
-        else if (dat === 'my_kertau') { AppState.params = { dx: -11.0, dy: -851.0, dz: -5.0 }; AppState.precCfg.utm_dp = 3; }
-        else if (dat === 'my_timbalai') { AppState.params = { dx: -679.0, dy: -669.0, dz: 48.0 }; AppState.precCfg.utm_dp = 3; }
-        else if (dat === 'my_brunei') { AppState.params = { dx: -689.0, dy: -652.0, dz: 40.0 }; AppState.precCfg.utm_dp = 3; }
-        else { // legacy default
-            AppState.params = { dx: -204.64, dy: -834.74, dz: -293.80 }; AppState.precCfg.utm_dp = 2; 
-        }
+        const def = DATUMS[dat] || DATUMS.legacy;
+        AppState.params = { dx: def.dx, dy: def.dy, dz: def.dz };
+        AppState.precCfg.utm_dp = def.utm_dp || 2;
+        AppState.indEllip = { a: def.a, f: 1 / def.invf }; // datum-correct Indian ellipsoid
+        AppState.datumMeta = def;                          // PRJ/WKT metadata for SHP export
 
         document.getElementById('displayParams').innerHTML = `<code>dx= ${AppState.params.dx}</code> <code>dy= ${AppState.params.dy}</code> <code>dz= ${AppState.params.dz}</code>`;
         document.getElementById('displayZone').innerHTML = `<code>${AppState.zoneInfo.zone}N (CM=${AppState.zoneInfo.cm}°E)</code>`;
@@ -2155,7 +2172,9 @@ var AppMethods = {
             }
             rowsCalc++;
             try {
-                let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm);
+                const indA = AppState.indEllip?.a ?? GeoMath.a_ind;
+                const indF = AppState.indEllip?.f ?? GeoMath.f_ind;
+                let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm, indA, indF);
                 let wgsUtm = GeoMath.latLonToUTM(lD, oD, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
                 let gamma = GeoMath.calculateConvergence(res.lat, res.lon, zi.cm);
                 c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
@@ -2253,7 +2272,9 @@ var AppMethods = {
             try {
                 let wgsRes;
                 if (fmt === 'utm') {
-                    wgsRes = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern);
+                    const indA = AppState.indEllip?.a ?? GeoMath.a_ind;
+                    const indF = AppState.indEllip?.f ?? GeoMath.f_ind;
+                    wgsRes = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern, indA, indF);
                     c[cols.indLat].innerText=Formatter.formatStr(wgsRes.ind_lat, outF, true); 
                     c[cols.indLon].innerText=Formatter.formatStr(wgsRes.ind_lon, outF, false);
                 } else {
@@ -2730,6 +2751,29 @@ var AppMethods = {
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     },
     
+    // Build ESRI .prj/WKT from the active datum registry entry (fixes G2: was hardcoded Indian 1975).
+    buildPrj: (zi, hemi, falseNorthing) => {
+        const d = AppState.datumMeta || DATUMS.legacy;
+        const projcsName = `${d.gcs.replace(/^GCS_/, '')}_UTM_Zone_${zi.zone}${hemi}`;
+        return `PROJCS["${projcsName}",GEOGCS["${d.gcs}",DATUM["${d.datum}",SPHEROID["${d.spheroid}",${d.a},${d.invf}]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
+    },
+
+    scheduleCalc: (tableId) => {
+        const isT1 = tableId === 'table1';
+        const key = isT1 ? 'ts1' : 'ts2';
+        clearTimeout(AppState.timers[key]);
+        AppState.timers[key] = setTimeout(() => {
+            if (isT1) AppMethods.calcS1({ suppressRender: true });
+            else AppMethods.calcS2({ suppressRender: true });
+            clearTimeout(AppState.timers.tsRender);
+            AppState.timers.tsRender = setTimeout(() => {
+                if (AppState.activeTab === 3) AppMethods.renderRouteTable();
+                if (!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
+                else if (!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+            }, 100);
+        }, 300);
+    },
+
     exportShpS1: () => {
         AppMethods.calcS1();
         if(typeof JSZip === 'undefined') return;
@@ -3955,7 +3999,6 @@ const d=document.getElementById('datumDetails');if(d){const mq=matchMedia('(max-
 const available={Leaflet:'L'in window,SheetJS:'XLSX'in window,JSZip:'JSZip'in window};if(!available.Leaflet){['btnViewLeaflet','btnRefreshLeaflet'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.title='Interactive map unavailable: Leaflet did not load'}});document.getElementById('leafletMap')?.classList.add('hidden');document.getElementById('leafletTools')?.classList.add('hidden')}
 const missing=Object.entries(available).filter(([,ok])=>!ok).map(([name])=>name);if(missing.length&&AppMethods.showToast)AppMethods.showToast(`Unavailable library: ${missing.join(', ')}`,'warn');document.getElementById('langBtn')?.addEventListener('click',()=>setTimeout(syncUiV2Text,0));syncTableSemantics();syncInvalid();syncUiV2Text();syncUI(1)})();
 </script>
-     
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
-
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'>
+</script><!-- End Cloudflare Web Analytics -->
 </body></html>
