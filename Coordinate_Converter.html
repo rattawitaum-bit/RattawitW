@@ -3,54 +3,11 @@
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Coordinate Converter v6.7.2</title>
-<!-- CHANGELOG
-     v6.7.2 (from v6.7.1) - Issue fixes and Feature Enhancements
-       - Fixed: SVG rendering scale logic and single point crash
-       - Fixed: Lat/Lon parsing for Tab 2 visualization
-       - Fixed: TowRoute CSV & XLSX ETA column indices
-       - Fixed: Hardcoded columns in calcS1 & Paste handling
-       - Feature: Added Bulk Cross-link Send buttons for S1 and S2
-       - UX: Added map invalidation fix for resize while hidden
-       - UX: Preserve row count on Clear Table
-       - UX: Route Analytics missing calc warning
-       - Misc: Update offline path and translation strings
-
-     v6.7.1 (from v6.7.0) - UX & Visualization Fixes
-       - UX: Removed auto-calculate on tab switch to prevent blocking error toasts.
-       - Viz: Fixed SVG WGS84 Y-axis inversion (North is up).
-       - Viz: Route Analytics & Leaflet now fall back to Tab 1 if Tab 2 is empty.
-
-     v6.7.0 (from v6.6.2) - Code Quality & Feature Updates
-       - Critical: Fixed Shift+Enter table clearing, export waypoint IDs, cloned row datasets.
-       - High: Fixed negative coordinate parsing, CSV cell preserving, i18n route headers.
-       - Medium: Fixed Leaflet format suffixes, KML HTTP links, export SHP DBF column names, empty CSV guard.
-       - Features: F3 (Leaflet Scale/Coords), F5 (Dynamic DXF Scale), F6 (Merged I18n), F7 (GeoJSON Nav Props), F8 (Export Dropdown Menus), F9 (TowRoute Column Sync), F10 (Zones 1-60).
-
-     v6.6.1 (from v6.6) — Export QC pass
-       E1 getCleanIdText helper: all exports/renders strip ⇄ cross-link from Point ID
-          Sites patched: copyTable, exportCsv, exportXlsx, exportKml, exportDxf,
-                         exportShpS1, exportShpS2, exportTowRoute (KML/CSV/XLSX/SHP),
-                         drawSvg (S1+S2), drawLeaflet (S1+S2), fmtSwitcherS1/S2
-       E2 ShpExporter DBF character fields: write UTF-8 bytes directly (preserves °'")
-       E3 exportTowRouteCsv/Xlsx: added ETA(hr) column — no more mixed types in Dist(NM)
-       E4 .cpg=UTF-8 declaration now matches actual byte encoding
-       E6 copyTable: robust fallback (textarea) when navigator.clipboard rejects
-       E8 escapeDxf: strip non-ASCII (⇄, Thai) → '?' to avoid AutoCAD R12 render errors
-
-     v6.6 (from v6.5.1)
-       P1 injectCrossLinks: correct output-cell check per table + strip stale whitespace
-       P2 handleCrossLink: use dataset attrs for raw decimals + safe Point ID
-       P3 calcS1/calcS2: stash raw decimal WGS lat/lon + Indian UTM E/N in dataset
-       P4 pasteFromClipboard: replace ClipboardEvent w/ plain mock (cross-browser reliable)
-       P5 previewDatumDelta + reportRoundTrip: read dataset (avoids DMS/DM regex mis-parse)
-
-     v6.5.1 (from v6.5.0 UI v2)
-       Fixes: B1 (printHeader), B2 (i18n app_title), B3 (span cleanup),
-              B5 (tab handler dedupe), B8 (mediaQuery listener),
-              R1 (out-wgs/out-ind tints), R2 (sticky Point-ID), R4 (toast.warn)
-       Features: F1 Cross-link (round-trip QC), F2 Datum-Delta preview,
-                 F3 Bulk paste from Excel button
+<title>Coordinate Converter v6.7.3</title>
+<!-- 
+  Coordinate Converter v6.7.3
+  Standalone Offline Geodetic Coordinate Conversion & Route Analytics Workbench (Stable Non-AI Edition)
+  Developed by Rattawit W.
 -->
 <!-- Offline & System Font Support -->
 <!-- Leaflet Map -->
@@ -67,7 +24,7 @@
 <script>window.JSZip || document.write('<script src="_lib/jszip.min.js.download"><\/script>')</script>
 <style>
 :root{--report:#f5f4f0;--work:#fff;--ink:#101010;--muted:#5b6169;--line:#c8ccd0;--border-color:var(--line);--text-secondary:var(--muted);--field:#7d8289;--band:#fafafa;--hover:#eaf1ff;--focusrow:#dbe6ff;--focus:#0047ff;--danger:#b42318;--dangerbg:#fff1f0;--sans:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
-*{box-sizing:border-box;min-width:0}html{color-scheme:light;scroll-behavior:smooth}body{margin:0;overflow-x:hidden;background:var(--report);color:var(--ink);font:14px/1.45 var(--sans)}button,input,select{font:inherit}.hidden{display:none}.page{width:min(100%,1600px);margin:auto}.skip-link{position:fixed;z-index:10000;left:12px;top:8px;transform:translateY(-160%);padding:9px 12px;background:var(--focus);color:#fff}.skip-link:focus{transform:none}
+*{box-sizing:border-box;min-width:0}html{color-scheme:light;scroll-behavior:smooth}body{margin:0;overflow-x:hidden;background:var(--report);color:var(--ink);font:14px/1.45 var(--sans)}button,input,select{font:inherit}.hidden{display:none !important}.page{width:min(100%,1600px);margin:auto}.skip-link{position:fixed;z-index:10000;left:12px;top:8px;transform:translateY(-160%);padding:9px 12px;background:var(--focus);color:#fff}.skip-link:focus{transform:none}
 #globalNav{position:static;background:var(--report);border-bottom:1px solid var(--ink)}.nav-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:18px clamp(12px,3vw,36px) 12px}.nav-title{font-size:clamp(22px,3vw,34px);font-weight:800;letter-spacing:-.03em}.version-badge{display:inline-block;margin-left:8px;padding:2px 7px;border:1px solid var(--ink);border-radius:99px;font:700 11px/1.5 var(--mono)}.nav-top-row>div:first-child>span:nth-child(3){display:block;margin-top:3px;color:var(--muted)}.nav-controls,.controls-row,.btn-group,.export-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.nav-controls{justify-content:flex-end}.nav-controls label,.inline-field label,.hint-text{font:700 11px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase}
 select,input[type=text],input[type=number],input[type=file]{min-height:36px;max-width:100%;border:1px solid var(--field);border-radius:4px;background:#fff;color:var(--ink);padding:6px 9px}button,select.btn-secondary,select.btn-route{min-height:36px;border:1px solid var(--ink);border-radius:4px;background:transparent;color:var(--ink);padding:7px 12px;font-weight:700;cursor:pointer}button:hover,select.btn-secondary:hover{background:#ecebe7}button.action,#btnCalcS1,#btnCalcS2,select.btn-route{background:var(--ink);color:#fff}select.btn-route:hover{background:#333}select.btn-route option{background:#fff;color:var(--ink)}button.btn-secondary{background:transparent;border-color:var(--ink);color:var(--ink)}button.btn-excel,button.btn-shp,[id*=Exp],[id*=TowRoute]{background:transparent;border-color:#767b81;color:var(--ink)}button.clear-all{background:transparent;border-color:var(--danger);color:var(--danger)}button.clear-all:hover{background:var(--dangerbg)}select:focus,input:focus,button:focus-visible,[contenteditable=true]:focus{outline:3px solid var(--focus);outline-offset:1px}
 input[type=checkbox],input[type=radio]{appearance:auto;accent-color:var(--ink);width:20px;height:20px;margin:0 5px 0 0;vertical-align:middle}input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.tab-nav{display:flex;overflow-x:auto;padding:0 clamp(12px,3vw,36px);border-top:1px solid var(--line)}.tab-btn{flex:0 0 auto;min-height:46px;border:0;border-right:1px solid var(--line);border-radius:0;padding:10px 16px}.tab-btn:first-child{border-left:1px solid var(--line)}.tab-btn.active{background:var(--ink);color:#fff}.datum-details{margin:0 clamp(12px,3vw,36px) 12px;border-top:1px solid var(--line)}.datum-details summary{cursor:pointer;padding:9px 0 5px;font:700 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase}.banner-details{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 0 8px;color:var(--muted)}.banner-details code{padding:2px 5px;background:#fff;border:1px solid var(--line);color:var(--ink)}#printHeader{display:none}
@@ -76,7 +33,7 @@ input[type=checkbox],input[type=radio]{appearance:auto;accent-color:var(--ink);w
 #leafletMap,#svgContainer{width:100%;height:clamp(420px,56vw,640px);min-height:420px;border:1px solid var(--ink);background:#eef0f2}#coordinateSVG{width:100%;height:100%}#leafletTools:not(.hidden),#svgTools:not(.hidden),.s1-utm-only:not(.hidden){display:flex}.help-tip{position:relative;display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid var(--ink);border-radius:50%;background:#fff;font-weight:800;cursor:help}.help-tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 10px);z-index:50;width:min(320px,80vw);padding:9px 11px;border:1px solid var(--ink);background:#fff;color:var(--ink);box-shadow:4px 4px 0 #0003;white-space:pre-line;opacity:0;visibility:hidden;transform:translate(-50%,4px);transition:.12s;pointer-events:none}.help-tip:hover::after,.help-tip:focus::after,.help-tip[data-open]::after{opacity:1;visibility:visible;transform:translate(-50%,0)}.help-tip.tooltip-right::after{left:0;transform:translate(0,4px)}.help-tip.tooltip-right:hover::after,.help-tip.tooltip-right:focus::after,.help-tip.tooltip-right[data-open]::after{transform:none}.help-tip.tooltip-flip::after{bottom:auto;top:calc(100% + 10px)}
 .toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}.toast{max-width:min(420px,calc(100vw - 32px));padding:10px 13px;border:1px solid var(--ink);border-left:5px solid var(--focus);background:#fff;color:var(--ink);box-shadow:4px 4px 0 #0003;opacity:0;transform:translateY(-8px);transition:.18s}.toast.show{opacity:1;transform:none}.toast.err{border-left-color:var(--danger)}
 
-/* State-driven behavior restored from v6.4.4 */
+/* Column visibility & route table styles */
 .col-conv,.col-wgs-utm{display:none}
 table.show-conv .col-conv,table.show-wgs-utm .col-wgs-utm{display:table-cell}
 .dms-mode .input-cell input[type="text"]{min-width:135px}
@@ -87,7 +44,7 @@ table.show-conv .col-conv,table.show-wgs-utm .col-wgs-utm{display:table-cell}
 .status.err{color:#991b1b;background:#fee2e2;border-color:#f87171;padding:8px;margin-bottom:8px;max-height:500px;overflow-y:auto}
 #btnGetGPS:disabled{opacity:.7;cursor:wait}
 
-/* === v6.5.1 R1: Soft color-coded output columns (restored from v6.4.4) === */
+/* Color-coded output column tints */
 tbody td.out-wgs{background:#eef4fb;color:#0f3557}
 tbody td.out-ind{background:#faf6ea;color:#5b4210}
 tbody tr:hover td.out-wgs{background:#dfeaf6}
@@ -95,7 +52,7 @@ tbody tr:hover td.out-ind{background:#f4ecd1}
 tbody tr:nth-child(even) td.out-wgs{background:#e6eef8}
 tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 
-/* === v6.5.1 R2: Sticky Point-ID first column === */
+/* Sticky Point-ID column */
 #table1 th:first-child,#table1 td:first-child,
 #table2 th:first-child,#table2 td:first-child{
   position:sticky;left:0;z-index:2;background:#fff;
@@ -107,23 +64,23 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 #table1 tbody tr:hover td:first-child,
 #table2 tbody tr:hover td:first-child{background:var(--hover)}
 
-/* === v6.5.1 R4: warn toast === */
+/* Warning toast style */
 .toast.warn{border-left-color:#b7791f}
 
-/* === v6.5.1 R3: legend basic styling === */
+/* Map & Grid Legend */
 .legend{margin-top:8px;font-size:12px;text-align:center;color:var(--muted)}
 
-/* === v6.5.1 status min-height (prevent layout jump) === */
+/* Status container layout */
 .status:empty{min-height:32px}
 
-/* === v6.5.1 F1: Cross-link ⇄ button === */
+/* Cross-link ⇄ button */
 .cross-link{display:inline-block;margin-left:6px;padding:1px 5px;font:700 10px/1.2 var(--mono);
   border:1px solid var(--muted);border-radius:3px;background:#fff;color:var(--ink);
   cursor:pointer;user-select:none;vertical-align:middle}
 .cross-link:hover{background:var(--focus);color:#fff;border-color:var(--focus)}
 .cross-link:focus{outline:2px solid var(--focus);outline-offset:1px}
 
-/* === v6.5.1 F2: Datum-Delta preview banner === */
+/* Datum-Delta preview banner */
 .datum-preview{font:600 11px/1.4 var(--mono);color:var(--focus);
   background:#eaf1ff;border:1px solid var(--focus);border-radius:3px;
   margin:0 clamp(12px,3vw,36px) 8px;opacity:0;transition:opacity .2s,max-height .2s,padding .2s;
@@ -132,12 +89,91 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 
 @media(max-width:767px){.nav-top-row{flex-direction:column}.nav-controls{justify-content:flex-start;width:100%}.container{margin:12px 8px;padding:10px}.controls-row{align-items:stretch}.controls-row>button{flex:1 1 145px}#leafletMap,#svgContainer{height:420px;min-height:420px}}@media(max-width:479px){.nav-title{font-size:22px}.version-badge{display:block;width:max-content;margin:6px 0 0}.tab-btn{padding:9px 12px}.inline-field{width:100%}.inline-field select{width:100%}}
 @media print{@page{size:A4 landscape;margin:9mm}#printHeader{display:block!important;font-size:11pt;font-weight:700;border-bottom:1.5pt solid #000;padding-bottom:4pt;margin-bottom:8pt}thead{display:table-header-group!important}tr{page-break-inside:avoid!important;break-inside:avoid!important}body{background:#fff!important;color:#000!important;overflow:visible!important}.skip-link,#globalNav,.toast-container,#visualizationPanel,.controls-row,.hint-text,.status,.help-tip,input[type=file]{display:none!important}[id^=tabContent].hidden{display:none!important}[id^=tabContent]:not(.hidden){display:block!important}.container{margin:0!important;padding:0!important;border:0!important;overflow:visible!important}.table-responsive{max-height:none!important;overflow:visible!important;border:1px solid #000!important}table{min-width:0!important;font-size:9pt!important}thead th{position:static!important;background:#fff!important;color:#000!important;border-color:#000!important}td{border-color:#777!important;color:#000!important}.input-cell input{display:block!important;border:0!important;padding:0!important;background:transparent!important;color:#000!important;outline:none!important;box-shadow:none!important;text-align:right;min-height:0!important;height:auto!important}.input-cell.dms-mode input,.dms-mode .input-cell input{text-align:left}#table1 th:first-child,#table1 td:first-child,#table2 th:first-child,#table2 td:first-child{position:static!important;box-shadow:none!important}.cross-link,.datum-preview{display:none!important}}
+
+/* === AI OCR Modal ============================= */
+.ocr-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);
+  animation:ocrFadeIn .15s ease}
+.ocr-modal-overlay.hidden{display:none !important}
+@keyframes ocrFadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.ocr-modal-box{background:#fff;border:1px solid var(--ink);box-shadow:6px 6px 0 rgba(0,0,0,.25);
+  border-radius:4px;width:min(700px,96vw);max-height:92vh;overflow-y:auto;
+  display:flex;flex-direction:column}
+.ocr-modal-header{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:var(--ink);color:#fff;flex-shrink:0}
+.ocr-modal-header h3{margin:0;font-size:14px;font-weight:700}
+.ocr-close-btn{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;
+  border-radius:3px;padding:2px 8px;cursor:pointer;font-size:13px;line-height:1.4}
+.ocr-close-btn:hover{background:rgba(255,255,255,.15)}
+.ocr-section{padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.ocr-section label{display:block;margin-bottom:5px;font-size:12px}
+.ocr-section label a{margin-left:8px;font-size:11px;color:var(--focus)}
+.ocr-section select,.ocr-section input[type=password]{
+  width:100%;padding:6px 9px;border:1px solid var(--ink);border-radius:3px;
+  font-family:var(--mono);font-size:12px;box-sizing:border-box}
+.ocr-section-row{display:flex}
+.ocr-section--half{flex:1;border-right:1px solid var(--line)}
+.ocr-section--half:last-child{border-right:none}
+.ocr-key-row{display:flex;gap:6px;align-items:center}
+.ocr-key-row input{flex:1}
+.ocr-key-status{font-size:11px;margin-top:4px;min-height:16px;font-family:var(--mono)}
+.ocr-key-notice{font-size:10px;color:var(--muted);margin-top:4px}
+/* Drop zone */
+.ocr-dropzone{border:2px dashed var(--ink);border-radius:4px;min-height:120px;
+  display:flex;align-items:center;justify-content:center;background:#fafafa;
+  cursor:pointer;transition:.12s;position:relative;overflow:hidden}
+.ocr-dropzone:hover,.ocr-dropzone.drag-over{background:#eef4ff;border-color:var(--focus)}
+.ocr-dropzone-hint{text-align:center;color:var(--muted);padding:18px;font-size:12px}
+.ocr-dropzone-hint kbd{background:#eee;border:1px solid #ccc;border-radius:3px;padding:1px 5px}
+.ocr-preview-img{max-width:100%;max-height:240px;display:block;margin:6px auto;
+  border:1px solid var(--line);border-radius:2px}
+.ocr-img-tools{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.ocr-img-info{font-size:11px;color:var(--muted);font-family:var(--mono)}
+/* Extract action bar */
+.ocr-action-bar{display:flex;gap:10px;align-items:center;padding:10px 16px;
+  border-bottom:1px solid var(--line)}
+.ocr-btn-extract{min-width:180px}
+.ocr-extract-status{font-size:12px;color:var(--muted);font-style:italic}
+/* Review panel */
+.ocr-review-panel{padding:0;flex:1}
+.ocr-review-header{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 16px;border-bottom:1px solid var(--line);background:#f5f7fa}
+.ocr-review-count{font-size:12px;font-weight:600}
+.ocr-review-actions-top{display:flex;gap:6px;flex-wrap:wrap}
+/* Column Mapping bar */
+.ocr-colmap-bar{display:flex;gap:16px;flex-wrap:wrap;padding:8px 16px;
+  background:#eef4ff;border-bottom:1px solid #c7d9f5;font-size:12px}
+.ocr-colmap-bar label{display:flex;align-items:center;gap:6px}
+.ocr-colmap-bar select{font-size:12px;padding:3px 6px;border:1px solid var(--ink);border-radius:3px}
+/* Review table */
+.ocr-review-table-wrap{max-height:220px;overflow-y:auto;border-bottom:1px solid var(--line)}
+.ocr-review-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+.ocr-review-table th{background:var(--ink);color:#fff;padding:5px 8px;
+  position:sticky;top:0;z-index:1;text-align:left;font-weight:600}
+.ocr-review-table td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ocr-cell[contenteditable=true]{cursor:text;min-width:60px;outline:none}
+.ocr-cell[contenteditable=true]:focus{background:#fffff0;outline:2px solid var(--focus);outline-offset:-1px}
+.ocr-row-uncertain td{background:#fffbe6}
+.ocr-warn-badge{font-size:10px;vertical-align:middle;cursor:help;margin-left:3px}
+.ocr-note-cell{max-width:150px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-size:11px;color:var(--muted)}
+/* Selection bar */
+.ocr-selection-bar{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 16px;background:#f0f4ff;border-top:1px solid #c7d9f5;font-size:12px;flex-shrink:0}
+/* OCR button toolbar — secondary/tertiary style, not a primary action */
+.ocr-btn{background:transparent;color:var(--muted);border:1px solid var(--line);
+  border-radius:4px;padding:7px 12px;font-weight:400;cursor:pointer;font-size:13px;
+  transition:background .12s,color .12s,border-color .12s}
+.ocr-btn:hover{background:#f0f4ff;color:var(--ink);border-color:var(--ink)}
+.ocr-btn:disabled{opacity:.45;cursor:not-allowed}
+.ocr-btn-offline{opacity:.4;cursor:not-allowed}
+
 </style>
 </head>
 <body><a class="skip-link" href="#tabContent1" id="skipToActive">Skip to active workbench</a><div class="page"><header class="masthead" id="globalNav">
 <div class="nav-top-row">
 <div>
-<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.7.2</span><span class="version-badge">v6.7.2 · UI v2.2</span>
+<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.7.3</span><span class="version-badge">v6.8.0 · UI v2.3</span>
 <span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
 <details class="datum-details" id="datumDetails" open=""><summary data-i18n-aria-label="lbl_datum" data-ui-i18n="datum_summary" aria-label="Datum:">Datum · Zone metadata</summary><div class="banner-details">
 <b data-i18n="lbl_datum">Datum:</b>
@@ -149,8 +185,12 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <div class="nav-controls">
 <label data-i18n="sel_zone" for="zoneSelect">UTM Zone:</label>
 <select id="zoneSelect">
+<option value="45">45N</option>
+<option value="46">46N</option>
 <option value="47">47N</option>
 <option value="48">48N</option>
+<option value="49">49N</option>
+<option value="50">50N</option>
 </select>
 <label data-i18n="sel_datum" for="datumSelect">Transformation Params:</label>
 <select id="datumSelect">
@@ -159,15 +199,6 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <option data-i18n="opt_th_dol" value="dol">Thailand - Indian 1975 (DOL / กรมที่ดิน)</option>
 <option data-i18n="opt_th_survey" value="survey">Thailand - Indian 1975 (High-Prec Survey)</option>
 </optgroup>
-<optgroup data-i18n-label="opt_group_mm" label="🇲🇲 Myanmar (Indian 1960 / 1954)">
-<option data-i18n="opt_mm_1960" value="mm_1960">Myanmar - Indian 1960 (EPSG:1307)</option>
-<option data-i18n="opt_mm_1954" value="mm_1954">Myanmar - Indian 1954 (EPSG:1304)</option>
-</optgroup>
-<optgroup data-i18n-label="opt_group_my" label="🇲🇾 Malaysia &amp; Borneo (Kertau / Timbalai)">
-<option data-i18n="opt_my_kertau" value="my_kertau">Malaysia (Peninsular) - Kertau 1948 (EPSG:1310)</option>
-<option data-i18n="opt_my_timbalai" value="my_timbalai">Malaysia (Sabah/Sarawak) - Timbalai 1948 (EPSG:1312)</option>
-<option data-i18n="opt_my_brunei" value="my_brunei">Brunei &amp; Sarawak - Timbalai 1948 (EPSG:1313)</option>
-</optgroup>
 </select>
 <button aria-label="Switch interface language" class="lang-btn" data-i18n-aria-label="tt_lang" data-i18n-title="tt_lang" id="langBtn" title="Switch interface language">EN/TH</button>
 <button class="clear-all" data-i18n="btn_clear_all" data-i18n-title="tt_clear_all" title="Erase all tables and map overlays">Clear All Inputs</button>
@@ -175,9 +206,9 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 </div>
 <div aria-atomic="true" aria-live="polite" class="datum-preview" id="datumPreview" role="status"></div>
 <nav aria-label="Coordinate conversion workflows" class="tab-nav" role="tablist">
-<button aria-controls="tabContent1" aria-selected="true" class="tab-btn active" data-i18n="tab_1" data-tab="1" id="tabBtn1" role="tab" tabindex="0">1: WGS84 ➔ Indian 1975</button>
-<button aria-controls="tabContent2" aria-selected="false" class="tab-btn" data-i18n="tab_2" data-tab="2" id="tabBtn2" role="tab" tabindex="-1">2: Indian 1975 ➔ WGS84</button>
-<button aria-controls="tabContent3" aria-selected="false" class="tab-btn" data-i18n="tab_3" data-tab="3" id="tabBtn3" role="tab" tabindex="-1">3: Route Analytics</button>
+<button aria-controls="tabContent1" aria-selected="true" class="tab-btn active" data-i18n="tab_1" data-tab="1" id="tabBtn1" role="tab" tabindex="0" onclick="AppMethods.switchTab(1)">1: WGS84 ➔ Indian 1975</button>
+<button aria-controls="tabContent2" aria-selected="false" class="tab-btn" data-i18n="tab_2" data-tab="2" id="tabBtn2" role="tab" tabindex="-1" onclick="AppMethods.switchTab(2)">2: Indian 1975 ➔ WGS84</button>
+<button aria-controls="tabContent3" aria-selected="false" class="tab-btn" data-i18n="tab_3" data-tab="3" id="tabBtn3" role="tab" tabindex="-1" onclick="AppMethods.switchTab(3)">3: Route Analytics</button>
 </nav>
 </header><div id="printHeader" style="display:none;"></div><main id="workspace"><div aria-hidden="false" aria-labelledby="tabBtn1" id="tabContent1" role="tabpanel" tabindex="-1">
 <div class="container">
@@ -368,7 +399,7 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
 <div class="controls-row" style="margin-bottom: 12px; align-items: center; justify-content: space-between; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border-color);">
 <div class="inline-field" style="margin:0;">
 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-<input checked="" id="gammaToggle" onchange="AppMethods.renderRouteTable()" type="checkbox"><span data-ui-i18n="route_conv">Show Grid Convergence (γ)</span></label>
+<input checked="" id="gammaToggle" type="checkbox"><span data-ui-i18n="route_conv">Show Grid Convergence (γ)</span></label>
 </div>
 <div class="route-group" style="border: none; margin: 0; padding: 0;">
 <select id="exportTowRoute" class="btn-route" onchange="if(this.value){document.getElementById(this.value).click(); this.value='';}">
@@ -381,7 +412,7 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
     <option value="btnExpDxf3" data-i18n="btn_exp_dxf">Export DXF (R12)</option>
 </select>
 <div style="display:none;">
-    <button class="btn-route" data-i18n-title="tt_route_kml" data-ui-i18n="tow_kml" id="btnTowRoute" title="Export route with 1NM/2NM buffers and bearing/distance">TowRoute (KML)</button>
+    <button class="btn-route" data-i18n-title="tt_route_kml" data-ui-i18n="tow_kml" id="btnTowRoute" title="Export route line and waypoints to KML">TowRoute (KML)</button>
     <button class="btn-route-csv" data-i18n-title="tt_route_csv" data-ui-i18n="tow_csv" id="btnTowRouteCsv" title="Export route waypoints, bearings, and distances to CSV">TowRoute (CSV)</button>
     <button class="btn-excel" data-i18n-title="tt_route_xlsx" data-ui-i18n="tow_xlsx" id="btnTowRouteXlsx" title="Export route waypoints, bearings, and distances to Excel (.xlsx)">TowRoute (XLSX)</button>
     <button class="btn-shp" data-i18n-title="tt_route_shp" data-ui-i18n="tow_shp" id="btnTowRouteShp" title="Export route line segments to ESRI Shapefile (.zip)">TowRoute (SHP)</button>
@@ -435,12 +466,14 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
 </div>
 </div>
 </div></div>
-<div aria-atomic="true" aria-live="polite" class="toast-container" id="toastContainer" role="status"></div>
+
+<!-- AI OCR Modal Overlay -->
+
 <script>
 /**
  * Application State & Config
  */
-const AppState = {
+var AppState = {
     lang: 'en',
     params: { dx: -204.64, dy: -834.74, dz: -293.80 },
     zoneInfo: { zone: 47, cm: 99 },
@@ -458,7 +491,7 @@ const AppState = {
  * i18n Dictionary
  */
 const I18nDict = {
-    app_title: { en: "Coordinate Converter v6.7.2", th: "โปรแกรมแปลงค่าพิกัด v6.7.2" },
+    app_title: { en: "Coordinate Converter v6.7.3", th: "โปรแกรมแปลงค่าพิกัด v6.7.3" },
     lbl_datum: { en: "Datum:", th: "พารามิเตอร์:" },
     lbl_zone: { en: "Zone:", th: "โซน:" },
     sel_zone: { en: "UTM Zone:", th: "พิกัด UTM:" },
@@ -620,7 +653,7 @@ const I18nDict = {
     tt_copy: { en: "Copy table data to clipboard (TSV)", th: "คัดลอกข้อมูลในตาราง" },
     tt_calc_s2: { en: "Process table and calculate WGS84 Lat/Lon", th: "คำนวณและแปลงพิกัดเป็น WGS84" },
     tt_clear_s2: { en: "Clear all data in Section 2", th: "ล้างข้อมูลในส่วนที่ 2 ทั้งหมด" },
-    tt_route_kml: { en: "Export route with 1NM/2NM buffers and bearing/distance", th: "ส่งออกเส้นทาง แนวกันชน และระยะทาง/มุมทิศ" },
+    tt_route_kml: { en: "Export route line and waypoints to KML", th: "ส่งออกเส้นทางและจุดพิกัดไปยัง KML" },
     tt_route_csv: { en: "Export route waypoints, bearings, and distances to CSV", th: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็น CSV" },
     tt_route_xlsx: { en: "Export route waypoints, bearings, and distances to Excel (.xlsx)", th: "ส่งออกเส้นทาง ระยะทางและมุมทิศ เป็นไฟล์ Excel (.xlsx)" },
     tt_route_shp: { en: "Export route line segments to ESRI Shapefile (.zip)", th: "ส่งออกเส้นทางย่อยเป็นไฟล์ ESRI Shapefile (.zip)" },
@@ -651,6 +684,8 @@ const I18nDict = {
     caption_s1: { en: "Coordinate conversion workbench — Section 1", th: "ตารางแปลงค่าพิกัด — Section 1" },
     caption_s2: { en: "Coordinate conversion workbench — Section 2", th: "ตารางแปลงค่าพิกัด — Section 2" },
     caption_route: { en: "Route analytics results", th: "ผลการวิเคราะห์เส้นทาง" },
+
+    // AI OCR keys
 };
 
 function t(key, param) { 
@@ -665,6 +700,9 @@ function updateTranslations() {
         if (el.tagName === 'OPTION') el.text = t(key);
         else if (el.tagName === 'INPUT') el.placeholder = t(key);
         else el.innerText = t(key);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
     });
     document.querySelectorAll('[data-i18n-label]').forEach(el => {
         el.label = t(el.getAttribute('data-i18n-label'));
@@ -821,14 +859,11 @@ const ShpExporter = {
     },
     le16: (dbf, v) => { dbf.push(v & 255, (v >> 8) & 255); },
     le32: (dbf, v) => { dbf.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); },
-    // v6.6 E2+E4: DBF character fields — encode as UTF-8 bytes (matches .cpg="UTF-8" declaration)
-    // Preserves degree symbol °, quotes, apostrophe in LAT/LON coordinate strings.
-    // Returns Uint8Array of exact byte length `len`; truncation is byte-safe (won't split multi-byte chars).
+    // DBF character fields: encode as UTF-8 bytes (preserves degree, quotes, apostrophes)
     utf8PadRight: (s, len) => {
         const enc = new TextEncoder();
         let bytes = enc.encode(String(s || ''));
         if (bytes.length > len) {
-            // Byte-safe truncation: back off until we land on a UTF-8 boundary (byte < 0x80 or >= 0xC0)
             let cut = len;
             while (cut > 0 && (bytes[cut] & 0xC0) === 0x80) cut--;
             bytes = bytes.slice(0, cut);
@@ -837,7 +872,7 @@ const ShpExporter = {
         out.set(bytes);
         return out;
     },
-    // v6.6 E2: kept for numeric fields — pure ASCII, no ° etc. expected
+    // Numeric fields: ASCII fixed-width
     asciiPadLeft: (s, len) => {
         s = String(s||'').replace(/[^ -~]/g,''); if(s.length > len) s = s.slice(0,len);
         while(s.length < len) s = ' ' + s; return s;
@@ -850,8 +885,34 @@ const ShpExporter = {
         for(let i=0; i<32; i++) dbf.push(b[i]); 
     },
     
+    validateDbfSchema: (records, fields) => {
+        if (!Array.isArray(records)) {
+            throw new Error('DBF records must be an array.');
+        }
+        if (!Array.isArray(fields)) {
+            throw new Error('DBF fields must be an array.');
+        }
+        records.forEach((record, recordIndex) => {
+            const attr = record && record.attr && typeof record.attr === 'object' ? record.attr : null;
+            if (!attr) {
+                throw new Error(`DBF schema mismatch at record ${recordIndex + 1}: missing attr object`);
+            }
+            fields.forEach(field => {
+                if (!Object.prototype.hasOwnProperty.call(attr, field.name)) {
+                    throw new Error(`DBF schema mismatch at record ${recordIndex + 1}: missing ${field.name}`);
+                }
+                const value = attr[field.name];
+                if (field.type === 'N' && value != null && value !== '' && !Number.isFinite(Number(value))) {
+                    throw new Error(`Invalid DBF numeric value at record ${recordIndex + 1}, field ${field.name}`);
+                }
+            });
+        });
+    },
+    
     build: function(records, shapeType, dbfFields, prjString) {
         if (!records || records.length === 0) return null;
+        
+        this.validateDbfSchema(records, dbfFields);
         
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         
@@ -952,7 +1013,7 @@ const ShpExporter = {
                     const strVal = this.asciiPadLeft((val != null && isFinite(val)) ? Number(val).toFixed(f.dec) : '', f.len);
                     for(let j=0; j<f.len; j++) dbf.push(strVal.charCodeAt(j));
                 } else {
-                    // v6.6 E2: Character field — write UTF-8 bytes directly (preserves °, ", ')
+                    // Character field: write UTF-8 bytes directly (preserves °, ", ')
                     const bytes = this.utf8PadRight(val || '', f.len);
                     for(let j=0; j<f.len; j++) dbf.push(bytes[j]);
                 }
@@ -977,8 +1038,7 @@ const Formatter = {
     escapeXml: (unsafe) => (unsafe || '').replace(/[<>&'"]/g, c => {
         switch (c) { case '<': return '&lt;'; case '>': return '&gt;'; case '&': return '&amp;'; case '\'': return '&apos;'; case '"': return '&quot;'; }
     }),
-    // v6.6 E8: DXF R12 only reliably renders ASCII. Strip control chars, escape backslash/comma,
-    // and replace non-ASCII (⇄, Thai, °) with '?' to avoid AutoCAD render errors.
+    // DXF R12 ASCII entity sanitization: strip control characters and normalize non-ASCII
     escapeDxf: (str) => String(str || '').replace(/[\r\n]/g, ' ').replace(/[\\,]/g, '_').replace(/[^\x20-\x7E]/g, '?').trim(),
     toNumber: v => {
         if (v == null) return NaN;
@@ -1015,20 +1075,21 @@ const Formatter = {
         let s = String(str).trim();
         if (s === '') return NaN;
 
-        // v6.3.1 Input Robustness: normalize common DMS punctuation variants.
-        // Supports: °, º, deg, ', ’, ′, ", ”, ″ and separated/attached N/S/E/W suffixes.
+        // Normalize common DMS punctuation variants (supports: °, º, deg, ', ’, ′, ", ”, ″ and N/S/E/W suffixes)
         s = s
             .replace(/[º]/g, '°')
             .replace(/[′’‘]/g, "'")
             .replace(/[″“”]/g, '"')
-            .replace(/deg/ig, '°')
+            .replace(/\bdeg\b/ig, '°')
+            .replace(/(\d+)\s*[-–—]\s*(\d+)\s*[-–—]\s*(\d+(?:\.\d+)?)/g, "$1° $2' $3\"")
+            .replace(/(\d+)\s*[-–—]\s*(\d+(?:\.\d+)?)\s*(?=[NSEW]|$)/ig, "$1° $2' ")
             .replace(/\s+/g, ' ')
             .trim();
 
-        const hemiLead = s.match(/^([NSEW])\s+/i);
-        const hemiTrail = s.match(/\s*([NSEW])\s*$/i);
+        const hemiLead = s.match(/^([NSEW])\s*/i);
+        const hemiTrail = s.match(/\s*([NSEW])$/i);
         const hemi = hemiTrail ? hemiTrail[1].toUpperCase() : (hemiLead ? hemiLead[1].toUpperCase() : '');
-        let body = s.replace(/^([NSEW])\s+/i, '').replace(/\s*([NSEW])\s*$/i, '').trim();
+        let body = s.replace(/^([NSEW])\s*/i, '').replace(/\s*([NSEW])$/i, '').trim();
 
         const dmsMatch = body.match(/^([-+]?\d+(?:\.\d+)?)\s*(?:°)?\s*(?:(\d+(?:\.\d+)?)\s*(?:'|m|min)?)?\s*(?:(\d+(?:\.\d+)?)\s*(?:"|s|sec)?)?$/i);
         if (dmsMatch) {
@@ -1075,7 +1136,107 @@ const Formatter = {
 /**
  * UI Application Logic
  */
-const AppMethods = {
+var AppMethods = {
+    collectRoutePoints: (tableId) => {
+        if (tableId !== 'table1' && tableId !== 'table2') {
+            return [];
+        }
+        const table = document.getElementById(tableId);
+        if (!table) return [];
+        const isS1 = tableId === 'table1';
+        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
+        
+        return Array.from(table.rows)
+            .slice(1)
+            .filter(row => !row.querySelector('.has-error'))
+            .map(row => ({
+                id: AppMethods.getCleanIdText(row.cells[isS1 ? 0 : cols.pt]),
+                e: Number.parseFloat(row.dataset.indE),
+                n: Number.parseFloat(row.dataset.indN),
+                lat: Number.parseFloat(row.dataset.wgsLat),
+                lon: Number.parseFloat(row.dataset.wgsLon),
+                indLat: Number.parseFloat(row.dataset.indLatRaw),
+                indLon: Number.parseFloat(row.dataset.indLonRaw),
+                isSouthern: isS1 ? AppMethods.getS1RowHemisphere(row) : AppMethods.getS2RowHemisphere(row)
+            }))
+            .filter(point => 
+                Number.isFinite(point.e) && Number.isFinite(point.n) && 
+                Number.isFinite(point.lat) && Number.isFinite(point.lon) && 
+                Number.isFinite(point.indLat) && Number.isFinite(point.indLon)
+            );
+    },
+    
+    refreshRouteCandidates: (requestedTid) => {
+        if (requestedTid === 'table1') {
+            AppMethods.calcS1({ suppressRender: true });
+            return;
+        }
+        if (requestedTid === 'table2') {
+            AppMethods.calcS2({ suppressRender: true });
+            return;
+        }
+        AppMethods.calcS2({ suppressRender: true });
+        const s2Points = AppMethods.collectRoutePoints('table2');
+        if (s2Points.length < 2) {
+            AppMethods.calcS1({ suppressRender: true });
+        }
+    },
+
+    getValidRouteData: (requestedTid) => {
+        if (requestedTid !== undefined && requestedTid !== 'table1' && requestedTid !== 'table2') {
+            return { activeTid: null, pts: [] };
+        }
+        AppMethods.refreshRouteCandidates(requestedTid);
+        if (requestedTid) {
+            const pts = AppMethods.collectRoutePoints(requestedTid);
+            return { activeTid: pts.length >= 2 ? requestedTid : null, pts: pts.length >= 2 ? pts : [] };
+        }
+        
+        const s2Points = AppMethods.collectRoutePoints('table2');
+        if (s2Points.length >= 2) return { activeTid: 'table2', pts: s2Points };
+        
+        const s1Points = AppMethods.collectRoutePoints('table1');
+        if (s1Points.length >= 2) return { activeTid: 'table1', pts: s1Points };
+        
+        return { activeTid: null, pts: [] };
+    },
+
+    buildRouteLegs: (pts) => {
+        const cm = AppState.zoneInfo.cm;
+        return pts.slice(0, -1).map((from, index) => {
+            const to = pts[index + 1];
+            const dx = to.e - from.e;
+            const dy = to.n - from.n;
+            const geodesic = GeoMath.vincentyInverse(from.lat, from.lon, to.lat, to.lon);
+            const midIndLat = (from.indLat + to.indLat) / 2;
+            const midIndLon = (from.indLon + to.indLon) / 2;
+            
+            return {
+                leg: index + 1,
+                from, to,
+                planarM: Math.hypot(dx, dy),
+                gridBearing: (GeoMath.radDeg(Math.atan2(dx, dy)) + 360) % 360,
+                convergence: GeoMath.calculateConvergence(midIndLat, midIndLon, cm),
+                trueBearing: geodesic.bearing,
+                distanceM: geodesic.distance,
+                converged: geodesic.converged && Number.isFinite(geodesic.bearing) && Number.isFinite(geodesic.distance)
+            };
+        });
+    },
+
+    validateRouteLegsForExport: (legs) => {
+        if (!legs.some(leg => !leg.converged)) {
+            return true;
+        }
+        AppMethods.showToast(
+            AppState.lang === 'th'
+                ? 'ไม่สามารถส่งออกเส้นทางได้ เนื่องจากการคำนวณระยะทางบางช่วงไม่ลู่เข้า'
+                : 'Route export blocked: one or more geodesic legs did not converge.',
+            'err'
+        );
+        return false;
+    },
+
     // Dynamic Columns for S1 based on format
     getS1Cols: () => {
         const f = AppState.s1Format;
@@ -1116,7 +1277,7 @@ const AppMethods = {
         if (!line || !String(line).trim()) return null;
         const rawOriginal = String(line).replace(/[\u00A0\u200B]/g, ' ').trim();
         if (!rawOriginal) return null;
-        // v6.4.4 Input Robustness: preserve Point IDs with spaces; parse DMS as complete coordinate strings; reject ambiguous rows.
+        // Preserve Point IDs with spaces, parse DMS as complete coordinate strings, reject ambiguous rows
         const splitCsv = (s) => { const out=[]; let cur='', q=false; for(let i=0;i<s.length;i++){ const ch=s[i]; if(q){ if(ch==='"'){ if(s[i+1]==='"'){cur+='"'; i++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ out.push(cur.trim()); cur=''; } else cur+=ch; } } out.push(cur.trim()); return out; };
         const splitDelimited = (s) => s.includes(',') ? splitCsv(s) : (s.includes('\t') ? s.split(/\t+/).map(x=>x.trim()).filter(Boolean) : s.trim().split(/\s+/).map(x=>x.trim()).filter(Boolean));
         const makeResult = (idParts, coords) => ({ id: idParts.length ? idParts.join(' ').trim() : null, coords });
@@ -1159,6 +1320,20 @@ const AppMethods = {
         return makeResult(parts.slice(0, parts.length - expected), coords);
     },
 
+    parseOptionalNumber: (val) => {
+        const number = Number.parseFloat(val);
+        return Number.isFinite(number) ? number : null;
+    },
+
+    csvEscape: (val) => {
+        if (val == null) return "";
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    },
+
     getTimestamp: () => {
         const d = new Date();
         const pad = n => n.toString().padStart(2, '0');
@@ -1166,78 +1341,63 @@ const AppMethods = {
     },
 
     switchTab: (n) => {
-        if(AppState.activeTab === n) return;
-        
-        if(AppState.timers.ts1) clearTimeout(AppState.timers.ts1);
-        if(AppState.timers.ts2) clearTimeout(AppState.timers.ts2);
-        
-        [1,2,3].forEach(i => {
-            document.getElementById(`tabContent${i}`).classList.add('hidden');
-            document.getElementById(`tabBtn${i}`).classList.remove('active');
-            const tab = document.getElementById(`tabBtn${i}`);
-            const panel = document.getElementById(`tabContent${i}`);
-            tab.setAttribute('aria-selected', String(i === n));
-            panel.setAttribute('aria-hidden', String(i !== n));
-        });
-        
-        document.getElementById(`tabContent${n}`).classList.remove('hidden');
-        document.getElementById(`tabBtn${n}`).classList.add('active');
-        AppState.activeTab = n;
-        
-        if(n === 3) {
-            AppMethods.renderRouteTable();
-        }
-        
-        // V6.7.2: Always refresh map if visible when switching any tab
-        if(!document.getElementById('leafletMap').classList.contains('hidden')) {
-            AppMethods.drawLeaflet(true);
-        } else if(!document.getElementById('svgContainer').classList.contains('hidden')) {
-            AppMethods.drawSvg();
+        try {
+            if(AppState.activeTab === n) return;
+            
+            if(AppState.timers.ts1) clearTimeout(AppState.timers.ts1);
+            if(AppState.timers.ts2) clearTimeout(AppState.timers.ts2);
+            
+            [1,2,3].forEach(i => {
+                const tab = document.getElementById(`tabBtn${i}`);
+                const panel = document.getElementById(`tabContent${i}`);
+                if (tab) {
+                    if (i === n) { tab.classList.add('active'); } else { tab.classList.remove('active'); }
+                    tab.setAttribute('aria-selected', String(i === n));
+                    tab.tabIndex = (i === n) ? 0 : -1;
+                }
+                if (panel) {
+                    if (i === n) { panel.classList.remove('hidden'); } else { panel.classList.add('hidden'); }
+                    panel.setAttribute('aria-hidden', String(i !== n));
+                }
+            });
+            
+            const skip = document.getElementById('skipToActive');
+            if (skip) skip.href = `#tabContent${n}`;
+            
+            AppState.activeTab = n;
+            
+            if(n === 3) {
+                AppMethods.renderRouteTable();
+            }
+            
+            // Always refresh map / SVG if visible when switching any tab
+            if(document.getElementById('leafletMap') && !document.getElementById('leafletMap').classList.contains('hidden')) {
+                AppMethods.drawLeaflet(true);
+                if (AppState.map && AppState.map.instance) {
+                    setTimeout(() => AppState.map.instance.invalidateSize(false), 60);
+                }
+            } else if(document.getElementById('svgContainer') && !document.getElementById('svgContainer').classList.contains('hidden')) {
+                AppMethods.drawSvg();
+            }
+        } catch (err) {
+            console.error('Error in switchTab:', err);
+            if (AppMethods.showToast) AppMethods.showToast('Error switching tab: ' + err.message, 'err');
         }
     },
 
     renderRouteTable: () => {
-        const p = AppState.params, zi = AppState.zoneInfo;
-        const s2Cols = AppMethods.getS2Cols(); // Dynamic index guard
-        const pts = [];
-        Array.from(document.getElementById('table2').rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return; 
-            let c=r.cells;
-            // Always read Easting/Northing/Lat/Lon from raw dataset.
-            const wgsLat = parseFloat(r.dataset.wgsLat), wgsLon = parseFloat(r.dataset.wgsLon);
-            const indE = parseFloat(r.dataset.indE), indN = parseFloat(r.dataset.indN);
-            const indLatRaw = parseFloat(r.dataset.indLatRaw), indLonRaw = parseFloat(r.dataset.indLonRaw);
-            if(!isNaN(wgsLat) && !isNaN(wgsLon)) {
-                pts.push({id: AppMethods.getCleanIdText(c[s2Cols.pt]), e: indE, n: indN, lat: wgsLat, lon: wgsLon, indLat: indLatRaw, indLon: indLonRaw, isSouthern: AppMethods.getS2RowHemisphere(r)});
-            }
-        });
-        
-        if (pts.length === 0) {
-            Array.from(document.getElementById('table1').rows).slice(1).forEach(r => {
-                if (r.querySelector('.has-error')) return; 
-                let c=r.cells;
-                const wgsLat = parseFloat(r.dataset.wgsLat), wgsLon = parseFloat(r.dataset.wgsLon);
-                const indE = parseFloat(r.dataset.indE), indN = parseFloat(r.dataset.indN);
-                const indLatRaw = parseFloat(r.dataset.indLatRaw), indLonRaw = parseFloat(r.dataset.indLonRaw);
-                if(!isNaN(wgsLat) && !isNaN(wgsLon)) {
-                    pts.push({id: AppMethods.getCleanIdText(c[0]), e: indE, n: indN, lat: wgsLat, lon: wgsLon, indLat: indLatRaw, indLon: indLonRaw, isSouthern: (indN < 1000000 && wgsLat < 0)});
-                }
-            });
-        }
-        
+        const { activeTid, pts } = AppMethods.getValidRouteData();
         const tbody = document.querySelector('#routeAnalyticsTable tbody');
         if(!tbody) return;
         
-        if(pts.length === 0) {
-            const hasUncalcData = Array.from(document.querySelectorAll('#table1 tbody td[contenteditable], #table2 tbody td[contenteditable]')).some(td => td.innerText.trim() !== '');
-            if (hasUncalcData) {
+        if(!activeTid || pts.length < 2) {
+            const hasUncalcData = Array.from(document.querySelectorAll('#table1 tbody input, #table2 tbody input')).some(inp => inp.value.trim() !== '');
+            if (hasUncalcData && pts.length === 0) {
                 tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--danger);font-weight:600;'; _d.innerHTML = '⚠ ' + (AppState.lang === 'th' ? 'ข้อมูลมีการเปลี่ยนแปลง กรุณากดปุ่ม <b>Calculate Section</b> ก่อนดูเส้นทาง' : 'Data has changed. Please click <b>Calculate Section</b> first.'); _r.appendChild(_d); tbody.appendChild(_r); }
             } else {
-                tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--text-secondary)'; _d.textContent = t('route_empty'); _r.appendChild(_d); tbody.appendChild(_r); }
+                const msg = pts.length === 1 ? t('route_need_pts') : t('route_empty');
+                tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--text-secondary)'; _d.textContent = msg; _r.appendChild(_d); tbody.appendChild(_r); }
             }
-            return;
-        } else if(pts.length === 1) {
-            tbody.innerHTML = ''; { const _r = document.createElement('tr'), _d = document.createElement('td'); _d.colSpan = 9; _d.style.cssText = 'padding:16px;color:var(--text-secondary)'; _d.textContent = t('route_need_pts'); _r.appendChild(_d); tbody.appendChild(_r); }
             return;
         }
 
@@ -1248,37 +1408,28 @@ const AppMethods = {
         }
         
         let html = '';
+        const legs = AppMethods.buildRouteLegs(pts);
         
-        for(let i=0; i<pts.length-1; i++) {
-            const pt1 = pts[i], pt2 = pts[i+1];
-            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-            const dm = Math.hypot(dx, dy); 
+        legs.forEach(leg => {
+            const gb = leg.gridBearing;
+            let gamma = applyGamma ? leg.convergence : 0;
             
-            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-            
-            let gb = Math.atan2(dx, dy) * (180 / Math.PI); 
-            if(gb < 0) gb += 360;
-            
-            const midIndLat = (pt1.indLat + pt2.indLat) / 2;
-            const midIndLon = (pt1.indLon + pt2.indLon) / 2;
-            let gamma = applyGamma ? GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm) : 0;
-            
-            let trueBrgStr = isNaN(vRes.bearing) ? `<span style="color:var(--danger);font-weight:700;">ERR_ANTIPODAL</span>` : `${vRes.bearing.toFixed(2)}°`;
-            let distKmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1000).toFixed(3);
-            let distNmStr = isNaN(vRes.distance) ? "0.000" : (vRes.distance/1852).toFixed(3);
+            let trueBrgStr = !leg.converged ? `<span style="color:var(--danger);font-weight:700;">ERR_ANTIPODAL</span>` : `${leg.trueBearing.toFixed(2)}°`;
+            let distKmStr = !leg.converged ? "N/A" : (leg.distanceM/1000).toFixed(3);
+            let distNmStr = !leg.converged ? "N/A" : (leg.distanceM/1852).toFixed(3);
             
             html += `<tr>
-                <td>${i+1}</td>
-                <td>${Formatter.escapeXml(pt1.id)}</td>
-                <td>${Formatter.escapeXml(pt2.id)}</td>
+                <td>${leg.leg}</td>
+                <td>${Formatter.escapeXml(leg.from.id)}</td>
+                <td>${Formatter.escapeXml(leg.to.id)}</td>
                 <td style="color:#2563eb;font-weight:700;">${trueBrgStr}</td>
                 <td>${gb.toFixed(2)}°</td>
                 <td class="col-conv">${gamma.toFixed(4)}°</td>
-                <td>${dm.toFixed(2)}</td>
+                <td>${leg.planarM.toFixed(2)}</td>
                 <td>${distKmStr}</td>
                 <td>${distNmStr}</td>
             </tr>`;
-        }
+        });
         tbody.innerHTML = html;
     },
 
@@ -1297,7 +1448,7 @@ const AppMethods = {
     },
 
     syncSettings: () => {
-        // v6.5.1 F2: Capture previous datum params & label BEFORE overwrite for delta preview
+        // Capture previous datum params & label for delta preview
         const prevParams = {...AppState.params};
         const prevDatumSel = AppState._prevDatumLabel;
         const dSel = document.getElementById('datumSelect');
@@ -1320,7 +1471,7 @@ const AppMethods = {
         document.getElementById('displayParams').innerHTML = `<code>dx= ${AppState.params.dx}</code> <code>dy= ${AppState.params.dy}</code> <code>dz= ${AppState.params.dz}</code>`;
         document.getElementById('displayZone').innerHTML = `<code>${AppState.zoneInfo.zone}N (CM=${AppState.zoneInfo.cm}°E)</code>`;
 
-        // F2: only show preview if datum params actually changed (skip on zone-only change)
+        // Show preview if datum params actually changed
         const changed = prevParams.dx !== AppState.params.dx || prevParams.dy !== AppState.params.dy || prevParams.dz !== AppState.params.dz;
         if (changed && prevDatumSel) AppMethods.previewDatumDelta(prevParams, AppState.params, prevDatumSel, curDatumLabel);
         AppState._prevDatumLabel = curDatumLabel;
@@ -1331,8 +1482,7 @@ const AppMethods = {
         else AppMethods.drawSvg();
     },
 
-    // === v6.5.1 F2: Datum-Delta Preview ===
-    // Compute UTM shift at a representative anchor point when user switches datum params.
+    // Datum-Delta Preview: Compute UTM shift at representative anchor point
     previewDatumDelta: (oldParams, newParams, oldLabel, newLabel) => {
         const banner = document.getElementById('datumPreview');
         if (!banner) return;
@@ -1352,7 +1502,7 @@ const AppMethods = {
         };
         anchor = findAnchor('table1');
         if (!anchor) {
-            // v6.6 P5: fallback — read raw WGS decimals from Tab 2 dataset (avoids DMS/DM parse ambiguity)
+            // Fallback: read raw WGS decimals from Tab 2 dataset
             const rows = document.querySelectorAll('#table2 tbody tr');
             for (let i = rows.length - 1; i >= 0; i--) {
                 const la = parseFloat(rows[i].dataset.wgsLat);
@@ -1388,8 +1538,7 @@ const AppMethods = {
         } catch(e) { banner.classList.remove('show'); }
     },
 
-    // === v6.5.1 F1: Round-trip / Cross-link ===
-    // Inject a small "⇄" button into each valid Point ID cell after successful calc.
+    // Round-trip Cross-link: Inject a small "⇄" button into each valid Point ID cell after successful calc.
     injectCrossLinks: (tableId) => {
         const rows = document.querySelectorAll(`#${tableId} tbody tr`);
         const targetTab = tableId === 'table1' ? 2 : 1;
@@ -1397,14 +1546,14 @@ const AppMethods = {
         rows.forEach((row, idx) => {
             const idCell = row.cells[0];
             if (!idCell) return;
-            // v6.6 P1: Strip existing cross-link + trailing whitespace text nodes (prevent accumulation on re-calc)
+            // Strip existing cross-link and trailing whitespace text nodes
             while (idCell.lastChild) {
                 const n = idCell.lastChild;
                 if (n.nodeType === 1 && n.classList && n.classList.contains('cross-link')) { idCell.removeChild(n); continue; }
                 if (n.nodeType === 3 && !n.textContent.trim()) { idCell.removeChild(n); continue; }
                 break;
             }
-            // v6.6 P1: Table1 emits Indian outputs (out-ind); Table2 emits WGS outputs (out-wgs)
+            // Check output cells per table
             const outSel = tableId === 'table1' ? 'td.out-ind' : 'td.out-wgs';
             const outCell = row.querySelector(outSel);
             const hasOutput = outCell && (outCell.innerText || '').trim().length > 0;
@@ -1431,7 +1580,7 @@ const AppMethods = {
         const srcRow = document.querySelectorAll(`#${source} tbody tr`)[rowIdx];
         if (!srcRow) return;
 
-        // v6.6 P2: Safely read Point ID (ignore appended cross-link button)
+        // Safely read Point ID ignoring injected cross-link button
         const getPointId = (cell) => {
             let txt = '';
             for (const node of cell.childNodes) {
@@ -1447,7 +1596,7 @@ const AppMethods = {
         };
         const pointId = getPointId(srcRow.cells[0]);
 
-        // v6.6 P2: Original WGS lat/lon — read raw decimals from dataset (stashed by calcS1/calcS2)
+        // Original WGS lat/lon: read raw decimals from dataset (stashed by calcS1/calcS2)
         let origWgsLat = NaN, origWgsLon = NaN;
         try {
             if (source === 'table1') {
@@ -1460,7 +1609,7 @@ const AppMethods = {
         } catch(e) { /* stays NaN */ }
 
         if (source === 'table1') {
-            // v6.6 P2: Read Indian UTM E/N from raw dataset (avoid text-parse rounding)
+            // Read Indian UTM E/N from raw dataset (avoids text-parse rounding)
             const rawE = parseFloat(srcRow.dataset.indE);
             const rawN = parseFloat(srcRow.dataset.indN);
             if (!isFinite(rawE) || !isFinite(rawN)) {
@@ -1500,7 +1649,7 @@ const AppMethods = {
                 setTimeout(() => AppMethods.reportRoundTrip('table2', targetIdx, origWgsLat, origWgsLon), 250);
             }, 120);
         } else {
-            // v6.6 P2: Read raw WGS decimals stashed by calcS2
+            // Read raw WGS decimals stashed by calcS2
             const rawLat = parseFloat(srcRow.dataset.wgsLat);
             const rawLon = parseFloat(srcRow.dataset.wgsLon);
             if (!isFinite(rawLat) || !isFinite(rawLon)) {
@@ -1546,13 +1695,13 @@ const AppMethods = {
         if (!isFinite(origLat) || !isFinite(origLon)) return;
         const row = document.querySelectorAll(`#${tableId} tbody tr`)[rowIdx];
         if (!row) return;
-        // v6.6 P5: Use raw decimals from dataset (not text regex — output may be DMS/DM)
+        // Use raw decimals from dataset for precise roundtrip calculation
         const outLat = parseFloat(row.dataset.wgsLat);
         const outLon = parseFloat(row.dataset.wgsLon);
         if (!isFinite(outLat) || !isFinite(outLon)) return;
         const dLat = outLat - origLat;
         const dLon = outLon - origLon;
-        // Approx meters: 1 deg lat ≈ 111,320 m; 1 deg lon scaled by cos(lat)
+        // Approximate meters: 1 deg lat ≈ 111,320 m; 1 deg lon scaled by cos(lat)
         const mLat = dLat * 111320;
         const mLon = dLon * 111320 * Math.cos(origLat * Math.PI / 180);
         const dist = Math.sqrt(mLat * mLat + mLon * mLon);
@@ -1560,7 +1709,7 @@ const AppMethods = {
         AppMethods.showToast(msg + ` (Δlat ${mLat.toFixed(3)}m, Δlon ${mLon.toFixed(3)}m)`, dist > 1 ? 'warn' : '');
     },
 
-    // === v6.5.1 F3: Bulk Paste from Excel ===
+    // Bulk Paste from Clipboard
     pasteFromClipboard: async (tableId) => {
         const focusFirstCell = () => {
             const firstInput = document.querySelector(`#${tableId} tbody tr .input-cell input`);
@@ -1575,8 +1724,7 @@ const AppMethods = {
             if (!txt || !txt.trim()) { AppMethods.showToast(t('f3_paste_empty'), 'warn'); return; }
             const firstInput = focusFirstCell();
             if (!firstInput) return;
-            // v6.6 P4: Plain mock object — synthetic ClipboardEvent + defineProperty is unreliable across browsers.
-            // handlePaste only accesses e.target, e.clipboardData.getData(), e.preventDefault(), e.stopPropagation().
+            // Plain mock event object for cross-browser reliability
             const mockEvent = {
                 target: firstInput,
                 clipboardData: {
@@ -1598,12 +1746,10 @@ const AppMethods = {
         }
     },
 
-    // v6.5.1 B3: Input is now always visible (opacity:1), print CSS shows input directly.
-    // Kept as no-op for backward compat with existing callers.
-    updateInputDisplay: (_cell) => { /* deprecated in v6.5.1 */ },
+    // Backward compatibility helper
+    updateInputDisplay: (_cell) => {},
 
-    // v6.6 E1: Extract Point ID text WITHOUT the injected cross-link ⇄ button.
-    // All export functions must use this instead of raw cells[0].innerText.
+    // Extract Point ID text without injected cross-link ⇄ button
     getCleanIdText: (cell) => {
         if (!cell) return '';
         let txt = '';
@@ -1959,19 +2105,20 @@ const AppMethods = {
         if(!isFinite(lat) || !isFinite(lon)) return [t('err_invalid_num', rIdx)];
         if(lat < -90 || lat > 90) errs.push(t('err_lat_range', rIdx));
         if(lon < -180 || lon > 180) errs.push(t('err_lon_range', rIdx));
-        // v6.3.1: Region boundary is no longer a hard error. Keep global range + UTM zone guard only.
-        if(!errs.length && Math.abs(lon - cmParam) > 4.0) errs.push(t('err_out_zone', rIdx));
+        // Region range & UTM zone guards
+        if(!errs.length && Math.abs(lon - cmParam) > 12.0) errs.push(t('err_out_zone', rIdx));
         return errs;
     },
 
-    calcS1: () => {
+    calcS1: (options = {}) => {
+        const suppressRender = options?.suppressRender === true;
         AppMethods.clearErr('table1'); let msgs = [], rowsCalc = 0;
         const fmt=AppState.s1Format, outF=document.getElementById('section1OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         Array.from(document.querySelector('#table1 tbody').children).forEach((r, i) => {
             let c=r.cells, rE=false, idx=i+1;
             const cols = AppMethods.getS1Cols();
             [cols.e, cols.n, cols.lat, cols.lon, cols.w_e, cols.w_n, cols.wgsLat, cols.wgsLon, cols.conv].forEach(x=>{if(x !== undefined && c[x]) c[x].innerText=''});
-            // v6.6 P3: Clear stashed decimals every calc — they're only valid if a successful math result overwrites below
+            // Reset stashed coordinates prior to calculation
             delete r.dataset.wgsLat; delete r.dataset.wgsLon; delete r.dataset.indE; delete r.dataset.indN;
             delete r.dataset.indLatRaw; delete r.dataset.indLonRaw;
             let coords = AppMethods.getS1LatLon(r);
@@ -1980,7 +2127,7 @@ const AppMethods = {
                 const eVal = Formatter.toNumber(c[cols.wgsE].querySelector('input').value);
                 const nVal = Formatter.toNumber(c[cols.wgsN].querySelector('input').value);
                 if(isNaN(eVal) && isNaN(nVal)) return;
-                if(isNaN(eVal) || isNaN(nVal) || eVal < 100000 || eVal > 999999 || nVal < 0 || nVal > 10000000) { msgs.push(t('err_s1_utm', idx)); rE=true; }
+                if(isNaN(eVal) || isNaN(nVal) || eVal < 0 || eVal > 2000000 || nVal < 0 || nVal > 10000000) { msgs.push(t('err_s1_utm', idx)); rE=true; }
                 else { let ev=AppMethods.valQC(lD,oD,idx,zi.cm); if(ev.length){ msgs=msgs.concat(ev); rE=true;} }
                 if(rE) { [cols.wgsE, cols.wgsN].forEach(x => c[x].classList.add('has-error')); return; }
             } else if(fmt==='dm') {
@@ -2021,7 +2168,7 @@ const AppMethods = {
                     if(c[cols.w_n]) c[cols.w_n].textContent = Formatter.formatUTM(wgsUtm[1]);
                 }
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
-                // v6.6 P3: Stash raw decimals for F1 cross-link + F2 preview (reliable, format-independent)
+                // Stash raw decimals in dataset for cross-link & preview transfers
                 r.dataset.wgsLat = String(lD);
                 r.dataset.wgsLon = String(oD);
                 r.dataset.indE = String(res.east);
@@ -2044,10 +2191,13 @@ const AppMethods = {
         else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
         else { st.className = 'status'; }
         AppMethods.injectCrossLinks('table1'); // v6.5.1 F1
-        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
-        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+        if (!suppressRender) {
+            if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
+            else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+        }
     },
-    calcS2: () => {
+    calcS2: (options = {}) => {
+        const suppressRender = options?.suppressRender === true;
         AppMethods.clearErr('table2'); let msgs = [], rowsCalc = 0;
         const fmt=AppState.s2Format, outF=document.getElementById('section2OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
@@ -2055,7 +2205,7 @@ const AppMethods = {
         
         Array.from(document.querySelector('#table2 tbody').children).forEach((r, i) => {
             let c=r.cells, rE=false, idx=i+1;
-            // v6.6 P3: Clear stashed decimals every calc
+            // Reset stashed coordinates prior to calculation
             delete r.dataset.wgsLat; delete r.dataset.wgsLon; delete r.dataset.indE; delete r.dataset.indN;
             delete r.dataset.indLatRaw; delete r.dataset.indLonRaw;
             // Clear outputs aggressively
@@ -2071,7 +2221,7 @@ const AppMethods = {
                 n=Formatter.toNumber(c[cols.indN].querySelector('input').value);
                 if(isNaN(e)&&isNaN(n)) return;
                 if(isNaN(e)||isNaN(n)){ msgs.push(t('err_s2_both',idx)); rE=true; }
-                else { if(e<100000||e>999999) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<0||n>10000000){msgs.push(t('err_out_th',idx)); rE=true;} }
+                else { if(e<0||e>2000000) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<0||n>10000000){msgs.push(t('err_out_th',idx)); rE=true;} }
                 if(rE){ [cols.indE, cols.indN].forEach(x=>c[x].classList.add('has-error')); return; }
             } else {
                 let coords = AppMethods.getS2IndLatLon(r);
@@ -2125,7 +2275,7 @@ const AppMethods = {
                 if(c[cols.w_e]) c[cols.w_e].textContent = Formatter.formatUTM(wgsUtm[0]);
                 if(c[cols.w_n]) c[cols.w_n].textContent = Formatter.formatUTM(wgsUtm[1]);
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
-                // v6.6 P3: Stash raw decimals for F1 cross-link + F2 preview
+                // Stash raw decimals in dataset for cross-link & preview transfers
                 r.dataset.wgsLat = String(wgsRes.lat);
                 r.dataset.wgsLon = String(wgsRes.lon);
                 r.dataset.indE = String(e);
@@ -2149,24 +2299,29 @@ const AppMethods = {
         else { st.className = 'status'; }
 
         AppMethods.injectCrossLinks('table2'); // v6.5.1 F1
-        if(AppState.activeTab === 3) AppMethods.renderRouteTable();
+        if (!suppressRender) {
+            if(AppState.activeTab === 3) AppMethods.renderRouteTable();
 
-        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
-        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+            if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
+            else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+        }
     },
 
     clearS1: () => { 
         const rowCount = Math.max(10, document.getElementById('table1').rows.length - 1);
         AppState.forceTableReset1=true; AppMethods.buildS1Table(rowCount); 
         document.getElementById('section1Status').className='status'; document.getElementById('fileInputSection1').value=''; 
-        if(AppState.map.instance) AppState.map.instance.setView([13.75, 100.5], 6);
+        if(AppState.activeTab === 3) AppMethods.renderRouteTable();
+        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(true);
+        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
     },
     clearS2: () => { 
         const rowCount = Math.max(10, document.getElementById('table2').rows.length - 1);
         AppState.forceTableReset2=true; AppMethods.buildS2Table(rowCount); 
         document.getElementById('section2Status').className='status'; document.getElementById('fileInputSection2').value='';
         if(AppState.activeTab === 3) AppMethods.renderRouteTable();
-        if(AppState.map.instance) AppState.map.instance.setView([13.75, 100.5], 6);
+        if(!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(true);
+        else if(!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
     },
 
     sendAllToS2: () => {
@@ -2316,7 +2471,7 @@ const AppMethods = {
             let cells = Array.from(tb.rows[ri].cells)
                 .filter(c => AppMethods.isCellVisible(c, tb))
                 .map((c, ci) => {
-                    // v6.6 E1: Strip cross-link ⇄ from Point ID column (index 0)
+                    // Strip cross-link button from Point ID column (index 0)
                     if (ci === 0) return Formatter.safeSpreadsheetText(AppMethods.getCleanIdText(c).replace(/\t|\n/g,' '));
                     const inp = c.querySelector('input');
                     return Formatter.safeSpreadsheetText(String(inp && inp.value !== '' ? inp.value : c.textContent).replace(/\t|\n/g,' ').trim());
@@ -2325,7 +2480,7 @@ const AppMethods = {
         }
         
         const txt = lines.join('\n');
-        // v6.6 E6: Robust clipboard write with textarea fallback on failure
+        // Clipboard write with textarea fallback on failure
         const fallbackCopy = () => {
             try {
                 const ta = document.createElement('textarea');
@@ -2365,17 +2520,19 @@ const AppMethods = {
             let cl = Array.from(tb.rows[ri].cells)
                 .filter(c => AppMethods.isCellVisible(c, tb))
                 .map((c, ci) => {
-                    // v6.6 E1: Strip cross-link ⇄ from Point ID column
-                    if (ci === 0) { const safe = Formatter.safeSpreadsheetText(AppMethods.getCleanIdText(c)); return `"${safe.replace(/"/g,'""')}"`; }
+                    // Strip cross-link button from Point ID column
+                    if (ci === 0) { const safe = Formatter.safeSpreadsheetText(AppMethods.getCleanIdText(c)); return AppMethods.csvEscape(safe); }
                     const inp = c.querySelector('input');
                     const raw = String(inp && inp.value ? inp.value : c.innerText);
                     const safe = Formatter.safeSpreadsheetText(raw);
-                    return `"${safe.replace(/"/g,'""')}"`;
+                    return AppMethods.csvEscape(safe);
                 });
             if(!cl.slice(1).every(c=>c==='""')) lines.push(cl.join(','));
         }
         if(lines.length <= 3) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
         AppMethods.download(fn, lines.join('\n'), 'text/csv;charset=utf-8');
+        const pts = lines.length - 3; // roughly (minus headers)
+        AppMethods.showToast(AppState.lang === 'th' ? `✅ ส่งออก CSVสำเร็จ` : `✅ Exported CSV successfully`, 'ok');
     },
     
     exportXlsx: (tid, fn) => {
@@ -2396,7 +2553,7 @@ const AppMethods = {
             let rowData = Array.from(tb.rows[ri].cells)
                 .filter(c => AppMethods.isCellVisible(c, tb))
                 .map((c, ci) => {
-                    // v6.6 E1: Strip cross-link ⇄ from Point ID column; keep as text
+                    // Strip cross-link button from Point ID column; keep as text
                     if (ci === 0) return Formatter.safeSpreadsheetText(AppMethods.getCleanIdText(c));
                     const inp = c.querySelector('input');
                     const val = String(inp && inp.value ? inp.value : c.innerText).trim();
@@ -2433,7 +2590,7 @@ const AppMethods = {
         for(let i=1;i<tb.rows.length;i++){
             if (tb.rows[i].querySelector('.has-error')) continue;
             let c=tb.rows[i].cells, lat,lon,dsc="";
-            // v6.6 E1+E7: Clean Point ID (strip ⇄ cross-link button)
+            // Clean Point ID (strip ⇄ cross-link button)
             const cleanId = AppMethods.getCleanIdText(c[0]);
             if(isS1){
                 const cols = AppMethods.getS1Cols();
@@ -2464,34 +2621,49 @@ const AppMethods = {
 
     exportDxf: () => {
         let exportType = AppState.activeTab;
-        const activeTid = exportType === 1 ? 'table1' : (exportType === 2 ? 'table2' : (document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1'));
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
         let pts = [];
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
+        let filename;
         
-        let filename = exportType === 1 ? `S1_Points_${AppMethods.getTimestamp()}.dxf` : (exportType === 2 ? `S2_Points_${AppMethods.getTimestamp()}.dxf` : `Route_Line_${AppMethods.getTimestamp()}.dxf`);
-
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const ptId = AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]);
-            const e = parseFloat(r.dataset.indE);
-            const n = parseFloat(r.dataset.indN);
-            const lat = parseFloat(r.dataset.wgsLat);
-            const lon = parseFloat(r.dataset.wgsLon);
-            if (!isNaN(e) && !isNaN(n) && !isNaN(lat) && !isNaN(lon)) {
-                pts.push({ id: ptId, e: e, n: n, lat: lat, lon: lon });
+        if (exportType === 3) {
+            const routeData = AppMethods.getValidRouteData();
+            if (routeData.pts.length < 2) { 
+                AppMethods.showToast(t('route_need_pts'), 'err'); 
+                return; 
             }
-        });
-        
-        if (exportType === 3 && pts.length < 2) { 
-            AppMethods.showToast(t('route_need_pts'), 'err'); 
-            return; 
+            pts = routeData.pts.map(p => ({
+                id: p.id,
+                e: p.e,
+                n: p.n,
+                lat: p.lat,
+                lon: p.lon
+            }));
+            filename = `Route_Line_${AppMethods.getTimestamp()}.dxf`;
+        } else {
+            const activeTid = exportType === 1 ? 'table1' : 'table2';
+            if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
+            const isS1 = activeTid === 'table1';
+            const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
+            
+            filename = exportType === 1 ? `S1_Points_${AppMethods.getTimestamp()}.dxf` : `S2_Points_${AppMethods.getTimestamp()}.dxf`;
+
+            Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
+                if (r.querySelector('.has-error')) return;
+                const ptId = AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]);
+                const e = parseFloat(r.dataset.indE);
+                const n = parseFloat(r.dataset.indN);
+                const lat = parseFloat(r.dataset.wgsLat);
+                const lon = parseFloat(r.dataset.wgsLon);
+                if (!isNaN(e) && !isNaN(n) && !isNaN(lat) && !isNaN(lon)) {
+                    pts.push({ id: ptId, e: e, n: n, lat: lat, lon: lon });
+                }
+            });
         }
 
         if (!pts.length) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
         
         AppMethods.generateDxf(pts, exportType, filename);
+        const n_pts = pts.length;
+        AppMethods.showToast(AppState.lang === 'th' ? `✅ ส่งออก DXF ${n_pts} จุดสำเร็จ` : `✅ Successfully exported ${n_pts} points to DXF`, 'ok');
     },
 
     generateDxf: (pts, type, filename) => {
@@ -2584,8 +2756,8 @@ const AppMethods = {
                         LAT: r.cells[cols.lat].innerText,
                         LON: r.cells[cols.lon].innerText,
                         ...(includeWgsUtmS1 ? {
-                            WGS_E: AppState.s1Format === 'utm' ? (parseFloat(r.cells[cols.wgsE].querySelector('input').value) || 0) : (cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].textContent) || 0 : 0),
-                            WGS_N: AppState.s1Format === 'utm' ? (parseFloat(r.cells[cols.wgsN].querySelector('input').value) || 0) : (cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].textContent) || 0 : 0)
+                            WGS_E: AppState.s1Format === 'utm' ? AppMethods.parseOptionalNumber(r.cells[cols.wgsE].querySelector('input').value) : (cols.w_e !== undefined && r.cells[cols.w_e] ? AppMethods.parseOptionalNumber(r.cells[cols.w_e].textContent) : null),
+                            WGS_N: AppState.s1Format === 'utm' ? AppMethods.parseOptionalNumber(r.cells[cols.wgsN].querySelector('input').value) : (cols.w_n !== undefined && r.cells[cols.w_n] ? AppMethods.parseOptionalNumber(r.cells[cols.w_n].textContent) : null)
                         } : {})
                     }
                 });
@@ -2613,7 +2785,19 @@ const AppMethods = {
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
         const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
         
-        const data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        let data;
+        try {
+            data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        } catch (error) {
+            console.error(error);
+            AppMethods.showToast(
+                AppState.lang === 'th'
+                    ? 'ไม่สามารถสร้าง Shapefile ได้ เนื่องจากโครงสร้างข้อมูลไม่ถูกต้อง'
+                    : `Shapefile export failed: ${error.message}`,
+                'err'
+            );
+            return;
+        }
         if(!data) return;
         
         let zip = new JSZip();
@@ -2660,8 +2844,8 @@ const AppMethods = {
                         WGSLAT: r.cells[cols.wgsLat].innerText,
                         WGSLON: r.cells[cols.wgsLon].innerText,
                         ...(includeWgsUtmS2 ? {
-                            WGS_E: cols.w_e !== undefined && r.cells[cols.w_e] ? parseFloat(r.cells[cols.w_e].textContent) || 0 : 0,
-                            WGS_N: cols.w_n !== undefined && r.cells[cols.w_n] ? parseFloat(r.cells[cols.w_n].textContent) || 0 : 0
+                            WGS_E: cols.w_e !== undefined && r.cells[cols.w_e] ? AppMethods.parseOptionalNumber(r.cells[cols.w_e].textContent) : null,
+                            WGS_N: cols.w_n !== undefined && r.cells[cols.w_n] ? AppMethods.parseOptionalNumber(r.cells[cols.w_n].textContent) : null
                         } : {})
                     }
                 });
@@ -2673,8 +2857,8 @@ const AppMethods = {
         
         const dbfFields = [
             {name: 'ID', type: 'C', len: 32, dec: 0},
-            {name: 'EAST', type: 'N', len: 14, dec: 4},
-            {name: 'NORTH', type: 'N', len: 14, dec: 4},
+            {name: 'IND_E', type: 'N', len: 14, dec: 4},
+            {name: 'IND_N', type: 'N', len: 14, dec: 4},
             {name: 'WGSLAT', type: 'C', len: 24, dec: 0},
             {name: 'WGSLON', type: 'C', len: 24, dec: 0}
         ];
@@ -2689,7 +2873,19 @@ const AppMethods = {
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
         const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
         
-        const data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        let data;
+        try {
+            data = ShpExporter.build(records, 1, dbfFields, prjStr);
+        } catch (error) {
+            console.error(error);
+            AppMethods.showToast(
+                AppState.lang === 'th'
+                    ? 'ไม่สามารถสร้าง Shapefile ได้ เนื่องจากโครงสร้างข้อมูลไม่ถูกต้อง'
+                    : `Shapefile export failed: ${error.message}`,
+                'err'
+            );
+            return;
+        }
         if(!data) return;
         
         let zip = new JSZip();
@@ -2710,19 +2906,8 @@ const AppMethods = {
     },
 
     exportTowRoute: () => {
-        const activeTid = document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1';
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
-        const pts = [];
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const lat = parseFloat(r.dataset.wgsLat), lon = parseFloat(r.dataset.wgsLon);
-            if (!isNaN(lat) && !isNaN(lon)) {
-                pts.push({id: AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]), lat, lon});
-            }
-        });
-        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const { activeTid, pts } = AppMethods.getValidRouteData();
+        if (!activeTid || pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         
         let kml = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>Tow Route Track</name>\n<Style id="routeLine"><LineStyle><color>ff0892f2</color><width>4</width></LineStyle></Style>\n<Placemark><name>Route Path</name><styleUrl>#routeLine</styleUrl><LineString><coordinates>';
         pts.forEach(pt => { kml += `${pt.lon.toFixed(7)},${pt.lat.toFixed(7)},0 `; });
@@ -2735,9 +2920,6 @@ const AppMethods = {
         AppMethods.download(`Route_${AppMethods.getTimestamp()}.kml`, kml, 'text/xml;charset=utf-8');
     },
 
-    // v6.7.0 E5: GeoJSON export (RFC 7946). Reads raw decimals stashed in dataset (P3),
-    // so geometry is format-independent and matches the table exactly. Empty/error rows
-    // have no dataset (cleared at calc loop top) → skipped by the isNaN guard.
     exportGeoJson: (tid, fn) => {
         AppMethods.ensureFreshForTable(tid);
         const tb = document.getElementById(tid);
@@ -2769,34 +2951,31 @@ const AppMethods = {
     },
 
     exportGeoJsonRoute: () => {
-        const activeTid = document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1';
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
-        const pts = [];
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const lon = parseFloat(r.dataset.wgsLon), lat = parseFloat(r.dataset.wgsLat);
-            if (!isNaN(lon) && !isNaN(lat)) pts.push({ id: AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]), lon: +lon.toFixed(7), lat: +lat.toFixed(7) });
-        });
-        if (pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const { activeTid, pts } = AppMethods.getValidRouteData();
+        if (!activeTid || pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         let totalNm = 0, totalKm = 0;
-        pts.forEach((p, i) => {
-            if (i < pts.length - 1) {
-                const pt2 = pts[i + 1];
-                const vRes = GeoMath.vincentyInverse(p.lat, p.lon, pt2.lat, pt2.lon);
-                p.next_brg = vRes.bearing; p.next_dist_nm = vRes.distance / 1852; p.next_dist_km = vRes.distance / 1000;
-                totalNm += p.next_dist_nm; totalKm += p.next_dist_km;
+        const legs = AppMethods.buildRouteLegs(pts);
+        
+        if (!AppMethods.validateRouteLegsForExport(legs)) return;
+        
+        legs.forEach(p => {
+            if (p.converged) {
+                totalNm += p.distanceM / 1852;
+                totalKm += p.distanceM / 1000;
             }
         });
+        
         const features = [
             { type: 'Feature', properties: { name: 'Route Path', total_dist_nm: Number(totalNm.toFixed(2)), total_dist_km: Number(totalKm.toFixed(2)) }, geometry: { type: 'LineString', coordinates: pts.map(p => [p.lon, p.lat]) } },
             ...pts.map((p, i) => {
                 const props = { id: p.id, seq: i + 1 };
                 if (i < pts.length - 1) {
-                    props.next_true_brg = Number(p.next_brg.toFixed(2));
-                    props.next_dist_nm = Number(p.next_dist_nm.toFixed(2));
-                    props.next_dist_km = Number(p.next_dist_km.toFixed(2));
+                    const leg = legs[i];
+                    if (leg.converged) {
+                        props.next_true_brg = Number(leg.trueBearing.toFixed(2));
+                        props.next_dist_nm = Number((leg.distanceM / 1852).toFixed(2));
+                        props.next_dist_km = Number((leg.distanceM / 1000).toFixed(2));
+                    }
                 }
                 return { type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: [p.lon, p.lat] } };
             })
@@ -2830,49 +3009,32 @@ const AppMethods = {
         return Number.isInteger(x) ? String(x) : x.toFixed(1);
     },
     exportTowRouteCsv: () => {
-        const activeTid = document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1';
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
+        const { activeTid, pts } = AppMethods.getValidRouteData();
+        if (!activeTid || pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         const p = AppState.params, zi = AppState.zoneInfo;
-        const pts = [];
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const e = parseFloat(r.dataset.indE);
-            const n = parseFloat(r.dataset.indN);
-            const lat = parseFloat(r.dataset.wgsLat);
-            const lon = parseFloat(r.dataset.wgsLon);
-            if(!isNaN(e) && !isNaN(n) && !isNaN(lat) && !isNaN(lon)) {
-                pts.push({id: AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]), e, n, lat, lon});
-            }
-        });
-        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const legs = AppMethods.buildRouteLegs(pts);
+        
+        if (!AppMethods.validateRouteLegsForExport(legs)) return;
 
-        // v6.6 E3+E9: Added ETA(hr) column so @kts rows don't pollute the Dist(NM) column
+        // 12-Column TowRoute CSV structure
         let csv = '\uFEFFWP,LocalE,LocalN,LatWGS84,LongWGS84,TrueBrg,GridBrg,Conv(deg),Planar(m),Dist(NM),Dist(km),ETA(hr)\n';
         let totalNm = 0, totalKm = 0;
         for(let i = 0; i < pts.length; i++) {
             let bearing = '', gridBrg = '', conv = '', planarM = '', distNm = '', distKm = '';
             if(i < pts.length - 1) {
-                const pt1 = pts[i], pt2 = pts[i + 1];
-                const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-                if(!isNaN(vRes.bearing)) bearing = AppMethods.formatRouteBearing_(vRes.bearing);
-                if(!isNaN(vRes.distance)) {
-                    const nm = vRes.distance / 1852; const km = vRes.distance / 1000;
+                const leg = legs[i];
+                if (leg.converged) {
+                    bearing = AppMethods.formatRouteBearing_(leg.trueBearing);
+                    const nm = leg.distanceM / 1852; const km = leg.distanceM / 1000;
                     totalNm += nm; totalKm += km;
                     distNm = AppMethods.formatRouteNumber_(nm, 1); distKm = AppMethods.formatRouteNumber_(km, 1);
                 }
-                if(!isNaN(pt1.e) && !isNaN(pt1.n) && !isNaN(pt2.e) && !isNaN(pt2.n)) {
-                    const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-                    planarM = AppMethods.formatRouteNumber_(Math.sqrt(dx*dx + dy*dy), 1);
-                    let gb = Math.atan2(dx, dy) * 180 / Math.PI; if(gb < 0) gb += 360;
-                    gridBrg = AppMethods.formatRouteBearing_(gb);
-                    const gamma = GeoMath.calculateConvergence(pt1.lat, pt1.lon, zi.cm);
-                    conv = AppMethods.formatRouteBearing_(gamma);
-                }
+                planarM = AppMethods.formatRouteNumber_(leg.planarM, 1);
+                gridBrg = AppMethods.formatRouteBearing_(leg.gridBearing);
+                conv = AppMethods.formatRouteBearing_(leg.convergence);
             }
             const row = [
-                pts[i].id || String(i + 1),
+                AppMethods.csvEscape(pts[i].id || String(i + 1)),
                 `"${AppMethods.formatLocalCoord_('E', pts[i].e)}"`,
                 `"${AppMethods.formatLocalCoord_('N', pts[i].n)}"`,
                 `"${AppMethods.formatRouteDM_(pts[i].lat, true)}"`,
@@ -2882,55 +3044,38 @@ const AppMethods = {
             csv += row.join(',') + '\n';
         }
         csv += `TotalDist,,,,,,,,,${AppMethods.formatRouteNumber_(totalNm, 1)},${AppMethods.formatRouteNumber_(totalKm, 1)},\n`;
-        // v6.7.2: Fix ETA column offset (11 commas to place in column index 11 ETA(hr))
+        // Speed ETA calculation rows
         [1.5, 2.0, 2.5, 3.0].forEach(spd => {
             csv += `@${spd.toFixed(1)}kts,,,,,,,,,,,${AppMethods.formatRouteNumber_(totalNm / spd, 1)}\n`;
         });
         AppMethods.download(`TowRoute_${AppMethods.getTimestamp()}.csv`, csv, 'text/csv;charset=utf-8');
     },
     exportTowRouteXlsx: () => {
-        const activeTid = document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1';
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
+        const { activeTid, pts } = AppMethods.getValidRouteData();
+        if (!activeTid || pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         if(typeof XLSX === 'undefined') return;
         const p = AppState.params, zi = AppState.zoneInfo;
-        const pts = [];
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const e = parseFloat(r.dataset.indE);
-            const n = parseFloat(r.dataset.indN);
-            const lat = parseFloat(r.dataset.wgsLat);
-            const lon = parseFloat(r.dataset.wgsLon);
-            if(!isNaN(e) && !isNaN(n) && !isNaN(lat) && !isNaN(lon)) {
-                pts.push({id: AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]), e, n, lat, lon});
-            }
-        });
-        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const legs = AppMethods.buildRouteLegs(pts);
+        
+        if (!AppMethods.validateRouteLegsForExport(legs)) return;
 
         const aoa = [];
-        // v6.6 E3+E9: Added ETA(hr) column so @kts rows don't mix strings into numeric Dist(NM) column
+        // 12-Column TowRoute XLSX structure
         aoa.push(['WP','LocalE','LocalN','LatWGS84','LongWGS84','TrueBrg','GridBrg','Conv(deg)','Planar(m)','Dist(NM)','Dist(km)','ETA(hr)']);
         let totalNm = 0, totalKm = 0;
         for(let i = 0; i < pts.length; i++) {
             let bearing = '', gridBrg = '', conv = '', planarM = '', distNm = '', distKm = '';
             if(i < pts.length - 1) {
-                const pt1 = pts[i], pt2 = pts[i + 1];
-                const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-                if(!isNaN(vRes.bearing)) bearing = AppMethods.formatRouteBearing_(vRes.bearing);
-                if(!isNaN(vRes.distance)) {
-                    const nm = vRes.distance / 1852; const km = vRes.distance / 1000;
+                const leg = legs[i];
+                if (leg.converged) {
+                    bearing = AppMethods.formatRouteBearing_(leg.trueBearing);
+                    const nm = leg.distanceM / 1852; const km = leg.distanceM / 1000;
                     totalNm += nm; totalKm += km;
                     distNm = AppMethods.formatRouteNumber_(nm, 1); distKm = AppMethods.formatRouteNumber_(km, 1);
                 }
-                if(!isNaN(pt1.e) && !isNaN(pt1.n) && !isNaN(pt2.e) && !isNaN(pt2.n)) {
-                    const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-                    planarM = AppMethods.formatRouteNumber_(Math.sqrt(dx*dx + dy*dy), 1);
-                    let gb = Math.atan2(dx, dy) * 180 / Math.PI; if(gb < 0) gb += 360;
-                    gridBrg = AppMethods.formatRouteBearing_(gb);
-                    const gamma = GeoMath.calculateConvergence(pt1.lat, pt1.lon, zi.cm);
-                    conv = AppMethods.formatRouteBearing_(gamma);
-                }
+                planarM = AppMethods.formatRouteNumber_(leg.planarM, 1);
+                gridBrg = AppMethods.formatRouteBearing_(leg.gridBearing);
+                conv = AppMethods.formatRouteBearing_(leg.convergence);
             }
             aoa.push([
                 pts[i].id || String(i + 1),
@@ -2948,7 +3093,7 @@ const AppMethods = {
             ]);
         }
         aoa.push(['TotalDist','','','','','','','','',Number(AppMethods.formatRouteNumber_(totalNm, 1)),Number(AppMethods.formatRouteNumber_(totalKm, 1)),'']);
-        // v6.7.2: ETA in dedicated column 12
+        // Speed ETA calculation rows
         [1.5, 2.0, 2.5, 3.0].forEach(spd => {
             aoa.push([`@${spd.toFixed(1)}kts`,'','','','','','','','','','', Number(AppMethods.formatRouteNumber_(totalNm / spd, 1))]);
         });
@@ -2962,63 +3107,32 @@ const AppMethods = {
         XLSX.writeFile(wb, `TowRoute_${AppMethods.getTimestamp()}.xlsx`);
     },
     exportTowRouteShp: () => {
-        const activeTid = document.getElementById('table2').rows.length > 1 ? 'table2' : 'table1';
-        if (activeTid === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
+        const { activeTid, pts } = AppMethods.getValidRouteData();
+        if (!activeTid || pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
         if(typeof JSZip === 'undefined') return;
         const p = AppState.params, zi = AppState.zoneInfo;
-        let pts = [];
-        const hemispheres = new Set();
-        const isS1 = activeTid === 'table1';
-        const cols = isS1 ? AppMethods.getS1Cols() : AppMethods.getS2Cols();
         
-        Array.from(document.getElementById(activeTid).rows).slice(1).forEach(r => {
-            if (r.querySelector('.has-error')) return;
-            const e = parseFloat(r.dataset.indE);
-            const n = parseFloat(r.dataset.indN);
-            const lat = parseFloat(r.dataset.wgsLat);
-            const lon = parseFloat(r.dataset.wgsLon);
-            if (!isNaN(e) && !isNaN(n) && !isNaN(lat) && !isNaN(lon)) {
-                hemispheres.add(lat < 0 ? 'S' : 'N');
-                const indLat = parseFloat(r.dataset.indLatRaw);
-                const indLon = parseFloat(r.dataset.indLonRaw);
-                pts.push({
-                    id: AppMethods.getCleanIdText(r.cells[isS1 ? 0 : cols.pt]),
-                    e: e,
-                    n: n,
-                    lat: lat,
-                    lon: lon,
-                    indLat: isFinite(indLat) ? indLat : lat,
-                    indLon: isFinite(indLon) ? indLon : lon
-                });
-            }
-        });
-        
-        if(pts.length < 2) { AppMethods.showToast(t('route_need_pts'), 'err'); return; }
+        const hemispheres = new Set(pts.map(pt => pt.lat < 0 ? 'S' : 'N'));
         if(hemispheres.size > 1){ AppMethods.showToast('Route SHP export requires one UTM hemisphere only. Split North/South route points before export.', 'err'); return; }
         
-        let records = [];
-        for(let i=0; i<pts.length-1; i++) {
-            const pt1 = pts[i], pt2 = pts[i+1];
-            const dx = pt2.e - pt1.e, dy = pt2.n - pt1.n;
-            const planarDist = Math.hypot(dx, dy);
-            let gb = Math.atan2(dx, dy) * (180 / Math.PI); if(gb < 0) gb += 360;
-            const vRes = GeoMath.vincentyInverse(pt1.lat, pt1.lon, pt2.lat, pt2.lon);
-            const midIndLat = (pt1.indLat + pt2.indLat) / 2;
-            const midIndLon = (pt1.indLon + pt2.indLon) / 2;
-            const gamma = GeoMath.calculateConvergence(midIndLat, midIndLon, zi.cm);
-            records.push({
-                geom: [[pt1.e, pt1.n], [pt2.e, pt2.n]], // Segment
+        const legs = AppMethods.buildRouteLegs(pts);
+        if (!AppMethods.validateRouteLegsForExport(legs)) return;
+        
+        let records = legs.map(leg => {
+            return {
+                geom: [[leg.from.e, leg.from.n], [leg.to.e, leg.to.n]], // Segment
                 attr: {
-                    LEG: i + 1,
-                    FROM: pt1.id,
-                    TO: pt2.id,
-                    TRUE_BRG: isNaN(vRes.bearing) ? 0 : vRes.bearing,
-                    GRID_BRG: gb,
-                    CONV_GAMMA: gamma,
-                    DIST_M: planarDist
+                    LEG: leg.leg,
+                    FROM: leg.from.id,
+                    TO: leg.to.id,
+                    TRUE_BRG: leg.trueBearing,
+                    GRID_BRG: leg.gridBearing,
+                    CONV_GAMMA: leg.convergence,
+                    PLANAR_M: leg.planarM,
+                    GEOD_M: leg.distanceM
                 }
-            });
-        }
+            };
+        });
         
         const dbfFields = [
             {name: 'LEG', type: 'N', len: 5, dec: 0},
@@ -3027,14 +3141,27 @@ const AppMethods = {
             {name: 'TRUE_BRG', type: 'N', len: 8, dec: 2},
             {name: 'GRID_BRG', type: 'N', len: 8, dec: 2},
             {name: 'CONV_GAMMA', type: 'N', len: 10, dec: 4},
-            {name: 'DIST_M', type: 'N', len: 12, dec: 2}
+            {name: 'PLANAR_M', type: 'N', len: 12, dec: 2},
+            {name: 'GEOD_M', type: 'N', len: 12, dec: 2}
         ];
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
         const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
         
-        const data = ShpExporter.build(records, 3, dbfFields, prjStr); // Type 3 = PolyLine
+        let data;
+        try {
+            data = ShpExporter.build(records, 3, dbfFields, prjStr); // Type 3 = PolyLine
+        } catch (error) {
+            console.error(error);
+            AppMethods.showToast(
+                AppState.lang === 'th'
+                    ? 'ไม่สามารถสร้าง Shapefile ได้ เนื่องจากโครงสร้างข้อมูลไม่ถูกต้อง'
+                    : `Shapefile export failed: ${error.message}`,
+                'err'
+            );
+            return;
+        }
         if(!data) return;
         
         let zip = new JSZip();
@@ -3311,8 +3438,16 @@ const AppMethods = {
         
         const svgLgd = document.getElementById('svgLegendColor');
         if(svgLgd) {
-            svgLgd.style.color = (AppState.activeTab === 1) ? '#4f46e5' : '#e11d48';
-            svgLgd.innerText = (AppState.activeTab === 1) ? '● Section 1 Active Points (Indigo)' : '● Section 2 Active Points (Rose)';
+            if (AppState.activeTab === 1) {
+                svgLgd.style.color = '#4f46e5';
+                svgLgd.innerText = (AppState.lang === 'th') ? '● จุดพิกัดใช้งาน ส่วนที่ 1 (Indigo)' : '● Section 1 Active Points (Indigo)';
+            } else if (AppState.activeTab === 3) {
+                svgLgd.style.color = '#d97706';
+                svgLgd.innerText = (AppState.lang === 'th') ? '● เส้นทางและจุดวิเคราะห์ (Amber Route)' : '● Route Analytics Points (Amber Route)';
+            } else {
+                svgLgd.style.color = '#e11d48';
+                svgLgd.innerText = (AppState.lang === 'th') ? '● จุดพิกัดใช้งาน ส่วนที่ 2 (Rose)' : '● Section 2 Active Points (Rose)';
+            }
         }
 
         const svg=document.getElementById('coordinateSVG'), md=document.getElementById('canvasMode').value;
@@ -3325,41 +3460,31 @@ const AppMethods = {
                 if (r.querySelector('.has-error')) return;
                 const id = AppMethods.getCleanIdText(r.cells[0]);
                 if(md === 'utm') {
-                    if (r.dataset.indE && r.dataset.indN) {
-                        pts.push({id: id, x: parseFloat(r.dataset.indE), y: parseFloat(r.dataset.indN), s: 's1'});
-                    }
+                    if (r.dataset.indE && r.dataset.indN) pts.push({id: id, x: parseFloat(r.dataset.indE), y: parseFloat(r.dataset.indN), s: 's1'});
                 } else {
-                    if (r.dataset.wgsLat && r.dataset.wgsLon) {
-                        pts.push({id: id, x: parseFloat(r.dataset.wgsLon), y: parseFloat(r.dataset.wgsLat), s: 's1'});
-                    }
+                    if (r.dataset.wgsLat && r.dataset.wgsLon) pts.push({id: id, x: parseFloat(r.dataset.wgsLon), y: parseFloat(r.dataset.wgsLat), s: 's1'});
                 }
             });
+        } else if (AppState.activeTab === 3) {
+            const { activeTid, pts: routePoints } = AppMethods.getValidRouteData();
+            if (!activeTid) return;
+            pts = routePoints.map(point => ({
+                id: point.id,
+                x: md === 'utm' ? point.e : point.lon,
+                y: md === 'utm' ? point.n : point.lat,
+                s: activeTid === 'table1' ? 's1' : 's2'
+            }));
         } else {
             const ptCol = s2Cols.pt;
             Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
                 if (r.querySelector('.has-error')) return;
                 const id = AppMethods.getCleanIdText(r.cells[ptCol]);
                 if(md === 'utm') {
-                    if (r.dataset.indE && r.dataset.indN) {
-                        pts.push({id: id, x: parseFloat(r.dataset.indE), y: parseFloat(r.dataset.indN), s: 's2'});
-                    }
+                    if (r.dataset.indE && r.dataset.indN) pts.push({id: id, x: parseFloat(r.dataset.indE), y: parseFloat(r.dataset.indN), s: 's2'});
                 } else {
-                    if (r.dataset.wgsLat && r.dataset.wgsLon) {
-                        pts.push({id: id, x: parseFloat(r.dataset.wgsLon), y: parseFloat(r.dataset.wgsLat), s: 's2'});
-                    }
+                    if (r.dataset.wgsLat && r.dataset.wgsLon) pts.push({id: id, x: parseFloat(r.dataset.wgsLon), y: parseFloat(r.dataset.wgsLat), s: 's2'});
                 }
             });
-            if (AppState.activeTab === 3 && pts.length === 0) {
-                Array.from(document.getElementById('table1').rows).slice(1).forEach(r=>{
-                    if (r.querySelector('.has-error')) return;
-                    const id = AppMethods.getCleanIdText(r.cells[0]);
-                    if(md === 'utm') {
-                        if (r.dataset.indE && r.dataset.indN) pts.push({id: id, x: parseFloat(r.dataset.indE), y: parseFloat(r.dataset.indN), s: 's1'});
-                    } else {
-                        if (r.dataset.wgsLat && r.dataset.wgsLon) pts.push({id: id, x: parseFloat(r.dataset.wgsLon), y: parseFloat(r.dataset.wgsLat), s: 's1'});
-                    }
-                });
-            }
         }
         
         if(!pts.length){ 
@@ -3562,6 +3687,9 @@ const AppMethods = {
                     pts.push({id: AppMethods.getCleanIdText(r.cells[0]), lat: parseFloat(r.dataset.wgsLat), lon: parseFloat(r.dataset.wgsLon), isS1: true});
                 }
             });
+        } else if (AppState.activeTab === 3) {
+            const { activeTid, pts: routePts } = AppMethods.getValidRouteData();
+            pts = routePts.map(p => ({id: p.id, lat: p.lat, lon: p.lon, isS1: activeTid === 'table1'}));
         } else {
             const s2Cols = AppMethods.getS2Cols();
             Array.from(document.getElementById('table2').rows).slice(1).forEach(r=>{
@@ -3570,14 +3698,6 @@ const AppMethods = {
                     pts.push({id: AppMethods.getCleanIdText(r.cells[s2Cols.pt]), lat: parseFloat(r.dataset.wgsLat), lon: parseFloat(r.dataset.wgsLon), isS1: false}); 
                 }
             });
-            if (AppState.activeTab === 3 && pts.length === 0) {
-                Array.from(document.getElementById('table1').rows).slice(1).forEach(r=>{
-                    if (r.querySelector('.has-error')) return;
-                    if(r.dataset.wgsLat && r.dataset.wgsLon) {
-                        pts.push({id: AppMethods.getCleanIdText(r.cells[0]), lat: parseFloat(r.dataset.wgsLat), lon: parseFloat(r.dataset.wgsLon), isS1: true});
-                    }
-                });
-            }
         }
         
         if (!pts.length) { return; }
@@ -3609,6 +3729,10 @@ const AppMethods = {
     }
 };
 
+
+/**
+ * AI OCR — Coordinate Extraction via Google Gemini Vision API
+ */
 /**
  * Event Binding & Init
  */
@@ -3616,14 +3740,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const zs = document.getElementById('zoneSelect');
     if (zs) {
         zs.innerHTML = '';
-        for(let i=1; i<=60; i++) {
+        for(let i=45; i<=50; i++) {
             const opt = document.createElement('option');
             opt.value = i; opt.textContent = i + 'N';
             if(i === 47) opt.selected = true;
             zs.appendChild(opt);
         }
     }
-    // v6.4.4: Fresh start, no browser persistence/cache restore
+    // Initialize AI OCR
+    
+    
+    // Initialize tables and settings
     AppMethods.buildS1Table();
     AppMethods.updateS1UtmModeUI();
     AppMethods.buildS2Table();
@@ -3637,8 +3764,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const curZone = `${AppState.zoneInfo.zone}N (CM=${AppState.zoneInfo.cm}°E)`;
         AppMethods.showToast(t('startup_reminder', `${curDatum} | Zone ${curZone}`), 'warn');
     }, 350);
-    // UI v2: Leaflet failure must not abort the remaining application bindings.
-    // v6.4.4: Print support
+    
+    // Print metadata header support
     window.addEventListener('beforeprint', () => {
         const ph = document.getElementById('printHeader');
         if (ph) {
@@ -3649,11 +3776,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = AppState.activeTab;
             const tabName = tab === 1 ? 'Section 1: WGS84 \u2192 Indian 1975' : tab === 2 ? 'Section 2: Indian 1975 \u2192 WGS84' : 'Route Analytics';
             const now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-            ph.textContent = 'Coordinate Converter v6.7.2 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
+            ph.textContent = 'Coordinate Converter v6.7.3 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
         }
     });
-    // OFFLINE FALLBACK FOR SHEETJS & JSZIP
+    // OFFLINE FALLBACK FOR SHEETJS, JSZIP & AI OCR
     setTimeout(() => {
+        if (!navigator.onLine) {
+            }
         if (typeof XLSX === 'undefined') {
             ['btnExpXlsxS1', 'btnExpXlsxS2', 'btnTowRouteXlsx'].forEach(id => {
                 const btn = document.getElementById(id);
@@ -3785,7 +3914,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('table1').addEventListener('paste', e => AppMethods.handlePaste(e, 'table1'));
     document.getElementById('table2').addEventListener('paste', e => AppMethods.handlePaste(e, 'table2'));
 
-    // === v6.5.1 F1: Cross-link ⇄ event delegation ===
+    // Cross-link ⇄ event delegation
     document.getElementById('table1').addEventListener('click', e => {
         const btn = e.target.closest('.cross-link');
         if (btn) { e.preventDefault(); e.stopPropagation(); AppMethods.handleCrossLink(btn); }
@@ -3795,11 +3924,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) { e.preventDefault(); e.stopPropagation(); AppMethods.handleCrossLink(btn); }
     });
 
-    // === v6.5.1 F3: Bulk paste from Excel buttons ===
+    // Bulk paste from clipboard buttons
     document.getElementById('btnPasteS1')?.addEventListener('click', () => AppMethods.pasteFromClipboard('table1'));
     document.getElementById('btnPasteS2')?.addEventListener('click', () => AppMethods.pasteFromClipboard('table2'));
 
-    // === v6.5.1 F2: Initialize prev datum label (for delta preview on first change) ===
+    // Initialize previous datum label for delta preview tracking
     (() => {
         const dSel = document.getElementById('datumSelect');
         if (dSel) AppState._prevDatumLabel = dSel.options[dSel.selectedIndex].text;
@@ -3826,4 +3955,7 @@ const d=document.getElementById('datumDetails');if(d){const mq=matchMedia('(max-
 const available={Leaflet:'L'in window,SheetJS:'XLSX'in window,JSZip:'JSZip'in window};if(!available.Leaflet){['btnViewLeaflet','btnRefreshLeaflet'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.title='Interactive map unavailable: Leaflet did not load'}});document.getElementById('leafletMap')?.classList.add('hidden');document.getElementById('leafletTools')?.classList.add('hidden')}
 const missing=Object.entries(available).filter(([,ok])=>!ok).map(([name])=>name);if(missing.length&&AppMethods.showToast)AppMethods.showToast(`Unavailable library: ${missing.join(', ')}`,'warn');document.getElementById('langBtn')?.addEventListener('click',()=>setTimeout(syncUiV2Text,0));syncTableSemantics();syncInvalid();syncUiV2Text();syncUI(1)})();
 </script>
+     
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
+
 </body></html>
