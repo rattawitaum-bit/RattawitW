@@ -93,8 +93,8 @@
               { label: '1.5" (38mm) - Jackup, MBL 106t',        w: 6.35, w_wet: 5.38, ea: 77000, frictionCoeff: 0.5, diameter: 38 },
               { label: '1.75" (44mm) Pennant - EWB400',         w: 8.4,  w_wet: 7.3,  ea: 103000, frictionCoeff: 0.5, diameter: 44 },
               { label: '2" (52mm) - NVT/KMT, MBL 204t',         w: 11.4, w_wet: 9.9,  ea: 143000, frictionCoeff: 0.5, diameter: 52 },
-              { label: '2.5" (64mm) - ED-fleet FOI, MBL 336t',  w: 17.3, w_wet: 15.2, ea: 217000, frictionCoeff: 0.5, diameter: 64 },
-              { label: '3" (76mm) - Vantris Tender (assumed)',  w: 24.4, w_wet: 21.2, ea: 306000, frictionCoeff: 0.5, diameter: 76 }
+              { label: '2.5" (64mm) - ED-fleet, Vantris Tender',  w: 17.3, w_wet: 15.2, ea: 217000, frictionCoeff: 0.5, diameter: 64 },
+              { label: '3" (76mm)',  w: 24.4, w_wet: 21.2, ea: 306000, frictionCoeff: 0.5, diameter: 76 }
           ],
           [SegmentType.CHAIN]: [
               { label: '1" (25mm) - stud-link',                 w: 14.1, w_wet: 12.2, ea: 400000, frictionCoeff: 1.0, diameter: 25 },
@@ -131,25 +131,13 @@
       // One-click fleet presets from Mooring Component Register (Jul 2026)
       const FLEET_PRESETS = {
           'ED_TENDER': {
-              label: '🔵 ED1/ED2 EDrill Tender - 64mm all-wire + MLB',
+              label: '🔵 ED1/ED2 EDrill/Vantris Tender - 64mm all-wire + MLB',
               category: 'TENDER',
               projectName: 'ED_AWP', waterDepth: 77.8, fairleadElev: '3', subseaStructuresStr: '150',
               tensionsStr: TENSION_PROFILES.TENDER_LARGE, calcMode: 'tension', showMaxTension: true,
               patternType: 'tender_8pt',
               segments: [
                   { type: SegmentType.WIRE, length: 1445, w: 17.3, w_wet: 15.2, EA: 217000, frictionCoeff: 0.5, diameter: 64, isEAManual: false, isWeightManual: true },
-                  { type: SegmentType.CHAIN, length: 55, w: 128.0, w_wet: 111.3, EA: 3177000, frictionCoeff: 1.0, diameter: 76, isEAManual: false, isWeightManual: true }
-              ],
-              buoys: [ { distanceFromAnchor: 900, netBuoyancy: 10, pennantLength: 25, pennantWeight: 0.175, pennantLoad: 0.05, height: 2.5, pennantSag: 2.0, isPennantWeightManual: true } ]
-          },
-          'VANTRIS': {
-              label: '🔵 Vantris Tender T-10..T-18 - 76mm + insert chain',
-              category: 'TENDER',
-              projectName: 'Vantris_T', waterDepth: 77.0, fairleadElev: '3', subseaStructuresStr: '150',
-              tensionsStr: TENSION_PROFILES.TENDER_LARGE, calcMode: 'tension', showMaxTension: true,
-              patternType: 'tender_8pt',
-              segments: [
-                  { type: SegmentType.WIRE, length: 1445, w: 24.4, w_wet: 21.2, EA: 306000, frictionCoeff: 0.5, diameter: 76, isEAManual: false, isWeightManual: true },
                   { type: SegmentType.CHAIN, length: 55, w: 128.0, w_wet: 111.3, EA: 3177000, frictionCoeff: 1.0, diameter: 76, isEAManual: false, isWeightManual: true }
               ],
               buoys: [ { distanceFromAnchor: 900, netBuoyancy: 10, pennantLength: 25, pennantWeight: 0.175, pennantLoad: 0.05, height: 2.5, pennantSag: 2.0, isPennantWeightManual: true } ]
@@ -504,7 +492,7 @@
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">6. Fleet Vessel Presets (NEW)</h3>
                               <p className="mb-1">The <strong>Quick Fill: Fleet Vessel</strong> dropdown auto-loads full config (water depth, segments, buoys, tensions) for common vessel types:</p>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li>🔵 <strong>TENDER</strong>: ED1/ED2 (64mm), Vantris T-10..T-18 (76mm)</li>
+                                  <li>🔵 <strong>TENDER</strong>: ED1/ED2,Vantris (64mm)</li>
                                   <li>🟢 <strong>AWB</strong>: NVT/KMT (52mm), EWB400 (64mm + piggyback)</li>
                                   <li>⚓ <strong>JACKUP</strong>: 4-point AHT positioning with 1.5" (38mm) wire; default tensions <code>5, 10, 15</code> (light on API quota)</li>
                               </ul>
