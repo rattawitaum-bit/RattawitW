@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Jack-up Position Confirmation</title>
+<style>
+:root{
+  --bg:#0f1318; --panel:#161c24; --panel2:#1c232d; --border:#2b3543;
+  --text:#e8edf2; --sub:#8fa0b3; --accent:#3d8bfd;
+  --plan:#3d8bfd; --ts:#4CAF50; --nav:#FF9800;
+  --warn:#ffb020; --bad:#ff5252; --ok:#4CAF50; --slot:#b478ff;
+  --canvasbg:#0b0e13; --gridline:rgba(255,255,255,0.07); --gridtext:rgba(255,255,255,0.32);
+  --inputbg:#0f141a; --obsrowbg:#11161d; --resultsbg:rgba(15,20,26,.92); --legendbg:rgba(15,20,26,.85);
+  --dropcolor:#3a4655; --scrollthumb:#2b3543;
+}
+body.light{
+  --bg:#eef2f6; --panel:#ffffff; --panel2:#f3f6f9; --border:#d5dde5;
+  --text:#16212c; --sub:#5b6b78; --accent:#1f7fd1;
+  --plan:#1f7fd1; --ts:#1f9d63; --nav:#c9660a;
+  --warn:#b8860b; --bad:#d13b3b; --ok:#1f9d63; --slot:#7c3fd1;
+  --canvasbg:#f7f9fb; --gridline:rgba(20,30,40,0.10); --gridtext:rgba(20,30,40,0.45);
+  --inputbg:#ffffff; --obsrowbg:#f3f6f9; --resultsbg:rgba(255,255,255,.92); --legendbg:rgba(255,255,255,.85);
+  --dropcolor:#93a3b0; --scrollthumb:#c7d0d8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden;transition:background .15s,color .15s;}
+#app{display:flex;flex-direction:column;height:100vh;width:100vw;}
+/* ---------- Header ---------- */
+#header{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);
+  border-bottom:1px solid var(--border);flex:0 0 auto;flex-wrap:wrap;}
+#header h1{font-size:15px;margin:0;font-weight:600;white-space:nowrap;}
+#header .verCredit{font-size:10px;color:var(--sub);margin-right:8px;white-space:nowrap;font-weight:400;}
+.btn{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+  border-radius:6px;padding:7px 11px;font-size:13px;cursor:pointer;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.btn.primary:hover{filter:brightness(1.1);}
+.btn.small{padding:4px 8px;font-size:12px;}
+.btn.danger{border-color:#7a3030;color:#ff8a8a;}
+.spacer{flex:1;}
+#sidebarToggle{display:none;}
+/* ---------- Main layout ---------- */
+#main{flex:1;display:flex;min-height:0;}
+#sidebar{width:340px;flex:0 0 340px;background:var(--panel);border-right:1px solid var(--border);
+  overflow-y:auto;padding:8px;}
+#canvasArea{flex:1;position:relative;min-width:0;background:var(--canvasbg);}
+#plotCanvas{position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;cursor:grab;}
+#plotCanvas.picking{cursor:crosshair;}
+#plotCanvas.dragging{cursor:grabbing;}
+/* ---------- Sidebar sections ---------- */
+details.sec{background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  margin-bottom:8px;overflow:hidden;}
+details.sec>summary{padding:9px 10px;cursor:pointer;font-weight:600;font-size:13px;
+  list-style:none;display:flex;align-items:center;gap:6px;user-select:none;}
+details.sec>summary::-webkit-details-marker{display:none;}
+details.sec>summary:before{content:'▸';display:inline-block;transition:transform .15s;color:var(--sub);}
+details.sec[open]>summary:before{transform:rotate(90deg);}
+.secBody{padding:8px 10px 10px;border-top:1px solid var(--border);}
+label.f{display:block;font-size:11px;color:var(--sub);margin:6px 0 2px;}
+input[type=number],input[type=text],select{
+  width:100%;background:var(--inputbg);border:1px solid var(--border);color:var(--text);
+  border-radius:5px;padding:6px 7px;font-size:13px;}
+input[type=checkbox]{width:15px;height:15px;vertical-align:middle;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.chkline{display:flex;align-items:center;gap:6px;font-size:12.5px;margin:6px 0;}
+.chkline label{color:var(--text);}
+hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
+.hint{font-size:11px;color:var(--sub);line-height:1.5;margin-top:3px;}
+.optlabel{font-size:10px;color:var(--sub);font-weight:600;margin-left:auto;text-transform:uppercase;letter-spacing:.04em;}
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10.5px;font-weight:700;}
+.tag.plan{background:rgba(61,139,253,.18);color:var(--plan);}
+.tag.ts{background:rgba(76,175,80,.18);color:var(--ts);}
+.tag.nav{background:rgba(255,152,0,.18);color:var(--nav);}
+.tag.slot{background:rgba(180,120,255,.18);color:var(--slot);}
+.warnText{color:var(--warn);}
+.badText{color:var(--bad);}
+/* observation rows */
+.obsRow{background:var(--obsrowbg);border:1px solid var(--border);border-radius:6px;padding:7px;margin-bottom:6px;}
+.obsRow.outlier{outline:2px solid var(--warn);outline-offset:-2px;}
+.obsHead{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.obsHead .pid{font-weight:700;font-size:12.5px;flex:1;}
+.obsBindInfo{font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5;word-break:break-all;}
+.obsBindInfo.bound{color:var(--ok);}
+.obsResidual{font-size:11px;margin-top:3px;}
+.obsResidual.warn{color:var(--warn);font-weight:700;}
+.iconBtn{background:none;border:none;color:var(--sub);cursor:pointer;font-size:14px;padding:2px 5px;}
+.iconBtn:hover{color:var(--bad);}
+/* results readout */
+.kv{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;border-bottom:1px dashed rgba(128,128,128,.18);}
+.kv b{font-weight:600;}
+.statusBadge{padding:1px 7px;border-radius:10px;font-size:10.5px;font-weight:700;}
+.statusBadge.ok{background:rgba(76,175,80,.2);color:var(--ok);}
+.statusBadge.warn{background:rgba(255,176,32,.2);color:var(--warn);}
+.statusBadge.na{background:rgba(128,128,128,.15);color:var(--sub);}
+/* layer list */
+#layerList{max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:5px;padding:4px 6px;}
+.layerItem{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0;}
+.layerItem .sw{width:10px;height:10px;border-radius:2px;flex:0 0 auto;}
+.layerItem span.lname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* slot table */
+#slotList{max-height:180px;overflow-y:auto;}
+.slotRow{display:flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 0;border-bottom:1px dashed rgba(128,128,128,.15);}
+.slotRow .sname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* ---------- Canvas overlays ---------- */
+#toolbar{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:center;
+  flex-wrap:wrap;z-index:5;pointer-events:none;}
+#toolbar>*{pointer-events:auto;}
+#pickBanner{background:rgba(255,176,32,.95);color:#1a1200;padding:6px 12px;border-radius:6px;
+  font-size:12.5px;font-weight:700;display:none;align-items:center;gap:10px;}
+#anomalyBanner{background:rgba(209,59,59,.95);color:#fff;padding:6px 12px;border-radius:6px;
+  font-size:12.5px;font-weight:600;display:none;align-items:center;gap:10px;max-width:520px;}
+#anomalyBanner .iconBtn{color:#fff;}
+#coordReadout{margin-left:auto;background:rgba(0,0,0,.55);padding:5px 10px;border-radius:6px;
+  font-size:11.5px;font-family:monospace;color:#cfe3ff;white-space:nowrap;}
+#resultsPanel{position:absolute;top:52px;right:8px;width:270px;background:var(--resultsbg);
+  border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;z-index:5;
+  max-height:calc(100% - 100px);overflow-y:auto;}
+#resultsPanel h3{margin:0 0 6px;font-size:12.5px;color:var(--sub);display:flex;justify-content:space-between;align-items:center;}
+#resultsPanel.collapsed .body{display:none;}
+#resultsPanel .toggleBtn{cursor:pointer;color:var(--sub);font-size:13px;}
+#legend{position:absolute;bottom:8px;right:8px;background:var(--legendbg);border:1px solid var(--border);
+  border-radius:6px;padding:6px 10px;font-size:11px;z-index:5;display:flex;gap:12px;flex-wrap:wrap;}
+.legItem{display:flex;align-items:center;gap:5px;}
+.legSwatch{width:14px;height:3px;border-radius:2px;}
+#statusbar{position:absolute;bottom:8px;left:8px;background:var(--legendbg);border:1px solid var(--border);
+  border-radius:6px;padding:5px 10px;font-size:11px;color:var(--sub);z-index:5;font-family:monospace;}
+#dropHint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--dropcolor);font-size:15px;text-align:center;pointer-events:none;padding:20px;}
+#themeToggle{margin-left:4px;}
+/* mobile */
+@media (max-width:860px){
+  #sidebar{position:absolute;left:0;top:0;bottom:0;z-index:20;transform:translateX(-100%);
+    transition:transform .2s;box-shadow:4px 0 20px rgba(0,0,0,.5);}
+  #sidebar.open{transform:translateX(0);}
+  #sidebarToggle{display:inline-flex;}
+  #resultsPanel{width:210px;font-size:11px;}
+}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--scrollthumb);border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <button id="sidebarToggle" class="btn">☰</button>
+    <h1>🛰 Jack-up Position Confirmation</h1>
+    <span class="verCredit">v1.0 · developed by Rattawit</span>
+    <button class="btn" id="btnZoomExtents">Zoom Extents</button>
+    <button class="btn danger" id="btnClearAll" title="Clear all data and start a new round (keeps the Rig Profile)">🗑 Clear / New Round</button>
+    <div class="spacer"></div>
+    <button class="btn" id="themeToggle">🌙 Dark</button>
+    <button class="btn" id="btnSaveProject">💾 Save Project</button>
+    <button class="btn" id="btnLoadProject">📂 Load Project</button>
+    <input type="file" id="fileLoadProject" accept=".jpc.json,.json" style="display:none;">
+    <button class="btn" id="btnExportPNG">🖼 Export PNG</button>
+    <button class="btn" id="btnExportCSV">📄 Export CSV</button>
+  </div>
+  <div id="main">
+    <div id="sidebar">
+      <!-- 1. Import DXF -->
+      <details class="sec" open>
+        <summary>1. Import CAD (DXF)</summary>
+        <div class="secBody">
+          <input type="file" id="fileDXF" accept=".dxf">
+          <div class="hint" id="dxfSummary">No file imported yet · Supports LINE, LWPOLYLINE, POLYLINE/VERTEX, POINT, CIRCLE, ARC, TEXT (no INSERT/BLOCK — explode first) · .dwg files must be Saved As .dxf first</div>
+          <div class="hint" style="margin-top:4px;">⚠ Save Project does not embed the DXF file itself (only positions/observations/rig profile are stored) — re-import the same DXF after reopening a project</div>
+          <label class="f">Layers</label>
+          <div id="layerList"><div class="hint">— no layers yet —</div></div>
+        </div>
+      </details>
+      <!-- 2. Total Station (primary method) -->
+      <details class="sec" open>
+        <summary><span class="tag ts">TS</span> 2. Total Station Observation</summary>
+        <div class="secBody">
+          <div class="chkline"><input type="checkbox" id="tsEnable" checked><label for="tsEnable">Show / use Total Station Position</label></div>
+          <label class="f">Input Mode (origin = Center Stern)</label>
+          <select id="tsMode">
+            <option value="xy">Local X, Y</option>
+            <option value="rb">Range / Bearing</option>
+          </select>
+          <div class="hint" id="xyConventionHint">Local X,Y: +y = away from the rig (opposite the Bow, i.e. the direction the instrument faces), +x = right-hand side when facing that direction (the rig's Port side). This matches how a total station is normally set up at the stern.</div>
+          <div id="rbSetup" style="display:none;">
+            <div class="row2" style="margin-top:6px;">
+              <div><label class="f">Angle Unit</label>
+                <select id="rbUnit"><option value="deg">Degree</option><option value="gon">Gon</option></select>
+              </div>
+              <div><label class="f">Rotation</label>
+                <select id="rbRot"><option value="cw">Clockwise</option><option value="ccw">Counter-clockwise</option></select>
+              </div>
+            </div>
+            <label class="f">Zero Direction (bearing = 0 points toward)</label>
+            <select id="rbZero">
+              <option value="bow">Bow</option><option value="stern">Stern</option>
+              <option value="port">Port</option><option value="stbd">Starboard</option>
+            </select>
+          </div>
+          <hr class="sep">
+          <label class="f">Instrument Setup Offset (from Center Stern)</label>
+          <div class="row2">
+            <div><input type="number" step="any" id="tsEccX" value="0" placeholder="dx"></div>
+            <div><input type="number" step="any" id="tsEccY" value="0" placeholder="dy"></div>
+          </div>
+          <div class="hint">If the total station is <b>not</b> set up exactly at Center Stern (0,0) — e.g. it's set up at dx=-10, dy=-5 relative to it, because that point isn't physically accessible — enter that offset here, using the same +y/+x convention as above. Every sighting below (in either mode) is measured from the instrument and automatically combined with this offset. Leave at 0,0 if the instrument is set up exactly at Center Stern.</div>
+          <hr class="sep">
+          <div id="obsList" style="margin-top:8px;"></div>
+          <button class="btn small" id="btnAddObs" style="width:100%;margin-top:4px;">+ Add Point</button>
+          <hr class="sep">
+          <div id="tsResult">
+            <div class="hint">Need at least 2 points that are both filled in and bound on the drawing before a fit can be computed</div>
+          </div>
+        </div>
+      </details>
+      <!-- 3. Rig Profile -->
+      <details class="sec" open>
+        <summary>3. Rig Profile / Skid Envelope</summary>
+        <div class="secBody">
+          <label class="f">Rig Name</label>
+          <input type="text" id="rigName" placeholder="e.g. GOF-1">
+          <div class="row2" style="margin-top:6px;">
+            <div><label class="f">Length Stern→Bow (m)</label><input type="number" step="any" min="0" id="rigLength" value="100"></div>
+            <div><label class="f">Half-Width each side (m)</label><input type="number" step="any" min="0" id="rigHalfWidth" value="50"></div>
+          </div>
+          <div class="row2">
+            <div><label class="f">Skid X each side (ft)</label><input type="number" step="any" min="0" id="skidX" value="20"></div>
+            <div><label class="f">Skid Y max (ft)</label><input type="number" step="any" min="0" id="skidY" value="70"></div>
+          </div>
+          <label class="f">Skid Attach Offset from Stern (m) <span style="color:var(--sub)">— 0 = envelope's near edge sits at the stern</span></label>
+          <input type="number" step="any" min="0" id="skidAttach" value="0">
+          <div class="hint">Skid X/Y are entered as plain positive magnitudes (feet). The envelope is always placed on the side opposite the Bow automatically — you never need to type a negative number.</div>
+          <div class="chkline"><input type="checkbox" id="skidEnable" checked><label for="skidEnable">Show Skid Envelope on the plot</label></div>
+          <div class="hint">The Skid Envelope is drawn automatically — as soon as Total Station (2), Plan (4), and/or Navigation (5) has a valid position, its envelope appears in that source's colour. No extra step needed.</div>
+          <hr class="sep">
+          <label class="f">Reference source for the Slot Accessibility Check (section 6)</label>
+          <select id="skidSource">
+            <option value="ts">Total Station</option>
+            <option value="nav">Navigation</option>
+            <option value="plan">Plan</option>
+          </select>
+          <div class="hint">Only used to decide which envelope Slot accessibility is tested against — does not affect what is drawn on the plot.</div>
+          <hr class="sep">
+          <div class="chkline"><input type="checkbox" id="rigManualEnable"><label for="rigManualEnable">Use manual Hull/Envelope points instead (for rigs that aren't a simple triangle+rectangle)</label></div>
+          <div id="rigManualBox" style="display:none;">
+            <label class="f">Hull (local x,y)</label>
+            <div id="hullList"></div>
+            <button class="btn small" id="btnAddHull" style="width:100%;margin-top:4px;">+ Hull Point</button>
+            <label class="f" style="margin-top:8px;">Skid Envelope (local x,y)</label>
+            <div id="envList"></div>
+            <button class="btn small" id="btnAddEnv" style="width:100%;margin-top:4px;">+ Envelope Point</button>
+          </div>
+        </div>
+      </details>
+      <!-- 4. Plan Position (optional cross-check) -->
+      <details class="sec">
+        <summary><span class="tag plan">PLAN</span> 4. Plan Final Position <span class="optlabel">cross-check</span></summary>
+        <div class="secBody">
+          <div class="chkline"><input type="checkbox" id="planEnable"><label for="planEnable">Show / use Plan Position</label></div>
+          <div class="row3">
+            <div><label class="f">Stern Easting</label><input type="number" step="any" id="planE"></div>
+            <div><label class="f">Stern Northing</label><input type="number" step="any" id="planN"></div>
+            <div><label class="f">Heading (°)</label><input type="number" step="any" id="planH"></div>
+          </div>
+        </div>
+      </details>
+      <!-- 5. Navigation Position (optional cross-check) -->
+      <details class="sec">
+        <summary><span class="tag nav">NAV</span> 5. Survey Navigation Position <span class="optlabel">cross-check</span></summary>
+        <div class="secBody">
+          <div class="chkline"><input type="checkbox" id="navEnable"><label for="navEnable">Show / use Navigation Position</label></div>
+          <div class="row3">
+            <div><label class="f">Stern Easting</label><input type="number" step="any" id="navE"></div>
+            <div><label class="f">Stern Northing</label><input type="number" step="any" id="navN"></div>
+            <div><label class="f">Heading (°)</label><input type="number" step="any" id="navH"></div>
+          </div>
+        </div>
+      </details>
+      <!-- 6. Slot Accessibility -->
+      <details class="sec">
+        <summary><span class="tag slot">SLOT</span> 6. Slot Accessibility Check <span class="optlabel">optional</span></summary>
+        <div class="secBody">
+          <label class="f">Import from a DXF layer</label>
+          <select id="slotLayerSelect"><option value="">— select a layer —</option></select>
+          <button class="btn small" id="btnImportSlotLayer" style="width:100%;margin-top:4px;">Import Points from Layer</button>
+          <div class="hint" id="slotLayerImportHint">Reads POINT / CIRCLE centers and closed LWPOLYLINE centroids on the selected layer. A nearby TEXT label (within 5 m) is used as the slot name if found. Existing slots are kept — points within 0.05 m of an existing slot are skipped as duplicates.</div>
+          <hr class="sep">
+          <label class="f">Or import CSV (name,x,y — one per line)</label>
+          <textarea id="slotCsvPaste" style="width:100%;min-height:60px;background:var(--inputbg);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px;font-family:monospace;font-size:12px;" placeholder="Slot-01,768925,1093730&#10;Slot-02,769050,1093900"></textarea>
+          <button class="btn small" id="btnImportSlotCsv" style="width:100%;margin-top:4px;">Import CSV</button>
+          <div id="slotList" style="margin-top:8px;"></div>
+          <button class="btn small" id="btnAddSlot" style="width:100%;margin-top:4px;">+ Slot</button>
+          <div class="hint">Checked against the Skid Envelope of the reference source selected in section 3.</div>
+        </div>
+      </details>
+      <!-- 7. Display -->
+      <details class="sec">
+        <summary>7. Display</summary>
+        <div class="secBody">
+          <div class="chkline"><input type="checkbox" id="showDXF" checked><label for="showDXF">Show Drawing (DXF)</label></div>
+          <div class="chkline"><input type="checkbox" id="showGrid" checked><label for="showGrid">Show Grid / Coordinates</label></div>
+        </div>
+      </details>
+      <div class="hint" style="text-align:center;padding:8px 0;">Session auto-saves in this browser (Offline)</div>
+    </div>
+    <div id="canvasArea">
+      <canvas id="plotCanvas"></canvas>
+      <div id="dropHint">Import a Platform DXF (item 1, left panel) to get started<br>then add Total Station points (item 2) and your Rig Profile (item 3) — the rig position appears on the plot automatically</div>
+      <div id="toolbar">
+        <button class="btn small" id="btnZoomIn">＋</button>
+        <button class="btn small" id="btnZoomOut">－</button>
+        <button class="btn small" id="btnZoomExtents2">Extents</button>
+        <button class="btn small" id="btnMeasure" title="Measure distance — click 2 points on the drawing, add as many as you like">📏 Measure</button>
+        <button class="btn small" id="btnClearMeasure" title="Clear all measurements">🗑 Clear</button>
+        <div id="pickBanner">⌖ Picking point for <span id="pickLabel"></span> — click/tap on the drawing
+          <label style="font-weight:400;"><input type="checkbox" id="snapToggle" checked> Snap</label>
+          <button class="btn small" id="btnCancelPick">Cancel</button>
+        </div>
+        <div id="anomalyBanner"><span id="anomalyText"></span><button class="iconBtn" id="btnDismissAnomaly" title="Dismiss">✕</button></div>
+        <div id="coordReadout">E: — , N: —</div>
+      </div>
+      <div id="resultsPanel">
+        <h3>Position Summary <span class="toggleBtn" id="resultsToggle">▾</span></h3>
+        <div class="body" id="resultsBody">
+          <div class="hint">No position data yet</div>
+        </div>
+      </div>
+      <div id="legend">
+        <div class="legItem"><div class="legSwatch" style="background:var(--ts);"></div>Total Station</div>
+        <div class="legItem"><div class="legSwatch" style="background:var(--plan);"></div>Plan</div>
+        <div class="legItem"><div class="legSwatch" style="background:var(--nav);"></div>Navigation</div>
+      </div>
+      <div id="statusbar">Scale: — | Snap: — | Mode: Pan</div>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+/* =====================================================================
+   Jack-up Position Confirmation — single-file offline app — v1.0
+   Developed by Rattawit
+   =====================================================================
+   THIS REVISION — fixes applied against the confirmed current production
+   source, each verified with dedicated computation/unit tests BEFORE being
+   written into the app (see chat history for the verification runs):
+
+   [FIX 1 — Snap] "Snap seems to not work" had TWO independent, compounding
+   root causes, both fixed:
+     1a) collectSnapCandidates/findNearestSnap previously only matched
+         explicit DXF vertices/centers/text-anchors (discrete points). Any
+         click along a LINE/LWPOLYLINE edge, or on a CIRCLE/ARC boundary
+         (the most common real click, since most clicks are NOT exactly on
+         a corner) could never snap at all. Rewritten to also compute the
+         nearest point along every line segment (reusing the already-
+         existing, already-verified nearestOnSegment()) and the nearest
+         point on every circle/arc boundary (angle-clamped for arcs), and
+         picks whichever candidate — node or edge — is genuinely closest,
+         within the same pixel tolerance as before. Verified with unit
+         tests for segment clamping, circle projection, and arc angle
+         wrap-around.
+     1b) The click-vs-drag gesture classifier used a fixed 3px movement
+         threshold to decide "was this a click (pick/measure) or a drag
+         (pan)?" — globally, not just for normal panning. Simulating
+         realistic mouse/trackpad hand-tremor while aiming at a small
+         target (2-6px of incidental wobble) showed this threshold
+         misclassifies ordinary clicks as drags, silently discarding the
+         pick attempt with **zero feedback** — indistinguishable from
+         "nothing happens when I click". The threshold is now widened to
+         10px specifically while Pick or Measure mode is active (normal
+         panning elsewhere is unaffected, still 3px).
+     Additionally added: a live hover preview (a small crosshair+ring) that
+     shows, in real time while in Pick mode with Snap on, exactly which
+     point the next click will bind to — so the user gets visual
+     confirmation *before* clicking, rather than having to click and hope.
+
+   [FIX 2 — Total Station setup not at Center Stern] Added an "Instrument
+   Setup Offset" (dx, dy) to section 2, entered using the SAME convention
+   as Local X,Y sightings (+y = away from the rig, +x = right-hand side
+   when facing away — i.e. the rig's Port side). This offset is combined
+   with EVERY sighting, in both Local X,Y and Range/Bearing modes, before
+   the rigid-body fit — letting the surveyor set the instrument up
+   anywhere convenient (e.g. dx=-10, dy=-5) rather than being forced to
+   treat Center Stern (0,0) itself as the only valid setup point. Verified:
+   (a) with the offset left at its 0,0 default, results are IDENTICAL to
+   the previously-shipped, previously-verified behaviour for both modes;
+   (b) with a nonzero offset, a full synthetic resection recovers the
+   exact same true Stern position/heading as an equivalent resection done
+   directly from Center Stern, for both Local X,Y and Range/Bearing.
+
+   [FIX 3] Added a small "v1.0 · developed by Rattawit" credit in the
+   header.
+
+   Everything else (core rigid-transform math, DXF parser, rendering
+   pipeline, Plan/Nav tracking, anomaly-aware zoom, outlier detection,
+   slot accessibility + DXF-layer import, multi-measurement tool,
+   Clear/New Round, Save/Load Project, theme toggle) is unchanged from the
+   confirmed current source and re-verified after these edits (see the
+   deep QC pass run before this file was delivered).
+   ===================================================================== */
+const FT2M = 0.3048;
+/* ---------------------------------------------------------------------
+   SECTION A — Core math
+--------------------------------------------------------------------- */
+function deg2rad(d){return d*Math.PI/180;}
+function rad2deg(r){return r*180/Math.PI;}
+function norm360(deg){let d=deg%360; if(d<0)d+=360; return d;}
+function normSignedDelta(deg){let d=((deg+180)%360+360)%360-180; if(d===-180)d=180; return d;}
+function localToWorld(x,y,sternE,sternN,headingDeg){
+  const theta=-deg2rad(headingDeg);
+  const c=Math.cos(theta), s=Math.sin(theta);
+  return {E: sternE+(c*x-s*y), N: sternN+(s*x+c*y)};
+}
+function worldToLocal(E,N,sternE,sternN,headingDeg){
+  const theta=-deg2rad(headingDeg);
+  const c=Math.cos(theta), s=Math.sin(theta);
+  const dE=E-sternE, dN=N-sternN;
+  return {x:c*dE+s*dN, y:-s*dE+c*dN};
+}
+function fitRigidTransform(localPts, worldPts){
+  const n=localPts.length;
+  if(n<2||worldPts.length!==n) throw new Error('Need >=2 matching point pairs');
+  let pcx=0,pcy=0,PcE=0,PcN=0;
+  for(let i=0;i<n;i++){pcx+=localPts[i].x;pcy+=localPts[i].y;PcE+=worldPts[i].E;PcN+=worldPts[i].N;}
+  pcx/=n;pcy/=n;PcE/=n;PcN/=n;
+  let Sxx=0,Sxy=0;
+  for(let i=0;i<n;i++){
+    const qx=localPts[i].x-pcx, qy=localPts[i].y-pcy;
+    const QE=worldPts[i].E-PcE, QN=worldPts[i].N-PcN;
+    Sxx+=qx*QE+qy*QN; Sxy+=qx*QN-qy*QE;
+  }
+  const theta=Math.atan2(Sxy,Sxx);
+  const c=Math.cos(theta), s=Math.sin(theta);
+  const TE=PcE-(c*pcx-s*pcy), TN=PcN-(s*pcx+c*pcy);
+  const headingDeg=norm360(-rad2deg(theta));
+  const residuals=[]; let sumSq=0,maxResidual=0;
+  for(let i=0;i<n;i++){
+    const calcE=TE+(c*localPts[i].x-s*localPts[i].y);
+    const calcN=TN+(s*localPts[i].x+c*localPts[i].y);
+    const dE=worldPts[i].E-calcE, dN=worldPts[i].N-calcN;
+    const dist=Math.sqrt(dE*dE+dN*dN);
+    residuals.push({dE,dN,dist,calcE,calcN});
+    sumSq+=dist*dist; if(dist>maxResidual)maxResidual=dist;
+  }
+  const rmse=Math.sqrt(sumSq/n);
+  let scaleDiagnostic=null;
+  if(n>=2){
+    const dxL=localPts[1].x-localPts[0].x, dyL=localPts[1].y-localPts[0].y;
+    const baseLocal=Math.sqrt(dxL*dxL+dyL*dyL);
+    const dEw=worldPts[1].E-worldPts[0].E, dNw=worldPts[1].N-worldPts[0].N;
+    const baseWorld=Math.sqrt(dEw*dEw+dNw*dNw);
+    scaleDiagnostic={baseLocal,baseWorld,ratio: baseLocal>0?baseWorld/baseLocal:null};
+  }
+  return {sternE:TE, sternN:TN, headingDeg, thetaRad:theta, residuals, rmse, maxResidual, scaleDiagnostic, n};
+}
+function findOutlier(residuals){
+  if(!residuals || residuals.length<3) return -1;
+  const rs=residuals.map(r=>r.dist);
+  const max=Math.max(...rs);
+  const rmse=Math.sqrt(rs.reduce((s,r)=>s+r*r,0)/rs.length);
+  const threshold=Math.max(0.02, rmse*1.5);
+  return max>threshold ? rs.indexOf(max) : -1;
+}
+function buildRigLocalGeometry(profile){
+  const L=Math.abs(profile.length||0), W=Math.abs(profile.halfWidth||0);
+  const hull=[{name:'Stern-Port',x:-W,y:0},{name:'Stern-Stbd',x:W,y:0},{name:'Bow',x:0,y:L}];
+  const offset=Math.abs(profile.skidAttachOffset||0);
+  const sx=Math.abs(profile.skidXEach||0), sy=Math.abs(profile.skidY||0);
+  const nearY=-offset, farY=-(offset+sy);
+  const skid=[
+    {name:'Near-Port',x:-sx,y:nearY},{name:'Near-Stbd',x:sx,y:nearY},
+    {name:'Far-Stbd',x:sx,y:farY},{name:'Far-Port',x:-sx,y:farY}
+  ];
+  return {hull,skid};
+}
+function transformPointsToWorld(localPointArray, sternE, sternN, headingDeg){
+  return localPointArray.map(p=>{const w=localToWorld(p.x,p.y,sternE,sternN,headingDeg); return {name:p.name,E:w.E,N:w.N};});
+}
+function rangeBearingToLocalXY(range,bearing,angleUnit,zeroDir,rotationDir){
+  let bearingDeg = angleUnit==='gon' ? bearing*0.9 : bearing;
+  const zeroVec = {bow:{x:0,y:1},stern:{x:0,y:-1},port:{x:-1,y:0},stbd:{x:1,y:0}}[zeroDir];
+  if(!zeroVec) throw new Error('invalid zeroDir');
+  const zeroAngle = Math.atan2(zeroVec.x, zeroVec.y);
+  const sign = rotationDir==='ccw' ? -1 : 1;
+  const totalAngleFromBow = zeroAngle + sign*deg2rad(bearingDeg);
+  return {x: range*Math.sin(totalAngleFromBow), y: range*Math.cos(totalAngleFromBow)};
+}
+function pointInPolygon(pt, poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    if(((yi>pt.y)!==(yj>pt.y)) && (pt.x<(xj-xi)*(pt.y-yi)/(yj-yi+1e-15)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function nearestOnSegment(p,a,b){
+  const abx=b.x-a.x, aby=b.y-a.y, len2=abx*abx+aby*aby;
+  let t=len2>1e-12?((p.x-a.x)*abx+(p.y-a.y)*aby)/len2:0; t=Math.max(0,Math.min(1,t));
+  const q={x:a.x+t*abx,y:a.y+t*aby};
+  return {point:q,dist:Math.hypot(p.x-q.x,p.y-q.y)};
+}
+function nearestBoundaryPoint(p,poly){
+  let best=null;
+  for(let i=0;i<poly.length;i++){
+    const r=nearestOnSegment(p,poly[i],poly[(i+1)%poly.length]);
+    if(!best||r.dist<best.dist) best=r;
+  }
+  return best;
+}
+function angleInArcRange(angDeg, startDeg, endDeg){
+  // DXF ARC sweeps CCW (world/model space, standard math convention) from
+  // startAngle to endAngle, both degrees in [0,360). Handles wrap-around
+  // (e.g. start=300, end=30 sweeps through 0/360). Verified with unit tests.
+  let a=((angDeg%360)+360)%360, s=((startDeg%360)+360)%360, e=((endDeg%360)+360)%360;
+  if(s<=e) return a>=s && a<=e;
+  return a>=s || a<=e;
+}
+/* ---------------------------------------------------------------------
+   SECTION B — DXF parser (ASCII)
+--------------------------------------------------------------------- */
+function parseDXF(text){
+  const lines=text.split(/\r\n|\r|\n/);
+  const tokens=[];
+  for(let i=0;i+1<lines.length;i+=2){
+    const code=parseInt(lines[i].trim(),10);
+    const value=lines[i+1];
+    tokens.push({code, value: value!==undefined?value.trim():''});
+  }
+  let start=-1,end=tokens.length;
+  for(let i=0;i<tokens.length;i++){ if(tokens[i].code===2 && tokens[i].value==='ENTITIES'){start=i;break;} }
+  if(start===-1){ start=0; } else {
+    for(let i=start;i<tokens.length;i++){ if(tokens[i].code===0 && tokens[i].value==='ENDSEC'){end=i;break;} }
+  }
+  const entities=[]; const layerSet=new Set(); let skippedCount=0;
+  let minE=Infinity,maxE=-Infinity,minN=Infinity,maxN=-Infinity;
+  function extend(x,y){ if(!isFinite(x)||!isFinite(y))return; if(x<minE)minE=x; if(x>maxE)maxE=x; if(y<minN)minN=y; if(y>maxN)maxN=y; }
+  // Per-entity bounding box, computed once here at parse time and cached on
+  // the entity (rec.aabb), so the snap engine's proximity pre-filter never
+  // has to recompute it on every query (verified via profiling: this was
+  // the dominant cost of findNearestSnap on large drawings -- see the fixed
+  // collectSnapEdgeCandidates() below).
+  function computeAabbFromPts(pts){
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(const p of pts){ if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; }
+    return {minX,maxX,minY,maxY};
+  }
+  const SUPPORTED=new Set(['LINE','LWPOLYLINE','POLYLINE','VERTEX','SEQEND','POINT','CIRCLE','ARC','TEXT','MTEXT']);
+  let i=start;
+  while(i<end && !(tokens[i].code===0 && SUPPORTED.has(tokens[i].value))) i++;
+  while(i<end){
+    const type=tokens[i].value; i++;
+    const rec={type, layer:'0', pts:[]};
+    if(type==='POLYLINE'){
+      rec.type='LWPOLYLINE'; rec.pts=[];
+      while(i<end && tokens[i].code!==0){ if(tokens[i].code===8)rec.layer=tokens[i].value; if(tokens[i].code===70)rec.closed=(parseInt(tokens[i].value,10)&1)===1; i++; }
+      while(i<end && tokens[i].code===0 && tokens[i].value==='VERTEX'){
+        i++; let vx=null,vy=null;
+        while(i<end && tokens[i].code!==0){ if(tokens[i].code===10)vx=parseFloat(tokens[i].value); if(tokens[i].code===20)vy=parseFloat(tokens[i].value); i++; }
+        if(vx!==null&&vy!==null){ rec.pts.push({x:vx,y:vy}); extend(vx,vy); }
+      }
+      if(i<end && tokens[i].code===0 && tokens[i].value==='SEQEND'){ i++; while(i<end && tokens[i].code!==0)i++; }
+      layerSet.add(rec.layer);
+      if(rec.pts.length>=2){ rec.aabb=computeAabbFromPts(rec.pts); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    if(type==='LWPOLYLINE'){
+      let pendingX=null;
+      while(i<end && tokens[i].code!==0){
+        const c=tokens[i].code, v=tokens[i].value;
+        if(c===8)rec.layer=v; else if(c===70)rec.closed=(parseInt(v,10)&1)===1;
+        else if(c===10)pendingX=parseFloat(v);
+        else if(c===20){ if(pendingX!==null){ rec.pts.push({x:pendingX,y:parseFloat(v)}); extend(pendingX,parseFloat(v)); pendingX=null; } }
+        i++;
+      }
+      layerSet.add(rec.layer);
+      if(rec.pts.length>=2){ rec.aabb=computeAabbFromPts(rec.pts); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    if(type==='LINE'){
+      let x1=null,y1=null,x2=null,y2=null;
+      while(i<end && tokens[i].code!==0){
+        const c=tokens[i].code, v=tokens[i].value;
+        if(c===8)rec.layer=v; else if(c===10)x1=parseFloat(v); else if(c===20)y1=parseFloat(v);
+        else if(c===11)x2=parseFloat(v); else if(c===21)y2=parseFloat(v);
+        i++;
+      }
+      layerSet.add(rec.layer);
+      if(x1!==null&&y1!==null&&x2!==null&&y2!==null){
+        rec.pts=[{x:x1,y:y1},{x:x2,y:y2}]; extend(x1,y1); extend(x2,y2);
+        rec.aabb = {minX:Math.min(x1,x2), maxX:Math.max(x1,x2), minY:Math.min(y1,y2), maxY:Math.max(y1,y2)};
+        entities.push(rec);
+      } else skippedCount++;
+      continue;
+    }
+    if(type==='POINT'){
+      let x=null,y=null;
+      while(i<end && tokens[i].code!==0){ const c=tokens[i].code,v=tokens[i].value; if(c===8)rec.layer=v; else if(c===10)x=parseFloat(v); else if(c===20)y=parseFloat(v); i++; }
+      layerSet.add(rec.layer);
+      if(x!==null&&y!==null){ rec.pts=[{x,y}]; extend(x,y); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    if(type==='CIRCLE'){
+      let x=null,y=null,r=null;
+      while(i<end && tokens[i].code!==0){ const c=tokens[i].code,v=tokens[i].value; if(c===8)rec.layer=v; else if(c===10)x=parseFloat(v); else if(c===20)y=parseFloat(v); else if(c===40)r=parseFloat(v); i++; }
+      layerSet.add(rec.layer);
+      if(x!==null&&y!==null&&r!==null){ rec.center={x,y}; rec.radius=r; extend(x-r,y-r); extend(x+r,y+r); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    if(type==='ARC'){
+      let x=null,y=null,r=null,a1=0,a2=360;
+      while(i<end && tokens[i].code!==0){ const c=tokens[i].code,v=tokens[i].value; if(c===8)rec.layer=v; else if(c===10)x=parseFloat(v); else if(c===20)y=parseFloat(v); else if(c===40)r=parseFloat(v); else if(c===50)a1=parseFloat(v); else if(c===51)a2=parseFloat(v); i++; }
+      layerSet.add(rec.layer);
+      if(x!==null&&y!==null&&r!==null){ rec.center={x,y}; rec.radius=r; rec.startAngle=a1; rec.endAngle=a2; extend(x-r,y-r); extend(x+r,y+r); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    if(type==='TEXT'||type==='MTEXT'){
+      let x=null,y=null,h=2.5,txt='';
+      while(i<end && tokens[i].code!==0){ const c=tokens[i].code,v=tokens[i].value; if(c===8)rec.layer=v; else if(c===10)x=parseFloat(v); else if(c===20)y=parseFloat(v); else if(c===40)h=parseFloat(v); else if(c===1||c===3)txt+=v; i++; }
+      layerSet.add(rec.layer);
+      if(x!==null&&y!==null){ rec.pos={x,y}; rec.height=h; rec.text=txt; extend(x,y); entities.push(rec); } else skippedCount++;
+      continue;
+    }
+    while(i<end && tokens[i].code!==0) i++;
+  }
+  if(!isFinite(minE)){ minE=0;maxE=0;minN=0;maxN=0; }
+  return {entities, layers:Array.from(layerSet), extent:{minE,maxE,minN,maxN}, skippedCount, entityCount:entities.length};
+}
+/* ---------------------------------------------------------------------
+   SECTION C — Render / viewport helpers
+--------------------------------------------------------------------- */
+function computeViewportFit(extent, canvasW, canvasH, paddingRatio){
+  paddingRatio = paddingRatio==null?0.12:paddingRatio;
+  let w=extent.maxE-extent.minE, h=extent.maxN-extent.minN;
+  if(w<=0&&h<=0){w=200;h=200;}
+  if(w<=0)w=h; if(h<=0)h=w;
+  const scaleX=canvasW/(w*(1+2*paddingRatio)), scaleY=canvasH/(h*(1+2*paddingRatio));
+  const scale=Math.min(scaleX,scaleY);
+  return {canvasW,canvasH,centerE:(extent.minE+extent.maxE)/2,centerN:(extent.minN+extent.maxN)/2,scale};
+}
+function toScreen(E,N,vp){ return {x: vp.canvasW/2+(E-vp.centerE)*vp.scale, y: vp.canvasH/2-(N-vp.centerN)*vp.scale}; }
+function toWorld(x,y,vp){ return {E: vp.centerE+(x-vp.canvasW/2)/vp.scale, N: vp.centerN-(y-vp.canvasH/2)/vp.scale}; }
+function niceStep(targetWorldPerLabel){
+  const exp=Math.floor(Math.log10(targetWorldPerLabel)); const base=Math.pow(10,exp);
+  const options=[1,2,5,10].map(m=>m*base);
+  let best=options[0],bestDiff=Infinity;
+  for(const o of options){ const diff=Math.abs(o-targetWorldPerLabel); if(diff<bestDiff){bestDiff=diff;best=o;} }
+  return best;
+}
+function hashColor(str){ let h=0; for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;} return 'hsl('+(h%360)+',65%,62%)'; }
+function isLightTheme(){ return document.body.classList.contains('light'); }
+function markerColor(kind){
+  const light = isLightTheme();
+  switch(kind){
+    case 'disabled': return light ? '#9aa5ad' : '#888888';
+    case 'outlier':  return light ? '#c62828' : '#ff5252';
+    case 'excluded': return light ? '#b8860b' : '#ffb020';
+    case 'accessible': return light ? '#1f9d63' : '#8fd98f';
+    case 'notAccessible': return light ? '#c62828' : '#ff5252';
+    default: return light ? '#b58900' : '#ffe066';
+  }
+}
+function drawGrid(ctx,vp){
+  const targetPx=90; const targetWorld=targetPx/vp.scale; const step=niceStep(targetWorld);
+  const worldLeft=toWorld(0,0,vp).E, worldRight=toWorld(vp.canvasW,0,vp).E;
+  const worldTop=toWorld(0,0,vp).N, worldBottom=toWorld(0,vp.canvasH,vp).N;
+  const gridLine = isLightTheme() ? 'rgba(20,30,40,0.10)' : 'rgba(255,255,255,0.07)';
+  const gridText = isLightTheme() ? 'rgba(20,30,40,0.45)' : 'rgba(255,255,255,0.32)';
+  ctx.save(); ctx.strokeStyle=gridLine; ctx.lineWidth=1; ctx.font='11px monospace'; ctx.fillStyle=gridText;
+  const startE=Math.floor(worldLeft/step)*step;
+  for(let E=startE;E<=worldRight;E+=step){ const s=toScreen(E,0,vp); ctx.beginPath(); ctx.moveTo(s.x,0); ctx.lineTo(s.x,vp.canvasH); ctx.stroke(); ctx.fillText(E.toFixed(0), s.x+3, 14); }
+  const startN=Math.floor(worldBottom/step)*step;
+  for(let N=startN;N<=worldTop;N+=step){ const s=toScreen(0,N,vp); ctx.beginPath(); ctx.moveTo(0,s.y); ctx.lineTo(vp.canvasW,s.y); ctx.stroke(); ctx.fillText(N.toFixed(0), 3, s.y-3); }
+  ctx.restore();
+}
+function drawDXF(ctx,vp,dxfResult,layerVisible){
+  if(!dxfResult) return;
+  for(const ent of dxfResult.entities){
+    if(layerVisible && layerVisible[ent.layer]===false) continue;
+    const color=hashColor(ent.layer||'0');
+    ctx.strokeStyle=color; ctx.lineWidth=1.3;
+    if(ent.type==='LINE'||ent.type==='LWPOLYLINE'){
+      if(!ent.pts||ent.pts.length<2) continue;
+      ctx.beginPath();
+      for(let i=0;i<ent.pts.length;i++){ const s=toScreen(ent.pts[i].x,ent.pts[i].y,vp); if(i===0)ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y); }
+      if(ent.closed) ctx.closePath();
+      ctx.stroke();
+    } else if(ent.type==='POINT'){
+      const s=toScreen(ent.pts[0].x,ent.pts[0].y,vp); ctx.fillStyle=color; ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill();
+    } else if(ent.type==='CIRCLE'){
+      const c=toScreen(ent.center.x,ent.center.y,vp); const r=ent.radius*vp.scale;
+      ctx.beginPath(); ctx.arc(c.x,c.y,r,0,Math.PI*2); ctx.stroke();
+    } else if(ent.type==='ARC'){
+      const c=toScreen(ent.center.x,ent.center.y,vp); const r=ent.radius*vp.scale;
+      const a1=-ent.startAngle*Math.PI/180, a2=-ent.endAngle*Math.PI/180;
+      ctx.beginPath(); ctx.arc(c.x,c.y,r,a2,a1,false); ctx.stroke();
+    } else if(ent.type==='TEXT'||ent.type==='MTEXT'){
+      const s=toScreen(ent.pos.x,ent.pos.y,vp); ctx.fillStyle=color;
+      ctx.font=Math.max(9,ent.height*vp.scale)+'px sans-serif'; ctx.fillText(ent.text||'', s.x, s.y);
+    }
+  }
+}
+function drawPolygonWorld(ctx,vp,worldPts,strokeColor,fillColor,dashed,lineWidth){
+  if(!worldPts||worldPts.length<2) return;
+  ctx.save(); ctx.strokeStyle=strokeColor; ctx.lineWidth=lineWidth||2;
+  if(dashed) ctx.setLineDash([8,5]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  for(let i=0;i<worldPts.length;i++){ const s=toScreen(worldPts[i].E,worldPts[i].N,vp); if(i===0)ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y); }
+  ctx.closePath();
+  if(fillColor){ ctx.fillStyle=fillColor; ctx.fill(); }
+  ctx.stroke(); ctx.restore();
+}
+function drawMarker(ctx,vp,E,N,color,label,radius){
+  const s=toScreen(E,N,vp);
+  ctx.save(); ctx.fillStyle=color; ctx.beginPath(); ctx.arc(s.x,s.y,radius||5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=isLightTheme()?'#fff':'#000'; ctx.lineWidth=1; ctx.stroke();
+  if(label){ ctx.fillStyle=color; ctx.font='bold 12px sans-serif'; ctx.fillText(label, s.x+8, s.y-8); }
+  ctx.restore();
+}
+/* ---------------------------------------------------------------------
+   SECTION D — Application state
+--------------------------------------------------------------------- */
+const S = {
+  dxf: null,
+  layerVisible: {},
+  vp: {canvasW:800,canvasH:600,centerE:0,centerN:0,scale:1},
+  plan: {enable:false, E:null, N:null, H:null},
+  nav:  {enable:false, E:null, N:null, H:null},
+  ts:   {enable:true, mode:'xy', rbUnit:'deg', rbRot:'cw', rbZero:'bow', eccX:0, eccY:0, observations:[], result:null},
+  rig: {name:'', length:100, halfWidth:50, skidXEach:20, skidY:70, skidAttachOffset:0, skidSource:'ts', skidEnable:true,
+        manualEnable:false, manualHull:[], manualEnv:[]},
+  slots: [],
+  display: {showDXF:true, showGrid:true},
+  pickMode: null,
+  pickHoverScreen: null,   // last known mouse position (CSS px) while in Pick mode, for the live snap preview
+  pickSnapPreview: null,   // {x,y,layer,type} in world coords -- what the NEXT click would bind to, or null
+  measureMode: false,
+  measurePending: null,   // first point clicked, waiting for the 2nd click to complete a measurement
+  measurements: [],       // completed measurements, kept until explicitly cleared: [{id,a:{E,N},b:{E,N},dist,brg}]
+  interaction: {dragging:false, lastX:0, lastY:0, moved:false, pinchDist:null, pinchStartScale:null}
+};
+let obsIdCounter = 1;
+let measureIdCounter = 1;
+let hullIdCounter = 1;
+let envIdCounter = 1;
+let slotIdCounter = 1;
+const SNAP_PX_RADIUS = 18;
+/* ---------------------------------------------------------------------
+   SECTION E — DOM references
+--------------------------------------------------------------------- */
+const canvas = document.getElementById('plotCanvas');
+const ctx = canvas.getContext('2d');
+const dropHint = document.getElementById('dropHint');
+/* ---------------------------------------------------------------------
+   SECTION F — Snap engine
+   Upgraded: previously only exact DXF vertices/centers/label anchors were
+   snap-able. Clicking anywhere ALONG an edge, circle, or arc -- the most
+   common real click -- never found a match and silently fell back to a
+   free (unsnapped) pick. This now also finds the nearest point along
+   every LINE/LWPOLYLINE segment and every CIRCLE/ARC boundary (angle-
+   clamped for arcs, reusing the same angleInArcRange() used for the math
+   layer), and returns whichever candidate (node or edge) is genuinely
+   closest, in WORLD units, which is exactly equivalent to comparing
+   on-screen pixel distance since the viewport uses one uniform scale for
+   both axes (no distortion). A simple entity-bounding-box pre-check keeps
+   this fast on large drawings by skipping the segment/circle math
+   entirely for entities nowhere near the query point.
+--------------------------------------------------------------------- */
+function collectSnapNodeCandidates(){
+  if(!S.dxf) return [];
+  // Cached once per DXF (all entities' node points, unfiltered by layer
+  // visibility -- verified via profiling to be the dominant cost of
+  // findNearestSnap on large drawings: rebuilding + allocating this array
+  // from scratch on every single call, including every mousemove-driven
+  // live-preview frame while in Pick mode). Layer visibility is a cheap
+  // per-item check applied at query time instead, against the cached array.
+  if(!S.dxf._nodeCandidatesCache){
+    const pts = [];
+    for(const ent of S.dxf.entities){
+      if(ent.pts){ for(const p of ent.pts) pts.push({x:p.x,y:p.y,layer:ent.layer,type:ent.type}); }
+      if(ent.center){ pts.push({x:ent.center.x,y:ent.center.y,layer:ent.layer,type:ent.type+'-center'}); }
+      if(ent.pos){ pts.push({x:ent.pos.x,y:ent.pos.y,layer:ent.layer,type:ent.type}); }
+    }
+    S.dxf._nodeCandidatesCache = pts;
+  }
+  const cache = S.dxf._nodeCandidatesCache;
+  // Common case: no layer is currently hidden (e.g. right after import,
+  // before the user has toggled any layer checkbox off) -- return the
+  // cached array directly with zero extra work, instead of rebuilding a
+  // filtered copy (an O(n) pass) on every single query regardless. Only
+  // pay that filtering cost on the less-common path where a layer really
+  // has been hidden. Checking "any layer hidden" is O(layer count), not
+  // O(entity count), so this is cheap even for drawings with many layers.
+  let anyHidden = false;
+  for(const k in S.layerVisible){ if(S.layerVisible[k]===false){ anyHidden=true; break; } }
+  if(!anyHidden) return cache;
+  const out = [];
+  for(let i=0;i<cache.length;i++){ if(S.layerVisible[cache[i].layer]!==false) out.push(cache[i]); }
+  return out;
+}
+function collectSnapEdgeCandidates(worldPt, maxWorldDist){
+  const out = [];
+  if(!S.dxf) return out;
+  const qMinX=worldPt.x-maxWorldDist, qMaxX=worldPt.x+maxWorldDist;
+  const qMinY=worldPt.y-maxWorldDist, qMaxY=worldPt.y+maxWorldDist;
+  for(const ent of S.dxf.entities){
+    if(S.layerVisible[ent.layer]===false) continue;
+    if((ent.type==='LINE'||ent.type==='LWPOLYLINE') && ent.pts && ent.pts.length>=2){
+      const b = ent.aabb; // pre-computed at parse time -- see computeAabbFromPts()
+      if(!b || b.maxX<qMinX||b.minX>qMaxX||b.maxY<qMinY||b.minY>qMaxY) continue;
+      const n = ent.pts.length;
+      const segCount = ent.closed ? n : n-1;
+      for(let i=0;i<segCount;i++){
+        const a=ent.pts[i], b=ent.pts[(i+1)%n];
+        const r = nearestOnSegment(worldPt, a, b);
+        if(r.dist<=maxWorldDist) out.push({x:r.point.x, y:r.point.y, dist:r.dist, layer:ent.layer, type:ent.type+' edge'});
+      }
+    } else if(ent.type==='CIRCLE' && ent.center && ent.radius>0){
+      if(ent.center.x+ent.radius<qMinX||ent.center.x-ent.radius>qMaxX||ent.center.y+ent.radius<qMinY||ent.center.y-ent.radius>qMaxY) continue;
+      const dx=worldPt.x-ent.center.x, dy=worldPt.y-ent.center.y;
+      const d=Math.hypot(dx,dy)||1e-9;
+      const q={x:ent.center.x+ent.radius*dx/d, y:ent.center.y+ent.radius*dy/d};
+      const dist=Math.hypot(worldPt.x-q.x,worldPt.y-q.y);
+      if(dist<=maxWorldDist) out.push({x:q.x, y:q.y, dist, layer:ent.layer, type:'CIRCLE'});
+    } else if(ent.type==='ARC' && ent.center && ent.radius>0){
+      if(ent.center.x+ent.radius<qMinX||ent.center.x-ent.radius>qMaxX||ent.center.y+ent.radius<qMinY||ent.center.y-ent.radius>qMaxY) continue;
+      const dx=worldPt.x-ent.center.x, dy=worldPt.y-ent.center.y;
+      const ang = Math.atan2(dy,dx)*180/Math.PI;
+      let q;
+      if(angleInArcRange(ang, ent.startAngle, ent.endAngle)){
+        const d=Math.hypot(dx,dy)||1e-9;
+        q = {x:ent.center.x+ent.radius*dx/d, y:ent.center.y+ent.radius*dy/d};
+      } else {
+        const sA=ent.startAngle*Math.PI/180, eA=ent.endAngle*Math.PI/180;
+        const p1={x:ent.center.x+ent.radius*Math.cos(sA), y:ent.center.y+ent.radius*Math.sin(sA)};
+        const p2={x:ent.center.x+ent.radius*Math.cos(eA), y:ent.center.y+ent.radius*Math.sin(eA)};
+        const d1=Math.hypot(worldPt.x-p1.x,worldPt.y-p1.y), d2=Math.hypot(worldPt.x-p2.x,worldPt.y-p2.y);
+        q = d1<=d2 ? p1 : p2;
+      }
+      const dist=Math.hypot(worldPt.x-q.x,worldPt.y-q.y);
+      if(dist<=maxWorldDist) out.push({x:q.x, y:q.y, dist, layer:ent.layer, type:'ARC'});
+    }
+  }
+  return out;
+}
+function findNearestSnap(screenX, screenY, pxRadius){
+  // NOTE: toWorld() returns {E,N} (the app's "Site" naming), while DXF-space
+  // candidates/entities use {x,y} fields (matching the raw DXF file, which
+  // is numerically the SAME coordinate system as Site E/N throughout this
+  // app -- there is no separate transform between them anywhere). Converted
+  // here explicitly to avoid the two field-naming conventions colliding.
+  const w = toWorld(screenX, screenY, S.vp);
+  const worldPt = {x:w.E, y:w.N};
+  const maxWorldDist = pxRadius / S.vp.scale;
+  let best=null, bestDist=Infinity;
+  for(const p of collectSnapNodeCandidates()){
+    const d = Math.hypot(p.x-worldPt.x, p.y-worldPt.y);
+    if(d<=maxWorldDist && d<bestDist){ bestDist=d; best={x:p.x,y:p.y,layer:p.layer,type:p.type}; }
+  }
+  for(const e of collectSnapEdgeCandidates(worldPt, maxWorldDist)){
+    if(e.dist<bestDist){ bestDist=e.dist; best={x:e.x,y:e.y,layer:e.layer,type:e.type}; }
+  }
+  if(best) return {point:best, distWorld:bestDist};
+  return null;
+}
+/* ---------------------------------------------------------------------
+   SECTION G — Rendering pipeline
+--------------------------------------------------------------------- */
+function resizeCanvasToDisplay(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(rect.width*dpr);
+  canvas.height = Math.round(rect.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  S.vp.canvasW = rect.width; S.vp.canvasH = rect.height;
+}
+function currentSourcePosition(key){
+  if(key==='plan'){ const p=S.plan; if(!p.enable||p.E==null||p.N==null||p.H==null||isNaN(p.E)||isNaN(p.N)||isNaN(p.H)) return null; return {E:p.E,N:p.N,H:p.H}; }
+  if(key==='nav'){ const n=S.nav; if(!n.enable||n.E==null||n.N==null||n.H==null||isNaN(n.E)||isNaN(n.N)||isNaN(n.H)) return null; return {E:n.E,N:n.N,H:n.H}; }
+  if(key==='ts'){ const t=S.ts; if(!t.enable||!t.result) return null; return {E:t.result.sternE,N:t.result.sternN,H:t.result.headingDeg}; }
+  return null;
+}
+function currentRigGeometry(){
+  if(S.rig.manualEnable){
+    return { hull: S.rig.manualHull.map(p=>({name:p.name,x:p.x,y:p.y})),
+             skid: S.rig.manualEnv.map(p=>({name:p.name,x:p.x,y:p.y})) };
+  }
+  return buildRigLocalGeometry({
+    length:S.rig.length, halfWidth:S.rig.halfWidth,
+    skidXEach: (S.rig.skidXEach||0)*FT2M, skidY:(S.rig.skidY||0)*FT2M,
+    skidAttachOffset:S.rig.skidAttachOffset
+  });
+}
+function render(){
+  const w=S.vp.canvasW, h=S.vp.canvasH;
+  ctx.save();
+  ctx.fillStyle = isLightTheme() ? '#f7f9fb' : '#0b0e13';
+  ctx.fillRect(0,0,w,h);
+  if(S.display.showGrid) drawGrid(ctx,S.vp);
+  if(S.display.showDXF) drawDXF(ctx,S.vp,S.dxf,S.layerVisible);
+  const geo = currentRigGeometry();
+  const sources = [
+    {key:'ts', color:'#4CAF50', label:'TS'},
+    {key:'plan', color:'#3d8bfd', label:'Plan'},
+    {key:'nav', color:'#FF9800', label:'Nav'}
+  ];
+  if(S.rig.skidEnable && geo.skid.length>=3){
+    for(const src of sources){
+      const pos = currentSourcePosition(src.key);
+      if(!pos) continue;
+      const skidWorld = transformPointsToWorld(geo.skid,pos.E,pos.N,pos.H);
+      drawPolygonWorld(ctx,S.vp,skidWorld,src.color,'rgba(150,150,150,0.10)',true,1.5);
+    }
+  }
+  for(const src of sources){
+    const pos = currentSourcePosition(src.key);
+    if(!pos) continue;
+    if(geo.hull.length>=3){
+      const hullWorld = transformPointsToWorld(geo.hull,pos.E,pos.N,pos.H);
+      drawPolygonWorld(ctx,S.vp,hullWorld, src.color, 'rgba(150,150,150,0.06)', false, 2.2);
+    }
+    drawMarker(ctx,S.vp,pos.E,pos.N,src.color, src.label+' Stern');
+  }
+  if(S.slots.length){
+    const pos = currentSourcePosition(S.rig.skidSource);
+    const envLocalPoly = geo.skid.map(p=>({x:p.x,y:p.y}));
+    for(const slot of S.slots){
+      let color = '#8fa0b3', accessible=null;
+      if(pos && envLocalPoly.length>=3){
+        const loc = worldToLocal(slot.E, slot.N, pos.E, pos.N, pos.H);
+        accessible = pointInPolygon(loc, envLocalPoly);
+        color = accessible ? markerColor('accessible') : markerColor('notAccessible');
+      }
+      drawMarker(ctx,S.vp,slot.E,slot.N,color,slot.name,4);
+    }
+  }
+  const outlierIdx = (S.ts.result && S.ts.result.pointIds) ? findOutlier(S.ts.result.residuals) : -1;
+  const outlierId = outlierIdx>=0 ? S.ts.result.pointIds[outlierIdx] : null;
+  for(const o of S.ts.observations){
+    if(o.bound){
+      const isOutlier = o.id===outlierId;
+      const col = o.enabled===false ? markerColor('disabled') : (isOutlier ? markerColor('outlier') : (o.usedInFit===false ? markerColor('excluded') : markerColor('normal')));
+      drawMarker(ctx,S.vp,o.bound.E,o.bound.N,col,o.id+(isOutlier?' ⚠':''), isOutlier?7:5);
+    }
+  }
+  if(S.measurements.length>0 || S.measurePending){
+    ctx.save();
+    ctx.setLineDash([5,4]); ctx.lineWidth=1.6;
+    for(const m of S.measurements){
+      const a=toScreen(m.a.E,m.a.N,S.vp), b=toScreen(m.b.E,m.b.N,S.vp);
+      ctx.strokeStyle='#ff4ecb'; ctx.fillStyle='#ff4ecb';
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(a.x,a.y,3.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(b.x,b.y,3.5,0,Math.PI*2); ctx.fill();
+      const midx=(a.x+b.x)/2, midy=(a.y+b.y)/2;
+      const label = m.dist.toFixed(3)+' m';
+      ctx.font='bold 12px sans-serif';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle='rgba(20,8,20,0.78)';
+      ctx.fillRect(midx-tw/2-5, midy-17, tw+10, 17);
+      ctx.fillStyle='#ff9adf';
+      ctx.fillText(label, midx-tw/2, midy-4);
+    }
+    if(S.measurePending){
+      const p = toScreen(S.measurePending.E, S.measurePending.N, S.vp);
+      ctx.setLineDash([]);
+      ctx.fillStyle='#ff4ecb';
+      ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=isLightTheme()?'#fff':'#000'; ctx.lineWidth=1; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // Live snap preview: only computed/drawn while actively in Pick mode, so
+  // this added per-frame cost is scoped to that brief, deliberate
+  // interaction rather than the normal idle/pan/zoom path.
+  if(S.pickMode && S.pickHoverScreen){
+    const snapOn = document.getElementById('snapToggle').checked;
+    S.pickSnapPreview = snapOn ? (findNearestSnap(S.pickHoverScreen.x, S.pickHoverScreen.y, SNAP_PX_RADIUS)||{}).point || null : null;
+    if(S.pickSnapPreview){
+      const s = toScreen(S.pickSnapPreview.x, S.pickSnapPreview.y, S.vp);
+      ctx.save();
+      ctx.strokeStyle = markerColor('normal'); ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(s.x,s.y,9,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s.x-13,s.y); ctx.lineTo(s.x+13,s.y); ctx.moveTo(s.x,s.y-13); ctx.lineTo(s.x,s.y+13); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+  const hasAnything = S.dxf || currentSourcePosition('plan') || currentSourcePosition('nav') || currentSourcePosition('ts');
+  dropHint.style.display = hasAnything ? 'none' : 'flex';
+  updateStatusbar();
+}
+function requestRender(){ window.requestAnimationFrame(render); }
+/* ---------------------------------------------------------------------
+   SECTION H — Zoom / Pan / Pick / Measure interactions
+--------------------------------------------------------------------- */
+function computeAllRelevantExtent(){
+  let extent = null;
+  function extend(e){
+    if(!extent){ extent={minE:e.minE,maxE:e.maxE,minN:e.minN,maxN:e.maxN}; return; }
+    extent.minE=Math.min(extent.minE,e.minE); extent.maxE=Math.max(extent.maxE,e.maxE);
+    extent.minN=Math.min(extent.minN,e.minN); extent.maxN=Math.max(extent.maxN,e.maxN);
+  }
+  if(S.dxf && S.dxf.entities.length>0) extend(S.dxf.extent);
+  const geo = currentRigGeometry();
+  let reach = 20;
+  for(const p of geo.hull) reach=Math.max(reach, Math.abs(p.x), Math.abs(p.y));
+  for(const p of geo.skid) reach=Math.max(reach, Math.abs(p.x), Math.abs(p.y));
+  ['ts','plan','nav'].forEach(function(k){
+    const pos = currentSourcePosition(k);
+    if(pos) extend({minE:pos.E-reach,maxE:pos.E+reach,minN:pos.N-reach,maxN:pos.N+reach});
+  });
+  if(!extent) extent = {minE:-100,maxE:100,minN:-100,maxN:100};
+  return extent;
+}
+function zoomExtents(){
+  const extent = computeAllRelevantExtent();
+  const vp = computeViewportFit(extent, S.vp.canvasW, S.vp.canvasH, 0.15);
+  S.vp.centerE=vp.centerE; S.vp.centerN=vp.centerN; S.vp.scale=vp.scale;
+  requestRender();
+}
+function showAnomalyWarning(msg){
+  document.getElementById('anomalyText').textContent = msg;
+  document.getElementById('anomalyBanner').style.display = 'flex';
+}
+function hideAnomalyWarning(){
+  document.getElementById('anomalyBanner').style.display = 'none';
+}
+function zoomExtentsSafe(){
+  if(!S.dxf || S.dxf.entities.length===0){ zoomExtents(); return; }
+  const dxfExtent = S.dxf.extent;
+  const dxfSpanE = dxfExtent.maxE-dxfExtent.minE, dxfSpanN = dxfExtent.maxN-dxfExtent.minN;
+  const dxfDiag = Math.hypot(dxfSpanE||1, dxfSpanN||1);
+  const fullExtent = computeAllRelevantExtent();
+  const fullDiag = Math.hypot(fullExtent.maxE-fullExtent.minE, fullExtent.maxN-fullExtent.minN);
+  const threshold = Math.max(2000, dxfDiag*15);
+  if(fullDiag > threshold){
+    showAnomalyWarning('A newly entered position is very far from the drawing (view would span ~'+fullDiag.toFixed(0)+' m). Kept the current drawing view instead of zooming out to it — check for a coordinate typo, or click "Zoom Extents" to view it anyway.');
+    const vp = computeViewportFit(dxfExtent, S.vp.canvasW, S.vp.canvasH, 0.15);
+    S.vp.centerE=vp.centerE; S.vp.centerN=vp.centerN; S.vp.scale=vp.scale;
+    requestRender();
+  } else {
+    hideAnomalyWarning();
+    zoomExtents();
+  }
+}
+function zoomBy(factor, screenX, screenY){
+  const before = toWorld(screenX,screenY,S.vp);
+  S.vp.scale *= factor;
+  S.vp.scale = Math.max(0.002, Math.min(S.vp.scale, 20000));
+  const after = toWorld(screenX,screenY,S.vp);
+  S.vp.centerE += (before.E-after.E);
+  S.vp.centerN += (before.N-after.N);
+  requestRender();
+}
+function updateStatusbar(){
+  const sb = document.getElementById('statusbar');
+  const snapOn = document.getElementById('snapToggle').checked;
+  let mode = 'Pan';
+  if(S.pickMode) mode = 'Pick point: '+S.pickMode.label;
+  else if(S.measureMode) mode = S.measurePending ? 'Measure (click 2nd point)' : 'Measure (click 1st point)';
+  sb.textContent = 'Scale: 1:'+Math.round(1/(S.vp.scale/1000))+' (px/m='+S.vp.scale.toFixed(2)+') | Snap: '+(S.pickMode?(snapOn?'ON':'OFF'):'—')+' | Mode: '+mode;
+}
+function setPickMode(obsId, label){
+  S.pickMode = {obsId, label};
+  S.pickHoverScreen = null;
+  S.pickSnapPreview = null;
+  canvas.classList.add('picking');
+  document.getElementById('pickBanner').style.display='flex';
+  document.getElementById('pickLabel').textContent = label;
+  updateStatusbar();
+  requestRender();
+}
+function clearPickMode(){
+  S.pickMode = null;
+  S.pickHoverScreen = null;
+  S.pickSnapPreview = null;
+  canvas.classList.remove('picking');
+  document.getElementById('pickBanner').style.display='none';
+  updateStatusbar();
+  requestRender();
+}
+function handlePickAt(screenX, screenY){
+  const snapOn = document.getElementById('snapToggle').checked;
+  let world, snapInfo = null;
+  if(snapOn){
+    const snap = findNearestSnap(screenX, screenY, SNAP_PX_RADIUS);
+    if(snap){ world = {E:snap.point.x, N:snap.point.y}; snapInfo = snap.point; }
+  }
+  if(!world){ world = toWorld(screenX,screenY,S.vp); }
+  const obs = S.ts.observations.find(o=>o.id===S.pickMode.obsId);
+  if(obs){
+    obs.bound = {E:world.E, N:world.N, snapped: !!snapInfo, layer: snapInfo?snapInfo.layer:null, type: snapInfo?snapInfo.type:'Free pick'};
+  }
+  clearPickMode();
+  renderObsList();
+  recomputeTS();
+  requestRender();
+  saveSession();
+}
+function handleMeasureAt(screenX, screenY){
+  const world = toWorld(screenX,screenY,S.vp);
+  if(!S.measurePending){
+    S.measurePending = world;
+  } else {
+    const a = S.measurePending, b = world;
+    const dE=b.E-a.E, dN=b.N-a.N, dist=Math.sqrt(dE*dE+dN*dN);
+    let brg = Math.atan2(dE,dN)*180/Math.PI; brg=norm360(brg);
+    S.measurements.push({id:'M'+(measureIdCounter++), a, b, dist, brg});
+    S.measurePending = null;
+  }
+  updateStatusbar();
+  requestRender();
+}
+/* pointerState.moveThreshold: how far (CSS px) the pointer must travel
+   during a mousedown/mouseup (or touchstart/touchend) gesture before it is
+   classified as a PAN/DRAG rather than a click (pick/measure). Normal
+   panning uses a tight 3px threshold. While Pick or Measure mode is
+   active, this widens to 10px -- verified via simulation that realistic
+   hand/trackpad micro-jitter (2-6px) while aiming at a small target was
+   otherwise frequently misclassified as a drag, silently discarding the
+   pick attempt with no feedback at all (a likely dominant cause of
+   "snap/pick doesn't seem to work"). Ordinary panning elsewhere is
+   unaffected. */
+let pointerState = { down:false, startX:0, startY:0, lastX:0, lastY:0, moved:false, moveThreshold:3, touches:{} };
+function currentMoveThreshold(){ return (S.pickMode || S.measureMode) ? 10 : 3; }
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
+canvas.addEventListener('mousedown', (e)=>{
+  pointerState.down=true; pointerState.moved=false;
+  pointerState.moveThreshold = currentMoveThreshold();
+  pointerState.startX=e.clientX; pointerState.startY=e.clientY;
+  pointerState.lastX=e.clientX; pointerState.lastY=e.clientY;
+  canvas.classList.add('dragging');
+});
+window.addEventListener('mousemove', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX-rect.left, sy = e.clientY-rect.top;
+  const w = toWorld(sx,sy,S.vp);
+  document.getElementById('coordReadout').textContent = 'E: '+w.E.toFixed(3)+' , N: '+w.N.toFixed(3);
+  if(S.pickMode){ S.pickHoverScreen = {x:sx,y:sy}; requestRender(); }
+  if(!pointerState.down) return;
+  const dx=e.clientX-pointerState.lastX, dy=e.clientY-pointerState.lastY;
+  if(Math.abs(e.clientX-pointerState.startX)>pointerState.moveThreshold||Math.abs(e.clientY-pointerState.startY)>pointerState.moveThreshold) pointerState.moved=true;
+  if(pointerState.moved){
+    S.vp.centerE -= dx/S.vp.scale;
+    S.vp.centerN += dy/S.vp.scale;
+    requestRender();
+  }
+  pointerState.lastX=e.clientX; pointerState.lastY=e.clientY;
+});
+window.addEventListener('mouseup', (e)=>{
+  if(!pointerState.down) return;
+  pointerState.down=false;
+  canvas.classList.remove('dragging');
+  if(!pointerState.moved){
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX-rect.left, sy = e.clientY-rect.top;
+    if(S.pickMode) handlePickAt(sx,sy);
+    else if(S.measureMode) handleMeasureAt(sx,sy);
+  }
+});
+canvas.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
+  zoomBy(e.deltaY<0?1.15:1/1.15, sx, sy);
+}, {passive:false});
+canvas.addEventListener('touchstart', (e)=>{
+  if(e.touches.length===1){
+    pointerState.down=true; pointerState.moved=false;
+    pointerState.moveThreshold = currentMoveThreshold();
+    pointerState.startX=e.touches[0].clientX; pointerState.startY=e.touches[0].clientY;
+    pointerState.lastX=e.touches[0].clientX; pointerState.lastY=e.touches[0].clientY;
+  } else if(e.touches.length===2){
+    pointerState.down=false;
+    const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+    S.interaction.pinchDist = Math.hypot(dx,dy);
+    S.interaction.pinchStartScale = S.vp.scale;
+  }
+}, {passive:true});
+canvas.addEventListener('touchmove', (e)=>{
+  e.preventDefault();
+  if(e.touches.length===1 && pointerState.down){
+    const t=e.touches[0];
+    const dx=t.clientX-pointerState.lastX, dy=t.clientY-pointerState.lastY;
+    if(Math.abs(t.clientX-pointerState.startX)>pointerState.moveThreshold||Math.abs(t.clientY-pointerState.startY)>pointerState.moveThreshold) pointerState.moved=true;
+    if(pointerState.moved){ S.vp.centerE -= dx/S.vp.scale; S.vp.centerN += dy/S.vp.scale; requestRender(); }
+    pointerState.lastX=t.clientX; pointerState.lastY=t.clientY;
+  } else if(e.touches.length===2 && S.interaction.pinchDist){
+    const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+    const dist = Math.hypot(dx,dy);
+    const rect = canvas.getBoundingClientRect();
+    const midX = (e.touches[0].clientX+e.touches[1].clientX)/2-rect.left;
+    const midY = (e.touches[0].clientY+e.touches[1].clientY)/2-rect.top;
+    const factor = dist/S.interaction.pinchDist;
+    const before = toWorld(midX,midY,S.vp);
+    S.vp.scale = Math.max(0.002, Math.min(S.interaction.pinchStartScale*factor, 20000));
+    const after = toWorld(midX,midY,S.vp);
+    S.vp.centerE += (before.E-after.E); S.vp.centerN += (before.N-after.N);
+    requestRender();
+  }
+}, {passive:false});
+canvas.addEventListener('touchend', (e)=>{
+  if(e.touches.length===0){
+    if(pointerState.down && !pointerState.moved){
+      const rect = canvas.getBoundingClientRect();
+      const sx = pointerState.lastX-rect.left, sy = pointerState.lastY-rect.top;
+      if(S.pickMode) handlePickAt(sx,sy);
+      else if(S.measureMode) handleMeasureAt(sx,sy);
+    }
+    pointerState.down=false; S.interaction.pinchDist=null;
+  } else if(e.touches.length===1){
+    S.interaction.pinchDist=null;
+  }
+});
+/* ---------------------------------------------------------------------
+   SECTION I — Sidebar wiring: Import DXF
+--------------------------------------------------------------------- */
+document.getElementById('fileDXF').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const t0 = performance.now();
+      const result = parseDXF(ev.target.result);
+      const ms = (performance.now()-t0).toFixed(0);
+      S.dxf = result;
+      S.layerVisible = {};
+      for(const l of result.layers) S.layerVisible[l]=true;
+      document.getElementById('dxfSummary').innerHTML =
+        'File: <b>'+file.name+'</b> · '+result.entityCount+' entities'+(result.skippedCount?(' (skipped '+result.skippedCount+')'):'')+' · '+ms+'ms<br>'+
+        'Extent E: '+result.extent.minE.toFixed(1)+' – '+result.extent.maxE.toFixed(1)+' | N: '+result.extent.minN.toFixed(1)+' – '+result.extent.maxN.toFixed(1);
+      renderLayerList();
+      renderSlotLayerOptions();
+      zoomExtentsSafe();
+      saveSession();
+    } catch(err){
+      document.getElementById('dxfSummary').innerHTML = '<span class="badText">Failed to read file: '+err.message+'</span>';
+    }
+  };
+  reader.readAsText(file);
+});
+function renderLayerList(){
+  const el = document.getElementById('layerList');
+  if(!S.dxf || S.dxf.layers.length===0){ el.innerHTML='<div class="hint">— no layers yet —</div>'; return; }
+  el.innerHTML = S.dxf.layers.map(function(l){
+    const color = hashColor(l);
+    const checked = S.layerVisible[l]!==false ? 'checked' : '';
+    return '<div class="layerItem"><div class="sw" style="background:'+color+';"></div>'+
+      '<input type="checkbox" data-layer="'+l+'" '+checked+'>'+
+      '<span class="lname">'+l+'</span></div>';
+  }).join('');
+  el.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){ S.layerVisible[cb.dataset.layer]=cb.checked; requestRender(); });
+  });
+}
+function renderSlotLayerOptions(){
+  const sel = document.getElementById('slotLayerSelect');
+  if(!sel) return;
+  const cur = sel.value;
+  const layers = (S.dxf && S.dxf.layers) || [];
+  sel.innerHTML = '<option value="">— select a layer —</option>' + layers.map(function(l){ return '<option value="'+l+'">'+l+'</option>'; }).join('');
+  if(layers.indexOf(cur)>=0) sel.value = cur;
+}
+function polygonCentroid(pts){
+  let x=0,y=0,a=0;
+  for(let i=0;i<pts.length;i++){
+    const p0=pts[i], p1=pts[(i+1)%pts.length];
+    const cross = p0.x*p1.y - p1.x*p0.y;
+    a += cross; x += (p0.x+p1.x)*cross; y += (p0.y+p1.y)*cross;
+  }
+  a *= 0.5;
+  if(Math.abs(a) < 1e-9){
+    let sx=0, sy=0; for(const p of pts){ sx+=p.x; sy+=p.y; }
+    return {x: sx/pts.length, y: sy/pts.length};
+  }
+  return {x: x/(6*a), y: y/(6*a)};
+}
+function findNearestTextLabel(x, y, maxDist){
+  if(!S.dxf) return null;
+  let best=null, bestDist=Infinity;
+  for(const ent of S.dxf.entities){
+    if((ent.type==='TEXT'||ent.type==='MTEXT') && ent.pos && ent.text && ent.text.trim()){
+      const d = Math.hypot(ent.pos.x-x, ent.pos.y-y);
+      if(d<bestDist){ bestDist=d; best=ent.text.trim(); }
+    }
+  }
+  return (best!==null && bestDist<=maxDist) ? best : null;
+}
+document.getElementById('btnImportSlotLayer').addEventListener('click', function(){
+  const layer = document.getElementById('slotLayerSelect').value;
+  const hintEl = document.getElementById('slotLayerImportHint');
+  if(!layer || !S.dxf) return;
+  const candidates = [];
+  for(const ent of S.dxf.entities){
+    if(ent.layer !== layer) continue;
+    if(ent.type==='POINT'){ candidates.push({x:ent.pts[0].x, y:ent.pts[0].y}); }
+    else if(ent.type==='CIRCLE'){ candidates.push({x:ent.center.x, y:ent.center.y}); }
+    else if(ent.type==='LWPOLYLINE' && ent.closed && ent.pts.length>=3){ candidates.push(polygonCentroid(ent.pts)); }
+  }
+  let added=0, skipped=0;
+  const labelSearchRadius = 5;
+  for(const c of candidates){
+    const dup = S.slots.some(function(s){ return Math.hypot(s.E-c.x, s.N-c.y) < 0.05; });
+    if(dup){ skipped++; continue; }
+    const label = findNearestTextLabel(c.x, c.y, labelSearchRadius);
+    S.slots.push({id:'S'+(slotIdCounter++), name: label || ('Slot-'+slotIdCounter), E:c.x, N:c.y});
+    added++;
+  }
+  renderSlotList(); requestRender(); saveSession();
+  if(hintEl) hintEl.textContent = candidates.length
+    ? ('Imported '+added+' point(s) from layer "'+layer+'"'+(skipped?(', skipped '+skipped+' duplicate(s)'):'')+'.')
+    : ('No POINT/CIRCLE/closed-LWPOLYLINE entities found on layer "'+layer+'".');
+});
+/* ---------------------------------------------------------------------
+   SECTION J — Sidebar wiring: Plan / Nav position
+--------------------------------------------------------------------- */
+function bindNumberInput(id, obj, key){
+  const el = document.getElementById(id);
+  el.addEventListener('input', function(){
+    obj[key] = el.value===''? null : parseFloat(el.value);
+    requestRender(); updateResultsPanel(); saveSession();
+  });
+}
+document.getElementById('planEnable').addEventListener('change', function(e){
+  S.plan.enable=e.target.checked; requestRender(); updateResultsPanel(); saveSession();
+  if(S.plan.enable && currentSourcePosition('plan')) zoomExtentsSafe();
+});
+document.getElementById('navEnable').addEventListener('change', function(e){
+  S.nav.enable=e.target.checked; requestRender(); updateResultsPanel(); saveSession();
+  if(S.nav.enable && currentSourcePosition('nav')) zoomExtentsSafe();
+});
+document.getElementById('tsEnable').addEventListener('change', function(e){ S.ts.enable=e.target.checked; requestRender(); updateResultsPanel(); saveSession(); });
+bindNumberInput('planE', S.plan, 'E'); bindNumberInput('planN', S.plan, 'N'); bindNumberInput('planH', S.plan, 'H');
+bindNumberInput('navE', S.nav, 'E'); bindNumberInput('navN', S.nav, 'N'); bindNumberInput('navH', S.nav, 'H');
+/* ---------------------------------------------------------------------
+   SECTION K — Sidebar wiring: Total Station observations
+--------------------------------------------------------------------- */
+document.getElementById('tsMode').addEventListener('change', function(e){
+  S.ts.mode = e.target.value;
+  document.getElementById('rbSetup').style.display = (S.ts.mode==='rb') ? 'block' : 'none';
+  document.getElementById('xyConventionHint').style.display = (S.ts.mode==='xy') ? 'block' : 'none';
+  renderObsList(); recomputeTS(); requestRender(); saveSession();
+});
+document.getElementById('rbUnit').addEventListener('change', function(e){ S.ts.rbUnit=e.target.value; recomputeTS(); requestRender(); saveSession(); });
+document.getElementById('rbRot').addEventListener('change', function(e){ S.ts.rbRot=e.target.value; recomputeTS(); requestRender(); saveSession(); });
+document.getElementById('rbZero').addEventListener('change', function(e){ S.ts.rbZero=e.target.value; recomputeTS(); requestRender(); saveSession(); });
+document.getElementById('tsEccX').addEventListener('input', function(){
+  S.ts.eccX = this.value===''?0:parseFloat(this.value);
+  recomputeTSMath(); renderTSResult(); updateObsResidualBadges(); updateResultsPanel(); requestRender(); saveSession();
+});
+document.getElementById('tsEccY').addEventListener('input', function(){
+  S.ts.eccY = this.value===''?0:parseFloat(this.value);
+  recomputeTSMath(); renderTSResult(); updateObsResidualBadges(); updateResultsPanel(); requestRender(); saveSession();
+});
+document.getElementById('btnAddObs').addEventListener('click', function(){
+  S.ts.observations.push({id:'P'+(obsIdCounter++), localX:null, localY:null, range:null, bearing:null, bound:null, enabled:true});
+  renderObsList(); saveSession();
+});
+function renderObsList(){
+  const el = document.getElementById('obsList');
+  const outlierIdx = (S.ts.result && S.ts.result.pointIds) ? findOutlier(S.ts.result.residuals) : -1;
+  const outlierId = outlierIdx>=0 ? S.ts.result.pointIds[outlierIdx] : null;
+  el.innerHTML = S.ts.observations.map(function(o, idx){
+    const measureFields = (S.ts.mode==='xy') ?
+      '<div class="row2"><div><label class="f">Local X</label><input type="number" step="any" class="obsInput" data-idx="'+idx+'" data-field="localX" value="'+(o.localX!=null?o.localX:'')+'"></div>'+
+      '<div><label class="f">Local Y</label><input type="number" step="any" class="obsInput" data-idx="'+idx+'" data-field="localY" value="'+(o.localY!=null?o.localY:'')+'"></div></div>'
+      :
+      '<div class="row2"><div><label class="f">Range (m)</label><input type="number" step="any" class="obsInput" data-idx="'+idx+'" data-field="range" value="'+(o.range!=null?o.range:'')+'"></div>'+
+      '<div><label class="f">Bearing (°)</label><input type="number" step="any" class="obsInput" data-idx="'+idx+'" data-field="bearing" value="'+(o.bearing!=null?o.bearing:'')+'"></div></div>';
+    const bindInfo = o.bound ?
+      '<div class="obsBindInfo bound">✓ Bound: E '+o.bound.E.toFixed(3)+', N '+o.bound.N.toFixed(3)+' ('+(o.bound.snapped?('Snap: '+o.bound.type+' @ '+o.bound.layer):'Free pick')+')</div>'
+      : '<div class="obsBindInfo">Not bound to the drawing yet</div>';
+    let residualInfo = '';
+    if(S.ts.result && S.ts.result.pointIds){
+      const ri = S.ts.result.pointIds.indexOf(o.id);
+      if(ri>=0){
+        const isOutlier = o.id===outlierId;
+        residualInfo = '<div class="obsResidual'+(isOutlier?' warn':'')+'">Residual: '+S.ts.result.residuals[ri].dist.toFixed(4)+' m'+(isOutlier?' ⚠ check this point':'')+'</div>';
+      }
+    }
+    const isOutlierRow = o.id===outlierId;
+    return '<div class="obsRow'+(isOutlierRow?' outlier':'')+'" data-obsid="'+o.id+'">'+
+      '<div class="obsHead"><span class="pid">'+o.id+'</span>'+
+        '<label style="font-size:11px;color:var(--sub);"><input type="checkbox" class="obsEnable" data-idx="'+idx+'" '+(o.enabled?'checked':'')+'> Use</label>'+
+        '<button class="iconBtn obsDel" data-idx="'+idx+'" title="Delete this point">✕</button></div>'+
+      measureFields+
+      '<button class="btn small obsBind" data-idx="'+idx+'" style="width:100%;margin-top:5px;">'+(o.bound?'🔄 Re-pick on drawing':'📍 Bind on drawing')+'</button>'+
+      bindInfo+'<div class="obsResidualSlot">'+residualInfo+'</div>'+
+      '</div>';
+  }).join('') || '<div class="hint">No observation points yet — click "+ Add Point"</div>';
+  el.querySelectorAll('.obsInput').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      const idx=parseInt(inp.dataset.idx,10), field=inp.dataset.field;
+      S.ts.observations[idx][field] = inp.value===''?null:parseFloat(inp.value);
+      recomputeTSMath();
+      renderTSResult();
+      updateObsResidualBadges();
+      updateResultsPanel();
+      requestRender();
+      saveSession();
+    });
+  });
+  el.querySelectorAll('.obsEnable').forEach(function(cb){
+    cb.addEventListener('change', function(){
+      const idx=parseInt(cb.dataset.idx,10);
+      S.ts.observations[idx].enabled = cb.checked;
+      recomputeTS(); requestRender(); saveSession();
+    });
+  });
+  el.querySelectorAll('.obsDel').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const idx=parseInt(btn.dataset.idx,10);
+      S.ts.observations.splice(idx,1);
+      renderObsList(); recomputeTS(); requestRender(); saveSession();
+    });
+  });
+  el.querySelectorAll('.obsBind').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const idx=parseInt(btn.dataset.idx,10);
+      const o = S.ts.observations[idx];
+      setPickMode(o.id, o.id);
+    });
+  });
+}
+function getObsLocalXY(o){
+  // Instrument Setup Offset (Ecc dx/dy), entered in the SAME u-frame
+  // convention as sightings (+y = away from rig/opposite Bow, +x = right-
+  // hand side when facing away from the rig). Applied uniformly to BOTH
+  // input modes so the surveyor need not occupy Center Stern (0,0) itself.
+  // Verified: with eccX=eccY=0 this reduces to exactly the previously-
+  // shipped behaviour for both modes; with a nonzero offset, a full
+  // synthetic resection correctly recovers the true Stern position and
+  // heading regardless of where the instrument was actually set up.
+  const eccX = S.ts.eccX||0, eccY = S.ts.eccY||0;
+  if(S.ts.mode==='xy'){
+    if(o.localX==null||o.localY==null||isNaN(o.localX)||isNaN(o.localY)) return null;
+    const totalUx = o.localX + eccX, totalUy = o.localY + eccY;
+    return {x:-totalUx, y:-totalUy};
+  } else {
+    if(o.range==null||o.bearing==null||isNaN(o.range)||isNaN(o.bearing)) return null;
+    const rb = rangeBearingToLocalXY(o.range,o.bearing,S.ts.rbUnit,S.ts.rbZero,S.ts.rbRot);
+    return {x: -eccX + rb.x, y: -eccY + rb.y};
+  }
+}
+function recomputeTSMath(){
+  const activeLocal=[], activeWorld=[], activeIds=[];
+  for(const o of S.ts.observations){
+    o.usedInFit = false;
+    if(o.enabled===false) continue;
+    const local = getObsLocalXY(o);
+    if(!local || !o.bound) continue;
+    activeLocal.push(local); activeWorld.push({E:o.bound.E,N:o.bound.N});
+    activeIds.push(o.id);
+    o.usedInFit = true;
+  }
+  if(activeLocal.length>=2){
+    try{
+      S.ts.result = fitRigidTransform(activeLocal, activeWorld);
+      S.ts.result.pointIds = activeIds;
+    } catch(err){ S.ts.result = null; }
+  } else {
+    S.ts.result = null;
+  }
+}
+function recomputeTS(){
+  recomputeTSMath();
+  renderObsList();
+  renderTSResult();
+  updateResultsPanel();
+}
+function updateObsResidualBadges(){
+  const outlierIdx = (S.ts.result && S.ts.result.pointIds) ? findOutlier(S.ts.result.residuals) : -1;
+  const outlierId = outlierIdx>=0 ? S.ts.result.pointIds[outlierIdx] : null;
+  document.querySelectorAll('#obsList .obsRow').forEach(function(row){
+    const id = row.dataset.obsid;
+    row.classList.toggle('outlier', id===outlierId);
+    const slot = row.querySelector('.obsResidualSlot');
+    if(!slot) return;
+    let html='';
+    if(S.ts.result && S.ts.result.pointIds){
+      const ri = S.ts.result.pointIds.indexOf(id);
+      if(ri>=0){
+        const isOutlier = id===outlierId;
+        html = '<div class="obsResidual'+(isOutlier?' warn':'')+'">Residual: '+S.ts.result.residuals[ri].dist.toFixed(4)+' m'+(isOutlier?' ⚠ check this point':'')+'</div>';
+      }
+    }
+    slot.innerHTML = html;
+  });
+}
+function renderTSResult(){
+  const el = document.getElementById('tsResult');
+  const r = S.ts.result;
+  if(!r){ el.innerHTML = '<div class="hint">Need at least 2 points that are both filled in and bound on the drawing before a fit can be computed</div>'; return; }
+  let html = '<div class="kv"><span>Stern Easting</span><b>'+r.sternE.toFixed(3)+'</b></div>'+
+    '<div class="kv"><span>Stern Northing</span><b>'+r.sternN.toFixed(3)+'</b></div>'+
+    '<div class="kv"><span>Heading</span><b>'+r.headingDeg.toFixed(3)+'°</b></div>'+
+    '<div class="kv"><span>Points used</span><b>'+r.n+'</b></div>'+
+    '<div class="kv"><span>RMSE</span><b>'+r.rmse.toFixed(4)+' m</b></div>'+
+    '<div class="kv"><span>Max residual</span><b>'+r.maxResidual.toFixed(4)+' m</b></div>';
+  if(r.scaleDiagnostic && r.scaleDiagnostic.ratio!=null){
+    html += '<div class="kv"><span>Scale check (P1-P2)</span><b>'+r.scaleDiagnostic.ratio.toFixed(4)+'</b></div>';
+  }
+  if(r.n>=3){
+    const outlierIdx = findOutlier(r.residuals);
+    if(outlierIdx>=0){
+      html += '<div class="hint" style="color:var(--warn);margin-top:5px;">⚠ Point "'+r.pointIds[outlierIdx]+'" has a notably higher residual than the others — worth re-checking.</div>';
+    } else {
+      html += '<div class="hint" style="margin-top:5px;">No point stands out as an outlier.</div>';
+    }
+  } else {
+    html += '<div class="hint" style="margin-top:5px;">Add a 3rd point for redundancy checking (outlier detection needs ≥3, and is most reliable with ≥4).</div>';
+  }
+  el.innerHTML = html;
+}
+/* ---------------------------------------------------------------------
+   SECTION L — Rig Profile wiring
+--------------------------------------------------------------------- */
+function bindRigInput(id, key, isSelect){
+  const el = document.getElementById(id);
+  const evt = isSelect ? 'change' : 'input';
+  el.addEventListener(evt, function(){
+    let v = isSelect ? el.value : (el.value===''?null:parseFloat(el.value));
+    if(!isSelect && typeof v==='number' && !isNaN(v)) v = Math.abs(v);
+    S.rig[key] = v;
+    requestRender(); saveSession();
+  });
+}
+bindRigInput('rigName','name',true);
+bindRigInput('rigLength','length');
+bindRigInput('rigHalfWidth','halfWidth');
+bindRigInput('skidX','skidXEach');
+bindRigInput('skidY','skidY');
+bindRigInput('skidAttach','skidAttachOffset');
+bindRigInput('skidSource','skidSource',true);
+document.getElementById('skidEnable').addEventListener('change', function(e){ S.rig.skidEnable=e.target.checked; requestRender(); saveSession(); });
+document.getElementById('rigManualEnable').addEventListener('change', function(e){
+  S.rig.manualEnable = e.target.checked;
+  document.getElementById('rigManualBox').style.display = S.rig.manualEnable ? 'block' : 'none';
+  requestRender(); saveSession();
+});
+function renderPointListEditor(containerId, arr, onChange){
+  const el = document.getElementById(containerId);
+  el.innerHTML = arr.map(function(p, idx){
+    return '<div class="row3" style="margin-bottom:4px;align-items:center;">'+
+      '<input type="text" class="ptName" data-idx="'+idx+'" value="'+(p.name||'')+'" placeholder="name">'+
+      '<input type="number" step="any" class="ptX" data-idx="'+idx+'" value="'+(p.x!=null?p.x:'')+'" placeholder="x">'+
+      '<div style="display:flex;gap:3px;"><input type="number" step="any" class="ptY" data-idx="'+idx+'" value="'+(p.y!=null?p.y:'')+'" placeholder="y">'+
+      '<button class="iconBtn ptDel" data-idx="'+idx+'">✕</button></div></div>';
+  }).join('') || '<div class="hint">No points yet</div>';
+  el.querySelectorAll('.ptName').forEach(inp=>inp.addEventListener('input', function(){ arr[this.dataset.idx].name=this.value; onChange(); }));
+  el.querySelectorAll('.ptX').forEach(inp=>inp.addEventListener('input', function(){ arr[this.dataset.idx].x=this.value===''?null:parseFloat(this.value); onChange(); }));
+  el.querySelectorAll('.ptY').forEach(inp=>inp.addEventListener('input', function(){ arr[this.dataset.idx].y=this.value===''?null:parseFloat(this.value); onChange(); }));
+  el.querySelectorAll('.ptDel').forEach(btn=>btn.addEventListener('click', function(){ arr.splice(this.dataset.idx,1); renderPointListEditor(containerId,arr,onChange); onChange(); }));
+}
+function rigGeomChanged(){ requestRender(); saveSession(); }
+document.getElementById('btnAddHull').addEventListener('click', function(){
+  S.rig.manualHull.push({name:'H'+(hullIdCounter++), x:0, y:0});
+  renderPointListEditor('hullList', S.rig.manualHull, rigGeomChanged);
+  rigGeomChanged();
+});
+document.getElementById('btnAddEnv').addEventListener('click', function(){
+  S.rig.manualEnv.push({name:'E'+(envIdCounter++), x:0, y:0});
+  renderPointListEditor('envList', S.rig.manualEnv, rigGeomChanged);
+  rigGeomChanged();
+});
+/* ---------------------------------------------------------------------
+   SECTION L2 — Slot Accessibility wiring
+--------------------------------------------------------------------- */
+function renderSlotList(){
+  const el = document.getElementById('slotList');
+  const geo = currentRigGeometry();
+  const pos = currentSourcePosition(S.rig.skidSource);
+  const envLocalPoly = geo.skid.map(p=>({x:p.x,y:p.y}));
+  el.innerHTML = S.slots.map(function(s, idx){
+    let statusHtml = '<span class="statusBadge na">N/A</span>';
+    if(pos && envLocalPoly.length>=3){
+      const loc = worldToLocal(s.E, s.N, pos.E, pos.N, pos.H);
+      const ok = pointInPolygon(loc, envLocalPoly);
+      statusHtml = ok ? '<span class="statusBadge ok">Accessible</span>' : '<span class="statusBadge warn">Not accessible</span>';
+    }
+    return '<div class="slotRow"><span class="sname">'+s.name+'</span>'+statusHtml+
+      '<button class="iconBtn slotDel" data-idx="'+idx+'">✕</button></div>';
+  }).join('') || '<div class="hint">No slots yet</div>';
+  el.querySelectorAll('.slotDel').forEach(function(btn){
+    btn.addEventListener('click', function(){ S.slots.splice(this.dataset.idx,1); renderSlotList(); requestRender(); saveSession(); });
+  });
+}
+document.getElementById('btnAddSlot').addEventListener('click', function(){
+  S.slots.push({id:'S'+(slotIdCounter++), name:'Slot-'+slotIdCounter, E:0, N:0});
+  renderSlotList(); requestRender(); saveSession();
+});
+document.getElementById('btnImportSlotCsv').addEventListener('click', function(){
+  const txt = document.getElementById('slotCsvPaste').value.trim();
+  if(!txt) return;
+  S.slots = [];
+  txt.split('\n').forEach(function(line){
+    const p = line.split(',').map(s=>s.trim());
+    if(p.length>=3 && !isNaN(parseFloat(p[1])) && !isNaN(parseFloat(p[2]))){
+      S.slots.push({id:'S'+(slotIdCounter++), name:p[0], E:parseFloat(p[1]), N:parseFloat(p[2])});
+    }
+  });
+  renderSlotList(); requestRender(); saveSession();
+});
+/* ---------------------------------------------------------------------
+   SECTION M — Display toggles
+--------------------------------------------------------------------- */
+document.getElementById('showDXF').addEventListener('change', function(e){ S.display.showDXF=e.target.checked; requestRender(); });
+document.getElementById('showGrid').addEventListener('change', function(e){ S.display.showGrid=e.target.checked; requestRender(); });
+/* ---------------------------------------------------------------------
+   SECTION M2 — Theme toggle
+--------------------------------------------------------------------- */
+function applyTheme(mode){
+  document.body.classList.toggle('light', mode==='light');
+  document.getElementById('themeToggle').textContent = mode==='light' ? '☀️ Light' : '🌙 Dark';
+  try{ localStorage.setItem('jpc_theme', mode); }catch(e){}
+  requestRender();
+}
+document.getElementById('themeToggle').addEventListener('click', function(){
+  const cur = document.body.classList.contains('light') ? 'light' : 'dark';
+  applyTheme(cur==='light' ? 'dark' : 'light');
+});
+(function initTheme(){
+  let saved='dark';
+  try{ saved = localStorage.getItem('jpc_theme') || 'dark'; }catch(e){}
+  applyTheme(saved);
+})();
+/* ---------------------------------------------------------------------
+   SECTION N — Measurement tool
+--------------------------------------------------------------------- */
+document.getElementById('btnMeasure').addEventListener('click', function(){
+  S.measureMode = !S.measureMode;
+  S.measurePending = null;
+  this.classList.toggle('primary', S.measureMode);
+  if(S.measureMode) clearPickMode();
+  updateStatusbar();
+  requestRender();
+});
+document.getElementById('btnClearMeasure').addEventListener('click', function(){
+  S.measurements=[]; S.measurePending=null; updateStatusbar(); requestRender();
+});
+document.getElementById('btnCancelPick').addEventListener('click', clearPickMode);
+document.getElementById('btnDismissAnomaly').addEventListener('click', hideAnomalyWarning);
+/* ---------------------------------------------------------------------
+   SECTION O — Zoom buttons
+--------------------------------------------------------------------- */
+document.getElementById('btnZoomExtents').addEventListener('click', zoomExtents);
+document.getElementById('btnZoomExtents2').addEventListener('click', zoomExtents);
+document.getElementById('btnZoomIn').addEventListener('click', function(){ zoomBy(1.3, S.vp.canvasW/2, S.vp.canvasH/2); });
+document.getElementById('btnZoomOut').addEventListener('click', function(){ zoomBy(1/1.3, S.vp.canvasW/2, S.vp.canvasH/2); });
+/* ---------------------------------------------------------------------
+   SECTION P — Results panel
+--------------------------------------------------------------------- */
+document.getElementById('resultsToggle').addEventListener('click', function(){
+  const panel = document.getElementById('resultsPanel');
+  panel.classList.toggle('collapsed');
+  this.textContent = panel.classList.contains('collapsed') ? '▸' : '▾';
+});
+function fmtDelta(v){ return (v>=0?'+':'')+v.toFixed(3); }
+function updateResultsPanel(){
+  const body = document.getElementById('resultsBody');
+  const plan = currentSourcePosition('plan');
+  const nav = currentSourcePosition('nav');
+  const ts = currentSourcePosition('ts');
+  if(!plan && !nav && !ts){ body.innerHTML = '<div class="hint">No position data yet</div>'; return; }
+  let html='';
+  const rows = [{k:'ts',label:'Total Station',v:ts,color:'var(--ts)'},{k:'plan',label:'Plan',v:plan,color:'var(--plan)'},{k:'nav',label:'Navigation',v:nav,color:'var(--nav)'}];
+  for(const r of rows){
+    if(!r.v) continue;
+    html += '<div style="margin-bottom:5px;"><b style="color:'+r.color+';">'+r.label+'</b><br>'+
+      'E '+r.v.E.toFixed(3)+' · N '+r.v.N.toFixed(3)+' · Hdg '+r.v.H.toFixed(3)+'°</div>';
+  }
+  const ANOMALY_DIST_M = 1000;
+  function pairDelta(a,b,labelA,labelB){
+    if(!a||!b) return '';
+    const dE=b.E-a.E, dN=b.N-a.N, dist=Math.sqrt(dE*dE+dN*dN), dH=normSignedDelta(b.H-a.H);
+    const anomaly = dist > ANOMALY_DIST_M;
+    let out = '<div class="kv"><span>'+labelB+' − '+labelA+'</span><span'+(anomaly?' class="badText"':'')+'>'+dist.toFixed(3)+' m / '+fmtDelta(dH)+'°'+(anomaly?' ⚠':'')+'</span></div>';
+    if(anomaly) out += '<div class="hint badText" style="margin:-2px 0 4px;">⚠ '+labelB+' is unusually far from '+labelA+' — check for a data entry error (extra/missing/transposed digit?).</div>';
+    return out;
+  }
+  let pairs = '';
+  pairs += pairDelta(plan, ts, 'Plan', 'TS');
+  pairs += pairDelta(plan, nav, 'Plan', 'Nav');
+  pairs += pairDelta(ts, nav, 'TS', 'Nav');
+  if(pairs) html += '<hr class="sep">'+pairs;
+  body.innerHTML = html;
+}
+/* ---------------------------------------------------------------------
+   SECTION Q — Save / Load Project, Export PNG / CSV, Session autosave
+--------------------------------------------------------------------- */
+function serializeState(){
+  return {
+    version:3,
+    savedAt: new Date().toISOString(),
+    dxfMeta: S.dxf ? {entityCount:S.dxf.entityCount, layers:S.dxf.layers, extent:S.dxf.extent} : null,
+    layerVisible: S.layerVisible,
+    plan: S.plan, nav: S.nav,
+    ts: {enable:S.ts.enable, mode:S.ts.mode, rbUnit:S.ts.rbUnit, rbRot:S.ts.rbRot, rbZero:S.ts.rbZero,
+         eccX:S.ts.eccX, eccY:S.ts.eccY, observations: S.ts.observations},
+    rig: S.rig,
+    slots: S.slots,
+    display: S.display,
+    theme: document.body.classList.contains('light') ? 'light' : 'dark'
+  };
+}
+function saveSession(){
+  try{ localStorage.setItem('jpc_session', JSON.stringify(serializeState())); }catch(e){}
+}
+function loadSessionFromObj(data){
+  if(!data) return;
+  if(data.plan) Object.assign(S.plan, data.plan);
+  if(data.nav) Object.assign(S.nav, data.nav);
+  if(data.ts){ S.ts.enable=data.ts.enable; S.ts.mode=data.ts.mode||'xy'; S.ts.rbUnit=data.ts.rbUnit||'deg'; S.ts.rbRot=data.ts.rbRot||'cw'; S.ts.rbZero=data.ts.rbZero||'bow'; S.ts.eccX=data.ts.eccX||0; S.ts.eccY=data.ts.eccY||0; S.ts.observations=data.ts.observations||[]; }
+  if(data.rig) Object.assign(S.rig, data.rig);
+  if(data.slots) S.slots = data.slots;
+  if(data.display) Object.assign(S.display, data.display);
+  if(data.layerVisible) S.layerVisible = data.layerVisible;
+  if(data.theme) applyTheme(data.theme);
+  if(data.dxfMeta && !S.dxf){
+    document.getElementById('dxfSummary').innerHTML =
+      '<span class="warnText">Previous session found ('+data.dxfMeta.entityCount+' entities) but the DXF file itself was not stored — please re-import the same DXF to see the drawing</span>';
+  }
+  document.getElementById('planEnable').checked = !!S.plan.enable;
+  document.getElementById('planE').value = S.plan.E!=null?S.plan.E:'';
+  document.getElementById('planN').value = S.plan.N!=null?S.plan.N:'';
+  document.getElementById('planH').value = S.plan.H!=null?S.plan.H:'';
+  document.getElementById('navEnable').checked = !!S.nav.enable;
+  document.getElementById('navE').value = S.nav.E!=null?S.nav.E:'';
+  document.getElementById('navN').value = S.nav.N!=null?S.nav.N:'';
+  document.getElementById('navH').value = S.nav.H!=null?S.nav.H:'';
+  document.getElementById('tsEnable').checked = !!S.ts.enable;
+  document.getElementById('tsMode').value = S.ts.mode;
+  document.getElementById('rbSetup').style.display = (S.ts.mode==='rb')?'block':'none';
+  document.getElementById('xyConventionHint').style.display = (S.ts.mode==='xy')?'block':'none';
+  document.getElementById('rbUnit').value = S.ts.rbUnit;
+  document.getElementById('rbRot').value = S.ts.rbRot;
+  document.getElementById('rbZero').value = S.ts.rbZero;
+  document.getElementById('tsEccX').value = S.ts.eccX||0;
+  document.getElementById('tsEccY').value = S.ts.eccY||0;
+  document.getElementById('rigName').value = S.rig.name||'';
+  document.getElementById('rigLength').value = S.rig.length;
+  document.getElementById('rigHalfWidth').value = S.rig.halfWidth;
+  document.getElementById('skidX').value = S.rig.skidXEach;
+  document.getElementById('skidY').value = S.rig.skidY;
+  document.getElementById('skidAttach').value = S.rig.skidAttachOffset;
+  document.getElementById('skidSource').value = S.rig.skidSource;
+  document.getElementById('skidEnable').checked = !!S.rig.skidEnable;
+  document.getElementById('rigManualEnable').checked = !!S.rig.manualEnable;
+  document.getElementById('rigManualBox').style.display = S.rig.manualEnable ? 'block' : 'none';
+  document.getElementById('showDXF').checked = !!S.display.showDXF;
+  document.getElementById('showGrid').checked = !!S.display.showGrid;
+  let maxId=0;
+  for(const o of S.ts.observations){ const n=parseInt((o.id||'P0').slice(1),10); if(n>maxId)maxId=n; }
+  obsIdCounter = maxId+1;
+  let maxHullId=0; for(const p of S.rig.manualHull){ const n=parseInt((p.name||'H0').replace(/\D/g,''),10)||0; if(n>maxHullId)maxHullId=n; } hullIdCounter=maxHullId+1;
+  let maxEnvId=0; for(const p of S.rig.manualEnv){ const n=parseInt((p.name||'E0').replace(/\D/g,''),10)||0; if(n>maxEnvId)maxEnvId=n; } envIdCounter=maxEnvId+1;
+  let maxSlotId=0; for(const p of S.slots){ const n=parseInt((p.id||'S0').slice(1),10)||0; if(n>maxSlotId)maxSlotId=n; } slotIdCounter=maxSlotId+1;
+  renderObsList();
+  renderPointListEditor('hullList', S.rig.manualHull, rigGeomChanged);
+  renderPointListEditor('envList', S.rig.manualEnv, rigGeomChanged);
+  renderSlotList();
+  renderLayerList();
+  recomputeTS();
+  updateResultsPanel();
+}
+function tryRestoreSession(){
+  try{
+    const raw = localStorage.getItem('jpc_session');
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    loadSessionFromObj(data);
+  }catch(e){}
+}
+document.getElementById('btnSaveProject').addEventListener('click', function(){
+  const data = serializeState();
+  const blob = new Blob([JSON.stringify(data,null,1)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+  a.href = url; a.download = 'jackup_position_'+stamp+'.jpc.json';
+  a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('btnLoadProject').addEventListener('click', function(){ document.getElementById('fileLoadProject').click(); });
+document.getElementById('fileLoadProject').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{ const data = JSON.parse(ev.target.result); loadSessionFromObj(data); saveSession(); requestRender(); }
+    catch(err){ alert('Failed to load project file: '+err.message); }
+  };
+  reader.readAsText(file);
+});
+document.getElementById('btnExportPNG').addEventListener('click', function(){
+  const link = document.createElement('a');
+  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+  link.download = 'jackup_position_'+stamp+'.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+document.getElementById('btnExportCSV').addEventListener('click', function(){
+  let csv = 'Section,Field,Value\n';
+  const plan=currentSourcePosition('plan'), nav=currentSourcePosition('nav'), ts=currentSourcePosition('ts');
+  if(plan) csv += 'Plan,E,'+plan.E+'\nPlan,N,'+plan.N+'\nPlan,Heading,'+plan.H+'\n';
+  if(ts) csv += 'TotalStation,E,'+ts.E+'\nTotalStation,N,'+ts.N+'\nTotalStation,Heading,'+ts.H+'\n';
+  if(nav) csv += 'Navigation,E,'+nav.E+'\nNavigation,N,'+nav.N+'\nNavigation,Heading,'+nav.H+'\n';
+  if(plan&&ts){ const dE=ts.E-plan.E,dN=ts.N-plan.N; csv+='Delta_TS_minus_Plan,Distance,'+Math.sqrt(dE*dE+dN*dN)+'\nDelta_TS_minus_Plan,Heading,'+normSignedDelta(ts.H-plan.H)+'\n'; }
+  if(plan&&nav){ const dE=nav.E-plan.E,dN=nav.N-plan.N; csv+='Delta_Nav_minus_Plan,Distance,'+Math.sqrt(dE*dE+dN*dN)+'\nDelta_Nav_minus_Plan,Heading,'+normSignedDelta(nav.H-plan.H)+'\n'; }
+  if(ts&&nav){ const dE=nav.E-ts.E,dN=nav.N-ts.N; csv+='Delta_Nav_minus_TS,Distance,'+Math.sqrt(dE*dE+dN*dN)+'\nDelta_Nav_minus_TS,Heading,'+normSignedDelta(nav.H-ts.H)+'\n'; }
+  csv += '\nTS Observation,Field,Value\n';
+  const outlierIdx0 = (S.ts.result && S.ts.result.pointIds) ? findOutlier(S.ts.result.residuals) : -1;
+  const outlierId0 = outlierIdx0>=0 ? S.ts.result.pointIds[outlierIdx0] : null;
+  csv += 'InstrumentSetupOffset,dx,'+(S.ts.eccX||0)+'\nInstrumentSetupOffset,dy,'+(S.ts.eccY||0)+'\n';
+  S.ts.observations.forEach(function(o){
+    csv += o.id+',enabled,'+o.enabled+'\n';
+    if(S.ts.mode==='xy'){ csv += o.id+',localX,'+(o.localX!=null?o.localX:'')+'\n'+o.id+',localY,'+(o.localY!=null?o.localY:'')+'\n'; }
+    else { csv += o.id+',range,'+(o.range!=null?o.range:'')+'\n'+o.id+',bearing,'+(o.bearing!=null?o.bearing:'')+'\n'; }
+    if(o.bound){ csv += o.id+',boundE,'+o.bound.E+'\n'+o.id+',boundN,'+o.bound.N+'\n'+o.id+',bindType,'+o.bound.type+'\n'; }
+    if(S.ts.result && S.ts.result.pointIds){
+      const ri = S.ts.result.pointIds.indexOf(o.id);
+      if(ri>=0) csv += o.id+',residual_m,'+S.ts.result.residuals[ri].dist+'\n'+o.id+',isOutlier,'+(o.id===outlierId0)+'\n';
+    }
+  });
+  if(S.ts.result){
+    csv += '\nTS Result,Field,Value\n';
+    csv += 'TS,sternE,'+S.ts.result.sternE+'\nTS,sternN,'+S.ts.result.sternN+'\nTS,heading,'+S.ts.result.headingDeg+'\nTS,rmse,'+S.ts.result.rmse+'\nTS,maxResidual,'+S.ts.result.maxResidual+'\n';
+  }
+  if(S.slots.length){
+    csv += '\nSlot,Field,Value\n';
+    const pos = currentSourcePosition(S.rig.skidSource);
+    const geo = currentRigGeometry();
+    const envLocalPoly = geo.skid.map(p=>({x:p.x,y:p.y}));
+    S.slots.forEach(function(s){
+      csv += s.name+',E,'+s.E+'\n'+s.name+',N,'+s.N+'\n';
+      if(pos && envLocalPoly.length>=3){
+        const loc = worldToLocal(s.E, s.N, pos.E, pos.N, pos.H);
+        csv += s.name+',accessible,'+pointInPolygon(loc, envLocalPoly)+'\n';
+      }
+    });
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+  a.href=url; a.download='jackup_position_'+stamp+'.csv'; a.click(); URL.revokeObjectURL(url);
+});
+/* ---------------------------------------------------------------------
+   SECTION Q2 — Clear / New Round
+--------------------------------------------------------------------- */
+document.getElementById('btnClearAll').addEventListener('click', function(){
+  if(!confirm('Clear all data and start a new round?\n\nThis resets: DXF drawing, Total Station observations & instrument offset, Plan position, Navigation position, Slots, and Measurements.\nThe Rig Profile (section 3) is kept.\n\nThis cannot be undone.')) return;
+  S.dxf = null;
+  S.layerVisible = {};
+  S.plan = {enable:false, E:null, N:null, H:null};
+  S.nav  = {enable:false, E:null, N:null, H:null};
+  S.ts.observations = [];
+  S.ts.result = null;
+  S.ts.eccX = 0;
+  S.ts.eccY = 0;
+  S.slots = [];
+  S.measurements = [];
+  S.measurePending = null;
+  S.measureMode = false;
+  S.pickMode = null;
+  S.pickHoverScreen = null;
+  S.pickSnapPreview = null;
+  obsIdCounter = 1;
+  measureIdCounter = 1;
+  slotIdCounter = 1;
+  document.getElementById('fileDXF').value = '';
+  document.getElementById('fileLoadProject').value = '';
+  document.getElementById('dxfSummary').innerHTML = 'No file imported yet · Supports LINE, LWPOLYLINE, POLYLINE/VERTEX, POINT, CIRCLE, ARC, TEXT (no INSERT/BLOCK — explode first) · .dwg files must be Saved As .dxf first';
+  document.getElementById('planEnable').checked = false;
+  document.getElementById('planE').value = '';
+  document.getElementById('planN').value = '';
+  document.getElementById('planH').value = '';
+  document.getElementById('navEnable').checked = false;
+  document.getElementById('navE').value = '';
+  document.getElementById('navN').value = '';
+  document.getElementById('navH').value = '';
+  document.getElementById('tsEccX').value = '0';
+  document.getElementById('tsEccY').value = '0';
+  document.getElementById('slotCsvPaste').value = '';
+  document.getElementById('slotLayerImportHint').textContent = 'Reads POINT / CIRCLE centers and closed LWPOLYLINE centroids on the selected layer. A nearby TEXT label (within 5 m) is used as the slot name if found. Existing slots are kept — points within 0.05 m of an existing slot are skipped as duplicates.';
+  clearPickMode();
+  canvas.classList.remove('picking');
+  document.getElementById('btnMeasure').classList.remove('primary');
+  renderObsList();
+  renderTSResult();
+  renderLayerList();
+  renderSlotLayerOptions();
+  renderSlotList();
+  updateResultsPanel();
+  updateStatusbar();
+  saveSession();
+  zoomExtents();
+  requestRender();
+});
+/* ---------------------------------------------------------------------
+   SECTION R — Sidebar toggle (mobile) + resize handling
+--------------------------------------------------------------------- */
+document.getElementById('sidebarToggle').addEventListener('click', function(){
+  document.getElementById('sidebar').classList.toggle('open');
+});
+window.addEventListener('resize', function(){ resizeCanvasToDisplay(); requestRender(); });
+/* ---------------------------------------------------------------------
+   SECTION S — Init
+--------------------------------------------------------------------- */
+function init(){
+  resizeCanvasToDisplay();
+  tryRestoreSession();
+  renderObsList();
+  renderPointListEditor('hullList', S.rig.manualHull, rigGeomChanged);
+  renderPointListEditor('envList', S.rig.manualEnv, rigGeomChanged);
+  renderSlotList();
+  renderLayerList();
+  renderSlotLayerOptions();
+  updateResultsPanel();
+  zoomExtents();
+  requestRender();
+}
+init();
+</script>
+</body>
+</html>
