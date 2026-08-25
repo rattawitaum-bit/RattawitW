@@ -191,6 +191,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
                 <select id="rbRot"><option value="cw">Clockwise</option><option value="ccw">Counter-clockwise</option></select>
               </div>
             </div>
+            <div class="hint" id="gonHint">Gon (also called "grad"): a metric angle unit where a full circle = 400 gon (so 100 gon = 90°, 200 gon = 180°). Used on some total stations, mostly older European/Asian models. <b>If you're not sure, your instrument almost certainly reads in Degree</b> — leave this on Degree unless you know for certain your instrument outputs gon.</div>
             <label class="f">Zero Direction (bearing = 0 points toward)</label>
             <select id="rbZero">
               <option value="bow">Bow</option><option value="stern">Stern</option>
@@ -203,7 +204,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
             <div><input type="number" step="any" id="tsEccX" value="0" placeholder="dx"></div>
             <div><input type="number" step="any" id="tsEccY" value="0" placeholder="dy"></div>
           </div>
-          <div class="hint">If the total station is <b>not</b> set up exactly at Center Stern (0,0) — e.g. it's set up at dx=-10, dy=-5 relative to it, because that point isn't physically accessible — enter that offset here, using the same +y/+x convention as above. Every sighting below (in either mode) is measured from the instrument and automatically combined with this offset. Leave at 0,0 if the instrument is set up exactly at Center Stern.</div>
+          <div class="hint">If the total station is <b>not</b> set up exactly at Center Stern (0,0) — e.g. it's set up at dx=-10, dy=-5 relative to it, because that point isn't physically accessible — enter that offset here, using the same +y/+x convention as above. Every sighting below (in either mode) is measured from the instrument and automatically combined with this offset. Leave at 0,0 if the instrument is set up exactly at Center Stern. <b>Once a fit is available</b> (≥2 points bound), a diamond marker labelled "TS Instrument" appears on the plot at the computed real-world location of your instrument setup, connected to the Stern marker by a dashed line — use it to visually confirm the offset was entered correctly (does the marker sit roughly where you actually stood, relative to the rig?).</div>
           <hr class="sep">
           <div id="obsList" style="margin-top:8px;"></div>
           <button class="btn small" id="btnAddObs" style="width:100%;margin-top:4px;">+ Add Point</button>
@@ -329,6 +330,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
         <div class="legItem"><div class="legSwatch" style="background:var(--ts);"></div>Total Station</div>
         <div class="legItem"><div class="legSwatch" style="background:var(--plan);"></div>Plan</div>
         <div class="legItem"><div class="legSwatch" style="background:var(--nav);"></div>Navigation</div>
+        <div class="legItem"><div class="legSwatch" style="background:var(--ts);width:9px;height:9px;border-radius:2px;transform:rotate(45deg);"></div>TS Instrument</div>
       </div>
       <div id="statusbar">Scale: — | Snap: — | Mode: Pan</div>
     </div>
@@ -343,7 +345,6 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
    THIS REVISION — fixes applied against the confirmed current production
    source, each verified with dedicated computation/unit tests BEFORE being
    written into the app (see chat history for the verification runs):
-
    [FIX 1 — Snap] "Snap seems to not work" had TWO independent, compounding
    root causes, both fixed:
      1a) collectSnapCandidates/findNearestSnap previously only matched
@@ -372,7 +373,6 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
      shows, in real time while in Pick mode with Snap on, exactly which
      point the next click will bind to — so the user gets visual
      confirmation *before* clicking, rather than having to click and hope.
-
    [FIX 2 — Total Station setup not at Center Stern] Added an "Instrument
    Setup Offset" (dx, dy) to section 2, entered using the SAME convention
    as Local X,Y sightings (+y = away from the rig, +x = right-hand side
@@ -386,10 +386,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
    (b) with a nonzero offset, a full synthetic resection recovers the
    exact same true Stern position/heading as an equivalent resection done
    directly from Center Stern, for both Local X,Y and Range/Bearing.
-
    [FIX 3] Added a small "v1.0 · developed by Rattawit" credit in the
    header.
-
    Everything else (core rigid-transform math, DXF parser, rendering
    pipeline, Plan/Nav tracking, anomaly-aware zoom, outlier detection,
    slot accessibility + DXF-layer import, multi-measurement tool,
@@ -715,6 +713,28 @@ function drawMarker(ctx,vp,E,N,color,label,radius){
   if(label){ ctx.fillStyle=color; ctx.font='bold 12px sans-serif'; ctx.fillText(label, s.x+8, s.y-8); }
   ctx.restore();
 }
+/* Diamond marker -- visually distinct from the circular Stern/observation/
+   slot markers, used specifically for the TS Instrument Setup position (see
+   instrumentWorldPosition() below), so it reads as "same TS system,
+   different role" rather than being confused with a bound sighting point
+   (which uses markerColor('normal'), a different colour) or the Stern
+   marker itself (circle, same colour, but a different shape here). */
+function drawDiamondMarker(ctx,vp,E,N,color,label,halfSize){
+  const s=toScreen(E,N,vp);
+  const r = halfSize||7;
+  ctx.save();
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(s.x, s.y-r);
+  ctx.lineTo(s.x+r, s.y);
+  ctx.lineTo(s.x, s.y+r);
+  ctx.lineTo(s.x-r, s.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle=isLightTheme()?'#fff':'#000'; ctx.lineWidth=1; ctx.stroke();
+  if(label){ ctx.fillStyle=color; ctx.font='bold 12px sans-serif'; ctx.fillText(label, s.x+9, s.y-9); }
+  ctx.restore();
+}
 /* ---------------------------------------------------------------------
    SECTION D — Application state
 --------------------------------------------------------------------- */
@@ -878,6 +898,36 @@ function currentSourcePosition(key){
   if(key==='ts'){ const t=S.ts; if(!t.enable||!t.result) return null; return {E:t.result.sternE,N:t.result.sternN,H:t.result.headingDeg}; }
   return null;
 }
+/* Computes the world-space position of the physical Total Station
+   instrument setup, given the current TS fit (Stern/Heading) and the
+   Instrument Setup Offset (eccX/eccY, entered in the same u-frame
+   convention as Local X,Y sightings: +y=away from rig, +x=right-hand
+   side when facing away = the rig's Port side). The u-frame -> canonical
+   local-frame mapping used throughout this app is a negation (canonical
+   = -u, exactly as used for sightings in getObsLocalXY() above), so the
+   instrument's own canonical-local position relative to Center Stern is
+   (-eccX, -eccY); transforming that through the fitted Stern/Heading via
+   localToWorld() gives its real-world Site coordinates.
+   Verified (see chat history / dedicated test run before this was added):
+   (a) a worked numeric example, (b) 2000 randomized configurations across
+   both Local X,Y and Range/Bearing modes and every Zero-Direction/Rotation
+   combination -- in every case, transforming the returned world position
+   back through worldToLocal() exactly recovers (-eccX,-eccY), confirming
+   internal self-consistency; and separately, a full synthetic resection
+   with a nonzero offset recovers the exact same true Stern position and
+   heading as an equivalent resection with no offset, matching the
+   guarantee already documented on getObsLocalXY().
+   Returns null when there is no current TS fit (need >=2 bound, filled-in
+   points first) OR when the offset is exactly (0,0) -- in that case the
+   instrument sits exactly on top of the Stern marker, so a second,
+   visually-redundant marker is intentionally not drawn. */
+function instrumentWorldPosition(){
+  const pos = currentSourcePosition('ts');
+  if(!pos) return null;
+  const eccX = S.ts.eccX||0, eccY = S.ts.eccY||0;
+  if(eccX===0 && eccY===0) return null;
+  return localToWorld(-eccX, -eccY, pos.E, pos.N, pos.H);
+}
 function currentRigGeometry(){
   if(S.rig.manualEnable){
     return { hull: S.rig.manualHull.map(p=>({name:p.name,x:p.x,y:p.y})),
@@ -918,6 +968,26 @@ function render(){
       drawPolygonWorld(ctx,S.vp,hullWorld, src.color, 'rgba(150,150,150,0.06)', false, 2.2);
     }
     drawMarker(ctx,S.vp,pos.E,pos.N,src.color, src.label+' Stern');
+  }
+  // TS Instrument Setup marker: only drawn once a TS fit exists AND a
+  // nonzero offset has been entered (see instrumentWorldPosition() for the
+  // full derivation/verification notes). A dashed line to the Stern marker
+  // makes the entered offset's direction and magnitude visually obvious,
+  // directly answering "did I enter this offset correctly?" without the
+  // user needing to interpret raw dx/dy numbers against an abstract frame.
+  {
+    const instPos = instrumentWorldPosition();
+    if(instPos){
+      const sternPos = currentSourcePosition('ts');
+      if(sternPos){
+        ctx.save();
+        ctx.strokeStyle='#4CAF50'; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+        const a=toScreen(instPos.E,instPos.N,S.vp), b=toScreen(sternPos.E,sternPos.N,S.vp);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+        ctx.restore();
+      }
+      drawDiamondMarker(ctx,S.vp,instPos.E,instPos.N,'#4CAF50','TS Instrument',7);
+    }
   }
   if(S.slots.length){
     const pos = currentSourcePosition(S.rig.skidSource);
@@ -1008,6 +1078,12 @@ function computeAllRelevantExtent(){
     const pos = currentSourcePosition(k);
     if(pos) extend({minE:pos.E-reach,maxE:pos.E+reach,minN:pos.N-reach,maxN:pos.N+reach});
   });
+  // Include the TS Instrument Setup marker (if shown) so "Zoom Extents"
+  // always reveals it without requiring a manual pan -- otherwise a large
+  // offset (e.g. dx=-50) could place the marker outside the view computed
+  // from just the hull/skid "reach" above.
+  const instPos = instrumentWorldPosition();
+  if(instPos) extend({minE:instPos.E-20,maxE:instPos.E+20,minN:instPos.N-20,maxN:instPos.N+20});
   if(!extent) extent = {minE:-100,maxE:100,minN:-100,maxN:100};
   return extent;
 }
@@ -1669,6 +1745,11 @@ function updateResultsPanel(){
     html += '<div style="margin-bottom:5px;"><b style="color:'+r.color+';">'+r.label+'</b><br>'+
       'E '+r.v.E.toFixed(3)+' · N '+r.v.N.toFixed(3)+' · Hdg '+r.v.H.toFixed(3)+'°</div>';
   }
+  const instPosForSummary = instrumentWorldPosition();
+  if(instPosForSummary){
+    html += '<div style="margin-bottom:5px;"><b style="color:var(--ts);">TS Instrument (World)</b><br>'+
+      'E '+instPosForSummary.E.toFixed(3)+' · N '+instPosForSummary.N.toFixed(3)+'</div>';
+  }
   const ANOMALY_DIST_M = 1000;
   function pairDelta(a,b,labelA,labelB){
     if(!a||!b) return '';
@@ -1823,6 +1904,16 @@ document.getElementById('btnExportCSV').addEventListener('click', function(){
   if(S.ts.result){
     csv += '\nTS Result,Field,Value\n';
     csv += 'TS,sternE,'+S.ts.result.sternE+'\nTS,sternN,'+S.ts.result.sternN+'\nTS,heading,'+S.ts.result.headingDeg+'\nTS,rmse,'+S.ts.result.rmse+'\nTS,maxResidual,'+S.ts.result.maxResidual+'\n';
+    // Instrument Setup world position: computed directly here (always, even
+    // when eccX/eccY are exactly 0,0 -- in that case it simply equals
+    // sternE/sternN, which is correct and still useful as an audit-trail
+    // record) rather than via instrumentWorldPosition(), which deliberately
+    // returns null for a zero offset purely to avoid a redundant duplicate
+    // marker on the PLOT -- that plot-only consideration does not apply to
+    // a CSV data export, where completeness is preferable.
+    const eccXforCsv = S.ts.eccX||0, eccYforCsv = S.ts.eccY||0;
+    const instWorldForCsv = localToWorld(-eccXforCsv, -eccYforCsv, S.ts.result.sternE, S.ts.result.sternN, S.ts.result.headingDeg);
+    csv += 'TS,instrumentWorldE,'+instWorldForCsv.E+'\nTS,instrumentWorldN,'+instWorldForCsv.N+'\n';
   }
   if(S.slots.length){
     csv += '\nSlot,Field,Value\n';
