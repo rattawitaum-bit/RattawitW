@@ -1916,7 +1916,17 @@ mark.restored-pii {
                 <input type="text" id="case-title" class="form-input" value="${caseData.title}" placeholder="เช่น คดีพิพาทสัญญาจ้างแรงงาน (นาย ก)">
               </div>
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">ประเภทคดี <span style="font-size: 0.75rem; color: var(--gold); font-weight: normal;">(ฟอร์มปรับอัตโนมัติ)</span></label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+                  <label class="form-label" style="margin-bottom: 0;">ประเภทคดี <span style="font-size: 0.75rem; color: var(--gold); font-weight: normal;">(ฟอร์มปรับอัตโนมัติ)</span></label>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" id="btn-load-sample" class="btn btn-sm btn-secondary" style="font-size: 0.8rem; padding: 3px 10px; color: #b45309; border-color: var(--gold); background: rgba(245, 158, 11, 0.12); font-weight: 600;" title="คลิกเพื่อกรอกข้อเท็จจริงตัวอย่างของคดีนี้">
+                      💡 เติมตัวอย่างคดีนี้
+                    </button>
+                    <button type="button" id="btn-clear-form" class="btn btn-sm btn-secondary" style="font-size: 0.8rem; padding: 3px 10px; color: var(--ink-muted);" title="ล้างข้อความในฟอร์ม">
+                      🧹 ล้างข้อมูล
+                    </button>
+                  </div>
+                </div>
                 <select id="case-type" class="form-select">
                   ${Object.values(CASE_TYPE_LABELS).map(t => `<option value="${t}" ${caseData.type === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
