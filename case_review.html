@@ -907,7 +907,7 @@ mark.restored-pii {
     /* ==========================================================================
        EMBEDDED CONFIGURATION & STATE
        ========================================================================== */
-    const EMBEDDED_API_KEY = "AQ.Ab8RN6IIdtqvdL4fqh1p1MZnrPtptLN4gOF99z-rWGV4TCs9vQ";
+    const EMBEDDED_API_KEY = "AQ.Ab8RN6JoR1LlGPEq9RAIELMb2gRTEiob5HHYORUk2yefCr6VUg";
     const SETTINGS_KEY = 'caseReview_standalone_settings';
 
     const DEFAULT_SETTINGS = {
@@ -923,7 +923,9 @@ mark.restored-pii {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        parsed.apiKey = EMBEDDED_API_KEY; // Always sync to the newest key
+        if (!parsed.apiKey || parsed.apiKey === "AIzaSyBBwDFN6OxJ7jLXUXoWIy4puie5_EJKFcg" || parsed.apiKey === "AQ.Ab8RN6IIdtqvdL4fqh1p1MZnrPtptLN4gOF99z-rWGV4TCs9vQ") {
+          parsed.apiKey = EMBEDDED_API_KEY;
+        }
         currentSettings = { ...DEFAULT_SETTINGS, ...parsed };
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(currentSettings));
       } else {
@@ -1262,21 +1264,17 @@ mark.restored-pii {
     }
 
     function buildSystemInstruction() {
-      return `คุณคือ "ที่ปรึกษากฎหมายอาวุโสและหัวหน้าทีมคดีความ (Senior Litigation Strategist)" ในระบบกฎหมายไทย ทำหน้าที่ช่วยทนายความตรวจทานข้อเท็จจริง วางรูปคดี และประเมินความเสี่ยงก่อนยื่นฟ้องหรือสู้คดีในศาลไทย
+      return `คุณคือ "ที่ปรึกษากฎหมายอาวุโสและผู้ช่วยจัดทำเอกสารคดีความของทนายความไทย" ในระบบกฎหมายไทย
+ให้ประมวลผลข้อเท็จจริงและจัดทำผลลัพธ์ 2 ส่วนต่อเนื่องกัน โดยคั่นด้วยแท็ก ===CLIENT_REPORT_SEPARATOR=== อย่างเคร่งครัด:
 
-หลักการสำคัญและกฎเหล็ก:
-1. การรักษาความลับ (PII Preservation): ข้อความที่ได้รับอาจมี Token เช่น [PARTY_A], [CITIZEN_ID_1], [BANK_ACCT_1] แทนข้อมูลจริง — ห้ามเดาหรือแปลงชื่อ ให้ใช้ Token เหล่านั้นตามรูปเดิม 100%
-2. กฎการสวมบทบาททนายฝ่ายตรงข้าม (Contrary Analysis): ต้องวิเคราะห์ "จุดอ่อนของคดี" อย่างน้อย 3 จุด โดยมองจากมุมมองของทนายความฝ่ายตรงข้ามที่มีความเชี่ยวชาญ ค้นหาช่องโหว่ทางพยานหลักฐาน ภาระการพิสูจน์ (Burden of Proof) และประเด็นข้อต่อสู้
-3. การอ้างอิงกฎหมาย: ให้อ้างอิง "หลักการกฎหมาย" และ "แนวคำพิพากษาศาลฎีกาเชิงหลักการ" ห้ามเดาหรือระบุเลขมาตราเฉพาะเจาะจง เพราะกฎหมายอาจมีการแก้ไขเพิ่มเติม
-4. การจัดรูปแบบ: ต้องใช้ภาษาไทยที่เป็นทางการ กระชับ เป็นข้อๆ (Bullet points ชัดเจน) และแบ่งโครงสร้างตาม 5 ชั้นบังคับนี้เท่านั้น:
-
+[ส่วนที่ 1: ก่อนแท็กคั่น] บันทึกกลยุทธ์คดี (สำหรับทนายความใช้งานภายใน)
 ## ชั้นที่ 1: สรุปภาพรวมและสารัตถะคดี (Case Summary & Cause of Action)
 * **ประเภทคดีและมูลแห่งคดี:** วิเคราะห์มูลความแห่งหนี้/ข้อพิพาทหลัก (สัญญา, ละเมิด, สิทธิเรียกร้อง)
 * **สถานะคู่ความ:** [PARTY_A], [PARTY_B] และความเกี่ยวพันตามกฎหมาย
 * **เป้าหมายทางคดี:** สิ่งที่ฝ่ายเราต้องการบรรลุ และกรอบอายุความ/เงื่อนไขก่อนฟ้อง (เช่น หนังสือบอกกล่าวทวงถาม)
 
 ## ชั้นที่ 2: วิเคราะห์พยานหลักฐานและข้อเท็จจริงที่ยืนยันแล้ว (Proven Facts & Evidence Weight)
-* **น้ำหนักพยานหลักฐาน:** ประเมินความน่าเชื่อถือของพยานเอกสาร/พยานวัตถุที่มีอยู่ ว่าเพียงพอต่อการรับฟังของศาลตาม ป.วิ.พ. / ป.วิ.อ. หรือไม่
+* **น้ำหนักพยานหลักฐาน:** ประเมินความน่าเชื่อถือของพยานเอกสาร/พยานบุคคล/พยานวัตถุ ว่าเพียงพอต่อการรับฟังของศาลตาม ป.วิ.พ. / ป.วิ.อ. หรือไม่
 * **ภาระการพิสูจน์ (Burden of Proof):** ชี้ชัดว่าฝ่ายเรามีภาระการพิสูจน์ในประเด็นใดบ้าง และหลักฐานปัจจุบันปิดจุดตายของคดีได้หรือไม่
 
 ## ชั้นที่ 3: แผนจัดการข้อเท็จจริงที่ยังไม่ทราบ (Discovery Plan & Missing Elements)
@@ -1290,7 +1288,29 @@ mark.restored-pii {
 ## ชั้นที่ 5: การวิเคราะห์จุดอ่อน (Contrary Analysis — สวมบททนายฝ่ายตรงข้าม)
 * **จุดอ่อนที่ 1 (ประเด็นข้อต่อสู้หลัก):** ข้อโต้แย้งที่ฝ่ายตรงข้ามจะยกขึ้นหักล้าง พร้อมแนวทางตั้งรับ/แก้ข้อต่อสู้
 * **จุดอ่อนที่ 2 (ความบกพร่องของพยานหลักฐาน):** ช่องโหว่ของหลักฐานฝ่ายเรา พร้อมแนวทางอุดรอยรั่ว
-* **จุดอ่อนที่ 3 (ประเด็นข้อกฎหมายหรือขั้นตอนปฏิบัติ):** เงื่อนไขความรับผิดชอบหรือการใช้สิทธิ พร้อมกลยุทธ์ป้องกัน`;
+* **จุดอ่อนที่ 3 (ประเด็นข้อกฎหมายหรือขั้นตอนปฏิบัติ):** เงื่อนไขความรับผิดชอบหรือการใช้สิทธิ พร้อมกลยุทธ์ป้องกัน
+
+===CLIENT_REPORT_SEPARATOR===
+
+[ส่วนที่ 2: หลังแท็กคั่น] ร่างข้อความรายงานลูกความ 5 ชั้น (ภาษาเข้าใจง่าย สุภาพ ห้ามรับประกันผลแพ้ชนะเด็ดขาด)
+## ส่วนที่ 1: ข้อเท็จจริงที่ยืนยันแล้ว
+สรุปข้อเท็จจริงที่ฝ่ายเรามีพยานหลักฐานสนับสนุนชัดเจนในภาษาที่เข้าใจง่าย ชี้แจงให้ลูกความสบายใจในจุดที่มีหลักฐานมั่นคง
+
+## ส่วนที่ 2: การประเมินและความเห็นของทนายความ
+อธิบายสถานการณ์ทางคดี สิทธิและหน้าที่ตามกฎหมาย โดยระบุความไม่แน่นอนตามความเป็นจริงอย่างเป็นกลาง
+
+## ส่วนที่ 3: ทางเลือกในการดำเนินงาน
+เสนอทางเลือกในการแก้ปัญหา (เช่น เจรจาไกล่เกลี่ย, ส่งหนังสือบอกกล่าวทวงถาม, หรือยื่นฟ้องศาล) พร้อมระบุข้อดี ข้อเสีย ระยะเวลา และค่าใช้จ่ายโดยประมาณ
+
+## ส่วนที่ 4: ข้อเสนอแนะเชิงกลยุทธ์ของทนายความ
+คำแนะนำอย่างตรงไปตรงมาจากทนายความ ว่าในสถานการณ์ปัจจุบันควรเลือกดำเนินการขั้นตอนใดเป็นลำดับแรกเพื่อประโยชน์สูงสุดของลูกความ
+
+## ส่วนที่ 5: สิ่งที่ลูกความต้องตัดสินใจและเอกสารที่ต้องส่งมอบ
+ระบุสิ่งที่ลูกความต้องเตรียมเพิ่ม และการตัดสินใจที่จำเป็นต้องให้ความเห็นชอบก่อนเริ่มดำเนินการ
+
+กฎเหล็ก:
+1. การรักษาความลับ (PII Preservation): หากพบรหัส Masking เช่น [PARTY_A], [CITIZEN_ID_1], [TEL_1] ให้คงรูปเดิมไว้ 100% ห้ามแปลงหรือคาดเดาชื่อ
+2. กระชับ ชัดเจน หลีกเลี่ยงน้ำเสียงข่มขู่เกินสิทธิ หรือรับรองผลคำพิพากษาเด็ดขาด`;
     }
 
     function buildUserPrompt(caseData) {
@@ -1373,7 +1393,10 @@ mark.restored-pii {
 
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
         body: JSON.stringify(requestBody)
       });
 
@@ -1421,6 +1444,13 @@ mark.restored-pii {
         } catch (err) {
           console.warn(`[AI Client] Model ${currentModel} failed:`, err.message);
           lastError = err;
+          if (err.status === 401) {
+            let detail = err.message || "";
+            if (detail.includes("API_KEY_SERVICE_BLOCKED") || detail.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
+              detail = "คีย์/โทเคนนี้ไม่ได้รับอนุญาตให้ใช้งาน Generative Language API (กรุณาใช้ API Key จาก Google AI Studio ที่ aistudio.google.com/app/apikey)";
+            }
+            throw new Error(`การยืนยันตัวตนล้มเหลว (401 Unauthorized): ${detail}`);
+          }
           if (err.status === 400 && err.message.includes('API_KEY_INVALID')) {
             throw new Error("API Key ไม่ถูกต้อง กรุณาตรวจสอบในหน้าตั้งค่า");
           }
@@ -1437,7 +1467,10 @@ mark.restored-pii {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
           const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
             body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
           });
           if (response.ok) return true;
@@ -1449,6 +1482,53 @@ mark.restored-pii {
     /* ==========================================================================
        REPORT FORMATTER (Tailored for Thai Litigation)
        ========================================================================== */
+    
+    function computeFactsHash(data) {
+      const str = JSON.stringify({
+        title: (data.title || '').trim(),
+        type: (data.type || '').trim(),
+        parties: (data.parties || []).map(p => ({ label: (p.label || '').trim(), role: (p.role || '').trim() })),
+        triggers: data.specificTriggers || {},
+        confirmed: (data.factsConfirmed || []).map(f => (f.text || f || '').trim()),
+        unknown: (data.factsUnknown || []).map(f => (f.text || f || '').trim()),
+        assumptions: (data.assumptions || []).map(f => (f.text || f || '').trim())
+      });
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+      }
+      return String(hash);
+    }
+
+    function formatForLine(text, caseTitle) {
+      if (!text) return '';
+      let clean = text
+        .replace(/^##\s+ชั้นที่\s+(\d+)[:\s]+(.+)$/gm, '📌 ชั้นที่ $1: $2')
+        .replace(/^##\s+ส่วนที่\s+(\d+)[:\s]+(.+)$/gm, '📌 ส่วนที่ $1: $2')
+        .replace(/^##\s+(.+)$/gm, '📌 $1')
+        .replace(/^###\s+(.+)$/gm, '👉 $1')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/^[\*\-]\s+/gm, '• ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      return `⚖️ สรุปรายงานคดี: ${caseTitle || 'ไม่มีชื่อคดี'}\n--------------------------------\n${clean}\n--------------------------------\n(ส่งผ่านระบบช่วยคิดคดีความทนายความไทย)`;
+    }
+
+    function formatForEmail(text, caseTitle) {
+      if (!text) return '';
+      let clean = text
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/^[\*\-]\s+/gm, '• ')
+        .trim();
+
+      return `เรื่อง: สรุปรายงานและความเห็นทางกฎหมาย — ${caseTitle || 'คดีความ'}\n\nเรียน ลูกความที่เคารพ,\n\n${clean}\n\nขอแสดงความนับถือ,\nทนายความผู้รับผิดชอบคดี`;
+    }
+
     function formatLegalReport(markdownText) {
       if (!markdownText) return '';
       let text = markdownText.replace(/\r\n/g, '\n');
@@ -1460,6 +1540,15 @@ mark.restored-pii {
           <div class="tier-card-header">
             <span class="tier-badge">ชั้นที่ ${tierNum}</span>
             <h3 class="tier-title">${fullTitle.replace(/^ชั้นที่\s+\d+[:\s]*/, '')}</h3>
+          </div>
+          <div class="tier-card-body">`;
+      });
+
+      text = text.replace(/^##\s+(ส่วนที่\s+(\d+)[:\s]+[^\n]+)/gm, (match, fullTitle, secNum) => {
+        return `<div class="tier-card tier-${secNum}">
+          <div class="tier-card-header">
+            <span class="tier-badge">ส่วนที่ ${secNum}</span>
+            <h3 class="tier-title">${fullTitle.replace(/^ส่วนที่\s+\d+[:\s]*/, '')}</h3>
           </div>
           <div class="tier-card-body">`;
       });
@@ -1524,9 +1613,17 @@ mark.restored-pii {
         return;
       }
 
-      const { rawResponse, model, analyzedAt, tokenUsage } = caseData.aiAnalysis;
-      const unmasked = unsanitize(rawResponse || '', caseData.sanitizerMap || {});
-      const formattedHtml = formatLegalReport(unmasked);
+      const { rawResponse, strategyResponse, clientResponse, model, analyzedAt, tokenUsage } = caseData.aiAnalysis;
+      const map = caseData.sanitizerMap || {};
+
+      // Unmask both outputs
+      const stratText = strategyResponse || rawResponse || '';
+      const clientText = clientResponse || rawResponse || '';
+      const unmaskedStrategy = unsanitize(stratText, map);
+      const unmaskedClient = unsanitize(clientText, map);
+
+      const strategyHtml = formatLegalReport(unmaskedStrategy);
+      const clientHtml = formatLegalReport(unmaskedClient);
 
       container.innerHTML = `
         <div class="report-view-wrapper">
@@ -1535,15 +1632,31 @@ mark.restored-pii {
               <a href="#dashboard" class="back-link">← กลับหน้าคดี</a>
               <h2 class="report-main-title">รายงานวิเคราะห์คดี: ${caseData.title || 'ไม่ระบุชื่อ'}</h2>
             </div>
-            <div class="report-actions">
+            <div class="report-actions" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
               <div class="font-zoom-ctrl" title="ปรับขนาดตัวอักษรรายงาน">
                 <button id="zoom-out-btn" class="btn btn-sm btn-secondary">A-</button>
                 <span id="zoom-label" style="font-size: 0.8rem; font-weight: bold; min-width: 35px; text-align: center;">100%</span>
                 <button id="zoom-in-btn" class="btn btn-sm btn-secondary">A+</button>
               </div>
-              <button id="btn-copy" class="btn btn-secondary btn-sm" title="คัดลอกข้อความ">📋 คัดลอก</button>
+              <button id="btn-copy-line" class="btn btn-secondary btn-sm" title="คัดลอกข้อความสรุปสำหรับส่งทาง LINE">
+                💬 คัดลอกส่ง LINE
+              </button>
+              <button id="btn-copy-email" class="btn btn-secondary btn-sm" title="คัดลอกร่างรายงานสำหรับส่งอีเมล">
+                ✉️ คัดลอกส่งอีเมล
+              </button>
+              <button id="btn-copy" class="btn btn-secondary btn-sm" title="คัดลอกข้อความหน้านี้">📋 คัดลอก</button>
               <button id="btn-print" class="btn btn-secondary btn-sm" title="พิมพ์รายงาน">🖨️ พิมพ์</button>
               <button class="btn btn-primary btn-sm" onclick="window.location.hash='#case/${caseId}'" title="แก้ไขข้อเท็จจริง">✏️ แก้ไขคดี</button>
+            </div>
+          </div>
+
+          <!-- Dual Tab Bar -->
+          <div class="tab-bar no-print" style="margin-bottom: 12px; background: var(--card-bg); border-radius: var(--radius); padding: 4px;">
+            <div class="tab-item active" id="tab-btn-strategy" style="font-size: 0.92rem; padding: 8px 16px;">
+              ⚖️ กลยุทธ์สำนวนคดี (สำหรับทนาย)
+            </div>
+            <div class="tab-item" id="tab-btn-client" style="font-size: 0.92rem; padding: 8px 16px;">
+              📄 รายงานลูกความ 5 ชั้น (พร้อมส่ง)
             </div>
           </div>
           
@@ -1551,19 +1664,45 @@ mark.restored-pii {
             <div class="meta-item"><span class="meta-label">📅 วิเคราะห์เมื่อ:</span> <span class="meta-value">${analyzedAt ? new Date(analyzedAt).toLocaleString('th-TH') : '-'}</span></div>
             <div class="meta-item"><span class="meta-label">🤖 โมเดล:</span> <span class="meta-badge">${model || '-'}</span></div>
             <div class="meta-item"><span class="meta-label">📊 Tokens:</span> <span class="meta-value">${tokenUsage?.input || 0} เข้า / ${tokenUsage?.output || 0} ออก</span></div>
-            <div class="meta-item"><span class="meta-badge" style="background: var(--success); color: white;">💾 แคชในเครื่องแล้ว (เปิดอ่านฟรี ไม่เสีย Rate Limit)</span></div>
+            <div class="meta-item"><span class="meta-badge" style="background: var(--success); color: white;">💾 แคชในเครื่องแล้ว (เปิดอ่านฟรี 0 โควตา)</span></div>
           </div>
           
           <article id="report-canvas" class="report-document-sheet">
             <div class="court-document-header no-print">
               <span class="court-crest">⚖️</span>
-              <h3>บันทึกความเห็นทางกฎหมายและการวิเคราะห์ข้อเท็จจริง</h3>
-              <p class="court-sub">จัดทำโดย: ระบบช่วยคิดและปฏิบัติงานคดีของทนายความ (Standalone Edition)</p>
+              <h3 id="sheet-header-title">บันทึกกลยุทธ์คดีและความเห็นทางกฎหมาย (Attorney Work Product)</h3>
+              <p class="court-sub">จัดทำโดย: ระบบช่วยคิดและปฏิบัติงานคดีของทนายความ (โหมดประหยัดโควตา 1-Call Dual-Output)</p>
             </div>
-            <div class="report-body-content">${formattedHtml}</div>
+            <div id="view-strategy-content" class="report-body-content">${strategyHtml}</div>
+            <div id="view-client-content" class="report-body-content" style="display: none;">${clientHtml}</div>
           </article>
         </div>
       `;
+
+      let currentTab = 'strategy';
+      const tabStrategy = document.getElementById('tab-btn-strategy');
+      const tabClient = document.getElementById('tab-btn-client');
+      const viewStrategy = document.getElementById('view-strategy-content');
+      const viewClient = document.getElementById('view-client-content');
+      const headerTitle = document.getElementById('sheet-header-title');
+
+      tabStrategy.addEventListener('click', () => {
+        currentTab = 'strategy';
+        tabStrategy.classList.add('active');
+        tabClient.classList.remove('active');
+        viewStrategy.style.display = 'block';
+        viewClient.style.display = 'none';
+        if (headerTitle) headerTitle.textContent = 'บันทึกกลยุทธ์คดีและความเห็นทางกฎหมาย (Attorney Work Product)';
+      });
+
+      tabClient.addEventListener('click', () => {
+        currentTab = 'client';
+        tabClient.classList.add('active');
+        tabStrategy.classList.remove('active');
+        viewStrategy.style.display = 'none';
+        viewClient.style.display = 'block';
+        if (headerTitle) headerTitle.textContent = 'รายงานสรุปสถานะคดีและแนวทางสำหรับลูกความ (Client Report)';
+      });
 
       let currentZoom = 100;
       const canvas = document.getElementById('report-canvas');
@@ -1585,12 +1724,35 @@ mark.restored-pii {
         }
       });
 
+      // One-Click LINE Export
+      document.getElementById('btn-copy-line').addEventListener('click', () => {
+        const textToCopy = currentTab === 'client' ? unmaskedClient : unmaskedClient || unmaskedStrategy;
+        const lineFormatted = formatForLine(textToCopy, caseData.title);
+        navigator.clipboard.writeText(lineFormatted).then(() => {
+          showToast('💬 คัดลอกข้อความสำหรับ LINE เรียบร้อยแล้ว (นำไป Paste ส่งได้ทันที)', 'success');
+        }).catch(() => {
+          showToast('ไม่สามารถคัดลอกได้ กรุณาลองใหม่', 'error');
+        });
+      });
+
+      // One-Click Email Export
+      document.getElementById('btn-copy-email').addEventListener('click', () => {
+        const textToCopy = currentTab === 'client' ? unmaskedClient : unmaskedClient || unmaskedStrategy;
+        const emailFormatted = formatForEmail(textToCopy, caseData.title);
+        navigator.clipboard.writeText(emailFormatted).then(() => {
+          showToast('✉️ คัดลอกร่างรายงานสำหรับส่งอีเมลเรียบร้อยแล้ว', 'success');
+        }).catch(() => {
+          showToast('ไม่สามารถคัดลอกได้ กรุณาลองใหม่', 'error');
+        });
+      });
+
+      // General Copy
       document.getElementById('btn-copy').addEventListener('click', () => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = unmasked;
-        const plainText = tempDiv.textContent || tempDiv.innerText || unmasked;
-        navigator.clipboard.writeText(plainText).then(() => {
-          showToast('คัดลอกรายงานลงคลิปบอร์ดแล้ว', 'success');
+        const textToCopy = currentTab === 'strategy' ? unmaskedStrategy : unmaskedClient;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showToast('📋 คัดลอกเนื้อหาหน้านี้ลงคลิปบอร์ดแล้ว', 'success');
+        }).catch(() => {
+          showToast('ไม่สามารถคัดลอกได้ กรุณาลองใหม่', 'error');
         });
       });
 
@@ -1776,7 +1938,7 @@ mark.restored-pii {
             <div class="card fact-confirmed" style="margin-bottom: 0;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <label class="form-label" style="color: var(--success); margin-bottom: 0;">✓ 1. ข้อเท็จจริงที่ยืนยันแล้ว (Proven Facts)</label>
-                <span class="form-hint">มีพยานหลักฐานชัดเจน (สัญญา, แชท, สลิปโอน)</span>
+                <span id="hint-confirmed" class="form-hint">มีหลักฐานชัดเจน (สัญญา, สลิปโอน, โฉนด, แชท)</span>
               </div>
               <textarea id="facts-confirmed" class="form-textarea" rows="3"></textarea>
             </div>
@@ -1784,7 +1946,7 @@ mark.restored-pii {
             <div class="card fact-unknown" style="margin-bottom: 0;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <label class="form-label" style="color: var(--warning); margin-bottom: 0;">? 2. ข้อเท็จจริงที่ยังไม่ทราบ (Unknown Facts)</label>
-                <span class="form-hint">ต้องสืบค้นเพิ่มหรือรอฝ่ายตรงข้ามเปิดเผย</span>
+                <span id="hint-unknown" class="form-hint">ต้องสืบทรัพย์เพิ่ม หรือรอคำให้การจำเลย</span>
               </div>
               <textarea id="facts-unknown" class="form-textarea" rows="3"></textarea>
             </div>
@@ -1792,7 +1954,7 @@ mark.restored-pii {
             <div class="card fact-assumption" style="margin-bottom: 0;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <label class="form-label" style="color: var(--danger); margin-bottom: 0;">! 3. ข้อสันนิษฐาน / สมมติฐาน (Assumptions)</label>
-                <span class="form-hint">สิ่งที่คาดเดา มีความเสี่ยงหากหักล้างไม่ได้</span>
+                <span id="hint-assumptions" class="form-hint">ความเสี่ยงหากถูกหักล้าง</span>
               </div>
               <textarea id="facts-assumptions" class="form-textarea" rows="3"></textarea>
             </div>
@@ -1819,21 +1981,23 @@ mark.restored-pii {
                 <button id="modal-close-x" class="btn btn-sm btn-ghost" style="font-size: 1.2rem;">✕</button>
               </div>
 
-              ${hasCachedReport ? `
-                <div style="padding: 10px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
-                  <strong>⚡ คดีนี้เคยวิเคราะห์ไว้แล้ว</strong> (เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
-                  <div style="margin-top: 4px; color: var(--ink-muted);">
-                    หากไม่ได้แก้ไขข้อเท็จจริง สามารถเปิดดูรายงานเดิมได้ทันทีโดยไม่เสียโควตา Rate Limit
+              <div id="modal-cache-notice-container">
+                ${hasCachedReport ? `
+                  <div style="padding: 10px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
+                    <strong>⚡ คดีนี้เคยวิเคราะห์ไว้แล้ว</strong> (เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                    <div style="margin-top: 4px; color: var(--ink-muted);">
+                      หากไม่ได้แก้ไขข้อเท็จจริง สามารถเปิดดูรายงานเดิมได้ทันทีโดยไม่เสียโควตา Rate Limit
+                    </div>
+                    <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
+                      📄 เปิดดูรายงานที่แคชไว้เดิม (ฟรีทันที)
+                    </button>
                   </div>
-                  <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
-                    📄 เปิดดูรายงานที่แคชไว้เดิม (ฟรีทันที)
-                  </button>
-                </div>
-              ` : `
-                <p style="font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5;">
-                  ระบบจะทำการ <strong>Masking ข้อมูลส่วนบุคคล (ชื่อคู่ความ, เลขบัตร, เลขบัญชี, เบอร์โทร)</strong> ในเครื่องนี้ให้กลายเป็นรหัสลับก่อนส่งไปยัง Google
-                </p>
-              `}
+                ` : `
+                  <p style="font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5;">
+                    ระบบจะทำการ <strong>Masking ข้อมูลส่วนบุคคล (ชื่อคู่ความ, เลขบัตร, เลขบัญชี, เบอร์โทร)</strong> ในเครื่องนี้ให้กลายเป็นรหัสลับก่อนส่งไปยัง Google
+                  </p>
+                `}
+              </div>
 
               <div class="form-group" style="margin-bottom: 12px;">
                 <label class="form-label" for="confirm-model-select">เลือกโมเดล AI ที่ต้องการใช้:</label>
@@ -1921,6 +2085,51 @@ mark.restored-pii {
 
       renderDynamicTriggers();
 
+        // Load Sample & Clear Form event handlers
+  const btnLoadSample = document.getElementById('btn-load-sample');
+  if (btnLoadSample) {
+    btnLoadSample.addEventListener('click', () => {
+      const currentType = document.getElementById('case-type').value;
+      const configKey = getTriggerConfigKey(currentType);
+      const config = CASE_TRIGGERS_CONFIG[configKey] || CASE_TRIGGERS_CONFIG.civil;
+      if (!config.sample) {
+        return showToast('ไม่มีข้อมูลตัวอย่างสำหรับประเภทคดีนี้', 'info');
+      }
+
+      if (confirm(`คุณต้องการโหลดข้อมูลตัวอย่างสำหรับ "${currentType}" ลงในฟอร์มใช่หรือไม่?`)) {
+        document.getElementById('case-title').value = config.sample.title;
+        document.getElementById('case-parties').value = config.sample.parties.map(p => p.label).join('\n');
+        document.getElementById('facts-confirmed').value = config.sample.factsConfirmed.join('\n');
+        document.getElementById('facts-unknown').value = config.sample.factsUnknown.join('\n');
+        document.getElementById('facts-assumptions').value = config.sample.assumptions.join('\n');
+
+        // Set specific triggers if available
+        if (config.sample.specificTriggers) {
+          caseData.specificTriggers = { ...config.sample.specificTriggers };
+          renderDynamicTriggers();
+        }
+
+        showToast(`โหลดตัวอย่าง "${currentType}" เรียบร้อยแล้ว`, 'success');
+      }
+    });
+  }
+
+  const btnClearForm = document.getElementById('btn-clear-form');
+  if (btnClearForm) {
+    btnClearForm.addEventListener('click', () => {
+      if (confirm('คุณต้องการล้างข้อมูลในฟอร์มทั้งหมดใช่หรือไม่?')) {
+        document.getElementById('case-title').value = '';
+        document.getElementById('case-parties').value = '';
+        document.getElementById('facts-confirmed').value = '';
+        document.getElementById('facts-unknown').value = '';
+        document.getElementById('facts-assumptions').value = '';
+        caseData.specificTriggers = {};
+        renderDynamicTriggers();
+        showToast('ล้างข้อมูลเรียบร้อยแล้ว', 'info');
+      }
+    });
+  }
+
       document.getElementById('case-type').addEventListener('change', () => {
         document.querySelectorAll('.trigger-input').forEach(input => {
           const fieldId = input.dataset.triggerId;
@@ -1960,7 +2169,50 @@ mark.restored-pii {
       }
 
       const modal = document.getElementById('analyze-modal');
-      const openModal = () => { gatherData(); modal.style.display = 'flex'; };
+      const openModal = () => {
+        gatherData();
+        const currentHash = computeFactsHash(caseData);
+        const hasCached = !!caseData.aiAnalysis;
+        const isUnchanged = hasCached && caseData.aiAnalysis.factsHash === currentHash;
+        
+        const noticeContainer = document.getElementById('modal-cache-notice-container');
+        if (noticeContainer) {
+          if (isUnchanged) {
+            noticeContainer.innerHTML = `
+              <div style="padding: 10px 12px; background: rgba(34,197,94,0.12); border: 1px solid var(--success); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
+                <strong style="color: var(--success);">⚡ ข้อเท็จจริงคดีนี้ยังไม่มีการแก้ไข</strong> (วิเคราะห์เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                <div style="margin-top: 4px; color: var(--ink-muted); font-size: 0.82rem;">
+                  ข้อมูลตรงกับรายงานที่บันทึกไว้เดิม แนะนำให้เปิดอ่านจากเครื่องเพื่อประหยัดโควตา (0 Quota)
+                </div>
+                <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
+                  📄 เปิดดูรายงานเดิมทันที (ฟรี 0 โควตา)
+                </button>
+              </div>
+            `;
+            document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
+              closeModal();
+              window.location.hash = `#report/${caseData.id}`;
+            });
+          } else if (hasCached) {
+            noticeContainer.innerHTML = `
+              <div style="padding: 10px 12px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
+                <strong>📝 มีการแก้ไขข้อเท็จจริงใหม่</strong> (รายงานเดิมเมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                <div style="margin-top: 4px; color: var(--ink-muted); font-size: 0.82rem;">
+                  คุณสามารถวิเคราะห์ใหม่เพื่ออัปเดตผลลัพธ์ หรือเปิดดูรายงานเดิมได้
+                </div>
+                <button id="modal-open-cached-btn" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%;">
+                  📄 เปิดดูรายงานเดิม (ไม่ต้องวิเคราะห์ใหม่)
+                </button>
+              </div>
+            `;
+            document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
+              closeModal();
+              window.location.hash = `#report/${caseData.id}`;
+            });
+          }
+        }
+        modal.style.display = 'flex';
+      };
       const closeModal = () => { modal.style.display = 'none'; };
 
       document.getElementById('btn-open-analyze-modal').addEventListener('click', openModal);
@@ -2013,11 +2265,22 @@ mark.restored-pii {
           Object.keys(promptMappings).forEach(k => sanitizerMap[k] = promptMappings[k]);
           Object.keys(mappings).forEach(k => sanitizerMap[k] = mappings[k]);
 
+          // Dual-output splitting
+          const separatorRegex = /(?:={3,}\s*CLIENT_REPORT_SEPARATOR\s*={3,}|(?:###|##)\s*\[?ส่วนที่ 2[:\s]+(?:ร่างข้อความ)?รายงานลูกความ)/i;
+          const rawText = res.text || '';
+          const parts = rawText.split(separatorRegex);
+          const strategyPart = (parts[0] || '').trim();
+          const clientPart = (parts.length > 1 ? parts.slice(1).join('\n') : strategyPart).trim();
+          const currentFactsHash = computeFactsHash(caseData);
+
           caseData.aiAnalysis = {
-            rawResponse: res.text,
+            strategyResponse: strategyPart,
+            clientResponse: clientPart,
+            rawResponse: rawText,
             model: res.modelUsed || selectedModel,
             analyzedAt: new Date().toISOString(),
-            tokenUsage: res.tokenUsage
+            tokenUsage: res.tokenUsage,
+            factsHash: currentFactsHash
           };
           caseData.sanitizerMap = sanitizerMap;
           caseData.status = 'reviewed';
