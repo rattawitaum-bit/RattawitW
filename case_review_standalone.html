@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="ระบบช่วยคิดและปฏิบัติงานคดีของทนายความไทย (Single-File Standalone Edition)">
+  <meta name="theme-color" content="#15324e">
+  <title>ระบบช่วยคิดคดี — Case Review (Standalone)</title>
+  <style>
+/* ─── Root Variables & Theme Tokens ─── */
+:root, [data-theme="light"] {
+  --bg: #f5f2eb;
+  --card-bg: #ffffff;
+  --card-border: #e0d9cc;
+  --card-shadow: 0 2px 8px rgba(23, 50, 77, 0.05);
+  --ink: #1b2430;
+  --ink-muted: #536273;
+  --ink-faint: #8896a6;
+  --navy: #15324e;
+  --navy-hover: #0d2236;
+  --gold: #b38226;
+  --line: #e2ddd3;
+  --success: #1e7e44;
+  --danger: #b52b27;
+  --warning: #c26910;
+  --report-sheet-bg: #ffffff;
+  --report-text: #17212d;
+  --report-border: #d8d1c2;
+  --report-meta-bg: #eae5da;
+  --pii-bg: #ffe066;
+  --pii-text: #1a1a1a;
+  --pii-border: #d4a72c;
+  --max: 900px;
+  --fs: 16px;
+  --radius: 8px;
+}
+
+[data-theme="dark"] {
+  --bg: #0e131a;
+  --card-bg: #161d27;
+  --card-border: #263242;
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --ink: #f0f4f8;
+  --ink-muted: #94a3b8;
+  --ink-faint: #64748b;
+  --navy: #3b82f6;
+  --navy-hover: #2563eb;
+  --gold: #f59e0b;
+  --line: #263242;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --report-sheet-bg: #161d27;
+  --report-text: #f1f5f9;
+  --report-border: #334155;
+  --report-meta-bg: #1e2736;
+  --pii-bg: #d97706;
+  --pii-text: #ffffff;
+  --pii-border: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e131a;
+    --card-bg: #161d27;
+    --card-border: #263242;
+    --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --ink: #f0f4f8;
+    --ink-muted: #94a3b8;
+    --ink-faint: #64748b;
+    --navy: #3b82f6;
+    --navy-hover: #2563eb;
+    --gold: #f59e0b;
+    --line: #263242;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --report-sheet-bg: #161d27;
+    --report-text: #f1f5f9;
+    --report-border: #334155;
+    --report-meta-bg: #1e2736;
+    --pii-bg: #d97706;
+    --pii-text: #ffffff;
+    --pii-border: #f59e0b;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Sarabun", "Leelawadee UI", "Tahoma", sans-serif;
+  font-size: var(--fs);
+  color: var(--ink);
+  background-color: var(--bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  background-color: var(--navy);
+  color: #ffffff;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.top-bar-inner {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  max-width: var(--max);
+  margin: 0 auto;
+  gap: 0.75rem;
+}
+
+.top-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+}
+.top-bar-brand:hover { opacity: 0.9; }
+
+.brand-icon { font-size: 1.25em; }
+.brand-text { font-size: 0.98rem; letter-spacing: 0.3px; }
+
+.top-bar-title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+  color: rgba(255,255,255,0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar-actions { display: flex; gap: 0.35rem; }
+
+.main-content {
+  flex-grow: 1;
+  padding: 0.85rem 0.85rem 4rem;
+  max-width: var(--max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .main-content { padding-bottom: 2rem; }
+}
+
+.nav-desktop { display: none; }
+@media (min-width: 768px) {
+  .nav-desktop { display: inline-flex; }
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--card-bg);
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-around;
+  padding: 0.35rem 0 0.45rem;
+  z-index: 99;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+}
+
+@media (min-width: 768px) {
+  .bottom-nav { display: none; }
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 0.25rem 1rem;
+  font-family: inherit;
+  border-radius: 6px;
+}
+
+.nav-item.active { color: var(--navy); font-weight: bold; }
+.nav-icon { font-size: 1.2rem; }
+.nav-label { font-size: 0.72rem; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  font-family: inherit;
+  line-height: 1.3;
+}
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.82rem; }
+
+.btn-primary { background-color: var(--navy); color: #ffffff; }
+.btn-primary:hover:not(:disabled) { background-color: var(--navy-hover); }
+
+.btn-secondary { background-color: transparent; border-color: var(--card-border); color: var(--ink); }
+.btn-secondary:hover:not(:disabled) { background-color: var(--card-border); }
+
+.btn-danger { background-color: var(--danger); color: #ffffff; }
+.btn-ghost { background: transparent; color: var(--ink); border: none; }
+
+.card {
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  padding: 0.85rem 1rem;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 0.75rem;
+  color: var(--ink);
+}
+
+.form-group { margin-bottom: 0.65rem; }
+.form-label { display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.88rem; color: var(--ink); }
+.form-hint { font-size: 0.78rem; color: var(--ink-muted); margin-top: 0.2rem; }
+.form-hint a { color: var(--navy); text-decoration: none; font-weight: 600; }
+
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.92rem;
+  background-color: var(--card-bg);
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.fact-confirmed { border-left: 4px solid var(--success); }
+.fact-unknown { border-left: 4px solid var(--warning); }
+.fact-assumption { border-left: 4px solid var(--danger); }
+
+mark.restored-pii {
+  background-color: var(--pii-bg);
+  color: var(--pii-text);
+  border: 1px solid var(--pii-border);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-style: normal;
+  display: inline-block;
+}
+
+.local-security-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background-color: rgba(30, 126, 68, 0.08);
+  border: 1px solid rgba(30, 126, 68, 0.3);
+  border-radius: var(--radius);
+  margin-bottom: 0.85rem;
+}
+
+/* ─── Report Styles ─── */
+.report-view-wrapper { max-width: 880px; margin: 0 auto; }
+.report-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.report-header-info .back-link { font-size: 0.8rem; color: var(--ink-muted); text-decoration: none; font-weight: 600; }
+.report-main-title { font-size: 1.25rem; color: var(--ink); font-weight: 700; margin: 0; }
+.report-actions { display: flex; align-items: center; gap: 0.4rem; }
+
+.font-zoom-ctrl {
+  display: flex;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.report-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding: 0.5rem 0.85rem;
+  background-color: var(--report-meta-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  margin-bottom: 0.85rem;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+.meta-item { display: flex; align-items: center; gap: 0.35rem; }
+.meta-label { color: var(--ink-muted); }
+.meta-value { font-weight: 600; }
+.meta-badge { background: var(--navy); color: white; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+.meta-badge-secure { background: var(--success); color: white; padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+
+.report-document-sheet {
+  background-color: var(--report-sheet-bg);
+  color: var(--report-text);
+  border: 1px solid var(--report-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--card-shadow);
+  line-height: 1.6;
+}
+
+.court-document-header { text-align: center; border-bottom: 2px solid var(--gold); padding-bottom: 0.75rem; margin-bottom: 1rem; }
+.court-crest { font-size: 2rem; display: block; }
+.court-document-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--ink); }
+.court-sub { font-size: 0.78rem; color: var(--ink-muted); }
+
+.tier-card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+  background-color: var(--card-bg);
+}
+.tier-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  background-color: var(--report-meta-bg);
+  border-bottom: 1px solid var(--card-border);
+}
+.tier-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background-color: var(--navy);
+  color: white;
+  white-space: nowrap;
+}
+.tier-title { font-size: 1.02rem; font-weight: 700; color: var(--ink); margin: 0; }
+.tier-card-body { padding: 0.85rem 1rem; }
+
+.tier-1 { border-top: 3px solid var(--navy); }
+.tier-2 { border-top: 3px solid var(--success); }
+.tier-2 .tier-badge { background-color: var(--success); }
+.tier-3 { border-top: 3px solid var(--warning); }
+.tier-3 .tier-badge { background-color: var(--warning); }
+.tier-4 { border-top: 3px solid #f97316; }
+.tier-4 .tier-badge { background-color: #f97316; }
+.tier-5 { border-top: 3px solid var(--danger); }
+.tier-5 .tier-badge { background-color: var(--danger); }
+
+.report-bullet-list, .report-numbered-list { margin-left: 1.35rem; margin-bottom: 0.5rem; }
+.report-bullet-list li, .report-numbered-list li { margin-bottom: 0.35rem; color: var(--ink); }
+.report-paragraph { margin-bottom: 0.5rem; }
+.report-divider { border: 0; height: 1px; background: var(--line); margin: 1rem 0; }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.modal-box {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  max-width: 480px;
+  width: 100%;
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  color: var(--ink);
+}
+.modal-info-box {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  background-color: var(--report-meta-bg);
+  border-radius: var(--radius);
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 70px;
+  right: 15px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (min-width: 768px) { .toast-container { bottom: 20px; } }
+
+.toast {
+  background-color: var(--navy);
+  color: #ffffff;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+}
+.toast-error { background-color: var(--danger); }
+.toast-success { background-color: var(--success); }
+.toast-warning { background-color: var(--warning); color: white; }
+
+.tab-bar { display: flex; border-bottom: 1px solid var(--card-border); margin-bottom: 0.75rem; }
+.tab-item { padding: 0.45rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.85rem; }
+.tab-item.active { border-bottom-color: var(--navy); font-weight: bold; color: var(--navy); }
+
+.badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.empty-state { text-align: center; padding: 2rem 1rem; color: var(--ink-muted); }
+
+.loading-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-radius: 50%;
+  border-top-color: var(--navy);
+  animation: spin 0.8s ease-in-out infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media print {
+  .top-bar, .bottom-nav, .no-print, .toast-container, .btn, .modal-overlay { display: none !important; }
+  body { background: #ffffff !important; color: #000000 !important; }
+  .report-document-sheet { box-shadow: none !important; border: none !important; padding: 0 !important; color: #000000 !important; }
+  .tier-card { border: 1px solid #999 !important; page-break-inside: avoid; margin-bottom: 1rem !important; }
+  mark.restored-pii { background: transparent !important; border-bottom: 1px dotted #000 !important; color: #000 !important; }
+}
+  </style>
+</head>
+<body>
+  <!-- ─── Top Bar ─── -->
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="top-bar-brand" onclick="window.location.hash='#dashboard'" title="กลับหน้าแรก (Dashboard)">
+        <span class="brand-icon">⚖️</span>
+        <span class="brand-text">Case Review</span>
+      </div>
+      <h1 class="top-bar-title" id="page-title">คดีทั้งหมด</h1>
+      <div class="top-bar-actions">
+        <button class="btn btn-ghost btn-sm nav-desktop" data-route="settings" title="ตั้งค่า">⚙️ ตั้งค่า</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Main Content Area ─── -->
+  <main id="main-content" class="main-content">
+    <div class="loading-spinner" aria-label="กำลังโหลด..."></div>
+  </main>
+
+  <!-- ─── Bottom Navigation (Mobile) ─── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-route="dashboard">
+      <span class="nav-icon">📂</span>
+      <span class="nav-label">คดี</span>
+    </button>
+    <button class="nav-item" data-route="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">ตั้งค่า</span>
+    </button>
+  </nav>
+
+  <!-- ─── Toast Container ─── -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ─── Standalone Script (No External Dependencies) ─── -->
+  <script>
+    /* ==========================================================================
+       EMBEDDED CONFIGURATION & STATE
+       ========================================================================== */
+    const EMBEDDED_API_KEY = "AIzaSyBBwDFN6OxJ7jLXUXoWIy4puie5_EJKFcg";
+    const SETTINGS_KEY = 'caseReview_standalone_settings';
+
+    const DEFAULT_SETTINGS = {
+      apiKey: EMBEDDED_API_KEY,
+      selectedModel: 'gemini-3.8-flash',
+      theme: 'auto',
+      fontSize: 16
+    };
+
+    let currentSettings = { ...DEFAULT_SETTINGS };
+
+    try {
+      const stored = localStorage.getItem(SETTINGS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (!parsed.apiKey) parsed.apiKey = EMBEDDED_API_KEY;
+        currentSettings = { ...DEFAULT_SETTINGS, ...parsed };
+      } else {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
+      }
+    } catch (e) {
+      console.error('Failed to load settings', e);
+    }
+
+    function getSettings() { return { ...currentSettings }; }
+
+    function updateSettings(partial) {
+      currentSettings = { ...currentSettings, ...partial };
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(currentSettings));
+      } catch (e) {}
+      applyTheme();
+    }
+
+    function applyTheme() {
+      const { theme, fontSize } = currentSettings;
+      if (theme === 'auto') {
+        const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+      document.documentElement.style.fontSize = `${fontSize || 16}px`;
+    }
+
+    /* ==========================================================================
+       TOAST NOTIFICATIONS
+       ========================================================================== */
+    function showToast(message, type = 'info') {
+      let container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      let icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+      toast.innerHTML = `<span style="margin-right:8px">${icon}</span> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 250);
+      }, 3200);
+    }
+
+    /* ==========================================================================
+       INDEXEDDB LOCAL STORAGE
+       ========================================================================== */
+    const DB_NAME = 'caseReviewStandaloneDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'cases';
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            store.createIndex('updatedAt', 'updatedAt', { unique: false });
+          }
+        };
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+      });
+    }
+
+    async function putCase(caseData) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put(caseData);
+        req.onsuccess = () => resolve(caseData.id);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function getCase(id) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(id);
+        req.onsuccess = (e) => resolve(e.target.result || null);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function getAllCases() {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAll();
+        req.onsuccess = (e) => {
+          const cases = e.target.result || [];
+          cases.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+          resolve(cases);
+        };
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function deleteCase(id) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    /* ==========================================================================
+       REVERSIBLE PII SANITIZER (Masking / Unmasking Engine)
+       ========================================================================== */
+    const PII_PATTERNS = [
+      { type: 'citizen_id', tokenPrefix: 'CITIZEN_ID', regex: /[1-8]\s?[-–]?\s?\d{4}\s?[-–]?\s?\d{5}\s?[-–]?\s?\d{2}\s?[-–]?\s?\d{1}/g },
+      { type: 'bank_account', tokenPrefix: 'BANK_ACCT', regex: /\d{3}\s?[-–]?\s?\d{1}\s?[-–]?\s?\d{5}\s?[-–]?\s?\d{1}/g },
+      { type: 'phone', tokenPrefix: 'PHONE', regex: /0[2-9]\d\s?[-–.]?\s?\d{3,4}\s?[-–.]?\s?\d{4}/g },
+      { type: 'address', tokenPrefix: 'ADDRESS', regex: /\d{1,4}[\/\-]?\d{0,4}\s+(?:หมู่|ซอย|ซ\.|ถนน|ถ\.|ตำบล|ต\.|อำเภอ|อ\.|แขวง|เขต|จังหวัด|จ\.)[\u0E00-\u0E7F\w\s\/\-,\.]{10,80}/g }
+    ];
+
+    function sanitize(text, parties = []) {
+      let sanitizedText = text || '';
+      const mappings = {};
+      const counters = { party: 0, citizen_id: 0, bank_account: 0, phone: 0, address: 0 };
+      const valueToToken = new Map();
+
+      const sortedParties = [...parties].filter(p => p.label?.trim()).sort((a, b) => b.label.length - a.label.length);
+      const labelChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+      sortedParties.forEach(party => {
+        let token = valueToToken.get(party.label);
+        if (!token) {
+          const lbl = counters.party < labelChars.length ? labelChars[counters.party] : `PARTY_${counters.party}`;
+          token = `[PARTY_${lbl}]`;
+          counters.party++;
+          valueToToken.set(party.label, token);
+          mappings[token] = party.label;
+        }
+        const escaped = party.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        sanitizedText = sanitizedText.replace(new RegExp(escaped, 'g'), token);
+      });
+
+      PII_PATTERNS.forEach(({ type, tokenPrefix, regex }) => {
+        sanitizedText = sanitizedText.replace(regex, (match) => {
+          let token = valueToToken.get(match);
+          if (!token) {
+            counters[type]++;
+            token = `[${tokenPrefix}_${counters[type]}]`;
+            valueToToken.set(match, token);
+            mappings[token] = match;
+          }
+          return token;
+        });
+      });
+
+      return { sanitizedText, mappings, counters };
+    }
+
+    function unsanitize(text, mappings) {
+      if (!text || !mappings) return text || '';
+      let result = text;
+      const sortedTokens = Object.keys(mappings).sort((a, b) => b.length - a.length);
+      sortedTokens.forEach(token => {
+        const original = mappings[token];
+        const replacement = `<mark class="restored-pii" title="ข้อมูลที่ถูก unmask">${original}</mark>`;
+        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp(escaped, 'g'), replacement);
+      });
+      return result;
+    }
+
+    function buildSanitizedFactsText(caseFacts, parties) {
+      let fullText = '';
+      if (caseFacts) {
+        if (Array.isArray(caseFacts.confirmed) && caseFacts.confirmed.length > 0) {
+          fullText += "ข้อเท็จจริงที่ยืนยันแล้ว:\n" + caseFacts.confirmed.map((f, i) => `${i+1}. ${f.text || f}`).join('\n') + "\n\n";
+        }
+        if (Array.isArray(caseFacts.unknown) && caseFacts.unknown.length > 0) {
+          fullText += "ข้อเท็จจริงที่ยังไม่ทราบ:\n" + caseFacts.unknown.map((f, i) => `${i+1}. ${f.text || f}`).join('\n') + "\n\n";
+        }
+        if (Array.isArray(caseFacts.assumptions) && caseFacts.assumptions.length > 0) {
+          fullText += "ข้อสันนิษฐาน:\n" + caseFacts.assumptions.map((f, i) => `${i+1}. ${f.text || f}`).join('\n') + "\n\n";
+        }
+      }
+      return sanitize(fullText.trim(), parties);
+    }
+
+    /* ==========================================================================
+       CASE LABELS & ADAPTIVE TRIGGERS CONFIG
+       ========================================================================== */
+    const CASE_TYPE_LABELS = {
+      civil: 'แพ่ง (ทั่วไป/สัญญา/ละเมิด)',
+      labor: 'แรงงาน (เลิกจ้าง/ค่าชดเชย)',
+      criminal: 'อาญา',
+      family: 'ครอบครัว/มรดก',
+      admin: 'ปกครอง',
+      bankruptcy: 'ล้มละลาย/ฟื้นฟูกิจการ',
+      ip: 'ทรัพย์สินทางปัญญา/การค้าระหว่างประเทศ',
+      other: 'อื่นๆ'
+    };
+
+    const CASE_TRIGGERS_CONFIG = {
+      labor: {
+        key: 'labor',
+        title: '⚙️ จุดชี้ขาดเฉพาะคดีแรงงาน (Labor Law Triggers)',
+        badge: 'ม.118 / ม.119 พ.ร.บ.คุ้มครองแรงงาน',
+        fields: [
+          { id: 'tenure', label: 'อายุงานรวมของลูกจ้าง', type: 'text', placeholder: 'เช่น 3 ปี 5 เดือน (เริ่ม 1 ม.ค. 65 - เลิกจ้าง 1 มิ.ย. 68)' },
+          { id: 'lastWage', label: 'อัตราค่าจ้างเดือนสุดท้าย (บาท/เดือน)', type: 'number', placeholder: 'เช่น 45000' },
+          { id: 'noticeGiven', label: 'การบอกกล่าวล่วงหน้า (ม.17 สินจ้างแทนการบอกกล่าว)', type: 'select', options: ['บอกกล่าวล่วงหน้าถูกต้องตามรอบค่าจ้างแล้ว', 'เลิกจ้างทันที/กะทันหัน โดยไม่บอกกล่าวล่วงหน้า (มีสิทธิเรียกค่าตกใจ)', 'ยังไม่แน่ชัด'] },
+          { id: 'severanceStatus', label: 'สถานะเงินชดเชยการเลิกจ้าง (ม.118)', type: 'select', options: ['นายจ้างปฏิเสธการจ่ายค่าชดเชยทั้งหมด', 'นายจ้างจ่ายแล้วบางส่วน', 'ยังตกลงกันไม่ได้'] },
+          { id: 'warningLetter', label: 'หนังสือเตือนเป็นลายลักษณ์อักษร (ม.119)', type: 'select', options: ['ไม่มีหนังสือเตือนเป็นลายลักษณ์อักษรมาก่อน', 'เคยมีหนังสือเตือน (ยังไม่พ้น 1 ปี)', 'นายจ้างอ้างว่าทำผิดร้ายแรงโดยไม่ต้องเตือน'] },
+          { id: 'unfairDismissal', label: 'ประเด็นการเลิกจ้างไม่เป็นธรรม (พ.ร.บ.จัดตั้งศาลแรงงาน ม.49)', type: 'select', options: ['ลูกจ้างประสงค์เรียกค่าเสียหายจากการเลิกจ้างไม่เป็นธรรม', 'เรียกเฉพาะเงินตามสิทธิกฎหมาย (ชดเชย/บอกกล่าว)', 'ยังไม่แน่ชัด'] }
+        ],
+        placeholders: {
+          confirmed: 'ระบุข้อเท็จจริงที่มีหลักฐาน เช่น:\n- สัญญาจ้างงาน / สลิปเงินเดือนย้อนหลัง 3 เดือน\n- วันที่เริ่มงานและวันที่ได้รับหนังสือเลิกจ้าง\n- ข้อความที่นายจ้างอ้างในหนังสือเลิกจ้าง',
+          unknown: 'ระบุข้อเท็จจริงที่ยังไม่ทราบ เช่น:\n- นายจ้างมีข้อบังคับการทำงานผ่านการรับรองหรือไม่\n- ข้อมูลการประเมินผลงาน (KPI) ย้อนหลังในระบบ',
+          assumptions: 'ระบุข้อสันนิษฐาน เช่น:\n- สันนิษฐานว่าการเลิกจ้างเกิดจากความขัดแย้งส่วนบุคคล มิใช่เพราะผลงานบกพร่อง'
+        }
+      },
+      criminal: {
+        key: 'criminal',
+        title: '⚖️ จุดชี้ขาดเฉพาะคดีอาญา (Criminal Law Triggers)',
+        badge: 'ป.วิ.อ. / ภาระการพิสูจน์',
+        fields: [
+          { id: 'offenseType', label: 'ลักษณะความผิด', type: 'select', options: ['ความผิดต่อส่วนตัว (ยอมความได้ - ต้องร้องทุกข์ใน 3 เดือน)', 'ความผิดอาญาแผ่นดิน (ยอมความไม่ได้)', 'ไม่แน่ชัด'] },
+          { id: 'incidentDetail', label: 'วันเวลาและสถานที่เกิดเหตุ', type: 'text', placeholder: 'เช่น 15 ก.ค. 2569 เวลา 21.00 น. ริมถนน...' },
+          { id: 'knowledgeDate', label: 'วันที่รู้เรื่องความผิดและรู้ตัวผู้กระทำ (สำหรับนับ 3 เดือน)', type: 'date' },
+          { id: 'policeStatus', label: 'สถานะการดำเนินคดีชั้นสอบสวน', type: 'select', options: ['แจ้งความร้องทุกข์ต่อพนักงานสอบสวนแล้ว (มี ปจว.)', 'ยังไม่ได้แจ้งความร้องทุกข์', 'ประสงค์ฟ้องตรงต่อศาล (ไต่สวนมูลฟ้อง)'] },
+          { id: 'civilClaim44_1', label: 'การเรียกร้องค่าสินไหมแพ่งเกี่ยวเนื่องอาญา (ม.44/1)', type: 'select', options: ['ประสงค์ยื่นคำร้อง ม.44/1 ขอค่าสินไหมทดแทน (ไม่เสียค่าขึ้นศาล)', 'ไม่มีข้อเรียกร้องทางแพ่ง', 'ยังไม่ได้ตัดสินใจ'] }
+        ],
+        placeholders: {
+          confirmed: 'ระบุข้อเท็จจริงที่มีหลักฐาน เช่น:\n- บันทึกประจำวันข้อความคำให้การผู้เสียหาย\n- ภาพบันทึกจากกล้องวงจรปิด / ใบรับรองแพทย์แสดงบาดแผล\n- พยานบุคคลที่เห็นเหตุการณ์โดยตรง',
+          unknown: 'ระบุข้อเท็จจริงที่ต้องสืบหา เช่น:\n- ผลตรวจดีเอ็นเอ/ลายนิ้วมือแฝงจากกองพิสูจน์หลักฐาน\n- ประวัติอาชญากรรมของผู้ต้องหาในระบบสำนักงานตำรวจแห่งชาติ',
+          assumptions: 'ระบุข้อสันนิษฐาน เช่น:\n- สันนิษฐานว่าผู้ต้องหากระทำโดยมีเจตนาฆ่าโดยไตร่ตรองไว้ก่อน มิใช่บันดาลโทสะ'
+        }
+      },
+      civil: {
+        key: 'civil',
+        title: '📄 จุดชี้ขาดเฉพาะคดีแพ่ง / สัญญา / ละเมิด (Civil Law Triggers)',
+        badge: 'ป.พ.พ. / นิติกรรม-สัญญา-ละเมิด',
+        fields: [
+          { id: 'claimAmount', label: 'ทุนทรัพย์ที่เรียกร้อง (บาท)', type: 'number', placeholder: 'เช่น 650000' },
+          { id: 'noticeStatus', label: 'การส่งหนังสือบอกกล่าวทวงถาม (Notice)', type: 'select', options: ['ส่งหนังสือทวงถามพร้อมใบตอบรับไปรษณีย์แล้ว (มีหลักฐานผู้รับ)', 'ส่งทวงถามทางแชท/ไลน์/อีเมลแล้ว', 'ยังไม่ได้มีหนังสือบอกกล่าวทวงถาม'] },
+          { id: 'defaultDate', label: 'วันผิดนัด / วันครบกำหนดชำระหนี้ (คิดดอกเบี้ย)', type: 'date' },
+          { id: 'limitationPeriod', label: 'กรอบอายุความของสิทธิเรียกร้อง', type: 'select', options: ['10 ปี (อายุความทั่วไป/สัญญาทั่วไป)', '5 ปี (ดอกเบี้ยค้างชำระ/ค่าเช่า)', '2 ปี (ค่าสินค้า/การค้าของผู้ประกอบการ/ค่าจ้างแรงงาน)', '1 ปี (มูลละเมิดนับแต่วันรู้ตัวและรู้การละเมิด)', 'อื่นๆ / ไม่แน่ชัด'] }
+        ],
+        placeholders: {
+          confirmed: 'ระบุข้อเท็จจริงที่มีหลักฐาน เช่น:\n- สัญญาลงลายมือชื่อคู่สัญญาครบถ้วน\n- หลักฐานการส่งมอบสินค้า / สลิปโอนเงินเข้าบัญชีคู่สัญญา\n- หนังสือบอกกล่าวทวงถามพร้อมใบตอบรับไปรษณีย์',
+          unknown: 'ระบุข้อเท็จจริงที่ต้องสืบหา เช่น:\n- จำเลยยังเปิดดำเนินการอยู่หรือไม่ หรือปิดหนีไปแล้ว\n- ทรัพย์สินที่มีชื่อจำเลยถือครองในกรมที่ดินหรือบัญชีธนาคาร',
+          assumptions: 'ระบุข้อสันนิษฐาน เช่น:\n- จำเลยมีเจตนาจงใจผิดนัดและมีพฤติการณ์ยักย้ายถ่ายเททรัพย์สิน'
+        }
+      },
+      family: {
+        key: 'family',
+        title: '👨‍👩‍👧 จุดชี้ขาดเฉพาะคดีครอบครัว / มรดก (Family & Succession Triggers)',
+        badge: 'ป.พ.พ. บรรพ 5 และ 6',
+        fields: [
+          { id: 'marriageStatus', label: 'สถานะการจดทะเบียนสมรส', type: 'select', options: ['จดทะเบียนสมรสถูกต้องตามกฎหมาย', 'ไม่ได้จดทะเบียนสมรส (อยู่กินฉันสามีภริยา)', 'จดทะเบียนหย่าแล้ว'] },
+          { id: 'disputeCore', label: 'ประเด็นพิพาทหลัก', type: 'select', options: ['แบ่งสินสมรสและหนี้สินร่วม', 'ฟ้องหย่าและเรียกค่าทดแทน', 'การจัดการมรดกและแบ่งทรัพย์มรดก', 'อำนาจปกครองบุตรและค่าอุปการะเลี้ยงดู'] },
+          { id: 'willExists', label: 'พินัยกรรมของผู้ตาย (กรณีคดีมรดก)', type: 'select', options: ['ไม่มีพินัยกรรม (แบ่งตามทายาทโดยธรรม)', 'มีพินัยกรรมทำถูกต้องตามแบบ', 'มีพินัยกรรมแต่มีข้อพิพาทเรื่องความสมบูรณ์', 'ไม่เกี่ยวกับคดีมรดก'] }
+        ],
+        placeholders: {
+          confirmed: 'ระบุข้อเท็จจริงที่มีหลักฐาน เช่น:\n- ทะเบียนสมรส / สูติบัตรบุตร / ทะเบียนบ้าน\n- โฉนดที่ดิน บัญชีเงินฝาก ทรัพย์สินที่ได้มาระหว่างสมรส\n- มรณบัตรและบัญชีเครือญาติผู้ตาย',
+          unknown: 'ระบุข้อเท็จจริงที่ต้องสืบหา เช่น:\n- บัญชีเงินฝากลับหรือทรัพย์สินอื่นที่อีกฝ่ายปกปิดไว้\n- หนี้สินที่อีกฝ่ายก่อขึ้นว่าเป็นหนี้ร่วมหรือหนี้ส่วนตัว',
+          assumptions: 'ระบุข้อสันนิษฐาน เช่น:\n- สันนิษฐานว่าที่ดินแปลงนี้ซื้อด้วยเงินส่วนตัวที่ได้รับมรดกมาก่อนสมรส'
+        }
+      },
+      admin: {
+        key: 'admin',
+        title: '🏛️ จุดชี้ขาดเฉพาะคดีปกครอง (Administrative Law Triggers)',
+        badge: 'พ.ร.บ.จัดตั้งศาลปกครองฯ',
+        fields: [
+          { id: 'adminOrderDate', label: 'วันที่ได้รับแจ้งคำสั่งทางปกครอง', type: 'date' },
+          { id: 'appealStatus', label: 'การอุทธรณ์ภายในขั้นตอนของหน่วยงาน', type: 'select', options: ['อุทธรณ์คำสั่งครบถ้วนตามขั้นตอนแล้ว และได้รับแจ้งผลยกอุทธรณ์', 'ยื่นอุทธรณ์แล้วแต่หน่วยงานเงียบเกินกำหนดเวลา', 'ยังไม่ได้ยื่นอุทธรณ์ภายในหน่วยงาน (เสี่ยงศาลไม่รับฟ้อง)'] },
+          { id: 'deadlineCheck', label: 'กรอบเวลาฟ้องศาลปกครอง', type: 'select', options: ['ภายใน 90 วัน นับแต่วันที่รู้ผลอุทธรณ์ (ม.49)', 'ภายใน 1 ปี (กรณีสัญญาทางปกครองหรือละเมิดทางปกครอง)', 'ไม่แน่ชัด'] }
+        ],
+        placeholders: {
+          confirmed: 'ระบุข้อเท็จจริงที่มีหลักฐาน เช่น:\n- คำสั่งทางปกครองที่เป็นเหตุพิพาทและหลักฐานการรับแจ้ง\n- หนังสือยื่นอุทธรณ์คำสั่งและหนังสือแจ้งผลการวินิจฉัยอุทธรณ์\n- กฎกระทรวง ระเบียบ หรือข้อบังคับที่หน่วยงานอ้างอิง',
+          unknown: 'ระบุข้อเท็จจริงที่ต้องสืบหา เช่น:\n- บันทึกการประชุมหรือรายงานการสอบสวนภายในของหน่วยงานปกครอง',
+          assumptions: 'ระบุข้อสันนิษฐาน เช่น:\n- คำสั่งทางปกครองออกโดยไม่รับฟังคู่กรณีตาม ม.30 พ.ร.บ.วิธีปฏิบัติราชการทางปกครอง'
+        }
+      }
+    };
+
+    function getTriggerConfigKey(caseTypeString) {
+      if (!caseTypeString) return 'civil';
+      if (caseTypeString.includes('แรงงาน')) return 'labor';
+      if (caseTypeString.includes('อาญา')) return 'criminal';
+      if (caseTypeString.includes('ครอบครัว') || caseTypeString.includes('มรดก')) return 'family';
+      if (caseTypeString.includes('ปกครอง')) return 'admin';
+      return 'civil';
+    }
+
+    function buildSystemInstruction() {
+      return `คุณคือ "ที่ปรึกษากฎหมายอาวุโสและหัวหน้าทีมคดีความ (Senior Litigation Strategist)" ในระบบกฎหมายไทย ทำหน้าที่ช่วยทนายความตรวจทานข้อเท็จจริง วางรูปคดี และประเมินความเสี่ยงก่อนยื่นฟ้องหรือสู้คดีในศาลไทย
+
+หลักการสำคัญและกฎเหล็ก:
+1. การรักษาความลับ (PII Preservation): ข้อความที่ได้รับอาจมี Token เช่น [PARTY_A], [CITIZEN_ID_1], [BANK_ACCT_1] แทนข้อมูลจริง — ห้ามเดาหรือแปลงชื่อ ให้ใช้ Token เหล่านั้นตามรูปเดิม 100%
+2. กฎการสวมบทบาททนายฝ่ายตรงข้าม (Contrary Analysis): ต้องวิเคราะห์ "จุดอ่อนของคดี" อย่างน้อย 3 จุด โดยมองจากมุมมองของทนายความฝ่ายตรงข้ามที่มีความเชี่ยวชาญ ค้นหาช่องโหว่ทางพยานหลักฐาน ภาระการพิสูจน์ (Burden of Proof) และประเด็นข้อต่อสู้
+3. การอ้างอิงกฎหมาย: ให้อ้างอิง "หลักการกฎหมาย" และ "แนวคำพิพากษาศาลฎีกาเชิงหลักการ" ห้ามเดาหรือระบุเลขมาตราเฉพาะเจาะจง เพราะกฎหมายอาจมีการแก้ไขเพิ่มเติม
+4. การจัดรูปแบบ: ต้องใช้ภาษาไทยที่เป็นทางการ กระชับ เป็นข้อๆ (Bullet points ชัดเจน) และแบ่งโครงสร้างตาม 5 ชั้นบังคับนี้เท่านั้น:
+
+## ชั้นที่ 1: สรุปภาพรวมและสารัตถะคดี (Case Summary & Cause of Action)
+* **ประเภทคดีและมูลแห่งคดี:** วิเคราะห์มูลความแห่งหนี้/ข้อพิพาทหลัก (สัญญา, ละเมิด, สิทธิเรียกร้อง)
+* **สถานะคู่ความ:** [PARTY_A], [PARTY_B] และความเกี่ยวพันตามกฎหมาย
+* **เป้าหมายทางคดี:** สิ่งที่ฝ่ายเราต้องการบรรลุ และกรอบอายุความ/เงื่อนไขก่อนฟ้อง (เช่น หนังสือบอกกล่าวทวงถาม)
+
+## ชั้นที่ 2: วิเคราะห์พยานหลักฐานและข้อเท็จจริงที่ยืนยันแล้ว (Proven Facts & Evidence Weight)
+* **น้ำหนักพยานหลักฐาน:** ประเมินความน่าเชื่อถือของพยานเอกสาร/พยานวัตถุที่มีอยู่ ว่าเพียงพอต่อการรับฟังของศาลตาม ป.วิ.พ. / ป.วิ.อ. หรือไม่
+* **ภาระการพิสูจน์ (Burden of Proof):** ชี้ชัดว่าฝ่ายเรามีภาระการพิสูจน์ในประเด็นใดบ้าง และหลักฐานปัจจุบันปิดจุดตายของคดีได้หรือไม่
+
+## ชั้นที่ 3: แผนจัดการข้อเท็จจริงที่ยังไม่ทราบ (Discovery Plan & Missing Elements)
+* **ข้อเท็จจริงสำคัญที่ขาดหาย:** ประเด็นที่ยังคลุมเครือหรือยังไม่มีหลักฐานลายลักษณ์อักษร
+* **แนวทางรวบรวมพยานหลักฐาน (Actionable Discovery):** วิธีการสืบหาเพิ่มเติม เช่น ขอหมายเรียกพยานเอกสารจากหน่วยงานรัฐ, สเตทเมนต์ธนาคาร, หรือพยานบุคคล
+
+## ชั้นที่ 4: การประเมินความเสี่ยงจากข้อสันนิษฐาน (Risk Assessment on Assumptions)
+* **จุดสมมติฐานที่เสี่ยง:** หากข้อสันนิษฐานหรือสิ่งที่ลูกความบอกเล่าไม่เป็นความจริง หรือถูกฝ่ายตรงข้ามหักล้าง จะส่งผลกระทบต่อรูปคดีอย่างไร
+* **แผนสำรอง (Contingency / Fallback Plan):** แนวทางการปรับรูปฟ้องหรือรูปคำให้การหากพยานหลักฐานไม่เป็นไปตามคาด
+
+## ชั้นที่ 5: การวิเคราะห์จุดอ่อน (Contrary Analysis — สวมบททนายฝ่ายตรงข้าม)
+* **จุดอ่อนที่ 1 (ประเด็นข้อต่อสู้หลัก):** ข้อโต้แย้งที่ฝ่ายตรงข้ามจะยกขึ้นหักล้าง พร้อมแนวทางตั้งรับ/แก้ข้อต่อสู้
+* **จุดอ่อนที่ 2 (ความบกพร่องของพยานหลักฐาน):** ช่องโหว่ของหลักฐานฝ่ายเรา พร้อมแนวทางอุดรอยรั่ว
+* **จุดอ่อนที่ 3 (ประเด็นข้อกฎหมายหรือขั้นตอนปฏิบัติ):** เงื่อนไขความรับผิดชอบหรือการใช้สิทธิ พร้อมกลยุทธ์ป้องกัน`;
+    }
+
+    function buildUserPrompt(caseData) {
+      const { title, caseType, parties, facts, specificTriggers } = caseData;
+      let prompt = `ขอให้ท่านช่วยวิเคราะห์ข้อเท็จจริงและวางกลยุทธ์ทางคดีต่อไปนี้:\n\n`;
+      prompt += `📌 ชื่อคดี: ${title || 'ไม่ระบุ'}\n`;
+      prompt += `📌 ประเภทคดี: ${caseType || 'ทั่วไป'}\n\n`;
+
+      if (parties && parties.length > 0) {
+        prompt += `👥 คู่ความในคดี:\n`;
+        parties.forEach(p => { prompt += `* ${p.label || 'ไม่ระบุชื่อ'} (${p.role || 'คู่ความ'})\n`; });
+        prompt += `\n`;
+      }
+
+      if (specificTriggers && Object.keys(specificTriggers).length > 0) {
+        prompt += `⚖️ ข้อมูลจุดชี้ขาดเฉพาะคดี (${caseType}):\n`;
+        for (const [key, val] of Object.entries(specificTriggers)) {
+          if (val) prompt += `* ${key}: ${val}\n`;
+        }
+        prompt += `\n`;
+      }
+
+      prompt += `📋 ข้อเท็จจริงของคดี (3 ชั้นข้อมูล):\n\n`;
+      if (facts) {
+        if (facts.confirmed && facts.confirmed.length > 0) {
+          prompt += `[1. ข้อเท็จจริงที่ยืนยันแล้ว - มีหลักฐานชัดเจน]\n`;
+          facts.confirmed.forEach(f => { prompt += `* ${f.text || f}\n`; });
+          prompt += `\n`;
+        }
+        if (facts.unknown && facts.unknown.length > 0) {
+          prompt += `[2. ข้อเท็จจริงที่ยังไม่ทราบ - ต้องสืบค้นเพิ่ม]\n`;
+          facts.unknown.forEach(f => { prompt += `* ${f.text || f}\n`; });
+          prompt += `\n`;
+        }
+        if (facts.assumptions && facts.assumptions.length > 0) {
+          prompt += `[3. ข้อสันนิษฐาน - มีความเสี่ยงหากถูกหักล้าง]\n`;
+          facts.assumptions.forEach(f => { prompt += `* ${f.text || f}\n`; });
+          prompt += `\n`;
+        }
+      }
+      return prompt.trim();
+    }
+
+    /* ==========================================================================
+       AI CLIENT WITH AUTO-FALLBACK CASCADE
+       ========================================================================== */
+    const SUPPORTED_MODELS = [
+      { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (แนะนำ - รุ่นล่าสุด)' },
+      { id: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
+      { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' },
+      { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+      { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash Lite (เร็ว/ประหยัด)' },
+      { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
+      { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (เสถียร)' }
+    ];
+
+    const FALLBACK_CASCADE = [
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-flash'
+    ];
+
+    async function callGemini(model, sanitizedFactsText, apiKey) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const requestBody = {
+        system_instruction: { parts: [{ text: buildSystemInstruction() }] },
+        contents: [{ role: "user", parts: [{ text: sanitizedFactsText }] }],
+        generationConfig: { temperature: 0.3, topP: 0.95, maxOutputTokens: 8192 },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let msg = `(${response.status}) ${errorBody}`;
+        try {
+          const parsed = JSON.parse(errorBody);
+          if (parsed.error && parsed.error.message) msg = parsed.error.message;
+        } catch (e) {}
+        const err = new Error(msg);
+        err.status = response.status;
+        throw err;
+      }
+
+      const data = await response.json();
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error("API ไม่ส่งผลลัพธ์ข้อความกลับมา");
+      }
+
+      return {
+        text: data.candidates[0].content.parts[0].text,
+        tokenUsage: data.usageMetadata ? {
+          input: data.usageMetadata.promptTokenCount,
+          output: data.usageMetadata.candidatesTokenCount
+        } : null
+      };
+    }
+
+    async function analyzeCase(sanitizedFactsText, settings, onFallback = null) {
+      const targetModel = settings.selectedModel || 'gemini-3.8-flash';
+      const apiKey = settings.apiKey || EMBEDDED_API_KEY;
+
+      const modelsToTry = [targetModel, ...FALLBACK_CASCADE.filter(m => m !== targetModel)];
+      let lastError = null;
+
+      for (let i = 0; i < modelsToTry.length; i++) {
+        const currentModel = modelsToTry[i];
+        try {
+          if (i > 0 && typeof onFallback === 'function') {
+            onFallback({ originalModel: targetModel, fallbackModel: currentModel, attempt: i });
+          }
+          const result = await callGemini(currentModel, sanitizedFactsText, apiKey);
+          return { ...result, modelUsed: currentModel, fallbackTriggered: i > 0 };
+        } catch (err) {
+          console.warn(`[AI Client] Model ${currentModel} failed:`, err.message);
+          lastError = err;
+          if (err.status === 400 && err.message.includes('API_KEY_INVALID')) {
+            throw new Error("API Key ไม่ถูกต้อง กรุณาตรวจสอบในหน้าตั้งค่า");
+          }
+          if (err.status === 403) throw new Error(`การเข้าถึงถูกปฏิเสธ (403): ${err.message}`);
+        }
+      }
+      throw new Error(`ไม่สามารถวิเคราะห์ได้หลังจากลองโมเดลสำรองทั้งหมดแล้ว: ${lastError?.message || 'Unknown error'}`);
+    }
+
+    async function testApiKey(apiKey, preferredModel = 'gemini-3.8-flash') {
+      const modelsToTry = [preferredModel, 'gemini-3.7-flash', 'gemini-2.5-flash'];
+      for (const m of modelsToTry) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
+          });
+          if (response.ok) return true;
+        } catch (e) {}
+      }
+      return false;
+    }
+
+    /* ==========================================================================
+       REPORT FORMATTER (Tailored for Thai Litigation)
+       ========================================================================== */
+    function formatLegalReport(markdownText) {
+      if (!markdownText) return '';
+      let text = markdownText.replace(/\r\n/g, '\n');
+      text = text.replace(/^(เรียน\s+[^\n]+)/gim, '<p style="margin-bottom: 1rem;"><strong>$1</strong></p>');
+      text = text.replace(/^---$/gm, '<hr class="report-divider">');
+
+      text = text.replace(/^##\s+(ชั้นที่\s+(\d+)[:\s]+[^\n]+)/gm, (match, fullTitle, tierNum) => {
+        return `<div class="tier-card tier-${tierNum}">
+          <div class="tier-card-header">
+            <span class="tier-badge">ชั้นที่ ${tierNum}</span>
+            <h3 class="tier-title">${fullTitle.replace(/^ชั้นที่\s+\d+[:\s]*/, '')}</h3>
+          </div>
+          <div class="tier-card-body">`;
+      });
+
+      text = text.replace(/^##\s+(.+)$/gm, '<h3 style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--navy);">$1</h3>');
+      text = text.replace(/^###\s+(.+)$/gm, '<h4 style="margin-top: 0.8rem; margin-bottom: 0.4rem; color: var(--gold);">$1</h4>');
+      text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      const lines = text.split('\n');
+      const processedLines = [];
+      let inList = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const bulletMatch = line.match(/^[\*\-]\s+(.+)$/);
+        const numberMatch = line.match(/^(\d+)\.\s+(.+)$/);
+
+        if (bulletMatch) {
+          if (!inList) { processedLines.push('<ul class="report-bullet-list">'); inList = true; }
+          processedLines.push(`<li>${bulletMatch[1]}</li>`);
+        } else if (numberMatch) {
+          if (!inList) { processedLines.push('<ol class="report-numbered-list">'); inList = true; }
+          processedLines.push(`<li>${numberMatch[2]}</li>`);
+        } else {
+          if (inList) { processedLines.push('</ul>'); inList = false; }
+          if (!line) {
+            processedLines.push('');
+          } else if (!line.startsWith('<h') && !line.startsWith('<div') && !line.startsWith('<hr') && !line.startsWith('</div')) {
+            processedLines.push(`<p class="report-paragraph">${line}</p>`);
+          } else {
+            processedLines.push(line);
+          }
+        }
+      }
+      if (inList) processedLines.push('</ul>');
+
+      let finalHtml = processedLines.join('\n');
+      const tierOpenCount = (finalHtml.match(/<div class="tier-card /g) || []).length;
+      if (tierOpenCount > 0) {
+        finalHtml = finalHtml.replace(/(<\/div>\s*<\/div>)?(\s*<div class="tier-card )/g, '</div></div>$2');
+        finalHtml += '</div></div>';
+        finalHtml = finalHtml.replace(/^<\/div><\/div>/, '');
+      }
+      return finalHtml;
+    }
+
+    /* ==========================================================================
+       UI: REPORT VIEW
+       ========================================================================== */
+    async function renderReport(container, caseId) {
+      const caseData = await getCase(caseId);
+      if (!caseData || !caseData.aiAnalysis) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 10px;">📋</div>
+            <h3>ยังไม่ได้วิเคราะห์คดีนี้</h3>
+            <p style="color: var(--ink-muted); margin-bottom: 20px;">กดปุ่มด้านล่างเพื่อตรวจสอบข้อเท็จจริงและส่งให้ AI วิเคราะห์</p>
+            <button class="btn btn-primary" onclick="window.location.hash='#case/${caseId}'">กลับไปหน้าคดี</button>
+          </div>
+        `;
+        return;
+      }
+
+      const { rawResponse, model, analyzedAt, tokenUsage } = caseData.aiAnalysis;
+      const unmasked = unsanitize(rawResponse || '', caseData.sanitizerMap || {});
+      const formattedHtml = formatLegalReport(unmasked);
+
+      container.innerHTML = `
+        <div class="report-view-wrapper">
+          <div class="report-toolbar no-print">
+            <div class="report-header-info">
+              <a href="#dashboard" class="back-link">← กลับหน้าคดี</a>
+              <h2 class="report-main-title">รายงานวิเคราะห์คดี: ${caseData.title || 'ไม่ระบุชื่อ'}</h2>
+            </div>
+            <div class="report-actions">
+              <div class="font-zoom-ctrl" title="ปรับขนาดตัวอักษรรายงาน">
+                <button id="zoom-out-btn" class="btn btn-sm btn-secondary">A-</button>
+                <span id="zoom-label" style="font-size: 0.8rem; font-weight: bold; min-width: 35px; text-align: center;">100%</span>
+                <button id="zoom-in-btn" class="btn btn-sm btn-secondary">A+</button>
+              </div>
+              <button id="btn-copy" class="btn btn-secondary btn-sm" title="คัดลอกข้อความ">📋 คัดลอก</button>
+              <button id="btn-print" class="btn btn-secondary btn-sm" title="พิมพ์รายงาน">🖨️ พิมพ์</button>
+              <button class="btn btn-primary btn-sm" onclick="window.location.hash='#case/${caseId}'" title="แก้ไขข้อเท็จจริง">✏️ แก้ไขคดี</button>
+            </div>
+          </div>
+          
+          <div class="report-meta-strip">
+            <div class="meta-item"><span class="meta-label">📅 วิเคราะห์เมื่อ:</span> <span class="meta-value">${analyzedAt ? new Date(analyzedAt).toLocaleString('th-TH') : '-'}</span></div>
+            <div class="meta-item"><span class="meta-label">🤖 โมเดล:</span> <span class="meta-badge">${model || '-'}</span></div>
+            <div class="meta-item"><span class="meta-label">📊 Tokens:</span> <span class="meta-value">${tokenUsage?.input || 0} เข้า / ${tokenUsage?.output || 0} ออก</span></div>
+            <div class="meta-item"><span class="meta-badge" style="background: var(--success); color: white;">💾 แคชในเครื่องแล้ว (เปิดอ่านฟรี ไม่เสีย Rate Limit)</span></div>
+          </div>
+          
+          <article id="report-canvas" class="report-document-sheet">
+            <div class="court-document-header no-print">
+              <span class="court-crest">⚖️</span>
+              <h3>บันทึกความเห็นทางกฎหมายและการวิเคราะห์ข้อเท็จจริง</h3>
+              <p class="court-sub">จัดทำโดย: ระบบช่วยคิดและปฏิบัติงานคดีของทนายความ (Standalone Edition)</p>
+            </div>
+            <div class="report-body-content">${formattedHtml}</div>
+          </article>
+        </div>
+      `;
+
+      let currentZoom = 100;
+      const canvas = document.getElementById('report-canvas');
+      const zoomLabel = document.getElementById('zoom-label');
+
+      document.getElementById('zoom-in-btn').addEventListener('click', () => {
+        if (currentZoom < 150) {
+          currentZoom += 10;
+          canvas.style.fontSize = `${currentZoom / 100}em`;
+          zoomLabel.textContent = `${currentZoom}%`;
+        }
+      });
+
+      document.getElementById('zoom-out-btn').addEventListener('click', () => {
+        if (currentZoom > 80) {
+          currentZoom -= 10;
+          canvas.style.fontSize = `${currentZoom / 100}em`;
+          zoomLabel.textContent = `${currentZoom}%`;
+        }
+      });
+
+      document.getElementById('btn-copy').addEventListener('click', () => {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = unmasked;
+        const plainText = tempDiv.textContent || tempDiv.innerText || unmasked;
+        navigator.clipboard.writeText(plainText).then(() => {
+          showToast('คัดลอกรายงานลงคลิปบอร์ดแล้ว', 'success');
+        });
+      });
+
+      document.getElementById('btn-print').addEventListener('click', () => { window.print(); });
+    }
+
+    /* ==========================================================================
+       UI: CASE LIST / DASHBOARD
+       ========================================================================== */
+    async function renderCaseList(container) {
+      const allCases = (await getAllCases()) || [];
+
+      container.innerHTML = `
+        <div class="dashboard" style="max-width: 900px; margin: 0 auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+            <div>
+              <h2 style="margin: 0; font-size: 1.35rem; color: var(--ink);">คดีทั้งหมด</h2>
+              <span style="font-size: 0.8rem; color: var(--ink-muted);">จัดเก็บในเครื่อง 100% (Local-First Standalone)</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="window.location.hash='#case/new'">+ สร้างคดีใหม่</button>
+          </div>
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="search-cases" class="form-input" placeholder="🔍 ค้นหาชื่อคดี..." style="max-width: 320px;">
+            <div class="tab-bar" style="margin-bottom: 0; flex: 1;">
+              <div class="tab-item active" data-filter="all">ทั้งหมด (${allCases.length})</div>
+              <div class="tab-item" data-filter="reviewed">มีรายงานแล้ว (${allCases.filter(c => c.aiAnalysis).length})</div>
+              <div class="tab-item" data-filter="draft">ร่าง (${allCases.filter(c => !c.aiAnalysis).length})</div>
+            </div>
+          </div>
+          
+          <div id="cases-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;"></div>
+        </div>
+      `;
+
+      const renderGrid = (casesToRender) => {
+        const grid = document.getElementById('cases-grid');
+        if (casesToRender.length === 0) {
+          grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 2rem 1rem;">📁 ไม่พบคดีที่ตรงกับเงื่อนไข</div>';
+          return;
+        }
+
+        grid.innerHTML = casesToRender.map(c => {
+          const hasReport = !!c.aiAnalysis;
+          const statusColor = hasReport ? 'var(--success)' : '#64748b';
+          const statusText = hasReport ? 'วิเคราะห์แล้ว (Cached)' : 'ร่าง';
+
+          return `
+            <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.15s ease;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 6px;">
+                  <h3 style="margin: 0; font-size: 1.05rem; color: var(--ink); line-height: 1.3;">${c.title || 'ไม่มีชื่อคดี'}</h3>
+                  <span class="badge" style="background: ${statusColor}; color: white; white-space: nowrap; font-size: 0.72rem;">${statusText}</span>
+                </div>
+                
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                  <span class="badge" style="background: var(--report-meta-bg); color: var(--ink-muted); font-size: 0.75rem;">${c.type || 'ทั่วไป'}</span>
+                  ${hasReport ? `<span class="badge" style="background: rgba(30,126,68,0.1); color: var(--success); font-size: 0.75rem;">💾 แคชในเครื่อง</span>` : ''}
+                </div>
+                
+                <div style="color: var(--ink-muted); font-size: 0.78rem; margin-bottom: 10px;">
+                  อัปเดต: ${new Date(c.updatedAt || Date.now()).toLocaleDateString('th-TH')}
+                  ${c.aiAnalysis?.analyzedAt ? `<br>วิเคราะห์เมื่อ: ${new Date(c.aiAnalysis.analyzedAt).toLocaleDateString('th-TH')}` : ''}
+                </div>
+              </div>
+              
+              <div style="display: flex; gap: 6px; border-top: 1px solid var(--card-border); padding-top: 8px; margin-top: 4px;">
+                ${hasReport ? `
+                  <button class="btn btn-primary btn-sm" style="flex: 1; background: var(--success); color: white;" onclick="window.location.hash='#report/${c.id}'" title="เปิดอ่านรายงานเดิม (ฟรี / ไม่เสียโควตา)">
+                    📄 ดูรายงาน
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="window.location.hash='#case/${c.id}'" title="แก้ไขข้อเท็จจริง">✏️ แก้ไข</button>
+                ` : `
+                  <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="window.location.hash='#case/${c.id}'">✏️ กรอกข้อเท็จจริง</button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      };
+
+      renderGrid(allCases);
+
+      document.getElementById('search-cases').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = allCases.filter(c => (c.title || '').toLowerCase().includes(term));
+        renderGrid(filtered);
+      });
+
+      document.querySelectorAll('.tab-item').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+          e.target.classList.add('active');
+          const filter = e.target.dataset.filter;
+          if (filter === 'all') renderGrid(allCases);
+          else if (filter === 'reviewed') renderGrid(allCases.filter(c => c.aiAnalysis));
+          else renderGrid(allCases.filter(c => !c.aiAnalysis));
+        });
+      });
+    }
+
+    /* ==========================================================================
+       UI: CASE FORM (HYBRID ADAPTIVE ENGINE)
+       ========================================================================== */
+    async function renderCaseForm(container, caseId = null) {
+      let caseData = {
+        id: genId(), title: '', type: 'แพ่ง (ทั่วไป/สัญญา/ละเมิด)', parties: [],
+        specificTriggers: {}, factsConfirmed: [], factsUnknown: [], assumptions: [], deadlines: []
+      };
+
+      if (caseId) {
+        const existing = await getCase(caseId);
+        if (existing) {
+          caseData = existing;
+          if (!caseData.specificTriggers) caseData.specificTriggers = {};
+        }
+      }
+
+      const hasCachedReport = !!caseData.aiAnalysis;
+
+      container.innerHTML = `
+        <div class="case-form" style="max-width: 840px; margin: 0 auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+            <div>
+              <a href="#dashboard" class="form-hint" style="text-decoration: none; font-weight: 600;">← กลับหน้าคดี</a>
+              <h2 style="font-size: 1.35rem; margin: 0; color: var(--ink);">${caseId ? 'แก้ไขคดี' : 'สร้างคดีใหม่'}</h2>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button id="btn-save" class="btn btn-secondary btn-sm" title="บันทึกข้อมูลลงเครื่อง">💾 บันทึก</button>
+              ${hasCachedReport ? `
+                <button id="btn-view-cached-direct" class="btn btn-primary btn-sm" style="background: var(--success); color: white;" title="เปิดดูรายงานที่เคยวิเคราะห์ไว้ (ฟรี)">
+                  📄 ดูรายงานที่มีอยู่ (ฟรี)
+                </button>
+              ` : ''}
+              <button id="btn-open-analyze-modal" class="btn btn-primary btn-sm" style="background: var(--gold); color: white;" title="วิเคราะห์ด้วย AI">
+                ${hasCachedReport ? '🔄 วิเคราะห์ใหม่' : '🤖 วิเคราะห์คดี'}
+              </button>
+              ${caseId ? `<button id="btn-delete" class="btn btn-danger btn-sm" title="ลบคดีนี้">🗑️</button>` : ''}
+            </div>
+          </div>
+
+          ${hasCachedReport ? `
+            <div class="local-security-banner" style="background-color: rgba(30,126,68,0.1); border-color: var(--success); margin-bottom: 10px;">
+              <span style="font-size: 1.2rem;">💾</span>
+              <div style="flex: 1; font-size: 0.84rem;">
+                <strong>คดีนี้มีรายงานวิเคราะห์ที่แคชไว้ในเครื่องแล้ว</strong> (วิเคราะห์เมื่อ: ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                <br>สามารถเปิดอ่านได้ทันทีโดยไม่เสียโควตา Rate Limit
+              </div>
+              <button class="btn btn-sm btn-primary" style="background: var(--success); color: white; white-space: nowrap;" onclick="window.location.hash='#report/${caseData.id}'">
+                เปิดอ่านทันที →
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="card" style="margin-bottom: 10px;">
+            <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">ชื่อคดี / เลขคดี <span style="color: var(--danger)">*</span></label>
+                <input type="text" id="case-title" class="form-input" value="${caseData.title}" placeholder="เช่น คดีพิพาทสัญญาจ้างแรงงาน (นาย ก)">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">ประเภทคดี <span style="font-size: 0.75rem; color: var(--gold); font-weight: normal;">(ฟอร์มปรับอัตโนมัติ)</span></label>
+                <select id="case-type" class="form-select">
+                  ${Object.values(CASE_TYPE_LABELS).map(t => `<option value="${t}" ${caseData.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="dynamic-triggers-container"></div>
+
+          <div class="card" style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="form-label" style="margin-bottom: 0;">รายชื่อคู่ความ / พยาน (ใช้เข้ารหัส PII Masking ซ่อนชื่อก่อนส่ง AI)</label>
+              <span class="form-hint">1 ชื่อ / 1 บรรทัด</span>
+            </div>
+            <textarea id="case-parties" class="form-textarea" rows="2" placeholder="เช่น:\nนายสมชาย ใจดี (ลูกจ้าง)\nบริษัท เอบีซี จำกัด (นายจ้าง)">${caseData.parties.map(p => p.label).join('\n')}</textarea>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="card fact-confirmed" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="color: var(--success); margin-bottom: 0;">✓ 1. ข้อเท็จจริงที่ยืนยันแล้ว (Proven Facts)</label>
+                <span class="form-hint">มีพยานหลักฐานชัดเจน (สัญญา, แชท, สลิปโอน)</span>
+              </div>
+              <textarea id="facts-confirmed" class="form-textarea" rows="3"></textarea>
+            </div>
+
+            <div class="card fact-unknown" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="color: var(--warning); margin-bottom: 0;">? 2. ข้อเท็จจริงที่ยังไม่ทราบ (Unknown Facts)</label>
+                <span class="form-hint">ต้องสืบค้นเพิ่มหรือรอฝ่ายตรงข้ามเปิดเผย</span>
+              </div>
+              <textarea id="facts-unknown" class="form-textarea" rows="3"></textarea>
+            </div>
+
+            <div class="card fact-assumption" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="color: var(--danger); margin-bottom: 0;">! 3. ข้อสันนิษฐาน / สมมติฐาน (Assumptions)</label>
+                <span class="form-hint">สิ่งที่คาดเดา มีความเสี่ยงหากหักล้างไม่ได้</span>
+              </div>
+              <textarea id="facts-assumptions" class="form-textarea" rows="3"></textarea>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;">
+            <button id="btn-save-bottom" class="btn btn-secondary">💾 บันทึกร่าง</button>
+            ${hasCachedReport ? `
+              <button class="btn btn-primary" style="background: var(--success); color: white;" onclick="window.location.hash='#report/${caseData.id}'">
+                📄 เปิดดูรายงานเดิม (ฟรี)
+              </button>
+            ` : ''}
+            <button id="btn-open-analyze-bottom" class="btn btn-primary" style="background: var(--gold); color: white;">
+              ${hasCachedReport ? '🔄 วิเคราะห์ใหม่อีกครั้ง' : '🤖 วิเคราะห์คดีด้วย AI'}
+            </button>
+          </div>
+
+          <div id="analyze-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-box">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 1.15rem; color: var(--ink);">
+                  ${hasCachedReport ? 'ยืนยันการวิเคราะห์ใหม่ (Re-analyze)' : 'ยืนยันการวิเคราะห์คดีด้วย AI'}
+                </h3>
+                <button id="modal-close-x" class="btn btn-sm btn-ghost" style="font-size: 1.2rem;">✕</button>
+              </div>
+
+              ${hasCachedReport ? `
+                <div style="padding: 10px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
+                  <strong>⚡ คดีนี้เคยวิเคราะห์ไว้แล้ว</strong> (เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                  <div style="margin-top: 4px; color: var(--ink-muted);">
+                    หากไม่ได้แก้ไขข้อเท็จจริง สามารถเปิดดูรายงานเดิมได้ทันทีโดยไม่เสียโควตา Rate Limit
+                  </div>
+                  <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
+                    📄 เปิดดูรายงานที่แคชไว้เดิม (ฟรีทันที)
+                  </button>
+                </div>
+              ` : `
+                <p style="font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5;">
+                  ระบบจะทำการ <strong>Masking ข้อมูลส่วนบุคคล (ชื่อคู่ความ, เลขบัตร, เลขบัญชี, เบอร์โทร)</strong> ในเครื่องนี้ให้กลายเป็นรหัสลับก่อนส่งไปยัง Google
+                </p>
+              `}
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label" for="confirm-model-select">เลือกโมเดล AI ที่ต้องการใช้:</label>
+                <select id="confirm-model-select" class="form-select">
+                  ${SUPPORTED_MODELS.map(m => `
+                    <option value="${m.id}" ${m.id === (getSettings().selectedModel || 'gemini-3.8-flash') ? 'selected' : ''}>
+                      ${m.label}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div class="modal-info-box">
+                <span style="font-size: 1.1rem;">⚡</span>
+                <div style="font-size: 0.82rem; color: var(--ink-muted);">
+                  <strong>ระบบ Auto-Fallback:</strong> หากโมเดลที่เลือกไม่พร้อมใช้งาน ระบบจะสลับไปโมเดลสำรองถัดไปให้อัตโนมัติ
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+                <button id="modal-cancel-btn" class="btn btn-secondary btn-sm">ยกเลิก</button>
+                <button id="modal-start-analyze-btn" class="btn btn-primary btn-sm" style="background: var(--gold); color: white;">
+                  ${hasCachedReport ? '🔄 ยืนยันวิเคราะห์ใหม่' : '🚀 ยืนยันและเริ่มวิเคราะห์'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('facts-confirmed').value = caseData.factsConfirmed.map(f => f.text || f).join('\n');
+      document.getElementById('facts-unknown').value = caseData.factsUnknown.map(f => f.text || f).join('\n');
+      document.getElementById('facts-assumptions').value = caseData.assumptions.map(f => f.text || f).join('\n');
+
+      const renderDynamicTriggers = () => {
+        const currentCaseType = document.getElementById('case-type').value;
+        const configKey = getTriggerConfigKey(currentCaseType);
+        const config = CASE_TRIGGERS_CONFIG[configKey] || CASE_TRIGGERS_CONFIG.civil;
+        const containerEl = document.getElementById('dynamic-triggers-container');
+
+        if (config.placeholders) {
+          document.getElementById('facts-confirmed').placeholder = config.placeholders.confirmed;
+          document.getElementById('facts-unknown').placeholder = config.placeholders.unknown;
+          document.getElementById('facts-assumptions').placeholder = config.placeholders.assumptions;
+        }
+
+        containerEl.innerHTML = `
+          <div class="card" style="margin-bottom: 10px; background-color: var(--report-meta-bg); border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid var(--card-border); padding-bottom: 6px;">
+              <h4 style="margin: 0; font-size: 0.96rem; color: var(--ink);">${config.title}</h4>
+              <span class="badge" style="background: var(--navy); color: white; font-size: 0.72rem;">${config.badge}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;">
+              ${config.fields.map(field => {
+                const savedVal = caseData.specificTriggers?.[field.id] || '';
+                if (field.type === 'select') {
+                  return `
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 0.8rem;">${field.label}</label>
+                      <select class="form-select trigger-input" data-trigger-id="${field.id}" style="font-size: 0.85rem; padding: 0.35rem 0.55rem;">
+                        ${field.options.map(opt => `<option value="${opt}" ${savedVal === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                      </select>
+                    </div>
+                  `;
+                } else if (field.type === 'date') {
+                  return `
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 0.8rem;">${field.label}</label>
+                      <input type="date" class="form-input trigger-input" data-trigger-id="${field.id}" value="${savedVal}" style="font-size: 0.85rem; padding: 0.35rem 0.55rem;">
+                    </div>
+                  `;
+                } else {
+                  return `
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label" style="font-size: 0.8rem;">${field.label}</label>
+                      <input type="${field.type}" class="form-input trigger-input" data-trigger-id="${field.id}" value="${savedVal}" placeholder="${field.placeholder || ''}" style="font-size: 0.85rem; padding: 0.35rem 0.55rem;">
+                    </div>
+                  `;
+                }
+              }).join('')}
+            </div>
+          </div>
+        `;
+      };
+
+      renderDynamicTriggers();
+
+      document.getElementById('case-type').addEventListener('change', () => {
+        document.querySelectorAll('.trigger-input').forEach(input => {
+          const fieldId = input.dataset.triggerId;
+          if (fieldId) caseData.specificTriggers[fieldId] = input.value;
+        });
+        renderDynamicTriggers();
+      });
+
+      const gatherData = () => {
+        caseData.title = document.getElementById('case-title').value.trim() || 'คดีไม่ระบุชื่อ';
+        caseData.type = document.getElementById('case-type').value;
+        document.querySelectorAll('.trigger-input').forEach(input => {
+          const fieldId = input.dataset.triggerId;
+          if (fieldId) caseData.specificTriggers[fieldId] = input.value;
+        });
+        const partiesRaw = document.getElementById('case-parties').value.split('\n').map(s => s.trim()).filter(Boolean);
+        caseData.parties = partiesRaw.map(s => ({ label: s, role: 'คู่ความ' }));
+        caseData.factsConfirmed = document.getElementById('facts-confirmed').value.split('\n').map(s => s.trim()).filter(Boolean).map(text => ({ text }));
+        caseData.factsUnknown = document.getElementById('facts-unknown').value.split('\n').map(s => s.trim()).filter(Boolean).map(text => ({ text }));
+        caseData.assumptions = document.getElementById('facts-assumptions').value.split('\n').map(s => s.trim()).filter(Boolean).map(text => ({ text }));
+        caseData.updatedAt = new Date().toISOString();
+      };
+
+      const handleSave = async () => {
+        gatherData();
+        await putCase(caseData);
+        showToast('บันทึกข้อมูลคดีเรียบร้อยแล้ว', 'success');
+      };
+
+      document.getElementById('btn-save').addEventListener('click', handleSave);
+      document.getElementById('btn-save-bottom').addEventListener('click', handleSave);
+
+      if (document.getElementById('btn-view-cached-direct')) {
+        document.getElementById('btn-view-cached-direct').addEventListener('click', () => {
+          window.location.hash = `#report/${caseData.id}`;
+        });
+      }
+
+      const modal = document.getElementById('analyze-modal');
+      const openModal = () => { gatherData(); modal.style.display = 'flex'; };
+      const closeModal = () => { modal.style.display = 'none'; };
+
+      document.getElementById('btn-open-analyze-modal').addEventListener('click', openModal);
+      document.getElementById('btn-open-analyze-bottom').addEventListener('click', openModal);
+      document.getElementById('modal-close-x').addEventListener('click', closeModal);
+      document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+      if (document.getElementById('modal-open-cached-btn')) {
+        document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
+          closeModal();
+          window.location.hash = `#report/${caseData.id}`;
+        });
+      }
+
+      document.getElementById('modal-start-analyze-btn').addEventListener('click', async () => {
+        const selectedModel = document.getElementById('confirm-model-select').value;
+        closeModal();
+
+        gatherData();
+        await putCase(caseData);
+
+        const settings = getSettings();
+        const runSettings = { ...settings, selectedModel };
+
+        showToast(`กำลังส่งวิเคราะห์ด้วย ${selectedModel}...`, 'info');
+
+        try {
+          const facts = { confirmed: caseData.factsConfirmed, unknown: caseData.factsUnknown, assumptions: caseData.assumptions };
+          const { mappings } = buildSanitizedFactsText(facts, caseData.parties);
+
+          const promptData = {
+            title: caseData.title,
+            caseType: caseData.type,
+            parties: caseData.parties,
+            specificTriggers: caseData.specificTriggers,
+            facts: {
+              confirmed: caseData.factsConfirmed.map(f => f.text),
+              unknown: caseData.factsUnknown.map(f => f.text),
+              assumptions: caseData.assumptions.map(f => f.text)
+            }
+          };
+          const userPrompt = buildUserPrompt(promptData);
+          const { sanitizedText: sanitizedPrompt, mappings: promptMappings } = sanitize(userPrompt, caseData.parties);
+
+          const res = await analyzeCase(sanitizedPrompt, runSettings, (fallbackInfo) => {
+            showToast(`⚠️ โมเดล ${fallbackInfo.originalModel} ไม่พร้อม สลับไปใช้ ${fallbackInfo.fallbackModel} อัตโนมัติ`, 'warning');
+          });
+
+          const sanitizerMap = {};
+          Object.keys(promptMappings).forEach(k => sanitizerMap[k] = promptMappings[k]);
+          Object.keys(mappings).forEach(k => sanitizerMap[k] = mappings[k]);
+
+          caseData.aiAnalysis = {
+            rawResponse: res.text,
+            model: res.modelUsed || selectedModel,
+            analyzedAt: new Date().toISOString(),
+            tokenUsage: res.tokenUsage
+          };
+          caseData.sanitizerMap = sanitizerMap;
+          caseData.status = 'reviewed';
+          caseData.updatedAt = new Date().toISOString();
+          await putCase(caseData);
+
+          showToast('วิเคราะห์และแคชรายงานลงเครื่องเรียบร้อย!', 'success');
+          window.location.hash = '#report/' + caseData.id;
+        } catch (err) {
+          showToast(`เกิดข้อผิดพลาด: ${err.message}`, 'error');
+        }
+      });
+
+      if (caseId) {
+        document.getElementById('btn-delete').addEventListener('click', async () => {
+          if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบคดีนี้?')) {
+            await deleteCase(caseId);
+            showToast('ลบคดีเรียบร้อยแล้ว', 'info');
+            window.location.hash = '#dashboard';
+          }
+        });
+      }
+    }
+
+    /* ==========================================================================
+       UI: SETTINGS PANEL
+       ========================================================================== */
+    function renderSettings(container) {
+      const settings = getSettings();
+
+      container.innerHTML = `
+        <div class="settings-container" style="max-width: 640px; margin: 0 auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h2 style="margin: 0; font-size: 1.35rem;">ตั้งค่าระบบ</h2>
+            <a href="#dashboard" class="btn btn-secondary btn-sm">← กลับหน้าคดี</a>
+          </div>
+
+          <div class="local-security-banner">
+            <div style="font-size: 1.3rem;">🔒</div>
+            <div>
+              <strong style="color: var(--ink);">ระบบ Standalone ทำงานในเครื่อง 100%</strong>
+              <div style="font-size: 0.84rem; color: var(--ink-muted); margin-top: 2px;">
+                คีย์ของคุณถูกฝังไว้แล้วและจัดเก็บในเครื่อง ข้อมูลคดีจะไม่มีวันหลุดออกนอกบราวเซอร์ของคุณ
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 10px;">
+            <div style="display: flex; align-items: flex-start; gap: 0.65rem; margin-bottom: 8px;">
+              <span style="font-size: 1.35rem;">⚡</span>
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem;">การเชื่อมต่อ Google AI Studio (Gemini)</h3>
+                <p class="form-hint" style="margin-top: 2px;">ส่งคำขอตรงจากเครื่องของคุณไปยัง Google โดยผ่านการ Masking ข้อมูลส่วนบุคคลก่อนเสมอ</p>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+              <label class="form-label" for="api-key">Gemini API Key (ฝังไว้เรียบร้อยแล้ว)</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="password" id="api-key" class="form-input" value="${settings.apiKey || EMBEDDED_API_KEY}" placeholder="AIzaSy...">
+                <button id="btn-toggle-key" class="btn btn-secondary btn-sm">👁️</button>
+                <button id="btn-test" class="btn btn-secondary btn-sm" style="min-width: 80px;">ทดสอบ</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="model-select">โมเดลเริ่มต้นสำหรับวิเคราะห์ (Default Model)</label>
+              <select id="model-select" class="form-select">
+                ${SUPPORTED_MODELS.map(m => `
+                  <option value="${m.id}" ${m.id === (settings.selectedModel || 'gemini-3.8-flash') ? 'selected' : ''}>
+                    ${m.label}
+                  </option>
+                `).join('')}
+              </select>
+              <div class="form-hint">💡 หากโมเดลที่เลือกไม่พร้อมใช้งาน ระบบมี Auto-Fallback สลับไปใช้รุ่นอื่นให้อัตโนมัติ</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display: flex; align-items: flex-start; gap: 0.65rem; margin-bottom: 8px;">
+              <span style="font-size: 1.35rem;">🎨</span>
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem;">การแสดงผลและขนาดตัวอักษร</h3>
+                <p class="form-hint" style="margin-top: 2px;">ปรับโทนสีและขนาดให้อ่านสบายตาที่สุด</p>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+              <label class="form-label" for="theme-select">ธีมสีของโปรแกรม</label>
+              <select id="theme-select" class="form-select">
+                <option value="auto" ${settings.theme === 'auto' ? 'selected' : ''}>อัตโนมัติตามระบบ (System Default)</option>
+                <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>สว่าง - โทนกระดาษศาล (Light Paper)</option>
+                <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>มืด - ถนอมสายตา (Dark Slate)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="form-label" for="font-size" style="margin-bottom: 0;">ขนาดตัวอักษรพื้นฐาน</label>
+                <span class="badge" style="background: var(--report-meta-bg); color: var(--ink);"><span id="font-size-val">${settings.fontSize || 16}</span> px</span>
+              </div>
+              <input type="range" id="font-size" min="14" max="22" value="${settings.fontSize || 16}" style="width: 100%; margin-top: 6px;">
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+            <button id="btn-save" class="btn btn-primary" style="padding: 11px; font-size: 1.05rem; font-weight: bold; width: 100%;">
+              💾 บันทึกการตั้งค่า
+            </button>
+            <div id="save-success-box" style="display: none; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background-color: rgba(30,126,68,0.12); border: 1px solid var(--success); border-radius: var(--radius); color: var(--success); font-weight: 600; font-size: 0.88rem;">
+              <span>✅ บันทึกการตั้งค่าเรียบร้อย</span>
+              <button class="btn btn-sm btn-primary" onclick="window.location.hash='#dashboard'">ไปที่หน้าคดีทันที →</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const apiKeyInput = document.getElementById('api-key');
+      const toggleBtn = document.getElementById('btn-toggle-key');
+      toggleBtn.addEventListener('click', () => {
+        if (apiKeyInput.type === 'password') {
+          apiKeyInput.type = 'text';
+          toggleBtn.textContent = '🔒';
+        } else {
+          apiKeyInput.type = 'password';
+          toggleBtn.textContent = '👁️';
+        }
+      });
+
+      document.getElementById('font-size').addEventListener('input', (e) => {
+        document.getElementById('font-size-val').textContent = e.target.value;
+        document.documentElement.style.fontSize = `${e.target.value}px`;
+      });
+
+      document.getElementById('theme-select').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'auto') {
+          const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', val);
+        }
+      });
+
+      document.getElementById('btn-test').addEventListener('click', async () => {
+        const key = document.getElementById('api-key').value.trim();
+        if (!key) return showToast('กรุณากรอก API Key ก่อนทดสอบ', 'warning');
+        const btn = document.getElementById('btn-test');
+        btn.disabled = true;
+        btn.textContent = 'ทดสอบ...';
+        try {
+          const ok = await testApiKey(key, document.getElementById('model-select').value);
+          if (ok) showToast('เชื่อมต่อกับ Google AI Studio สำเร็จ!', 'success');
+          else showToast('API Key ไม่ถูกต้อง หรือโมเดลไม่ตอบสนอง', 'error');
+        } catch (e) {
+          showToast(`เกิดข้อผิดพลาด: ${e.message}`, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'ทดสอบ';
+        }
+      });
+
+      document.getElementById('btn-save').addEventListener('click', () => {
+        const apiKey = document.getElementById('api-key').value.trim();
+        const selectedModel = document.getElementById('model-select').value;
+        const theme = document.getElementById('theme-select').value;
+        const fontSize = parseInt(document.getElementById('font-size').value, 10);
+        updateSettings({ apiKey, selectedModel, theme, fontSize });
+        showToast('บันทึกการตั้งค่าเรียบร้อยแล้ว', 'success');
+        document.getElementById('save-success-box').style.display = 'flex';
+      });
+    }
+
+    /* ==========================================================================
+       ROUTER & INITIALIZATION
+       ========================================================================== */
+    const ROUTES = {
+      dashboard: { render: renderCaseList, title: 'คดีทั้งหมด' },
+      settings: { render: renderSettings, title: 'ตั้งค่า' }
+    };
+
+    function getMainContainer() { return document.getElementById('main-content'); }
+
+    function setActiveNav(route) {
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.route === route);
+      });
+    }
+
+    function updateTitle(title) {
+      const titleEl = document.getElementById('page-title');
+      if (titleEl) titleEl.textContent = title;
+    }
+
+    async function handleRoute() {
+      const hash = window.location.hash.slice(1) || 'dashboard';
+      const container = getMainContainer();
+      container.innerHTML = '<div class="loading-spinner" aria-label="กำลังโหลด..."></div>';
+
+      try {
+        if (ROUTES[hash]) {
+          setActiveNav(hash);
+          updateTitle(ROUTES[hash].title);
+          await ROUTES[hash].render(container);
+          return;
+        }
+
+        if (hash === 'case/new') {
+          setActiveNav('dashboard');
+          updateTitle('สร้างคดีใหม่');
+          await renderCaseForm(container);
+          return;
+        }
+
+        const caseMatch = hash.match(/^case\/(.+)$/);
+        if (caseMatch) {
+          setActiveNav('dashboard');
+          updateTitle('แก้ไขคดี');
+          await renderCaseForm(container, caseMatch[1]);
+          return;
+        }
+
+        const reportMatch = hash.match(/^report\/(.+)$/);
+        if (reportMatch) {
+          setActiveNav('dashboard');
+          updateTitle('รายงานวิเคราะห์');
+          await renderReport(container, reportMatch[1]);
+          return;
+        }
+
+        window.location.hash = '#dashboard';
+      } catch (err) {
+        console.error('[Router] Error:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>❌ เกิดข้อผิดพลาด: ${err.message}</p>
+            <button class="btn btn-primary" onclick="window.location.hash='#dashboard'">กลับหน้าหลัก</button>
+          </div>
+        `;
+      }
+    }
+
+    function initApp() {
+      applyTheme();
+
+      document.querySelectorAll('.nav-item, .nav-desktop').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          const route = el.dataset.route;
+          if (route) window.location.hash = '#' + route;
+        });
+      });
+
+      window.addEventListener('hashchange', handleRoute);
+      handleRoute();
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
