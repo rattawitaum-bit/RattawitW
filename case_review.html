@@ -2263,12 +2263,17 @@ const CASE_TRIGGERS_CONFIG = {
         ]
       };
 
+      const headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      };
+      if (apiKey && (apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.'))) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      }
+
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
+        headers,
         body: JSON.stringify(requestBody)
       });
 
@@ -2320,6 +2325,8 @@ const CASE_TRIGGERS_CONFIG = {
             let detail = err.message || "";
             if (detail.includes("API_KEY_SERVICE_BLOCKED") || detail.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
               detail = "คีย์/โทเคนนี้ไม่ได้รับอนุญาตให้ใช้งาน Generative Language API (กรุณาใช้ API Key จาก Google AI Studio ที่ aistudio.google.com/app/apikey)";
+            } else if (detail.includes("UNAUTHENTICATED") || detail.includes("invalid authentication credentials")) {
+              detail = "API Key หรือ Token หมดอายุหรือไม่ถูกต้อง กรุณาใส่คีย์ใหม่จาก Google AI Studio ที่หน้าตั้งค่า";
             }
             throw new Error(`การยืนยันตัวตนล้มเหลว (401 Unauthorized): ${detail}`);
           }
@@ -2337,12 +2344,16 @@ const CASE_TRIGGERS_CONFIG = {
       for (const m of modelsToTry) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+          const headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          };
+          if (apiKey && (apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.'))) {
+            headers["Authorization"] = `Bearer ${apiKey}`;
+          }
           const response = await fetch(url, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": apiKey
-            },
+            headers,
             body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
           });
           if (response.ok) return true;
@@ -2356,14 +2367,18 @@ const CASE_TRIGGERS_CONFIG = {
        ========================================================================== */
     
     function computeFactsHash(data) {
+      const safeStr = (v) => (typeof v === 'object' && v !== null ? (v.text || v.label || '') : String(v || '')).trim();
       const str = JSON.stringify({
         title: (data.title || '').trim(),
         type: (data.type || '').trim(),
-        parties: (data.parties || []).map(p => ({ label: (p.label || '').trim(), role: (p.role || '').trim() })),
-        triggers: data.specificTriggers || {},
-        confirmed: (data.factsConfirmed || []).map(f => (f.text || f || '').trim()),
-        unknown: (data.factsUnknown || []).map(f => (f.text || f || '').trim()),
-        assumptions: (data.assumptions || []).map(f => (f.text || f || '').trim())
+        parties: (Array.isArray(data.parties) ? data.parties : []).map(p => ({
+          label: safeStr(p),
+          role: (typeof p === 'object' && p !== null ? (p.role || '') : '').trim()
+        })),
+        triggers: (typeof data.specificTriggers === 'object' && data.specificTriggers !== null) ? data.specificTriggers : {},
+        confirmed: (Array.isArray(data.factsConfirmed) ? data.factsConfirmed : []).map(safeStr),
+        unknown: (Array.isArray(data.factsUnknown) ? data.factsUnknown : []).map(safeStr),
+        assumptions: (Array.isArray(data.assumptions) ? data.assumptions : []).map(safeStr)
       });
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -2518,7 +2533,8 @@ const CASE_TRIGGERS_CONFIG = {
               </button>
               <button id="btn-copy" class="btn btn-secondary btn-sm" title="คัดลอกข้อความหน้านี้">📋 คัดลอก</button>
               <button id="btn-print" class="btn btn-secondary btn-sm" title="พิมพ์รายงาน">🖨️ พิมพ์</button>
-              <button class="btn btn-primary btn-sm" onclick="window.location.hash='#case/${caseId}'" title="แก้ไขข้อเท็จจริง">✏️ แก้ไขคดี</button>
+              <button class="btn btn-secondary btn-sm" onclick="window.location.hash='#case/${caseId}'" title="แก้ไขข้อเท็จจริง">✏️ แก้ไขคดี</button>
+              <button class="btn btn-primary btn-sm" style="background: var(--gold); color: white;" onclick="window.location.hash='#case/${caseId}?action=reanalyze'" title="วิเคราะห์คดีนี้ใหม่อีกครั้ง">🔄 วิเคราะห์ใหม่</button>
             </div>
           </div>
 
@@ -2731,7 +2747,10 @@ const CASE_TRIGGERS_CONFIG = {
        ========================================================================== */
     function genId() { return Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
 
-    async function renderCaseForm(container, caseId = null) {
+    async function renderCaseForm(container, rawCaseId = null) {
+      // Strip any query params from hash like ?action=reanalyze
+      const caseId = rawCaseId ? rawCaseId.split('?')[0] : null;
+
       let caseData = {
         id: genId(), title: '', type: 'แพ่ง (ทั่วไป/สัญญา/ละเมิด)', parties: [],
         specificTriggers: {}, factsConfirmed: [], factsUnknown: [], assumptions: [], deadlines: []
@@ -2741,9 +2760,16 @@ const CASE_TRIGGERS_CONFIG = {
         const existing = await getCase(caseId);
         if (existing) {
           caseData = existing;
-          if (!caseData.specificTriggers) caseData.specificTriggers = {};
         }
       }
+
+      // Defensive array and object initialization
+      if (!caseData.specificTriggers || typeof caseData.specificTriggers !== 'object') caseData.specificTriggers = {};
+      if (!Array.isArray(caseData.parties)) caseData.parties = [];
+      if (!Array.isArray(caseData.factsConfirmed)) caseData.factsConfirmed = [];
+      if (!Array.isArray(caseData.factsUnknown)) caseData.factsUnknown = [];
+      if (!Array.isArray(caseData.assumptions)) caseData.assumptions = [];
+      if (!Array.isArray(caseData.deadlines)) caseData.deadlines = [];
 
       const hasCachedReport = !!caseData.aiAnalysis;
 
@@ -2788,7 +2814,7 @@ const CASE_TRIGGERS_CONFIG = {
                 <input type="text" id="case-title" class="form-input" value="${caseData.title}" placeholder="เช่น คดีพิพาทสัญญาจ้างแรงงาน (นาย ก)">
               </div>
               <div class="form-group" style="margin-bottom: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: gap: 4px;">
                   <label class="form-label" style="margin-bottom: 0;">ประเภทคดี <span style="font-size: 0.75rem; color: var(--gold); font-weight: normal;">(ฟอร์มปรับอัตโนมัติ)</span></label>
                   <div id="sample-buttons-container" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
                 </div>
@@ -2806,7 +2832,7 @@ const CASE_TRIGGERS_CONFIG = {
               <label class="form-label" style="margin-bottom: 0;">รายชื่อคู่ความ / พยาน (ใช้เข้ารหัส PII Masking ซ่อนชื่อก่อนส่ง AI)</label>
               <span class="form-hint">1 ชื่อ / 1 บรรทัด</span>
             </div>
-            <textarea id="case-parties" class="form-textarea" rows="2" placeholder="เช่น:\nนายสมชาย ใจดี (ลูกจ้าง)\nบริษัท เอบีซี จำกัด (นายจ้าง)">${caseData.parties.map(p => p.label).join('\n')}</textarea>
+            <textarea id="case-parties" class="form-textarea" rows="2" placeholder="เช่น:\nนายสมชาย ใจดี (ลูกจ้าง)\nบริษัท เอบีซี จำกัด (นายจ้าง)">${caseData.parties.map(p => (typeof p === 'object' && p !== null ? (p.label || '') : String(p || ''))).join('\n')}</textarea>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -2847,52 +2873,80 @@ const CASE_TRIGGERS_CONFIG = {
             </button>
           </div>
 
+          <!-- Confirmation Modal for Model Selection & Cache Warning -->
           <div id="analyze-modal" class="modal-overlay" style="display: none;">
             <div class="modal-box">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="margin: 0; font-size: 1.15rem; color: var(--ink);">
+                <h3 id="modal-title" style="margin: 0; font-size: 1.15rem; color: var(--ink);">
                   ${hasCachedReport ? 'ยืนยันการวิเคราะห์ใหม่ (Re-analyze)' : 'ยืนยันการวิเคราะห์คดีด้วย AI'}
                 </h3>
                 <button id="modal-close-x" class="btn btn-sm btn-ghost" style="font-size: 1.2rem;">✕</button>
               </div>
 
-              <div id="modal-cache-notice-container">
-                ${hasCachedReport ? `
-                  <div style="padding: 10px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
-                    <strong>⚡ คดีนี้เคยวิเคราะห์ไว้แล้ว</strong> (เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
-                    <div style="margin-top: 4px; color: var(--ink-muted);">
-                      หากไม่ได้แก้ไขข้อเท็จจริง สามารถเปิดดูรายงานเดิมได้ทันทีโดยไม่เสียโควตา Rate Limit
-                    </div>
-                    <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
-                      📄 เปิดดูรายงานที่แคชไว้เดิม (ฟรีทันที)
-                    </button>
+              <!-- Loading State Indicator (Hidden by default) -->
+              <div id="modal-loading-indicator" style="display: none; text-align: center; padding: 24px 12px;">
+                <div class="loading-spinner" style="margin: 0 auto 12px; width: 36px; height: 36px;"></div>
+                <h4 id="modal-loading-status" style="margin: 0 0 6px; font-size: 1rem; color: var(--navy);">กำลังส่งวิเคราะห์คดีด้วย AI...</h4>
+                <p style="margin: 0; font-size: 0.84rem; color: var(--ink-muted); line-height: 1.5;">
+                  ระบบกำลังเข้ารหัส PII Masking และประมวลผลกลยุทธ์ทางกฎหมาย<br>
+                  (โหมด Single-Call Dual-Output ประหยัดโควตา ใช้เวลาประมาณ 5–15 วินาที)
+                </p>
+              </div>
+
+              <!-- Modal Error Box (Hidden by default) -->
+              <div id="modal-error-box" style="display: none; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius); margin-bottom: 12px;">
+                <div style="display: flex; gap: 8px; align-items: flex-start;">
+                  <span style="font-size: 1.2rem;">⚠️</span>
+                  <div style="flex: 1;">
+                    <strong style="color: var(--danger); font-size: 0.9rem;">การวิเคราะห์ไม่สำเร็จ</strong>
+                    <div id="modal-error-message" style="margin-top: 4px; font-size: 0.83rem; color: var(--ink-muted); line-height: 1.4;"></div>
                   </div>
-                ` : `
-                  <p style="font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5;">
-                    ระบบจะทำการ <strong>Masking ข้อมูลส่วนบุคคล (ชื่อคู่ความ, เลขบัตร, เลขบัญชี, เบอร์โทร)</strong> ในเครื่องนี้ให้กลายเป็นรหัสลับก่อนส่งไปยัง Google
-                  </p>
-                `}
-              </div>
-
-              <div class="form-group" style="margin-bottom: 12px;">
-                <label class="form-label" for="confirm-model-select">เลือกโมเดล AI ที่ต้องการใช้:</label>
-                <select id="confirm-model-select" class="form-select">
-                  ${SUPPORTED_MODELS.map(m => `
-                    <option value="${m.id}" ${m.id === (getSettings().selectedModel || 'gemini-3.8-flash') ? 'selected' : ''}>
-                      ${m.label}
-                    </option>
-                  `).join('')}
-                </select>
-              </div>
-
-              <div class="modal-info-box">
-                <span style="font-size: 1.1rem;">⚡</span>
-                <div style="font-size: 0.82rem; color: var(--ink-muted);">
-                  <strong>ระบบ Auto-Fallback:</strong> หากโมเดลที่เลือกไม่พร้อมใช้งาน ระบบจะสลับไปโมเดลสำรองถัดไปให้อัตโนมัติ
+                </div>
+                <div id="modal-error-actions" style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end;">
+                  <button type="button" id="btn-modal-goto-settings" class="btn btn-sm btn-secondary" style="font-size: 0.8rem;">⚙️ ตั้งค่า API Key</button>
                 </div>
               </div>
 
-              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+              <!-- Modal Body Content -->
+              <div id="modal-body-content">
+                <div id="modal-cache-notice-container">
+                  ${hasCachedReport ? `
+                    <div style="padding: 10px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
+                      <strong>⚡ คดีนี้เคยวิเคราะห์ไว้แล้ว</strong> (เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
+                      <div style="margin-top: 4px; color: var(--ink-muted);">
+                        หากไม่ได้แก้ไขข้อเท็จจริง สามารถเปิดดูรายงานเดิมได้ทันทีโดยไม่เสียโควตา Rate Limit
+                      </div>
+                      <button type="button" id="modal-open-cached-btn" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%;">
+                        📄 เปิดดูรายงานที่แคชไว้เดิม (ไม่ต้องวิเคราะห์ใหม่)
+                      </button>
+                    </div>
+                  ` : `
+                    <p style="font-size: 0.9rem; color: var(--ink-muted); margin-bottom: 12px; line-height: 1.5;">
+                      ระบบจะทำการ <strong>Masking ข้อมูลส่วนบุคคล (ชื่อคู่ความ, เลขบัตร, เลขบัญชี, เบอร์โทร)</strong> ในเครื่องนี้ให้กลายเป็นรหัสลับก่อนส่งไปยัง Google
+                    </p>
+                  `}
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label class="form-label" for="confirm-model-select">เลือกโมเดล AI ที่ต้องการใช้:</label>
+                  <select id="confirm-model-select" class="form-select">
+                    ${SUPPORTED_MODELS.map(m => `
+                      <option value="${m.id}" ${m.id === (getSettings().selectedModel || 'gemini-3.8-flash') ? 'selected' : ''}>
+                        ${m.label}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+
+                <div class="modal-info-box">
+                  <span style="font-size: 1.1rem;">⚡</span>
+                  <div style="font-size: 0.82rem; color: var(--ink-muted);">
+                    <strong>ระบบ Auto-Fallback:</strong> หากโมเดลที่เลือกไม่พร้อมใช้งาน ระบบจะสลับไปโมเดลสำรองถัดไปให้อัตโนมัติ
+                  </div>
+                </div>
+              </div>
+
+              <div id="modal-footer-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
                 <button id="modal-cancel-btn" class="btn btn-secondary btn-sm">ยกเลิก</button>
                 <button id="modal-start-analyze-btn" class="btn btn-primary btn-sm" style="background: var(--gold); color: white;">
                   ${hasCachedReport ? '🔄 ยืนยันวิเคราะห์ใหม่' : '🚀 ยืนยันและเริ่มวิเคราะห์'}
@@ -2903,9 +2957,11 @@ const CASE_TRIGGERS_CONFIG = {
         </div>
       `;
 
-      document.getElementById('facts-confirmed').value = caseData.factsConfirmed.map(f => f.text || f).join('\n');
-      document.getElementById('facts-unknown').value = caseData.factsUnknown.map(f => f.text || f).join('\n');
-      document.getElementById('facts-assumptions').value = caseData.assumptions.map(f => f.text || f).join('\n');
+      // Set initial text values in textareas safely
+      const safeMap = (arr) => (arr || []).map(f => (typeof f === 'object' && f !== null ? (f.text || '') : String(f || '')));
+      document.getElementById('facts-confirmed').value = safeMap(caseData.factsConfirmed).join('\n');
+      document.getElementById('facts-unknown').value = safeMap(caseData.factsUnknown).join('\n');
+      document.getElementById('facts-assumptions').value = safeMap(caseData.assumptions).join('\n');
 
   const applySample = (sample) => {
     if (!sample) return;
@@ -3119,8 +3175,26 @@ const CASE_TRIGGERS_CONFIG = {
       }
 
       const modal = document.getElementById('analyze-modal');
+      const modalLoadingIndicator = document.getElementById('modal-loading-indicator');
+      const modalLoadingStatus = document.getElementById('modal-loading-status');
+      const modalErrorBox = document.getElementById('modal-error-box');
+      const modalErrorMessage = document.getElementById('modal-error-message');
+      const modalBodyContent = document.getElementById('modal-body-content');
+      const modalFooterActions = document.getElementById('modal-footer-actions');
+      const modalStartAnalyzeBtn = document.getElementById('modal-start-analyze-btn');
+
+      const resetModalState = () => {
+        if (modalLoadingIndicator) modalLoadingIndicator.style.display = 'none';
+        if (modalErrorBox) modalErrorBox.style.display = 'none';
+        if (modalBodyContent) modalBodyContent.style.display = 'block';
+        if (modalFooterActions) modalFooterActions.style.display = 'flex';
+        if (modalStartAnalyzeBtn) modalStartAnalyzeBtn.disabled = false;
+      };
+
       const openModal = () => {
         gatherData();
+        resetModalState();
+
         const currentHash = computeFactsHash(caseData);
         const hasCached = !!caseData.aiAnalysis;
         const isUnchanged = hasCached && caseData.aiAnalysis.factsHash === currentHash;
@@ -3132,14 +3206,14 @@ const CASE_TRIGGERS_CONFIG = {
               <div style="padding: 10px 12px; background: rgba(34,197,94,0.12); border: 1px solid var(--success); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
                 <strong style="color: var(--success);">⚡ ข้อเท็จจริงคดีนี้ยังไม่มีการแก้ไข</strong> (วิเคราะห์เมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
                 <div style="margin-top: 4px; color: var(--ink-muted); font-size: 0.82rem;">
-                  ข้อมูลตรงกับรายงานที่บันทึกไว้เดิม แนะนำให้เปิดอ่านจากเครื่องเพื่อประหยัดโควตา (0 Quota)
+                  ข้อมูลตรงกับรายงานเดิม คุณสามารถกด <strong>[ ยืนยันวิเคราะห์ใหม่ ]</strong> ด้านล่างเพื่อส่ง AI อีกครั้ง หรือเปิดดูรายงานเดิมได้ทันที:
                 </div>
-                <button id="modal-open-cached-btn" class="btn btn-sm btn-primary" style="margin-top: 8px; background: var(--success); color: white; width: 100%;">
+                <button type="button" id="modal-open-cached-btn" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%; border-color: var(--success); color: var(--success);">
                   📄 เปิดดูรายงานเดิมทันที (ฟรี 0 โควตา)
                 </button>
               </div>
             `;
-            document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
+            document.getElementById('modal-open-cached-btn')?.addEventListener('click', () => {
               closeModal();
               window.location.hash = `#report/${caseData.id}`;
             });
@@ -3148,14 +3222,14 @@ const CASE_TRIGGERS_CONFIG = {
               <div style="padding: 10px 12px; background: rgba(245,158,11,0.12); border: 1px solid var(--gold); border-radius: var(--radius); margin-bottom: 12px; font-size: 0.85rem;">
                 <strong>📝 มีการแก้ไขข้อเท็จจริงใหม่</strong> (รายงานเดิมเมื่อ ${new Date(caseData.aiAnalysis.analyzedAt).toLocaleString('th-TH')})
                 <div style="margin-top: 4px; color: var(--ink-muted); font-size: 0.82rem;">
-                  คุณสามารถวิเคราะห์ใหม่เพื่ออัปเดตผลลัพธ์ หรือเปิดดูรายงานเดิมได้
+                  พร้อมส่งวิเคราะห์ใหม่เพื่ออัปเดตกลยุทธ์สำนวนคดีและรายงานลูกความ
                 </div>
-                <button id="modal-open-cached-btn" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%;">
-                  📄 เปิดดูรายงานเดิม (ไม่ต้องวิเคราะห์ใหม่)
+                <button type="button" id="modal-open-cached-btn" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%;">
+                  📄 เปิดดูรายงานเดิม (ก่อนแก้ไข)
                 </button>
               </div>
             `;
-            document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
+            document.getElementById('modal-open-cached-btn')?.addEventListener('click', () => {
               closeModal();
               window.location.hash = `#report/${caseData.id}`;
             });
@@ -3163,12 +3237,21 @@ const CASE_TRIGGERS_CONFIG = {
         }
         modal.style.display = 'flex';
       };
-      const closeModal = () => { modal.style.display = 'none'; };
+
+      const closeModal = () => {
+        modal.style.display = 'none';
+        resetModalState();
+      };
 
       document.getElementById('btn-open-analyze-modal').addEventListener('click', openModal);
       document.getElementById('btn-open-analyze-bottom').addEventListener('click', openModal);
       document.getElementById('modal-close-x').addEventListener('click', closeModal);
       document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+      document.getElementById('btn-modal-goto-settings')?.addEventListener('click', () => {
+        closeModal();
+        window.location.hash = '#settings';
+      });
 
       if (document.getElementById('modal-open-cached-btn')) {
         document.getElementById('modal-open-cached-btn').addEventListener('click', () => {
@@ -3179,35 +3262,56 @@ const CASE_TRIGGERS_CONFIG = {
 
       document.getElementById('modal-start-analyze-btn').addEventListener('click', async () => {
         const selectedModel = document.getElementById('confirm-model-select').value;
-        closeModal();
 
         gatherData();
         await putCase(caseData);
 
         const settings = getSettings();
-        const runSettings = { ...settings, selectedModel };
+        const activeKey = settings.apiKey || EMBEDDED_API_KEY;
+        if (!activeKey) {
+          if (modalErrorBox && modalErrorMessage) {
+            modalErrorMessage.textContent = 'กรุณาตั้งค่า API Key ก่อนเริ่มวิเคราะห์';
+            modalErrorBox.style.display = 'block';
+          } else {
+            showToast('กรุณาตั้งค่า API Key ก่อนเริ่มวิเคราะห์', 'warning');
+          }
+          return;
+        }
 
-        showToast(`กำลังส่งวิเคราะห์ด้วย ${selectedModel}...`, 'info');
+        // Switch Modal to In-Progress Loading State
+        if (modalErrorBox) modalErrorBox.style.display = 'none';
+        if (modalBodyContent) modalBodyContent.style.display = 'none';
+        if (modalFooterActions) modalFooterActions.style.display = 'none';
+        if (modalLoadingIndicator) {
+          modalLoadingIndicator.style.display = 'block';
+          if (modalLoadingStatus) modalLoadingStatus.textContent = `กำลังส่งวิเคราะห์ด้วย ${selectedModel}...`;
+        }
+
+        const runSettings = { ...settings, selectedModel, apiKey: activeKey };
 
         try {
           const facts = { confirmed: caseData.factsConfirmed, unknown: caseData.factsUnknown, assumptions: caseData.assumptions };
           const { mappings } = buildSanitizedFactsText(facts, caseData.parties);
 
+          const safeMap = (arr) => (arr || []).map(f => (typeof f === 'object' && f !== null ? (f.text || '') : String(f || '')));
           const promptData = {
             title: caseData.title,
             caseType: caseData.type,
             parties: caseData.parties,
             specificTriggers: caseData.specificTriggers,
             facts: {
-              confirmed: caseData.factsConfirmed.map(f => f.text),
-              unknown: caseData.factsUnknown.map(f => f.text),
-              assumptions: caseData.assumptions.map(f => f.text)
+              confirmed: safeMap(caseData.factsConfirmed),
+              unknown: safeMap(caseData.factsUnknown),
+              assumptions: safeMap(caseData.assumptions)
             }
           };
           const userPrompt = buildUserPrompt(promptData);
           const { sanitizedText: sanitizedPrompt, mappings: promptMappings } = sanitize(userPrompt, caseData.parties);
 
           const res = await analyzeCase(sanitizedPrompt, runSettings, (fallbackInfo) => {
+            if (modalLoadingStatus) {
+              modalLoadingStatus.textContent = `⚠️ โมเดล ${fallbackInfo.originalModel} ไม่พร้อม สลับไปใช้ ${fallbackInfo.fallbackModel} อัตโนมัติ...`;
+            }
             showToast(`⚠️ โมเดล ${fallbackInfo.originalModel} ไม่พร้อม สลับไปใช้ ${fallbackInfo.fallbackModel} อัตโนมัติ`, 'warning');
           });
 
@@ -3215,12 +3319,26 @@ const CASE_TRIGGERS_CONFIG = {
           Object.keys(promptMappings).forEach(k => sanitizerMap[k] = promptMappings[k]);
           Object.keys(mappings).forEach(k => sanitizerMap[k] = mappings[k]);
 
-          // Dual-output splitting
-          const separatorRegex = /(?:={3,}\s*CLIENT_REPORT_SEPARATOR\s*={3,}|(?:###|##)\s*\[?ส่วนที่ 2[:\s]+(?:ร่างข้อความ)?รายงานลูกความ)/i;
+          // Dual-output clean splitting
           const rawText = res.text || '';
-          const parts = rawText.split(separatorRegex);
-          const strategyPart = (parts[0] || '').trim();
-          const clientPart = (parts.length > 1 ? parts.slice(1).join('\n') : strategyPart).trim();
+          let strategyPart = '';
+          let clientPart = '';
+
+          const explicitMatch = rawText.split(/={3,}\s*CLIENT_REPORT_SEPARATOR\s*={3,}/i);
+          if (explicitMatch.length > 1) {
+            strategyPart = explicitMatch[0].trim();
+            clientPart = explicitMatch.slice(1).join('\n').trim();
+          } else {
+            const headingMatch = rawText.search(/(?:###|##)\s*\[?ส่วนที่ 2[:\s]+(?:ร่างข้อความ)?รายงานลูกความ/i);
+            if (headingMatch !== -1) {
+              strategyPart = rawText.slice(0, headingMatch).trim();
+              clientPart = rawText.slice(headingMatch).trim();
+            } else {
+              strategyPart = rawText.trim();
+              clientPart = rawText.trim();
+            }
+          }
+
           const currentFactsHash = computeFactsHash(caseData);
 
           caseData.aiAnalysis = {
@@ -3237,12 +3355,26 @@ const CASE_TRIGGERS_CONFIG = {
           caseData.updatedAt = new Date().toISOString();
           await putCase(caseData);
 
+          closeModal();
           showToast('วิเคราะห์และแคชรายงานลงเครื่องเรียบร้อย!', 'success');
           window.location.hash = '#report/' + caseData.id;
         } catch (err) {
+          console.error('[Analyze] Error:', err);
+          if (modalLoadingIndicator) modalLoadingIndicator.style.display = 'none';
+          if (modalBodyContent) modalBodyContent.style.display = 'block';
+          if (modalFooterActions) modalFooterActions.style.display = 'flex';
+          if (modalErrorBox && modalErrorMessage) {
+            modalErrorMessage.textContent = err.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
+            modalErrorBox.style.display = 'block';
+          }
           showToast(`เกิดข้อผิดพลาด: ${err.message}`, 'error');
         }
       });
+
+      // Auto-open modal if requested via action=reanalyze in hash
+      if (window.location.hash.includes('action=reanalyze')) {
+        setTimeout(openModal, 150);
+      }
 
       if (caseId) {
         document.getElementById('btn-delete').addEventListener('click', async () => {
