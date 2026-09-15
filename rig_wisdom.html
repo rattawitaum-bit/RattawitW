@@ -125,12 +125,72 @@
     font-size:10px;letter-spacing:.14em;color:var(--txt-dim);background:var(--panel);
     padding:4px 12px;border-radius:20px;border:1px solid var(--edge);pointer-events:none}
 
-  @media (max-width:820px){
-    #dock{width:220px} #hud{width:220px}
-    #info{width:200px}
-    #brand .t1{font-size:11px} #brand .t2{font-size:8.5px}
-    /* B2 FIX: collapse info to header-only on tablet instead of hiding it */
-    #info.autocollapse #infoScroll{display:none}
+  /* ---------- responsive mobile / tablet shell ---------- */
+  #mobileBar{display:none;position:absolute;z-index:30;left:50%;transform:translateX(-50%);
+    align-items:center;gap:8px;padding:6px;background:rgba(13,17,23,.88);
+    backdrop-filter:blur(10px);border:1px solid var(--edge);border-radius:12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45)}
+  #mobileBar button{appearance:none;min-width:92px;min-height:44px;padding:8px 12px;
+    border:1px solid var(--edge);border-radius:8px;background:#172230;color:var(--txt);
+    font:600 11px/1.15 "Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.03em}
+  #mobileBar button.on{color:#fff;border-color:var(--accent);background:#16486f}
+  #mobileShade{display:none;position:absolute;inset:0;z-index:19;background:rgba(0,0,0,.28)}
+  .mobile-handle{display:none;width:42px;height:4px;margin:7px auto 1px;border-radius:4px;
+    background:rgba(147,162,179,.55)}
+  @media (pointer:coarse){
+    button.btn{min-height:44px;padding:9px 6px;font-size:11.5px}
+    .toggle{min-height:44px;font-size:12px}.sw{width:44px;height:24px}
+    .sw i:before{width:18px;height:18px}.sw input:checked + i:before{transform:translateX(18px)}
+    input[type=range]{height:8px;margin:9px 0}
+    input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+    input[type=range]::-moz-range-thumb{width:26px;height:26px}
+  }
+  @media (max-width:1024px){
+    #mobileBar{display:flex;bottom:max(10px,env(safe-area-inset-bottom))}
+    #mobileShade.show{display:block}
+    #dock,#info{z-index:20;transition:transform .22s ease,opacity .22s ease}
+    #dock{top:10px;left:10px;width:min(360px,calc(100vw - 20px));max-height:calc(100dvh - 82px)}
+    #info{top:10px;right:10px;width:min(350px,calc(100vw - 20px));max-height:calc(100dvh - 82px)}
+    #dock.mobile-hidden{transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none}
+    #info.mobile-hidden{transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none}
+    #hud{left:auto;right:10px;bottom:72px;width:min(300px,calc(100vw - 20px));z-index:12}
+    #brand{top:8px;max-width:46vw}
+    #brand .t1{font-size:11px}.brand .t2,#brand .t2{font-size:8px}
+    #viewTag{bottom:72px;max-width:calc(100vw - 330px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #info.autocollapse #infoScroll{display:block}
+    .mobile-handle{display:block}
+  }
+  @media (max-width:600px){
+    html,body{font-size:13px}
+    #brand{top:9px;max-width:58vw}
+    #brand .t1{font-size:10px;letter-spacing:.10em}
+    #brand .t2{display:none}
+    #dock,#info{position:absolute;top:auto;left:0;right:0;bottom:0;width:100%;
+      max-height:min(76dvh,680px);border-radius:16px 16px 0 0;border-left:none;border-right:none;border-bottom:none;
+      padding-bottom:calc(66px + env(safe-area-inset-bottom));transform:translateY(0)}
+    #dock.mobile-hidden,#info.mobile-hidden{transform:translateY(calc(100% + 12px));opacity:0;pointer-events:none}
+    #dockScroll,#infoScroll{overscroll-behavior:contain;padding-bottom:8px}
+    #hud{left:8px;right:8px;bottom:72px;width:auto;max-height:132px;overflow:auto}
+    #hud h2{padding:6px 9px}#hud .sec{display:grid;grid-template-columns:1fr 1fr;padding:6px 9px;gap:0 12px}
+    #hud .kv{font-size:10px}
+    #viewTag{bottom:210px;max-width:calc(100vw - 20px)}
+    #mobileBar{left:8px;right:8px;transform:none;justify-content:center;width:auto}
+    #mobileBar button{flex:1;min-width:0;max-width:150px}
+    .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:390px){
+    #hud .sec{grid-template-columns:1fr}
+    #hud{max-height:150px}
+    #viewTag{bottom:228px}
+  }
+  @media (orientation:landscape) and (max-height:560px){
+    #dock,#info{top:6px;bottom:64px;max-height:none;width:min(340px,44vw);border-radius:10px}
+    #dock{left:6px;right:auto}#info{left:auto;right:6px}
+    #dock.mobile-hidden{transform:translateX(calc(-100% - 12px))}
+    #info.mobile-hidden{transform:translateX(calc(100% + 12px))}
+    #hud{display:none}#viewTag{bottom:66px}
+    #mobileBar{bottom:6px}
   }
 </style>
 </head>
@@ -303,6 +363,11 @@
 </div>
 
 <div id="viewTag">Isometric · Forward-Starboard</div>
+<div id="mobileShade" aria-hidden="true"></div>
+<nav id="mobileBar" aria-label="Mobile panels">
+  <button id="mobileControls" type="button" aria-controls="dock" aria-expanded="false">⚙ Controls</button>
+  <button id="mobileData" type="button" aria-controls="info" aria-expanded="false">▤ Rig Data</button>
+</nav>
 
 <!-- ============ THREE.JS RUNTIME (pinned CDN) ============ -->
 <!-- NOTE: Internet access is required only to load the Three.js runtime libraries below.
@@ -381,7 +446,7 @@ const state = {
    --------------------------------------------------------------------------- */
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth<=1024?1.5:2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -405,6 +470,10 @@ controls.minDistance = 18;
 controls.maxDistance = 1200;
 controls.maxPolarAngle = Math.PI*0.495;   // prevent going under seabed
 controls.target.set(0, 30, 0);
+controls.enablePan = true;
+controls.screenSpacePanning = true;
+controls.touches.ONE = THREE.TOUCH.ROTATE;
+controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 
 /* ---------------------------------------------------------------------------
    4. LIGHTING
@@ -1268,6 +1337,41 @@ function setCantSlidersEnabled(on){   // B5 FIX
   document.getElementById('cantT').disabled=!on;
 }
 function wireUI(){
+  const dock=document.getElementById('dock'), info=document.getElementById('info');
+  const shade=document.getElementById('mobileShade');
+  const controlsBtn=document.getElementById('mobileControls'), dataBtn=document.getElementById('mobileData');
+  dock.insertAdjacentHTML('afterbegin','<div class="mobile-handle" aria-hidden="true"></div>');
+  info.insertAdjacentHTML('afterbegin','<div class="mobile-handle" aria-hidden="true"></div>');
+  function compactUI(){return window.matchMedia('(max-width:1024px)').matches;}
+  function closeMobilePanels(){
+    if(!compactUI()) return;
+    dock.classList.add('mobile-hidden'); info.classList.add('mobile-hidden');
+    shade.classList.remove('show');
+    controlsBtn.classList.remove('on'); dataBtn.classList.remove('on');
+    controlsBtn.setAttribute('aria-expanded','false'); dataBtn.setAttribute('aria-expanded','false');
+  }
+  function openMobilePanel(panel){
+    if(!compactUI()) return;
+    const target=panel==='dock'?dock:info, other=panel==='dock'?info:dock;
+    const targetBtn=panel==='dock'?controlsBtn:dataBtn, otherBtn=panel==='dock'?dataBtn:controlsBtn;
+    const wasOpen=!target.classList.contains('mobile-hidden');
+    other.classList.add('mobile-hidden'); otherBtn.classList.remove('on'); otherBtn.setAttribute('aria-expanded','false');
+    target.classList.toggle('mobile-hidden',wasOpen); targetBtn.classList.toggle('on',!wasOpen);
+    targetBtn.setAttribute('aria-expanded',String(!wasOpen)); shade.classList.toggle('show',!wasOpen);
+  }
+  controlsBtn.onclick=()=>openMobilePanel('dock');
+  dataBtn.onclick=()=>openMobilePanel('info');
+  shade.onclick=closeMobilePanels;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape') closeMobilePanels();});
+  function syncResponsiveUI(){
+    if(compactUI()) closeMobilePanels();
+    else{
+      dock.classList.remove('mobile-hidden'); info.classList.remove('mobile-hidden'); shade.classList.remove('show');
+      controlsBtn.classList.remove('on'); dataBtn.classList.remove('on');
+    }
+  }
+  window.addEventListener('resize',syncResponsiveUI,{passive:true});
+  syncResponsiveUI();
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.mode=b.dataset.mode;
@@ -1376,6 +1480,7 @@ function animate(){
    --------------------------------------------------------------------------- */
 window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,window.innerWidth<=1024?1.5:2));
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
@@ -1391,8 +1496,6 @@ try{
   refreshInfo();
   refreshSliderBadges();
   setView('iso');
-  /* B2 FIX: auto-collapse info panel on narrow/tablet screens (recoverable, not hidden) */
-  if(window.innerWidth<=820) document.getElementById('info').classList.add('autocollapse');
   document.getElementById('loader').style.display='none';
   animate();
 }catch(err){
