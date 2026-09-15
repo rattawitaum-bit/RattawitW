@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>WISDOM — CJ46X100-D Jack-Up | Engineering Visualization</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:rgba(16,22,31,0.86); --panel-solid:#111823;
+    --edge:rgba(120,150,180,0.20); --accent:#33a3ff; --accent2:#f4c20d;
+    --txt:#dfe7ef; --txt-dim:#93a2b3; --ok:#3fbf6a; --warn:#e0a52a; --bad:#e05a3a;
+    --hd:#7fb2e0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
+    font-family:"Segoe UI",Roboto,Arial,system-ui,sans-serif;color:var(--txt);
+    font-size:12.5px;-webkit-font-smoothing:antialiased}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* ---------- generic panel ---------- */
+  .panel{background:var(--panel);backdrop-filter:blur(9px);
+    border:1px solid var(--edge);border-radius:9px;
+    box-shadow:0 8px 26px rgba(0,0,0,.45)}
+  .panel h2{margin:0;padding:8px 11px;font-size:11px;letter-spacing:.10em;
+    text-transform:uppercase;color:var(--hd);border-bottom:1px solid var(--edge);
+    display:flex;align-items:center;gap:7px;font-weight:600}
+  .sec{padding:8px 11px;border-bottom:1px solid var(--edge)}
+  .sec:last-child{border-bottom:none}
+  .sec .lab{font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--txt-dim);margin:0 0 6px}
+
+  /* ---------- left control dock ---------- */
+  #dock{position:absolute;top:12px;left:12px;width:262px;max-height:calc(100vh - 150px);
+    display:flex;flex-direction:column;overflow:hidden}
+  #dockScroll{overflow-y:auto;overscroll-behavior:contain}
+  #dockScroll::-webkit-scrollbar{width:8px}
+  #dockScroll::-webkit-scrollbar-thumb{background:rgba(120,150,180,.3);border-radius:4px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  button.btn{appearance:none;cursor:pointer;color:var(--txt);
+    background:linear-gradient(180deg,#1b2431,#141b26);
+    border:1px solid var(--edge);border-radius:6px;padding:6px 4px;font-size:10.5px;
+    letter-spacing:.02em;transition:.13s;text-align:center;line-height:1.2}
+  button.btn:hover{border-color:var(--accent);color:#fff;background:linear-gradient(180deg,#20303f,#182231)}
+  button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  button.btn.on{background:linear-gradient(180deg,#1d4c73,#12395a);border-color:var(--accent);color:#fff}
+  button.btn.mode.on{background:linear-gradient(180deg,#8a5a12,#5c3c0d);border-color:var(--accent2);color:#fff}
+
+  .toggle{display:flex;align-items:center;justify-content:space-between;
+    padding:3px 0;font-size:11px}
+  .toggle span{color:var(--txt)}
+  .sw{position:relative;width:34px;height:18px;flex:0 0 auto}
+  .sw input{opacity:0;width:0;height:0;position:absolute}
+  .sw i{position:absolute;inset:0;background:#26313f;border:1px solid var(--edge);
+    border-radius:20px;transition:.15s;cursor:pointer}
+  .sw i:before{content:"";position:absolute;width:12px;height:12px;left:2px;top:2px;
+    background:#8296ab;border-radius:50%;transition:.15s}
+  .sw input:checked + i{background:#1d4c73;border-color:var(--accent)}
+  .sw input:checked + i:before{transform:translateX(16px);background:#fff}
+  .sw input:focus-visible + i{outline:2px solid var(--accent);outline-offset:1px}
+
+  .rangewrap{display:flex;flex-direction:column;gap:2px;margin:4px 0}
+  .rangewrap .rl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--txt-dim)}
+  .rangewrap .rl b{color:var(--accent2);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:3px;
+    background:#26313f;outline:none;margin:3px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+    border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #0d1117}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid #0d1117}
+  input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  input[type=range]:disabled{opacity:.35}
+
+  /* ---------- right info panel ---------- */
+  #info{position:absolute;top:12px;right:12px;width:236px;max-height:calc(100vh - 24px);
+    overflow:hidden;display:flex;flex-direction:column}
+  #infoScroll{overflow-y:auto}
+  #infoScroll::-webkit-scrollbar{width:8px}
+  #infoScroll::-webkit-scrollbar-thumb{background:rgba(120,150,180,.3);border-radius:4px}
+  .kv{display:flex;justify-content:space-between;gap:8px;padding:2.5px 0;font-size:11px;
+    border-bottom:1px dotted rgba(120,150,180,.10)}
+  .kv .k{color:var(--txt-dim)}
+  .kv .v{color:var(--txt);text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .kv .v.hi{color:var(--accent2)}
+  .disc{font-size:9.5px;line-height:1.4;color:var(--txt-dim);padding:8px 11px;
+    background:rgba(224,90,58,.07);border-top:1px solid rgba(224,90,58,.25)}
+  #infoCollapse{cursor:pointer;margin-left:auto;color:var(--txt-dim);font-size:14px;
+    background:none;border:none;line-height:1}
+  #infoCollapse:hover{color:#fff}
+  #info.collapsed #infoScroll{display:none}
+
+  /* ---------- readout HUD (jacking) ---------- */
+  #hud{position:absolute;left:12px;bottom:12px;width:262px}
+  #hud .kv .v{color:var(--accent)}
+
+  /* ---------- topbar ---------- */
+  #brand{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    text-align:center;pointer-events:none;user-select:none}
+  #brand .t1{font-size:14px;font-weight:700;letter-spacing:.16em;color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.8)}
+  #brand .t2{font-size:10px;letter-spacing:.20em;color:var(--hd);margin-top:2px;
+    text-shadow:0 2px 8px rgba(0,0,0,.8)}
+
+  /* collapse button */
+  #collapse{cursor:pointer;margin-left:auto;color:var(--txt-dim);font-size:14px;
+    background:none;border:none;line-height:1}
+  #collapse:hover{color:#fff}
+  .collapsed #dockScroll{display:none}
+
+  /* loader */
+  #loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;background:#0d1117;z-index:50}
+  #loader .ring{width:44px;height:44px;border:3px solid rgba(120,150,180,.2);
+    border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+  #loader .lt{font-size:12px;letter-spacing:.14em;color:var(--hd)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  #err{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+    background:rgba(224,90,58,.9);color:#fff;padding:8px 14px;border-radius:6px;
+    font-size:11px;display:none;z-index:60;max-width:70%}
+
+  #viewTag{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    font-size:10px;letter-spacing:.14em;color:var(--txt-dim);background:var(--panel);
+    padding:4px 12px;border-radius:20px;border:1px solid var(--edge);pointer-events:none}
+
+  @media (max-width:820px){
+    #dock{width:220px} #hud{width:220px}
+    #info{width:200px}
+    #brand .t1{font-size:11px} #brand .t2{font-size:8.5px}
+    /* B2 FIX: collapse info to header-only on tablet instead of hiding it */
+    #info.autocollapse #infoScroll{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="loader">
+  <div class="ring"></div>
+  <div class="lt">BUILDING RIG MODEL…</div>
+</div>
+<div id="err"></div>
+
+<div id="brand">
+  <div class="t1">SINOOCEAN&nbsp;WISDOM</div>
+  <div class="t2">CJ46X100-D · SELF-ELEVATING MODU</div>
+</div>
+
+<!-- ============ LEFT CONTROL DOCK ============ -->
+<div id="dock" class="panel">
+  <h2>⚙ Rig Controls
+    <button id="collapse" title="Collapse panel" aria-label="Collapse control panel">▾</button>
+  </h2>
+  <div id="dockScroll">
+
+    <div class="sec">
+      <p class="lab">Operating Mode</p>
+      <div class="grid3">
+        <button class="btn mode on" data-mode="elevated">Elevated<br>Drilling</button>
+        <button class="btn mode" data-mode="preload">Preload<br>Intermed.</button>
+        <button class="btn mode" data-mode="transit">Afloat<br>Transit</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <p class="lab">Jacking — Air Gap (Elevated)</p>
+      <div class="rangewrap">
+        <div class="rl"><span>Air gap</span><b id="agV">23.0 m</b></div>
+        <input type="range" id="airgap" min="12" max="30" step="0.5" value="23" aria-label="Air gap">
+      </div>
+      <div class="rangewrap">
+        <div class="rl"><span>Water depth</span><b id="wdV">75 m</b></div>
+        <input type="range" id="wdepth" min="30" max="95" step="1" value="75" aria-label="Water depth">
+      </div>
+      <div class="rangewrap">
+        <div class="rl"><span>Leg penetration</span><b id="lpV">5.0 m</b></div>
+        <input type="range" id="lpen" min="0" max="15" step="0.5" value="5" aria-label="Leg penetration">
+      </div>
+    </div>
+
+    <div class="sec">
+      <p class="lab">Cantilever Skidding</p>
+      <div class="rangewrap">
+        <div class="rl"><span>Aft reach</span><b id="clV">0.00 m</b></div>
+        <input type="range" id="cantL" min="0" max="21.34" step="0.1" value="0" aria-label="Cantilever aft reach">
+      </div>
+      <div class="rangewrap">
+        <div class="rl"><span>Transverse (P/S)</span><b id="ctV">0.00 m</b></div>
+        <input type="range" id="cantT" min="-6.10" max="6.10" step="0.05" value="0" aria-label="Cantilever transverse offset">
+      </div>
+    </div>
+
+    <div class="sec">
+      <p class="lab">Standard Views</p>
+      <div class="grid3">
+        <button class="btn view" data-view="iso">Iso</button>
+        <button class="btn view" data-view="top">Top</button>
+        <button class="btn view" data-view="fwd">Fwd</button>
+        <button class="btn view" data-view="aft">Aft</button>
+        <button class="btn view" data-view="port">Port</button>
+        <button class="btn view" data-view="stbd">Stbd</button>
+        <button class="btn view" data-view="drill">Drill&nbsp;Fl.</button>
+        <button class="btn view" data-view="heli">Helideck</button>
+        <button class="btn view" data-view="cant">Cant.</button>
+        <button class="btn view" data-view="leg">Leg/Spud</button>
+        <button class="btn view" data-view="water">Waterline</button>
+        <button class="btn view" data-view="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <p class="lab">Display</p>
+      <div class="grid3">
+        <button class="btn disp on" data-disp="day">Day</button>
+        <button class="btn disp" data-disp="night">Night</button>
+        <button class="btn disp" data-disp="eng">Engineer</button>
+      </div>
+      <div style="height:6px"></div>
+      <div class="toggle"><span>Wireframe overlay</span>
+        <label class="sw"><input type="checkbox" id="tg_wire" aria-label="Wireframe overlay"><i></i></label></div>
+      <div class="toggle"><span>Transparent hull</span>
+        <label class="sw"><input type="checkbox" id="tg_xhull" aria-label="Transparent hull"><i></i></label></div>
+      <div class="toggle"><span>Exploded decks</span>
+        <label class="sw"><input type="checkbox" id="tg_explode" aria-label="Exploded decks"><i></i></label></div>
+      <div class="toggle"><span>Units — Imperial</span>
+        <label class="sw"><input type="checkbox" id="tg_units" aria-label="Imperial units"><i></i></label></div>
+    </div>
+
+    <div class="sec">
+      <p class="lab">Visibility</p>
+      <div class="grid">
+        <div class="toggle"><span>Hull</span><label class="sw"><input type="checkbox" data-vis="hull" checked><i></i></label></div>
+        <div class="toggle"><span>Legs</span><label class="sw"><input type="checkbox" data-vis="legs" checked><i></i></label></div>
+        <div class="toggle"><span>Spudcans</span><label class="sw"><input type="checkbox" data-vis="spudcans" checked><i></i></label></div>
+        <div class="toggle"><span>Cantilever</span><label class="sw"><input type="checkbox" data-vis="cantilever" checked><i></i></label></div>
+        <div class="toggle"><span>Derrick</span><label class="sw"><input type="checkbox" data-vis="derrick" checked><i></i></label></div>
+        <div class="toggle"><span>Cranes</span><label class="sw"><input type="checkbox" data-vis="cranes" checked><i></i></label></div>
+        <div class="toggle"><span>Helideck</span><label class="sw"><input type="checkbox" data-vis="helideck" checked><i></i></label></div>
+        <div class="toggle"><span>Quarters</span><label class="sw"><input type="checkbox" data-vis="accommodation" checked><i></i></label></div>
+        <div class="toggle"><span>Lifeboats</span><label class="sw"><input type="checkbox" data-vis="lifeboats" checked><i></i></label></div>
+        <div class="toggle"><span>Deck eqp.</span><label class="sw"><input type="checkbox" data-vis="deckEquip" checked><i></i></label></div>
+        <div class="toggle"><span>Handrails</span><label class="sw"><input type="checkbox" data-vis="handrails" checked><i></i></label></div>
+        <div class="toggle"><span>Labels</span><label class="sw"><input type="checkbox" data-vis="labels" checked><i></i></label></div>
+        <div class="toggle"><span>Ocean</span><label class="sw"><input type="checkbox" data-vis="ocean" checked><i></i></label></div>
+        <div class="toggle"><span>Seabed</span><label class="sw"><input type="checkbox" data-vis="seabed" checked><i></i></label></div>
+        <div class="toggle"><span>Dimensions</span><label class="sw"><input type="checkbox" data-vis="dimensions"><i></i></label></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ RIGHT INFO PANEL ============ -->
+<div id="info" class="panel">
+  <h2>▤ Rig Data Sheet
+    <button id="infoCollapse" title="Collapse panel" aria-label="Collapse info panel">▾</button>
+  </h2>
+  <div id="infoScroll">
+    <div class="sec">
+      <div class="kv"><span class="k">Rig name</span><span class="v hi">WISDOM</span></div>
+      <div class="kv"><span class="k">Type</span><span class="v">Self-Elevating MODU</span></div>
+      <div class="kv"><span class="k">Design</span><span class="v">MSC CJ46X100-D</span></div>
+      <div class="kv"><span class="k">Class / Flag</span><span class="v">ABS · Liberia</span></div>
+      <div class="kv"><span class="k">Built</span><span class="v">2021 · SWS China</span></div>
+    </div>
+    <div class="sec">
+      <div class="kv"><span class="k">Hull L × W</span><span class="v" id="d_hull">—</span></div>
+      <div class="kv"><span class="k">Hull depth</span><span class="v" id="d_depth">—</span></div>
+      <div class="kv"><span class="k">Overall L (incl. heli)</span><span class="v" id="d_oal">—</span></div>
+      <div class="kv"><span class="k">Legs</span><span class="v" id="d_legs">—</span></div>
+      <div class="kv"><span class="k">Leg length</span><span class="v" id="d_leglen">—</span></div>
+      <div class="kv"><span class="k">Leg spacing T×L</span><span class="v" id="d_legsp">—</span></div>
+      <div class="kv"><span class="k">Spudcan Ø × H</span><span class="v" id="d_spud">—</span></div>
+      <div class="kv"><span class="k">Derrick height</span><span class="v" id="d_derr">—</span></div>
+      <div class="kv"><span class="k">Helideck Ø</span><span class="v" id="d_heli">—</span></div>
+      <div class="kv"><span class="k">Cantilever aft / trans</span><span class="v" id="d_cant">—</span></div>
+      <div class="kv"><span class="k">Cranes</span><span class="v">3 × Favelle Favco 7.5/10K</span></div>
+      <div class="kv"><span class="k">Accommodation</span><span class="v">140 persons</span></div>
+    </div>
+    <div class="sec">
+      <div class="kv"><span class="k">Operating mode</span><span class="v hi" id="s_mode">Elevated</span></div>
+      <div class="kv"><span class="k">Cantilever offset</span><span class="v" id="s_cant">0.0 / 0.0</span></div>
+      <div class="kv"><span class="k">Camera view</span><span class="v" id="s_view">Isometric</span></div>
+    </div>
+    <div class="disc">Engineering visualization based on supplied GA and IADC data. Not for
+      fabrication, class approval, structural analysis, lifting engineering or dimensional
+      survey control.</div>
+  </div>
+</div>
+
+<!-- ============ JACKING HUD ============ -->
+<div id="hud" class="panel">
+  <h2>⇕ Jacking Readout <span style="font-size:9px;color:var(--txt-dim);font-weight:400">(visualization values)</span></h2>
+  <div class="sec">
+    <div class="kv"><span class="k">Hull bottom elevation</span><span class="v" id="j_hull">—</span></div>
+    <div class="kv"><span class="k">Water depth</span><span class="v" id="j_wd">—</span></div>
+    <div class="kv"><span class="k">Air gap</span><span class="v" id="j_ag">—</span></div>
+    <div class="kv"><span class="k">Leg penetration</span><span class="v" id="j_lp">—</span></div>
+    <div class="kv"><span class="k">Leg length below hull</span><span class="v" id="j_lb">—</span></div>
+  </div>
+</div>
+
+<div id="viewTag">Isometric · Forward-Starboard</div>
+
+<!-- ============ THREE.JS RUNTIME (pinned CDN) ============ -->
+<!-- NOTE: Internet access is required only to load the Three.js runtime libraries below.
+     All rig geometry, materials and application logic are contained inside this HTML file. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+"use strict";
+/* ==================================================================================
+   WISDOM (CJ46X100-D) — Interactive Engineering Visualization
+   Single-file Three.js application. Internal units: METRES. +Z = AFT, -Z = FWD,
+   +X = STARBOARD, -X = PORT, +Y = UP. Sea level = y 0.
+   ================================================================================== */
+(function(){
+const errEl=document.getElementById('err');
+function fatal(msg){ errEl.style.display='block'; errEl.textContent=msg;
+  const l=document.getElementById('loader'); if(l) l.style.display='none'; }
+if(!window.THREE){ fatal('Failed to load Three.js runtime (check internet connection).'); return; }
+/* A7 FIX: explicit guard for OrbitControls (loaded from a separate CDN) */
+if(!THREE.OrbitControls){ fatal('Failed to load OrbitControls runtime (check internet connection).'); return; }
+
+/* ---------------------------------------------------------------------------
+   1. ENGINEERING CONSTANTS  (single source of truth — from IADC spec + GA)
+   --------------------------------------------------------------------------- */
+const FT = 0.3048;
+const K = {                         // all metres unless noted
+  HULL_L:   214.1*FT,  // 65.26  hull length (fwd-aft)
+  HULL_W:   203.4*FT,  // 62.00  hull width (port-stbd)
+  HULL_D:    26.2*FT,  //  7.99  hull depth
+  OA_L:     304.2*FT,  // 92.72  overall incl. helideck
+  OA_W:    217.68*FT,  // 66.35  overall incl. burner boom
+  DRAFT:     16.4*FT,  //  5.00  load-line draft
+  LEG_TOTAL:  503*FT,  // 153.31 leg length
+  LEG_BELOW:  435*FT,  // 132.59 leg available below hull
+  LEG_SP_T: 150.9*FT,  // 45.99  transverse spacing
+  LEG_SP_L: 131.2*FT,  // 39.99  longitudinal spacing
+  SPUD_D:    50.2*FT,  // 15.30  spudcan diameter
+  SPUD_H:   12.69*FT,  //  3.87  spudcan height
+  CANT_AFT:    70*FT,  // 21.34  aft reach
+  CANT_TR:     20*FT,  //  6.10  transverse each side
+  DERR_H:     170*FT,  // 51.82  derrick height
+  DERR_BASE_X: 35*FT,  // 10.67  base (transverse)
+  DERR_BASE_Z: 40*FT,  // 12.19  base (longitudinal)
+  DERR_CROWN:  18*FT,  //  5.49  crown
+  DFLOOR_H:  38.7*FT,  // 11.80  drill floor above main deck
+  SUB_L:    76.89*FT,  // 23.44  substructure length
+  SUB_W:    46.47*FT,  // 14.16  substructure width
+  CLEAR_H:     31*FT,  //  9.45  clear below rotary beams
+  HELI_D:   72.83*FT,  // 22.20  helideck diameter
+  CRANE_BOOM: 135*FT,  // 41.15  crane boom
+  CHORD_SP:    12.0,   // APPROX leg triangle chord spacing (scaled from GA truss)
+  HULL_STRAIGHT: 0.46, // parallel side run from transom (frac of L) — from GA top view
+  HULL_BOWHALF:  0.34, // blunt bow face half-width (frac of W) — from GA top view
+};
+const LEG_SHIFT_Z = 4;   // shift triangle slightly aft so fwd leg sits behind bow
+const LEG_POS = [
+  {id:'Leg 1 (Fwd)', x:0,             z:-K.LEG_SP_L/2 + LEG_SHIFT_Z},
+  {id:'Leg 2 (Port-Aft)', x:-K.LEG_SP_T/2, z:+K.LEG_SP_L/2 + LEG_SHIFT_Z},
+  {id:'Leg 3 (Stbd-Aft)', x:+K.LEG_SP_T/2, z:+K.LEG_SP_L/2 + LEG_SHIFT_Z},
+];
+const DECK_Y = K.HULL_D;             // main deck top (hull-local)
+const CANT_REF_Z = K.HULL_L/2 - 2;   // rotary centre Z at zero skid (near stern)
+
+/* ---------------------------------------------------------------------------
+   2. APPLICATION STATE
+   --------------------------------------------------------------------------- */
+const state = {
+  mode:'elevated', airGap:23, waterDepth:75, legPen:5,
+  cantL:0, cantT:0, display:'day', imperial:false,
+  wire:false, xhull:false, explode:false, view:'iso'
+};
+
+/* ---------------------------------------------------------------------------
+   3. SCENE / RENDERER / CAMERA / CONTROLS
+   --------------------------------------------------------------------------- */
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const SKY = {day:0x9fc4e0, night:0x05080e, eng:0xaeb6bf};
+scene.background = new THREE.Color(SKY.day);
+scene.fog = new THREE.Fog(SKY.day, 420, 1500);
+
+const camera = new THREE.PerspectiveCamera(48, window.innerWidth/window.innerHeight, 0.5, 6000);
+camera.position.set(150,120,175);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 18;
+controls.maxDistance = 1200;
+controls.maxPolarAngle = Math.PI*0.495;   // prevent going under seabed
+controls.target.set(0, 30, 0);
+
+/* ---------------------------------------------------------------------------
+   4. LIGHTING
+   --------------------------------------------------------------------------- */
+const hemi = new THREE.HemisphereLight(0xbcd6ee, 0x3b4048, 0.85);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
+sun.position.set(180,260,140);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near = 20; sun.shadow.camera.far = 900;
+sun.shadow.camera.left=-180; sun.shadow.camera.right=180;
+sun.shadow.camera.top=260;   sun.shadow.camera.bottom=-160;
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+scene.add(sun.target);
+const fill = new THREE.DirectionalLight(0x9fb8d0, 0.35);
+fill.position.set(-140,90,-120); scene.add(fill);
+const nightLights = [];
+
+/* ---------------------------------------------------------------------------
+   5. SHARED MATERIALS
+   --------------------------------------------------------------------------- */
+const M = {
+  accom:   new THREE.MeshStandardMaterial({color:0xeef0ec, roughness:.72, metalness:.05}),
+  accom2:  new THREE.MeshStandardMaterial({color:0xd7dbd6, roughness:.75, metalness:.05}),
+  steel:   new THREE.MeshStandardMaterial({color:0x8b939b, roughness:.62, metalness:.35}),
+  steelDk: new THREE.MeshStandardMaterial({color:0x646b73, roughness:.68, metalness:.35}),
+  deck:    new THREE.MeshStandardMaterial({color:0x3c434c, roughness:.9,  metalness:.15}),
+  hullSide:new THREE.MeshStandardMaterial({color:0x7d858c, roughness:.72, metalness:.25}),
+  hullRed: new THREE.MeshStandardMaterial({color:0x8f2c1f, roughness:.7,  metalness:.2}),
+  yellow:  new THREE.MeshStandardMaterial({color:0xf4c20d, roughness:.5,  metalness:.25}),
+  orange:  new THREE.MeshStandardMaterial({color:0xf07a1a, roughness:.5,  metalness:.2}),
+  red:     new THREE.MeshStandardMaterial({color:0xcf3a20, roughness:.55, metalness:.2}),
+  legChord:new THREE.MeshStandardMaterial({color:0x9aa1a7, roughness:.55, metalness:.5}),
+  brace:   new THREE.MeshStandardMaterial({color:0x818890, roughness:.6,  metalness:.45}),
+  spud:    new THREE.MeshStandardMaterial({color:0x6f747a, roughness:.7,  metalness:.35}),
+  derrick: new THREE.MeshStandardMaterial({color:0xb63a24, roughness:.55, metalness:.3}),
+  glass:   new THREE.MeshStandardMaterial({color:0x2b4a5c, roughness:.15, metalness:.6,
+             transparent:true, opacity:.55, emissive:0x0a1a24, emissiveIntensity:.4}),
+  heliDeck:new THREE.MeshStandardMaterial({color:0x2f5c3a, roughness:.9, metalness:.05}),
+  mark:    new THREE.MeshStandardMaterial({color:0xf5f5f0, roughness:.8, metalness:.05}),
+  rail:    new THREE.MeshStandardMaterial({color:0xd8dbd0, roughness:.6, metalness:.3}),
+  dark:    new THREE.MeshStandardMaterial({color:0x2a2f36, roughness:.8, metalness:.2}),
+  pipe:    new THREE.MeshStandardMaterial({color:0x4c5560, roughness:.6, metalness:.5}),
+  emit:    new THREE.MeshStandardMaterial({color:0xffe08a, emissive:0xffcf5c, emissiveIntensity:.9, roughness:.5}),
+};
+const trackWire = [];
+function reg(mesh){ trackWire.push(mesh); return mesh; }
+
+function box(w,h,d,mat,cast=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.castShadow=cast; m.receiveShadow=true; return reg(m);
+}
+function cyl(rt,rb,h,mat,seg=16,cast=true){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);
+  m.castShadow=cast; m.receiveShadow=true; return reg(m);
+}
+function tube(r,h,mat,seg=10){ return cyl(r,r,h,mat,seg); }
+function strut(a,b,r,mat){
+  const dir=new THREE.Vector3().subVectors(b,a), len=dir.length();
+  const m=cyl(r,r,len,mat,8);
+  m.position.copy(a).add(dir.clone().multiplyScalar(.5));
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  return m;
+}
+
+/* ---------------------------------------------------------------------------
+   6. LABEL SYSTEM (canvas sprites — no external asset)
+   --------------------------------------------------------------------------- */
+const labelSprites = [];
+function makeLabel(text, color='#eaf2fb', bg='rgba(12,18,26,0.82)', priority=4){
+  const pad=13, fs=38;
+  const c=document.createElement('canvas'), x=c.getContext('2d');
+  x.font=`600 ${fs}px "Segoe UI",Arial`;
+  const w=x.measureText(text).width;
+  c.width=w+pad*2; c.height=fs+pad*1.3;
+  x.font=`600 ${fs}px "Segoe UI",Arial`;
+  x.fillStyle=bg; roundRect(x,0,0,c.width,c.height,12); x.fill();
+  x.strokeStyle='rgba(120,160,200,0.45)'; x.lineWidth=2; roundRect(x,1,1,c.width-2,c.height-2,11); x.stroke();
+  x.fillStyle=color; x.textBaseline='middle'; x.textAlign='center';
+  x.fillText(text,c.width/2,c.height/2+2);
+  const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,depthWrite:false,transparent:true}));
+  const base=3.3;
+  spr.scale.set(c.width/c.height*base, base, 1);
+  spr.userData.baseScale=base; spr.userData.txtLen=text.length;
+  spr.userData.priority=priority; spr.userData.maxD=560;
+  spr.userData.aspect=c.width/c.height;
+  spr.renderOrder=999; labelSprites.push(spr); return spr;
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function spriteActive(s){ let o=s; while(o){ if(o.visible===false) return false; o=o.parent; } return true; }
+const _lv=new THREE.Vector3();
+
+/* A1 FIX: deep-dispose a group (textures, materials, geometries) and prune labelSprites */
+function disposeGroup(g){
+  const removed=[];
+  g.traverse(o=>{
+    if(o.material){
+      if(o.material.map) o.material.map.dispose();
+      o.material.dispose();
+    }
+    if(o.geometry) o.geometry.dispose();
+    removed.push(o);
+  });
+  // prune any disposed sprites from the global declutter array
+  for(const o of removed){
+    const i=labelSprites.indexOf(o);
+    if(i>=0) labelSprites.splice(i,1);
+  }
+  g.clear();
+}
+
+/* ---------------------------------------------------------------------------
+   7. SCENE GRAPH GROUPS
+   --------------------------------------------------------------------------- */
+const rigRoot   = new THREE.Group();  scene.add(rigRoot);
+const hullGroup = new THREE.Group();  rigRoot.add(hullGroup);
+const legsGroup = new THREE.Group();  rigRoot.add(legsGroup);
+
+const G = {
+  hull:new THREE.Group(), accommodation:new THREE.Group(), helideck:new THREE.Group(),
+  cranes:new THREE.Group(), deckEquip:new THREE.Group(), handrails:new THREE.Group(),
+  lifeboats:new THREE.Group(), cantilever:new THREE.Group(), derrick:new THREE.Group(),
+  legs:new THREE.Group(), spudcans:[], labels:new THREE.Group(),
+  ocean:new THREE.Group(), seabed:new THREE.Group(), dimensions:new THREE.Group()
+};
+hullGroup.add(G.hull,G.accommodation,G.helideck,G.cranes,G.deckEquip,G.handrails,G.lifeboats,G.cantilever);
+legsGroup.add(G.legs);
+scene.add(G.labels,G.ocean,G.seabed,G.dimensions);
+G.dimensions.visible=false;
+
+const cantBox = new THREE.Group();
+const drillPkg = new THREE.Group();
+G.cantilever.add(cantBox);
+cantBox.add(drillPkg);
+drillPkg.add(G.derrick);
+
+/* ===========================================================================
+   8. BUILDERS
+   =========================================================================== */
+
+/* ---- pentagon (arrowhead) hull planform ---- */
+function hullPolygon(scale){
+  const W=K.HULL_W*scale, L=K.HULL_L*scale;
+  const straight=L*K.HULL_STRAIGHT;
+  const bowHalf=W*K.HULL_BOWHALF;
+  const s=new THREE.Shape();
+  s.moveTo(-W/2,  L/2);
+  s.lineTo(-W/2,  L/2-straight);
+  s.lineTo(-bowHalf, -L/2);
+  s.lineTo( bowHalf, -L/2);
+  s.lineTo( W/2,  L/2-straight);
+  s.lineTo( W/2,  L/2);
+  s.closePath();
+  return s;
+}
+function hullPrism(scale,height,mat,yBottom){
+  const geo=new THREE.ExtrudeGeometry(hullPolygon(scale),{depth:height,bevelEnabled:false});
+  const m=new THREE.Mesh(geo,mat);
+  m.rotation.x=Math.PI/2;
+  m.position.y=yBottom+height;
+  m.castShadow=true; m.receiveShadow=true; return reg(m);
+}
+function buildHull(){
+  const L=K.HULL_L, W=K.HULL_W, D=K.HULL_D;
+  G.hull.add(hullPrism(1.0, D, M.hullSide, 0));
+  G.hull.add(hullPrism(1.004, D*0.34, M.hullRed, 0));
+  G.hull.add(hullPrism(1.006, D*0.10, M.steelDk, D*0.80));
+  G.hull.add(hullPrism(0.99, 0.3, M.deck, D-0.02));
+  for(const p of LEG_POS){
+    const jh = box(15, 4.4, 15, M.steel);      jh.position.set(p.x, D+2.2, p.z); G.hull.add(jh);
+    const jh2= box(11, 6.2, 11, M.steelDk);    jh2.position.set(p.x, D+3.1, p.z); G.hull.add(jh2);
+    const cap= box(12.5,1.2,12.5,M.yellow);    cap.position.set(p.x,D+6.4,p.z); G.hull.add(cap);
+  }
+  const nb = makeLabel('WISDOM','#ffffff','rgba(20,30,45,0.92)',7);
+  nb.position.set(0, D*0.55, L/2+0.4); nb.scale.multiplyScalar(1.4);
+  nb.userData.hullBoard=true; nb.userData.noCull=true;   // B6 FIX: fixed vessel marking
+  G.hull.add(nb);
+}
+
+/* ---- LEG + SPUDCAN ---- */
+function buildLeg(){
+  const grp = new THREE.Group();
+  const H = K.LEG_TOTAL, s = K.CHORD_SP;
+  const R = s/Math.sqrt(3);
+  const chordXY = [
+    {x:0,        z:-R},
+    {x:-s/2,     z:R/2},
+    {x:+s/2,     z:R/2},
+  ];
+  const chordR=0.62, braceR=0.2, bay=6.0, nBay=Math.round(H/bay);
+  for(const c of chordXY){
+    const ch = cyl(chordR,chordR,H,M.legChord,10);
+    ch.position.set(c.x, H/2, c.z); grp.add(ch);
+    const rack=box(0.5,H,0.28,M.steelDk); rack.position.set(c.x,H/2,c.z + (c.z<0? -0.7:0.5));
+    grp.add(rack);
+  }
+  for(let b=0;b<nBay;b++){
+    const y0=b*bay, y1=(b+1)*bay;
+    for(let i=0;i<3;i++){
+      const a=chordXY[i], c=chordXY[(i+1)%3];
+      grp.add(strut(new THREE.Vector3(a.x,y1,a.z), new THREE.Vector3(c.x,y1,c.z), braceR, M.brace));
+      grp.add(strut(new THREE.Vector3(a.x,y0,a.z), new THREE.Vector3(c.x,y1,c.z), braceR*0.85, M.brace));
+    }
+  }
+  const rD=K.SPUD_D/2, hS=K.SPUD_H;
+  const prof=[
+    new THREE.Vector2(0.0, -hS*0.55),
+    new THREE.Vector2(rD*0.16,-hS*0.30),
+    new THREE.Vector2(rD*0.62,-hS*0.05),
+    new THREE.Vector2(rD*0.98, hS*0.18),
+    new THREE.Vector2(rD*1.0,  hS*0.30),
+    new THREE.Vector2(rD*0.9,  hS*0.45),
+  ];
+  const spud = new THREE.Mesh(new THREE.LatheGeometry(prof, 28), M.spud);
+  spud.castShadow=true; spud.receiveShadow=true; reg(spud);
+  const spudGrp=new THREE.Group(); spudGrp.add(spud);
+  spudGrp.position.y = hS*0.2;
+  grp.add(spudGrp);
+  grp.userData.spudcan=spud;
+  G.spudcans.push(spud);
+  return grp;
+}
+function buildLegs(){
+  LEG_POS.forEach((p)=>{
+    const leg=buildLeg();
+    leg.position.set(p.x,0,p.z);
+    if(p.z>0) leg.rotation.y=Math.PI;
+    leg.userData.pos=p;
+    G.legs.add(leg);
+  });
+}
+
+/* ---- CANTILEVER + SUBSTRUCTURE + DERRICK ---- */
+function buildCantilever(){
+  const beamLen = K.HULL_L*0.5 + K.CANT_AFT + 6;
+  for(const s of [-1,1]){
+    const beam=box(2.2, 2.6, beamLen, M.steelDk);
+    beam.position.set(s*(K.SUB_W/2-0.5), DECK_Y+1.6, CANT_REF_Z - beamLen/2 + K.CANT_AFT*0.5 + 6);
+    G.cantilever.add(beam);
+  }
+  for(let i=0;i<4;i++){
+    const cg=box(K.SUB_W+2,1.4,1.6,M.steel);
+    cg.position.set(0,DECK_Y+1.6, (K.HULL_L/2-14)+i*7); G.cantilever.add(cg);
+  }
+  const cbox=box(K.SUB_W+3.5, 3.2, K.SUB_L*0.8, M.steel);
+  cbox.position.set(0, DECK_Y+3.6, 0);
+  cantBox.add(cbox);
+  const cbox2=box(K.SUB_W+1, 2.0, K.SUB_L*0.8, M.steelDk);
+  cbox2.position.set(0, DECK_Y+5.4, 0);
+  cantBox.add(cbox2);
+  cantBox.position.z = CANT_REF_Z;
+  buildSubstructureAndDerrick();
+}
+function buildSubstructureAndDerrick(){
+  const baseY=DECK_Y+6.4;
+  const dfY = DECK_Y + K.DFLOOR_H;
+  const subH = dfY - baseY;
+  for(const sx of [-1,1]) for(const sz of [-1,1]){
+    const col=box(1.4,subH,1.4,M.steelDk);
+    col.position.set(sx*(K.SUB_W/2-1.2), baseY+subH/2, sz*(K.SUB_L/2-1.2));
+    drillPkg.add(col);
+  }
+  for(const sz of [-1,1]){
+    drillPkg.add(strut(new THREE.Vector3(-K.SUB_W/2+1.2,baseY,sz*(K.SUB_L/2-1.2)),
+                       new THREE.Vector3(K.SUB_W/2-1.2,dfY,sz*(K.SUB_L/2-1.2)),0.35,M.brace));
+  }
+  const df=box(K.SUB_W, 0.8, K.SUB_L, M.steel);
+  df.position.set(0, dfY, 0); drillPkg.add(df);
+  const wb=box(K.SUB_W+0.6,4.6,0.4,M.steelDk); wb.position.set(0,dfY+2.5,-K.SUB_L/2+0.3); drillPkg.add(wb);
+  const rot=cyl(1.7,1.7,0.6,M.yellow,20); rot.position.set(0,dfY+0.6,0); drillPkg.add(rot);
+  const rotHole=cyl(0.7,0.7,0.8,M.dark,16); rotHole.position.set(0,dfY+0.7,0); drillPkg.add(rotHole);
+  /* A5 FIX: single WELL CENTRE label lives in buildLabels(); marker geometry only here */
+  const dw=box(5.5,4.2,7.5,M.accom2); dw.position.set(0,dfY+2.4,K.SUB_L/2-5); drillPkg.add(dw);
+
+  const H=K.DERR_H, bx=K.DERR_BASE_X/2, bz=K.DERR_BASE_Z/2, cw=K.DERR_CROWN/2;
+  const legR=0.42;
+  function legTop(sx,sz){return new THREE.Vector3(sx*cw, dfY+H, sz*cw);}
+  function legBot(sx,sz){return new THREE.Vector3(sx*bx, dfY,   sz*bz);}
+  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+  for(const [sx,sz] of corners){
+    drillPkg.add(strut(legBot(sx,sz),legTop(sx,sz),legR,M.derrick));
+  }
+  const zones=8;
+  for(let i=1;i<=zones;i++){
+    const t=i/zones, y=dfY + t*H;
+    const w = bx+(cw-bx)*t, d=bz+(cw-bz)*t;
+    const ring=[
+      new THREE.Vector3(-w,y,-d),new THREE.Vector3(w,y,-d),
+      new THREE.Vector3(w,y,d),new THREE.Vector3(-w,y,d)
+    ];
+    for(let k=0;k<4;k++) drillPkg.add(strut(ring[k],ring[(k+1)%4],0.16,M.derrick));
+    const t0=(i-1)/zones, y0=dfY+t0*H, w0=bx+(cw-bx)*t0, d0=bz+(cw-bz)*t0;
+    const prev=[new THREE.Vector3(-w0,y0,-d0),new THREE.Vector3(w0,y0,-d0),
+                new THREE.Vector3(w0,y0,d0),new THREE.Vector3(-w0,y0,d0)];
+    for(let k=0;k<4;k++) drillPkg.add(strut(prev[k],ring[(k+1)%4],0.13,M.derrick));
+  }
+  const crown=box(K.DERR_CROWN+0.6,2.6,K.DERR_CROWN+0.6,M.steelDk);
+  crown.position.set(0,dfY+H+1.0,0); drillPkg.add(crown);
+  const crownTop=box(K.DERR_CROWN-0.5,1.0,K.DERR_CROWN-0.5,M.yellow);
+  crownTop.position.set(0,dfY+H+2.5,0); drillPkg.add(crownTop);
+  const mbY=dfY+H*0.66;
+  const mb=box(K.DERR_BASE_X*0.7,0.4,3.2,M.steel); mb.position.set(0,mbY,bz*0.3); drillPkg.add(mb);
+  const mbRail=box(K.DERR_BASE_X*0.7,1.1,0.12,M.yellow); mbRail.position.set(0,mbY+0.7,bz*0.3+1.6); drillPkg.add(mbRail);
+  const td=box(2.0,3.2,2.0,M.steelDk); td.position.set(0,dfY+H*0.42,0); drillPkg.add(td);
+  const tdMotor=cyl(1.1,1.1,2.2,M.dark,14); tdMotor.position.set(0,dfY+H*0.42+2.2,0); drillPkg.add(tdMotor);
+  const stand=cyl(0.16,0.16,H*0.6,M.pipe,8); stand.position.set(1.6,dfY+H*0.33,bz*0.3); drillPkg.add(stand);
+  for(const sx of [-1,1]){
+    const wbk=box(0.3,4.4,K.SUB_L*0.8,M.accom2); wbk.position.set(sx*(K.SUB_W/2),dfY+2.4,0); drillPkg.add(wbk);
+  }
+  drillPkg.userData.wellY=dfY;
+}
+
+/* ---- CRANE ---- */
+function buildCrane(px,pz,baseYtop,facingRad, boomAngleDeg){
+  const grp=new THREE.Group();
+  grp.position.set(px, baseYtop, pz);
+  grp.rotation.y=facingRad;
+  const ped=cyl(1.9,2.3,7,M.yellow,16); ped.position.y=3.5; grp.add(ped);
+  const slew=cyl(2.2,2.2,0.8,M.steelDk,20); slew.position.y=7.2; grp.add(slew);
+  const house=new THREE.Group(); house.position.y=7.6; grp.add(house);
+  const mh=box(4.2,3.4,6.2,M.yellow); mh.position.set(0,1.7,-1.5); house.add(mh);
+  const cab=box(2.4,2.2,2.4,M.accom); cab.position.set(2.4,1.5,2.4); house.add(cab);
+  const cabGlass=box(2.42,1.4,2.42,M.glass); cabGlass.position.set(2.4,1.9,2.4); house.add(cabGlass);
+  const counterW=box(3.0,2.0,2.0,M.steelDk); counterW.position.set(0,1.6,-4.2); house.add(counterW);
+  const boom=new THREE.Group(); boom.position.set(0,2.0,2.6);
+  boom.rotation.x = THREE.MathUtils.degToRad(-(90-boomAngleDeg));
+  house.add(boom);
+  const BL=K.CRANE_BOOM, seg=Math.round(BL/4.5), wB=1.5;
+  const rail=[[-wB/2,-wB/2],[wB/2,-wB/2],[wB/2,wB/2],[-wB/2,wB/2]];
+  for(const [rx,rz] of rail){
+    const ch=cyl(0.14,0.14,BL,M.yellow,7); ch.position.set(rx,0,BL/2); ch.rotation.x=Math.PI/2; boom.add(ch);
+  }
+  for(let i=0;i<seg;i++){
+    const z0=i*(BL/seg), z1=(i+1)*(BL/seg);
+    for(let k=0;k<4;k++){
+      const a=new THREE.Vector3(rail[k][0],rail[k][1],z0);
+      const b=new THREE.Vector3(rail[(k+1)%4][0],rail[(k+1)%4][1],z0);
+      boom.add(strut(a,b,0.06,M.yellow));
+      const c=new THREE.Vector3(rail[k][0],rail[k][1],z1);
+      boom.add(strut(a,c,0.05,M.yellow));
+    }
+  }
+  const tip=cyl(0.5,0.5,0.4,M.steelDk,12); tip.rotation.z=Math.PI/2; tip.position.set(0,0,BL); boom.add(tip);
+  const drop=14;
+  const wire=cyl(0.04,0.04,drop,M.dark,5); wire.position.set(0,-drop/2,BL); boom.add(wire);
+  const hook=box(0.7,1.1,0.7,M.red); hook.position.set(0,-drop,BL); boom.add(hook);
+  G.cranes.add(grp);
+  return grp;
+}
+
+/* ---- HELIDECK (octagon, fwd of bow) ---- */
+function buildHelideck(){
+  const r=K.HELI_D/2;
+  const cz = -K.HULL_L/2 - 7;
+  const cy = DECK_Y + 16.5;
+  const grp=new THREE.Group(); grp.position.set(0,cy,cz); G.helideck.add(grp);
+  const disc=cyl(r,r,0.5,M.heliDeck,8); disc.rotation.y=Math.PI/8; disc.position.y=0; grp.add(disc);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(r,0.24,8,8),M.yellow);
+  ring.rotation.x=Math.PI/2; ring.rotation.z=Math.PI/8; ring.position.y=0.28; reg(ring); grp.add(ring);
+  const hB=makeHMark(); hB.position.set(0,0.3,0); grp.add(hB);
+  const mk=new THREE.Mesh(new THREE.TorusGeometry(r*0.82,0.35,6,40),M.mark);
+  mk.rotation.x=Math.PI/2; mk.position.y=0.28; reg(mk); grp.add(mk);
+  const net=new THREE.Mesh(new THREE.CylinderGeometry(r+2.4,r,1.4,24,1,true),
+            new THREE.MeshStandardMaterial({color:0xcf7a2a,roughness:.8,side:THREE.DoubleSide,
+            transparent:true,opacity:.5,wireframe:true}));
+  net.position.y=-0.7; reg(net); grp.add(net);
+  const deckTopY = DECK_Y - cy;
+  const rakeZ = (-cz) - K.HULL_L/2 + 6;
+  for(const sx of [-1,1]){
+    const top=new THREE.Vector3(sx*r*0.55, -0.6, r*0.3);
+    const bot=new THREE.Vector3(sx*(r*0.35), deckTopY, rakeZ);
+    grp.add(strut(top,bot,0.55,M.steel));
+    const top2=new THREE.Vector3(sx*r*0.7, -0.6, -r*0.2);
+    grp.add(strut(top2,bot,0.45,M.steel));
+  }
+  const midTop=new THREE.Vector3(0,-0.6,r*0.1);
+  const midBot=new THREE.Vector3(0,deckTopY,rakeZ);
+  grp.add(strut(midTop,midBot,0.55,M.steel));
+  grp.add(strut(new THREE.Vector3(-r*0.5,deckTopY*0.5,rakeZ*0.5),
+                new THREE.Vector3(r*0.5,deckTopY*0.5,rakeZ*0.5),0.3,M.brace));
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    const lt=new THREE.Mesh(new THREE.SphereGeometry(0.28,8,8),
+      new THREE.MeshStandardMaterial({color:0x224,emissive:0x33ff66,emissiveIntensity:0.0}));
+    lt.position.set(Math.cos(a)*(r-0.4),0.55,Math.sin(a)*(r-0.4));
+    lt.userData.aviation=true; reg(lt); grp.add(lt);
+  }
+  G.helideck.userData.grp=grp;
+}
+function makeHMark(){
+  const g=new THREE.Group();
+  const bar=(w,d)=>box(w,0.12,d,M.mark);
+  const a=bar(1.2,7); a.position.x=-2.2; g.add(a);
+  const b=bar(1.2,7); b.position.x=2.2; g.add(b);
+  const c=bar(3.6,1.2); g.add(c);
+  return g;
+}
+
+/* ---- ACCOMMODATION ---- */
+function buildAccommodation(){
+  const grp=new THREE.Group(); G.accommodation.add(grp);
+  const baseZ=-K.HULL_L/2+13;
+  const blockW=K.HULL_W*0.72, blockL=26;
+  const decks=[
+    {y:0.0, h:3.4, w:blockW,      l:blockL,   m:M.accom},
+    {y:3.4, h:3.2, w:blockW*0.98, l:blockL*0.96, m:M.accom},
+    {y:6.6, h:3.2, w:blockW*0.92, l:blockL*0.9,  m:M.accom2},
+    {y:9.8, h:3.2, w:blockW*0.84, l:blockL*0.82, m:M.accom},
+    {y:13.0,h:3.0, w:blockW*0.72, l:blockL*0.7,  m:M.accom2},
+  ];
+  grp.userData.decks=[];
+  decks.forEach((d)=>{
+    const dg=new THREE.Group();
+    dg.position.set(0, DECK_Y+d.y+d.h/2, baseZ);
+    const b=box(d.w,d.h,d.l,d.m); dg.add(b);
+    addWindows(dg,d.w,d.h,d.l);
+    dg.userData.baseY=DECK_Y+d.y+d.h/2;
+    grp.add(dg); grp.userData.decks.push(dg);
+  });
+  const st=box(3.4,16.5,3.4,M.steelDk); st.position.set(blockW/2-2, DECK_Y+8.3, baseZ+9); grp.add(st);
+  const mast=cyl(0.18,0.28,14,M.steel,8); mast.position.set(-blockW/2+3, DECK_Y+16+7, baseZ-6); grp.add(mast);
+  const yard=box(4,0.15,0.15,M.steel); yard.position.set(-blockW/2+3, DECK_Y+16+11, baseZ-6); grp.add(yard);
+  const beacon=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),
+    new THREE.MeshStandardMaterial({color:0x400,emissive:0xff2a2a,emissiveIntensity:0.6}));
+  beacon.position.set(-blockW/2+3, DECK_Y+16+14, baseZ-6); beacon.userData.navlight=true; reg(beacon); grp.add(beacon);
+  for(let i=0;i<3;i++){
+    const v=cyl(0.9,0.9,2.4,M.steel,12); v.position.set(-4+i*4, DECK_Y+16+1.2, baseZ+2); grp.add(v);
+  }
+}
+function addWindows(dg,w,h,l){
+  const rows=Math.max(1,Math.floor(l/3.2));
+  for(const sx of [-1,1]){
+    for(let i=0;i<rows;i++){
+      const wz=-l/2+2+i*3.2; if(wz>l/2-1) continue;
+      const win=box(0.08,1.0,1.7,M.glass); win.position.set(sx*(w/2), 0, wz); dg.add(win);
+    }
+  }
+  const cols=Math.max(2,Math.floor(w/3.4));
+  for(let i=0;i<cols;i++){
+    const wx=-w/2+2.2+i*3.4; if(wx>w/2-1) continue;
+    const win=box(1.8,1.0,0.08,M.glass); win.position.set(wx,0,-l/2); dg.add(win);
+  }
+}
+
+/* ---- LIFEBOATS ---- */
+function buildLifeboats(){
+  const spots=[
+    {x:0,               z:-K.HULL_L/2+2, ry:0},
+    {x:-K.HULL_W/2+1,   z:2,             ry:Math.PI/2},
+    {x: K.HULL_W/2-1,   z:2,             ry:-Math.PI/2},
+  ];
+  spots.forEach(s=>{
+    const g=new THREE.Group(); g.position.set(s.x, DECK_Y+3.2, s.z); g.rotation.y=s.ry;
+    const post=box(0.6,6,0.6,M.yellow); post.position.set(0,3,-1.4); g.add(post);
+    const arm=box(0.5,0.5,5,M.yellow); arm.position.set(0,6,1); g.add(arm);
+    const lb=new THREE.Group(); lb.position.set(0,1.6,2.2);
+    const body=cyl(1.5,1.5,7,M.orange,14); body.rotation.z=Math.PI/2; lb.add(body);
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,10),M.orange); nose.position.z=3.5; lb.add(nose);
+    const tail=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,10),M.orange); tail.position.z=-3.5; lb.add(tail);
+    const canopy=cyl(0.9,0.9,6.4,M.yellow,12); canopy.rotation.z=Math.PI/2; canopy.position.y=1.1; lb.add(canopy);
+    for(const zz of [-2,2]){const w=cyl(0.04,0.04,4.4,M.dark,5); w.position.set(0,3.8,zz); g.add(w);}
+    g.add(lb);
+    G.lifeboats.add(g);
+  });
+  const frb=new THREE.Group(); frb.position.set(K.HULL_W/2-2, DECK_Y+3, K.HULL_L/2-12); frb.rotation.y=-Math.PI/2;
+  const rb=cyl(0.9,1.2,4.4,M.orange,12); rb.rotation.z=Math.PI/2; frb.add(rb);
+  const dav=box(0.4,4,0.4,M.yellow); dav.position.set(0,2,-1.4); frb.add(dav);
+  G.lifeboats.add(frb);
+}
+
+/* ---- DECK EQUIPMENT ---- */
+function buildDeckEquipment(){
+  const y=DECK_Y;
+  const siloR=2.2, siloH=11;
+  for(let i=0;i<4;i++){
+    const s=cyl(siloR,siloR*1.05,siloH,M.accom2,16);
+    s.position.set(-9+i*6, y+siloH/2, -2); addSiloCone(s,siloR); G.deckEquip.add(s);
+  }
+  for(let i=0;i<4;i++){
+    const s=cyl(siloR,siloR*1.05,siloH,M.steel,16);
+    s.position.set(-9+i*6, y+siloH/2, 6); addSiloCone(s,siloR); G.deckEquip.add(s);
+  }
+  const mudBase=box(K.HULL_W*0.5, 5, 14, M.steelDk); mudBase.position.set(0,y+2.5,16); G.deckEquip.add(mudBase);
+  for(let i=0;i<4;i++){
+    const t=box(6.2,3,3.2,M.steel); t.position.set(-11+i*7.4, y+6.5, 16); G.deckEquip.add(t);
+  }
+  const shk=box(9,4.2,6,M.accom2); shk.position.set(-14,y+2.1,20); G.deckEquip.add(shk);
+  const mpr=box(15,5.5,10,M.accom); mpr.position.set(12,y+2.75,15); G.deckEquip.add(mpr);
+  const mach=box(20,7,14,M.accom2); mach.position.set(0,y+3.5,-14); G.deckEquip.add(mach);
+  for(let i=0;i<3;i++){
+    const ex=cyl(0.7,0.7,6,M.steelDk,10); ex.position.set(-6+i*6,y+9,-14); G.deckEquip.add(ex);
+  }
+  for(const sx of [-1,1]){
+    const rackBase=box(4.5,1.0,26,M.steelDk); rackBase.position.set(sx*(K.HULL_W/2-5), y+0.6, 3); G.deckEquip.add(rackBase);
+    for(let r=0;r<3;r++) for(let c=0;c<4;c++){
+      const pipe=cyl(0.24,0.24,24,M.pipe,8); pipe.rotation.x=Math.PI/2;
+      pipe.position.set(sx*(K.HULL_W/2-6.4)+c*0.6, y+1.4+r*0.55, 3); G.deckEquip.add(pipe);
+    }
+  }
+  const sack=box(8,4,6,M.accom2); sack.position.set(-16,y+2,9); G.deckEquip.add(sack);
+  const moon=box(6,0.4,6,M.dark); moon.position.set(0,y+0.3,CANT_REF_Z-2); G.deckEquip.add(moon);
+  const bop=cyl(1.6,1.8,4,M.steelDk,14); bop.position.set(0,y+2,CANT_REF_Z-2); G.deckEquip.add(bop);
+  const ws=box(9,4,7,M.accom); ws.position.set(15,y+2,-2); G.deckEquip.add(ws);
+  for(const sx of [-1,1]){
+    const ls=box(3.5,3,3.5,M.yellow); ls.position.set(sx*(K.HULL_W/2-3), y+1.5, -8); G.deckEquip.add(ls);
+  }
+  for(const sx of [-1,1]){
+    const bol=cyl(0.5,0.6,1.4,M.steelDk,10); bol.position.set(sx*4,y+0.7,-K.HULL_L/2+3); G.deckEquip.add(bol);
+  }
+}
+function addSiloCone(silo,r){
+  const cone=cyl(0.15,r,2.2,silo.material,16); cone.position.y=-(silo.geometry.parameters.height/2)-1.1; silo.add(cone);
+}
+
+/* ---- HANDRAILS ---- */
+function buildHandrails(){
+  const W=K.HULL_W/2-0.6, L=K.HULL_L/2-0.6, y=DECK_Y+0.25, railH=1.1;
+  const perim=[];
+  const step=4;
+  function edge(ax,az,bx,bz){
+    const dx=bx-ax, dz=bz-az, len=Math.hypot(dx,dz), n=Math.max(1,Math.round(len/step));
+    for(let i=0;i<=n;i++) perim.push([ax+dx*i/n, az+dz*i/n]);
+  }
+  edge(-W,-L*0.9, W,-L*0.9); edge(W,-L*0.9, W,L); edge(W,L,-W,L); edge(-W,L,-W,-L*0.9);
+  const postGeo=new THREE.CylinderGeometry(0.05,0.05,railH,6);
+  const postMesh=new THREE.InstancedMesh(postGeo,M.rail,perim.length);
+  const dummy=new THREE.Object3D();
+  perim.forEach((p,i)=>{dummy.position.set(p[0],y+railH/2,p[1]);dummy.updateMatrix();postMesh.setMatrixAt(i,dummy.matrix);});
+  postMesh.castShadow=true; G.handrails.add(postMesh);
+  for(let i=0;i<perim.length-1;i++){
+    const a=new THREE.Vector3(perim[i][0],y+railH,perim[i][1]);
+    const b=new THREE.Vector3(perim[i+1][0],y+railH,perim[i+1][1]);
+    if(a.distanceTo(b)>step*1.6) continue;
+    G.handrails.add(strut(a,b,0.04,M.rail));
+  }
+}
+
+/* ---- OCEAN + SEABED ---- */
+let oceanMesh, oceanBase;
+function buildOcean(){
+  const geo=new THREE.PlaneGeometry(2600,2600,72,72);   // A9: reduced from 90x90
+  geo.rotateX(-Math.PI/2);
+  oceanBase=geo.attributes.position.array.slice();
+  const mat=new THREE.MeshStandardMaterial({color:0x14384f,roughness:.35,metalness:.35,
+    transparent:true,opacity:.9});
+  oceanMesh=new THREE.Mesh(geo,mat); oceanMesh.receiveShadow=true; oceanMesh.position.y=0;
+  G.ocean.add(oceanMesh);
+}
+function buildSeabed(){
+  const geo=new THREE.PlaneGeometry(1400,1400,60,60); geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    pos.setY(i, (Math.sin(pos.getX(i)*0.05)*Math.cos(pos.getZ(i)*0.05))*0.8
+                + (Math.random()-0.5)*0.6);
+  }
+  geo.computeVertexNormals();
+  const mat=new THREE.MeshStandardMaterial({color:0x6b5c3f,roughness:1.0,metalness:0.0});
+  const sb=new THREE.Mesh(geo,mat); sb.receiveShadow=true; G.seabed.add(sb);
+  G.seabed.userData.mesh=sb;
+}
+
+/* ---- LABELS ---- */
+function buildLabels(){
+  const y=DECK_Y, dfTop=DECK_Y+K.DFLOOR_H;
+  const defs=[
+    ['FORWARD','#7fd4ff',0,y+5,-K.HULL_L/2-16,10],
+    ['AFT','#7fd4ff',0,y+5,K.HULL_L/2+16,10],
+    ['PORT','#7fd4ff',-K.HULL_W/2-16,y+5,0,10],
+    ['STARBOARD','#7fd4ff',K.HULL_W/2+16,y+5,0,10],
+    ['DERRICK','#ffd27a',0,dfTop+K.DERR_H+7,CANT_REF_Z,9],
+    ['HELIDECK','#9fe0a0',0,DECK_Y+26,-K.HULL_L/2-7,9],
+    ['LIVING QUARTERS','#eef2f7',-K.HULL_W*0.30,DECK_Y+30,-K.HULL_L/2+14,8],
+    ['CANTILEVER','#ffd27a',K.HULL_W*0.30,DECK_Y+10,CANT_REF_Z+K.CANT_AFT*0.45,8],
+    ['DRILL FLOOR','#ffd27a',-K.HULL_W*0.28,dfTop+4,CANT_REF_Z,6],
+    ['WELL CENTRE','#ff9f7a',0,dfTop+7,CANT_REF_Z-1,6],
+    ['PORT-FWD CRANE','#ffe07a',-27,DECK_Y+15,-6,5],
+    ['PORT-AFT CRANE','#ffe07a',-29,DECK_Y+15,24,5],
+    ['STBD CRANE','#ffe07a',29,DECK_Y+15,12,5],
+    ['LEG 1','#bfe0ff',LEG_POS[0].x,DECK_Y+13,LEG_POS[0].z,6],
+    ['LEG 2','#bfe0ff',LEG_POS[1].x-4,DECK_Y+13,LEG_POS[1].z,6],
+    ['LEG 3','#bfe0ff',LEG_POS[2].x+4,DECK_Y+13,LEG_POS[2].z,6],
+    ['PIPE RACKS','#c9d3dd',K.HULL_W*0.34,DECK_Y+4,3,2],
+    ['MUD PROCESSING','#c9d3dd',-8,DECK_Y+9,16,2],
+    ['MOON POOL','#ff9f7a',0,DECK_Y+5,CANT_REF_Z-6,2],
+  ];
+  defs.forEach(d=>{
+    const s=makeLabel(d[0],d[1],undefined,d[5]); s.position.set(d[2],d[3],d[4]); G.labels.add(s);
+  });
+  G.labels.userData.spudLabels=[];
+  LEG_POS.forEach((p,i)=>{
+    const s=makeLabel('SPUDCAN '+(i+1),'#c9c0ff',undefined,4); s.userData.spudIdx=i;
+    G.labels.add(s); G.labels.userData.spudLabels.push(s);
+  });
+}
+
+/* ---- DIMENSION OVERLAYS ---- */
+function dimLine(a,b,txt){
+  const g=new THREE.Group();
+  const mat=new THREE.LineBasicMaterial({color:0x33a3ff});
+  const geo=new THREE.BufferGeometry().setFromPoints([a,b]);
+  g.add(new THREE.Line(geo,mat));
+  const mid=new THREE.Vector3().addVectors(a,b).multiplyScalar(.5);
+  const lab=makeLabel(txt,'#8fd0ff','rgba(6,20,32,0.85)',3);  // makeLabel registers sprite
+  lab.position.copy(mid); g.add(lab); g.userData.dimLabel=lab;
+  return g;
+}
+function buildDimensions(){
+  const y=DECK_Y+0.5, off=6;
+  const hl=K.HULL_L, hw=K.HULL_W;
+  G.dimensions.add(dimLine(new THREE.Vector3(-hw/2-off,y,-hl/2),new THREE.Vector3(-hw/2-off,y,hl/2),
+    fmt(hl,'Hull L')));
+  G.dimensions.add(dimLine(new THREE.Vector3(-hw/2,y,-hl/2-off),new THREE.Vector3(hw/2,y,-hl/2-off),
+    fmt(hw,'Hull W')));
+  G.dimensions.add(dimLine(new THREE.Vector3(hw/2+off,0,-hl/2),new THREE.Vector3(hw/2+off,K.HULL_D,-hl/2),
+    fmt(K.HULL_D,'Depth')));
+  G.dimensions.add(dimLine(new THREE.Vector3(LEG_POS[1].x,y+2,LEG_POS[1].z),new THREE.Vector3(LEG_POS[2].x,y+2,LEG_POS[2].z),
+    fmt(K.LEG_SP_T,'Leg sp T')));
+  G.dimensions.add(dimLine(new THREE.Vector3(0,y+2,LEG_POS[0].z),new THREE.Vector3(0,y+2,LEG_POS[1].z),
+    fmt(K.LEG_SP_L,'Leg sp L')));
+  const dfY=DECK_Y+K.DFLOOR_H;
+  G.dimensions.add(dimLine(new THREE.Vector3(K.SUB_W/2+3,dfY,CANT_REF_Z),new THREE.Vector3(K.SUB_W/2+3,dfY+K.DERR_H,CANT_REF_Z),
+    fmt(K.DERR_H,'Derrick H')));
+  const hz=-K.HULL_L/2-9;
+  G.dimensions.add(dimLine(new THREE.Vector3(-K.HELI_D/2,DECK_Y+17.5,hz),new THREE.Vector3(K.HELI_D/2,DECK_Y+17.5,hz),
+    fmt(K.HELI_D,'Heli Ø')));
+  G.dimensions.add(dimLine(new THREE.Vector3(0,DECK_Y+4,K.HULL_L/2),new THREE.Vector3(0,DECK_Y+4,K.HULL_L/2+K.CANT_AFT),
+    fmt(K.CANT_AFT,'Cant aft')));
+}
+
+/* ---------------------------------------------------------------------------
+   9. FORMAT / UNIT HELPERS
+   --------------------------------------------------------------------------- */
+function fmt(m,prefix){
+  if(state.imperial){ return (prefix?prefix+' ':'')+(m/FT).toFixed(1)+' ft'; }
+  return (prefix?prefix+' ':'')+m.toFixed(2)+' m';
+}
+function fmtPair(a,b){ return state.imperial
+  ? (a/FT).toFixed(0)+'×'+(b/FT).toFixed(0)+' ft'
+  : a.toFixed(1)+'×'+b.toFixed(1)+' m'; }
+/* A2 FIX: unit-aware scalar value for slider badges */
+function fmtVal(m,dp){ return state.imperial
+  ? (m/FT).toFixed(dp)+' ft'
+  : m.toFixed(dp)+' m'; }
+
+/* ---------------------------------------------------------------------------
+   10. JACKING + SKIDDING UPDATE
+   --------------------------------------------------------------------------- */
+let jackClamped=false;
+function updateJacking(){
+  const seaY=0;
+  let hullBottomY, seabedY, penetration, airGap, legBelow;
+  seabedY = seaY - state.waterDepth;
+  if(state.mode==='transit'){
+    hullBottomY = seaY - K.DRAFT;
+    airGap = -(K.DRAFT);
+    penetration = 0;
+    const spudTipY = hullBottomY - K.SPUD_H*0.4;
+    legsGroup.children.forEach(setLegY(spudTipY));
+    legBelow = hullBottomY - spudTipY;
+  } else {
+    penetration = state.legPen;
+    airGap = (state.mode==='preload') ? Math.min(state.airGap,12) : state.airGap;
+    hullBottomY = seaY + airGap;
+    const spudTipY = seabedY - penetration;
+    legBelow = hullBottomY - spudTipY;
+    if(legBelow > K.LEG_BELOW){
+      hullBottomY = spudTipY + K.LEG_BELOW;
+      airGap = hullBottomY - seaY;
+      legBelow = K.LEG_BELOW; jackClamped = true;
+    } else { jackClamped = false; }
+    legsGroup.children.forEach(setLegY(spudTipY - (-K.SPUD_H*0.35)));
+  }
+  hullGroup.position.y = hullBottomY;
+
+  setTxt('j_hull', fmt(hullBottomY,'') + (hullBottomY>=0?' (above SL)':' (below SL)'));
+  setTxt('j_wd', fmt(state.waterDepth,''));
+  setTxt('j_ag', state.mode==='transit' ? 'afloat'
+                 : fmt(airGap,'') + (jackClamped?' ⚠ leg-limited':''));
+  setTxt('j_lp', state.mode==='transit' ? 'n/a (afloat)' : fmt(penetration,''));
+  setTxt('j_lb', fmt(Math.max(0,legBelow),''));
+  /* A4 FIX: seabed visibility is owned solely by setVis(); no coupling here */
+}
+function setLegY(tipY){
+  return function(leg){ leg.position.y = tipY; };
+}
+function updateCantilever(){
+  cantBox.position.z = CANT_REF_Z + state.cantL;
+  drillPkg.position.x = state.cantT;
+  setTxt('s_cant', state.cantL.toFixed(1)+' / '+state.cantT.toFixed(1)+' m');
+}
+
+/* ---------------------------------------------------------------------------
+   11. DISPLAY MODES
+   --------------------------------------------------------------------------- */
+function applyDisplay(){
+  const d=state.display;
+  const col=new THREE.Color(SKY[d]||SKY.day);
+  scene.background=col; scene.fog.color=col;
+  if(d==='night'){
+    scene.fog.near=250; scene.fog.far=1100;
+    hemi.intensity=0.25; sun.intensity=0.25; fill.intensity=0.1;
+    hemi.color.set(0x24406a); sun.color.set(0x3a4a70);
+    setNightLights(true); setEmissive(true);
+  } else if(d==='eng'){
+    scene.fog.near=800; scene.fog.far=2600;
+    hemi.intensity=1.15; sun.intensity=0.7; fill.intensity=0.5;
+    hemi.color.set(0xffffff); sun.color.set(0xffffff);
+    setNightLights(false); setEmissive(false);
+  } else {
+    scene.fog.near=420; scene.fog.far=1500;
+    hemi.intensity=0.85; sun.intensity=1.15; fill.intensity=0.35;
+    hemi.color.set(0xbcd6ee); sun.color.set(0xfff4e0);
+    setNightLights(false); setEmissive(false);
+  }
+}
+let nightBuilt=false;
+function setNightLights(on){
+  if(on && !nightBuilt){
+    const spots=[[0,DECK_Y+30,CANT_REF_Z,0xfff0d0,3,90],
+                 [0,DECK_Y+20,-K.HULL_L/2,0xdfeaff,2,80],
+                 [0,DECK_Y+8,0,0xfff0d0,1.5,120]];
+    spots.forEach(s=>{const p=new THREE.PointLight(s[3],s[4],s[5]);p.position.set(s[0],s[1],s[2]);
+      hullGroup.add(p); nightLights.push(p);});
+    nightBuilt=true;
+  }
+  nightLights.forEach(l=>l.visible=on);
+}
+function setEmissive(on){
+  M.glass.emissiveIntensity = on?1.4:0.4;
+  M.emit.emissiveIntensity = on?1.2:0.9;
+  scene.traverse(o=>{
+    if(o.userData && o.userData.aviation && o.material)
+      o.material.emissiveIntensity = on?1.4:0.0;
+    if(o.userData && o.userData.navlight && o.material)
+      o.material.emissiveIntensity = on?1.5:0.4;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   12. WIREFRAME / TRANSPARENT / EXPLODE
+   --------------------------------------------------------------------------- */
+function applyWire(){ trackWire.forEach(m=>{ if(m.material){ m.material.wireframe=state.wire; } }); }
+function applyXHull(){
+  [M.hullSide,M.hullRed].forEach(mt=>{mt.transparent=state.xhull; mt.opacity=state.xhull?0.3:1.0; mt.needsUpdate=true;});
+}
+function applyExplode(){
+  const grp=G.accommodation.children[0];
+  const list=grp && grp.userData.decks;
+  if(!list) return;
+  list.forEach((dg,i)=>{ dg.position.y = dg.userData.baseY + (state.explode? i*4.0 : 0); });
+}
+
+/* ---------------------------------------------------------------------------
+   13. VISIBILITY TOGGLES
+   --------------------------------------------------------------------------- */
+let labelsOn=true;
+function setVis(key,on){
+  if(key==='spudcans'){ G.spudcans.forEach(s=>s.visible=on);
+    if(G.labels.userData.spudLabels) G.labels.userData.spudLabels.forEach(l=>l.visible=on&&labelsOn); return; }
+  if(key==='labels'){ labelsOn=on; G.labels.visible=on; return; }
+  if(G[key]){ if(Array.isArray(G[key])) G[key].forEach(m=>m.visible=on); else G[key].visible=on; }
+}
+
+/* ---------------------------------------------------------------------------
+   14. CAMERA PRESETS
+   --------------------------------------------------------------------------- */
+const VIEW_TAGS={iso:'Isometric · Forward-Starboard',top:'Top / Plan',fwd:'Forward Elevation',
+  aft:'Aft Elevation',port:'Port Elevation',stbd:'Starboard Elevation',drill:'Drill-Floor Close-up',
+  heli:'Helideck Close-up',cant:'Cantilever Close-up',leg:'Leg & Spudcan Close-up',
+  water:'Low-Angle Waterline',reset:'Isometric · Forward-Starboard'};
+function setView(v){
+  state.view=v;
+  controls.maxPolarAngle = (v==='leg'||v==='water') ? Math.PI*0.86 : Math.PI*0.495;
+  const c=controls.target, mid=hullGroup.position.y;
+  const P=camera.position;
+  const A=(x,y,z,tx,ty,tz)=>{P.set(x,y,z);c.set(tx,ty,tz);};
+  const dfY=hullGroup.position.y+K.DFLOOR_H+K.HULL_D;
+  switch(v){
+    case 'iso': case 'reset': A(160,130,185, 0,mid+20,0); break;
+    case 'top': A(0.1,430,0, 0,mid+10,0); break;
+    case 'fwd': A(0,mid+30,-320, 0,mid+20,0); break;
+    case 'aft': A(0,mid+40,320, 0,mid+20,K.HULL_L/2); break;
+    case 'port':A(-330,mid+30,0, 0,mid+20,0); break;
+    case 'stbd':A(330,mid+30,0, 0,mid+20,0); break;
+    case 'drill':A(45,dfY+30,CANT_REF_Z+55, 0,dfY+25,CANT_REF_Z); break;
+    case 'heli':A(0,hullGroup.position.y+55,-120, 0,hullGroup.position.y+18,-K.HULL_L/2-9); break;
+    case 'cant':A(70,hullGroup.position.y+25,CANT_REF_Z+40, 0,hullGroup.position.y+15,CANT_REF_Z+8); break;
+    case 'leg': A(70,-30,60, LEG_POS[2].x,-state.waterDepth+8,LEG_POS[2].z); break;
+    case 'water':A(220,6,120, 0,10,0); break;
+  }
+  setTxt('s_view', VIEW_TAGS[v]||'—');
+  document.getElementById('viewTag').textContent = VIEW_TAGS[v]||'—';
+  /* B1 FIX: reflect active view on the buttons */
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+}
+
+/* ---------------------------------------------------------------------------
+   15. INFO PANEL POPULATE
+   --------------------------------------------------------------------------- */
+function refreshInfo(){
+  setTxt('d_hull', fmtPair(K.HULL_L,K.HULL_W));
+  setTxt('d_depth', fmt(K.HULL_D,''));
+  setTxt('d_oal', fmt(K.OA_L,''));
+  setTxt('d_legs', '3 × '+fmt(K.LEG_TOTAL,'')+' (truss)');
+  setTxt('d_leglen', fmt(K.LEG_BELOW,'')+' below hull');
+  setTxt('d_legsp', fmtPair(K.LEG_SP_T,K.LEG_SP_L));
+  setTxt('d_spud', fmt(K.SPUD_D,'')+' × '+fmt(K.SPUD_H,''));
+  setTxt('d_derr', fmt(K.DERR_H,''));
+  setTxt('d_heli', fmt(K.HELI_D,''));
+  setTxt('d_cant', fmt(K.CANT_AFT,'')+' / ±'+fmt(K.CANT_TR,''));
+  const mn={elevated:'Elevated Drilling',preload:'Preload / Intermediate',transit:'Afloat Transit'};
+  setTxt('s_mode', mn[state.mode]);
+  rebuildDimLabels();
+}
+function rebuildDimLabels(){
+  disposeGroup(G.dimensions);   // A1 FIX
+  buildDimensions();
+  G.dimensions.visible=document.querySelector('[data-vis="dimensions"]').checked;
+}
+function setTxt(id,t){const e=document.getElementById(id); if(e) e.textContent=t;}
+
+/* A2 FIX: re-render slider value badges in the active unit */
+function refreshSliderBadges(){
+  setTxt('agV', fmtVal(state.airGap,1));
+  setTxt('wdV', fmtVal(state.waterDepth,0));
+  setTxt('lpV', fmtVal(state.legPen,1));
+  setTxt('clV', fmtVal(state.cantL,2));
+  setTxt('ctV', fmtVal(state.cantT,2));
+}
+
+/* ---------------------------------------------------------------------------
+   16. BUILD ALL
+   --------------------------------------------------------------------------- */
+function buildAll(){
+  buildHull();
+  buildLegs();
+  buildCantilever();
+  buildCrane(-27, -6, DECK_Y, THREE.MathUtils.degToRad(40),  46);
+  buildCrane(-29, 24, DECK_Y, THREE.MathUtils.degToRad(150), 46);
+  buildCrane( 29, 12, DECK_Y, THREE.MathUtils.degToRad(-100),46);
+  buildHelideck();
+  buildAccommodation();
+  buildLifeboats();
+  buildDeckEquipment();
+  buildHandrails();
+  buildOcean();
+  buildSeabed();
+  buildLabels();
+  buildDimensions();
+}
+
+/* ---------------------------------------------------------------------------
+   17. UI WIRING
+   --------------------------------------------------------------------------- */
+function setCantSlidersEnabled(on){   // B5 FIX
+  document.getElementById('cantL').disabled=!on;
+  document.getElementById('cantT').disabled=!on;
+}
+function wireUI(){
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.mode=b.dataset.mode;
+    const transit = state.mode==='transit';
+    document.getElementById('airgap').disabled = transit;
+    document.getElementById('lpen').disabled   = transit;
+    setCantSlidersEnabled(!transit);
+    updateJacking(); refreshInfo();
+  });
+  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+  document.querySelectorAll('[data-disp]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-disp]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.display=b.dataset.disp; applyDisplay();
+  });
+  bindRange('airgap','agV',v=>{state.airGap=v;updateJacking();},()=>fmtVal(state.airGap,1));
+  bindRange('wdepth','wdV',v=>{state.waterDepth=v;updateJacking();},()=>fmtVal(state.waterDepth,0));
+  bindRange('lpen','lpV',v=>{state.legPen=v;updateJacking();},()=>fmtVal(state.legPen,1));
+  bindRange('cantL','clV',v=>{state.cantL=v;updateCantilever();},()=>fmtVal(state.cantL,2));
+  bindRange('cantT','ctV',v=>{state.cantT=v;updateCantilever();},()=>fmtVal(state.cantT,2));
+  document.getElementById('tg_wire').onchange=e=>{state.wire=e.target.checked;applyWire();};
+  document.getElementById('tg_xhull').onchange=e=>{state.xhull=e.target.checked;applyXHull();};
+  document.getElementById('tg_explode').onchange=e=>{state.explode=e.target.checked;applyExplode();};
+  /* A2 FIX: unit toggle now refreshes info, jacking readouts AND slider badges */
+  document.getElementById('tg_units').onchange=e=>{
+    state.imperial=e.target.checked; refreshInfo(); updateJacking(); updateCantilever(); refreshSliderBadges();
+  };
+  document.querySelectorAll('[data-vis]').forEach(cb=>cb.onchange=()=>setVis(cb.dataset.vis,cb.checked));
+  document.getElementById('collapse').onclick=()=>{
+    const dk=document.getElementById('dock'); dk.classList.toggle('collapsed');
+    document.getElementById('collapse').textContent = dk.classList.contains('collapsed')?'▸':'▾';
+  };
+  document.getElementById('infoCollapse').onclick=()=>{
+    const inf=document.getElementById('info'); inf.classList.remove('autocollapse');
+    inf.classList.toggle('collapsed');
+    document.getElementById('infoCollapse').textContent = inf.classList.contains('collapsed')?'▸':'▾';
+  };
+}
+function bindRange(id,valId,cb,fmtFn){
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{const v=parseFloat(el.value);cb(v);document.getElementById(valId).textContent=fmtFn(v);});
+}
+
+/* ---------------------------------------------------------------------------
+   18. ANIMATION LOOP
+   --------------------------------------------------------------------------- */
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  if(oceanMesh && G.ocean.visible){
+    const pos=oceanMesh.geometry.attributes.position, arr=oceanBase;
+    for(let i=0;i<pos.count;i++){
+      const x=arr[i*3], z=arr[i*3+2];
+      pos.setY(i, Math.sin(x*0.03+t*0.9)*0.55 + Math.cos(z*0.045+t*0.7)*0.45);
+    }
+    pos.needsUpdate=true;
+  }
+  if(labelsOn && G.labels.userData.spudLabels){
+    G.labels.userData.spudLabels.forEach(l=>{
+      const idx=l.userData.spudIdx, leg=G.legs.children[idx];
+      if(leg){ const wp=new THREE.Vector3(); leg.getWorldPosition(wp);
+        l.position.set(wp.x, wp.y+6, wp.z+ (LEG_POS[idx].z>0?8:-8)); }
+    });
+  }
+  // ---- LABEL DECLUTTER (screen-space, priority-based) ----
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const active=[];
+  for(const s of labelSprites){
+    if(!spriteActive(s)){ s.material.opacity=0; continue; }
+    s.getWorldPosition(_lv);
+    const d=camera.position.distanceTo(_lv);
+    _lv.project(camera);
+    const behind=_lv.z>1;
+    if(behind || d>(s.userData.maxD||560)){ s.material.opacity=0; continue; }
+    s.userData._sx=(_lv.x*0.5+0.5)*vw;
+    s.userData._sy=(-_lv.y*0.5+0.5)*vh;
+    s.userData._d=d;
+    active.push(s);
+  }
+  active.sort((a,b)=>(b.userData.priority-a.userData.priority)||(a.userData._d-b.userData._d));
+  const placed=[];
+  for(const s of active){
+    const u=s.userData;
+    const hw=(u.txtLen*3.3+16), hh=15;
+    if(u.noCull){   // B6 FIX: fixed markings bypass collision culling
+      placed.push({x:u._sx,y:u._sy,hw,hh});
+    } else {
+      let ok=true;
+      for(const p of placed){
+        if(Math.abs(u._sx-p.x)<(hw+p.hw) && Math.abs(u._sy-p.y)<(hh+p.hh)){ ok=false; break; }
+      }
+      if(!ok){ s.material.opacity=0; continue; }
+      placed.push({x:u._sx,y:u._sy,hw,hh});
+    }
+    const d=u._d;
+    s.material.opacity = d>(u.maxD)?0:(d>(u.maxD-90)?((u.maxD-d)/90):1);
+    const sc=THREE.MathUtils.clamp(d/100,0.6,2.4)*(u.baseScale||3.3);
+    s.scale.set(sc*(u.aspect||1), sc, 1);
+  }
+  controls.update();
+  renderer.render(scene,camera);
+}
+
+/* ---------------------------------------------------------------------------
+   19. RESIZE
+   --------------------------------------------------------------------------- */
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+/* ---------------------------------------------------------------------------
+   20. INIT
+   --------------------------------------------------------------------------- */
+try{
+  buildAll();
+  wireUI();
+  applyDisplay();
+  updateJacking();
+  updateCantilever();
+  refreshInfo();
+  refreshSliderBadges();
+  setView('iso');
+  /* B2 FIX: auto-collapse info panel on narrow/tablet screens (recoverable, not hidden) */
+  if(window.innerWidth<=820) document.getElementById('info').classList.add('autocollapse');
+  document.getElementById('loader').style.display='none';
+  animate();
+}catch(err){
+  console.error(err);
+  fatal('Build error: '+err.message);
+}
+})();
+</script>
+</body>
+</html>
