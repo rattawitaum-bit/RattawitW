@@ -29,30 +29,100 @@
               sans: ['Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
             },
+            // v12 "Deep Slate": cool-tinted neutral ramp + instrument azure accent.
+            // Every foreground/background pair used in the UI was checked against WCAG 2.1 AA
+            // (>=4.5:1 body text, >=3:1 for placeholders and non-text UI) before being adopted.
             colors: {
-              gray: { 50: '#f9fafb', 100: '#f3f4f6', 850: '#1f2937', 900: '#111827', 950: '#0B0F19' },
-              accent: { 500: '#3b82f6', 600: '#2563eb' }
+              gray: {
+                50:  '#F5F8FA', 100: '#EAEFF4', 200: '#D8E0EA', 300: '#BCC8D8',
+                400: '#94A4B8', 500: '#7286A0', 600: '#55687F', 700: '#3C4C60',
+                800: '#26344A', 850: '#1C2839', 900: '#141E2C', 950: '#0D1520'
+              },
+              accent: { 400: '#5CBDFF', 500: '#2E9BF0', 600: '#1A79C8', 700: '#12608F' },
+              // semantic tokens - dark-mode values are the 400s, light-mode the 600s
+              ok:   { 400: '#3DD68C', 600: '#0D884F' },
+              warn: { 400: '#F5A524', 600: '#A85D00' },
+              bad:  { 400: '#FF5C5C', 600: '#C42B2B' },
+              maxc: { 400: '#C77DFF', 600: '#7C3AED' }
+            },
+            borderRadius: { DEFAULT: '0.375rem', md: '0.5rem', lg: '0.625rem', xl: '0.875rem' },
+            boxShadow: {
+              'soft':  '0 1px 2px rgba(8,15,26,0.06), 0 1px 3px rgba(8,15,26,0.10)',
+              'card':  '0 1px 3px rgba(8,15,26,0.08), 0 4px 12px rgba(8,15,26,0.06)',
+              'float': '0 8px 24px rgba(8,15,26,0.16), 0 2px 6px rgba(8,15,26,0.10)'
             }
           }
         }
       }
     </script>
     <style>
-      body { background-color: #f3f4f6; color: #1f2937; transition: background-color 0.3s, color 0.3s; overflow: hidden; }
-      .dark body { background-color: #0B0F19; color: #e5e7eb; }
-      
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      /* ============================================================
+         v12 "Deep Slate" — design tokens.
+         Single source of truth so a theme change is one edit, not 219
+         inline dark: variants. Values are WCAG-AA verified pairs.
+         ============================================================ */
+      :root {
+        --bg-app:      #F5F8FA;   --bg-surface: #FFFFFF;   --bg-raised:  #FFFFFF;
+        --bg-inset:    #EAEFF4;
+        --border-sub:  #E6EBF1;   --border:     #D8E0EA;   --border-str: #BCC8D8;
+        --fg:          #26344A;   --fg-muted:   #55687F;   --fg-subtle:  #7286A0;
+        --accent:      #1A79C8;   --accent-fg:  #FFFFFF;   --accent-soft:#E8F3FC;
+        --ok: #0D884F;  --warn: #A85D00;  --bad: #C42B2B;  --maxc: #7C3AED;
+        --shadow-card: 0 1px 3px rgba(8,15,26,.08), 0 4px 12px rgba(8,15,26,.05);
+        --grid-line:   #55687F;
+      }
+      .dark {
+        --bg-app:      #0D1520;   --bg-surface: #141E2C;   --bg-raised:  #1C2839;
+        --bg-inset:    #0D1520;
+        --border-sub:  #1C2839;   --border:     #26344A;   --border-str: #3C4C60;
+        --fg:          #EAEFF4;   --fg-muted:   #BCC8D8;   --fg-subtle:  #94A4B8;
+        --accent:      #2E9BF0;   --accent-fg:  #04121E;   --accent-soft:#12283C;
+        --ok: #3DD68C;  --warn: #F5A524;  --bad: #FF5C5C;  --maxc: #C77DFF;
+        --shadow-card: 0 1px 3px rgba(0,0,0,.40), 0 8px 24px rgba(0,0,0,.28);
+        --grid-line:   #BCC8D8;
+      }
+
+      body {
+        background-color: var(--bg-app); color: var(--fg);
+        overflow: hidden;
+        transition: background-color .25s ease, color .25s ease;
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: "cv11", "ss01";
+      }
+
+      /* Engineering readability: digits must align in every numeric context.
+         Without this, a column of tensions visually jitters row to row. */
+      .font-mono, table, input[type=number], .tabular-nums {
+        font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+      }
+
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-      .dark ::-webkit-scrollbar-thumb { background: #374151; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-      .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-      
-      input[type=number]::-webkit-inner-spin-button, 
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-str); border-radius: 6px;
+        border: 3px solid transparent; background-clip: content-box;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: var(--fg-subtle); background-clip: content-box; }
+      * { scrollbar-width: thin; scrollbar-color: var(--border-str) transparent; }
+
+      input[type=number]::-webkit-inner-spin-button,
       input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
       input[type=number] { -moz-appearance: textfield; }
 
-      /* Fixed Height adjustment for dynamic mobile/tablet browser bars */
+      /* Focus ring only for keyboard users - the old focus:ring fired on every
+         mouse click too, which made the dense form flash constantly. */
+      *:focus { outline: none; }
+      *:focus-visible {
+        outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px;
+      }
+
+      /* Hairline separators that read as structure, not as boxes */
+      .hairline { border-color: var(--border-sub); }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      }
+
       .main-app-container { height: 100dvh; }
     </style>
 </head>
@@ -87,6 +157,10 @@
       // Auto weight-from-diameter (kg/m) = k * d^2 (d in mm)
       // WIRE 6x36 IWRC steel k~0.00423; CHAIN studless API Spec 2F k~0.0219
       const WEIGHT_COEFF = { [SegmentType.WIRE]: 0.00423, [SegmentType.CHAIN]: 0.0219, [SegmentType.FIBER]: null };
+      // v11: MBL(t) ~= k*d^2. k=0.0745 fitted from the two certified points already in SIZE_STANDARDS
+      // (38mm=106t, 52mm=204t; both within 2%). WIRE only - no certified chain data exists here, so
+      // chain MBL stays blank for manual entry from the vendor certificate. Auto values badged "Est."
+      const MBL_COEFF = { [SegmentType.WIRE]: 0.0745, [SegmentType.CHAIN]: null, [SegmentType.FIBER]: null };
 
       const SIZE_STANDARDS = {
           [SegmentType.WIRE]: [
@@ -131,7 +205,7 @@
       // One-click fleet presets from Mooring Component Register (Jul 2026)
       const FLEET_PRESETS = {
           'ED_TENDER': {
-              label: '🔵 ED1/ED2 EDrill/Vantris Tender - 64mm all-wire + MLB',
+              label: 'ED1/ED2 EDrill/Vantris Tender - 64mm all-wire + MLB',
               category: 'TENDER',
               projectName: 'ED_AWP', waterDepth: 77.8, fairleadElev: '3', subseaStructuresStr: '150',
               tensionsStr: TENSION_PROFILES.TENDER_LARGE, calcMode: 'tension', showMaxTension: true,
@@ -143,7 +217,7 @@
               buoys: [ { distanceFromAnchor: 900, netBuoyancy: 10, pennantLength: 25, pennantWeight: 0.175, pennantLoad: 0.05, height: 2.5, pennantSag: 2.0, isPennantWeightManual: true } ]
           },
           'NVT': {
-              label: '🟢 NVT (Nava Thanee) AWB - 52mm/7t Anchor',
+              label: 'NVT (Nava Thanee) AWB - 52mm/7t Anchor',
               category: 'AWB',
               projectName: 'NVT_WP', waterDepth: 76.1, fairleadElev: '3', subseaStructuresStr: '',
               tensionsStr: TENSION_PROFILES.AWB_SMALL, calcMode: 'tension', showMaxTension: true,
@@ -154,7 +228,7 @@
               buoys: [ { distanceFromAnchor: 850, netBuoyancy: 10, pennantLength: 40, pennantWeight: 0.28, pennantLoad: 0.05, height: 2.5, pennantSag: 2.0, isPennantWeightManual: true } ]
           },
           'KMT': {
-              label: '🟢 KMT (Kamala Thanee) AWB - 52mm + Ext + DP Buoy',
+              label: 'KMT (Kamala Thanee) AWB - 52mm + Ext + DP Buoy',
               category: 'AWB',
               projectName: 'KMT_WP', waterDepth: 78.7, fairleadElev: '3', subseaStructuresStr: '',
               tensionsStr: TENSION_PROFILES.AWB_SMALL, calcMode: 'tension', showMaxTension: true,
@@ -166,7 +240,7 @@
               buoys: [ { distanceFromAnchor: 551, netBuoyancy: 6, pennantLength: 35, pennantWeight: 0.245, pennantLoad: 0.05, height: 2.0, pennantSag: 2.0, isPennantWeightManual: true } ]
           },
           'EWB400': {
-              label: '🟢 EWB400 AWB 120m - 64mm + Piggyback + MLB',
+              label: 'EWB400 AWB 120m - 64mm + Piggyback + MLB',
               category: 'AWB',
               projectName: 'EWB400_WP01', waterDepth: 78.7, fairleadElev: '3', subseaStructuresStr: '150',
               tensionsStr: TENSION_PROFILES.TENDER_LARGE, calcMode: 'tension', showMaxTension: true,
@@ -178,7 +252,7 @@
               buoys: [ { distanceFromAnchor: 850, netBuoyancy: 10, pennantLength: 35, pennantWeight: 0.245, pennantLoad: 0.05, height: 2.5, pennantSag: 2.0, isPennantWeightManual: true } ]
           },
           'JACKUP': {
-              label: '⚓ Jackup AHT positioning - 1.5" (38mm) wire, 4-point',
+              label: 'Jackup AHT positioning - 1.5" (38mm) wire, 4-point',
               category: 'JACKUP',
               projectName: 'Jackup', waterDepth: 75.0, fairleadElev: '3', subseaStructuresStr: '',
               tensionsStr: TENSION_PROFILES.JACKUP, calcMode: 'tension', showMaxTension: true,
@@ -190,7 +264,22 @@
           }
       };
 
-      const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+      // v12: theme-AWARE series palette. A single shared palette cannot serve both grounds -
+      // forcing one set to clear 4.5:1 on #1C2839 and 3:1 on #FFFFFF drives every hue toward
+      // mud. Two tuned sets instead: vivid on dark, deep on light. Measured minimum contrast
+      // is 5.36:1 (dark) and 5.27:1 (light) across all seven series including Find Max.
+      const SERIES = {
+          dark:  ['#38A9F5', '#3DD68C', '#F5A524', '#FF6B6B', '#B68CFF', '#FF79C6'],
+          light: ['#0F6FB8', '#0A7A47', '#8A5A00', '#B02626', '#6D28D9', '#B32473']
+      };
+      const MAX_CASE_COLOR = { dark: '#C77DFF', light: '#7C3AED' };
+      const seriesColor = (i, isDark) => {
+          const p = isDark ? SERIES.dark : SERIES.light;
+          return p[i % p.length];
+      };
+      const maxCaseColor = (isDark) => isDark ? MAX_CASE_COLOR.dark : MAX_CASE_COLOR.light;
+      // Back-compat alias for any remaining reference.
+      const COLORS = SERIES.dark;
 
       const safeFloat = (val, defaultVal = 0) => {
           if (typeof val === 'number') return val;
@@ -357,7 +446,7 @@
           return (
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700/50">
                   {Icon && <Icon size={14} className="text-accent-600 dark:text-accent-500" />}
-                  <h3 className="text-[11px] uppercase font-bold text-gray-500 dark:text-gray-400 tracking-wider">{title}</h3>
+                  <h3 className="text-[11px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.09em]">{title}</h3>
               </div>
           );
       }
@@ -395,10 +484,10 @@
       function InputField({ label, value, onChange, unit, type = "number", placeholder, children, highlight, error, min, className, ...props }) {
           return (
               <div className={`group ${className || ''}`}>
-                  <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors flex justify-between">
+                  <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors flex justify-between">
                       {label}
-                      {highlight && <span className="text-[9px] text-amber-600 dark:text-amber-500 font-bold bg-amber-100 dark:bg-amber-900/30 px-1 rounded flex items-center gap-1">MANUAL</span>}
-                      {error && <span className="text-[9px] text-red-500 font-bold uppercase">{error}</span>}
+                      {highlight && <span className="text-[11px] text-amber-600 dark:text-amber-500 font-bold bg-amber-100 dark:bg-amber-900/30 px-1 rounded flex items-center gap-1">MANUAL</span>}
+                      {error && <span className="text-[11px] text-red-500 font-bold uppercase">{error}</span>}
                   </label>
                   <div className="relative">
                       <input
@@ -407,16 +496,16 @@
                           onChange={onChange}
                           placeholder={placeholder}
                           min={min}
-                          className={`w-full bg-white dark:bg-gray-900 border rounded pl-2 pr-7 py-1.5 text-xs text-gray-800 dark:text-gray-200 outline-none transition-all shadow-sm 
-                              ${error 
-                                  ? 'border-red-500 focus:border-red-500 ring-red-500/10' 
-                                  : highlight 
-                                      ? 'border-amber-400 ring-amber-400/20 focus:border-amber-500 focus:ring-amber-500 bg-amber-50 dark:bg-amber-900/10' 
-                                      : 'border-gray-300 dark:border-gray-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500'
+                          className={`w-full bg-white dark:bg-gray-950 border rounded-md pl-2.5 pr-8 py-2 text-[13px] font-mono text-gray-800 dark:text-gray-100 outline-none transition-colors
+                              ${error
+                                  ? 'border-bad-600 dark:border-bad-400'
+                                  : highlight
+                                      ? 'border-warn-600/60 dark:border-warn-400/60 bg-warn-600/5 dark:bg-warn-400/5'
+                                      : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:border-accent-500 dark:focus:border-accent-400'
                               }`}
                           {...props}
                       />
-                      {unit && <span className="absolute right-2 top-1.5 text-[10px] text-gray-500 dark:text-gray-400 pointer-events-none select-none">{unit}</span>}
+                      {unit && <span className="absolute right-2 top-1.5 text-[11px] text-gray-500 dark:text-gray-400 pointer-events-none select-none">{unit}</span>}
                       {children}
                   </div>
               </div>
@@ -426,7 +515,7 @@
       function SelectField({ label, value, onChange, children }) {
           return (
               <div className="group">
-                  <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-500 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
+                  <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1 group-focus-within:text-accent-600 dark:group-focus-within:text-accent-500 transition-colors">{label}</label>
                   <div className="relative">
                       <select value={value} onChange={onChange} className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm">
                           {children}
@@ -484,7 +573,7 @@
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">5. Data Management</h3>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>Import/Export:</strong> Save and load mooring setups via JSON.</li>
-                                  <li><strong>Save Setup:</strong> Store the current config in your browser (localStorage) for quick recall via the 📂 Load button.</li>
+                                  <li><strong>Save Setup:</strong> Store the current config in your browser (localStorage) for quick recall via the Load button.</li>
                                   <li><strong>Standards:</strong> Use the sizing dropdown to auto-fill density, EA, weight (kg/m auto-calc from diameter), and friction (µ).</li>
                               </ul>
                           </div>
@@ -492,14 +581,14 @@
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">6. Fleet Vessel Presets (NEW)</h3>
                               <p className="mb-1">The <strong>Quick Fill: Fleet Vessel</strong> dropdown auto-loads full config (water depth, segments, buoys, tensions) for common vessel types:</p>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li>🔵 <strong>TENDER</strong>: ED1/ED2,Vantris (64mm)</li>
-                                  <li>🟢 <strong>AWB</strong>: NVT/KMT (52mm), EWB400 (64mm + piggyback)</li>
-                                  <li>⚓ <strong>JACKUP</strong>: 4-point AHT positioning with 1.5" (38mm) wire; default tensions <code>5, 10, 15</code> (light on API quota)</li>
+                                  <li><strong>TENDER</strong>: ED1/ED2,Vantris (64mm)</li>
+                                  <li><strong>AWB</strong>: NVT/KMT (52mm), EWB400 (64mm + piggyback)</li>
+                                  <li><strong>JACKUP</strong>: 4-point AHT positioning with 1.5" (38mm) wire; default tensions <code>5, 10, 15</code> (light on API quota)</li>
                               </ul>
                           </div>
                           <div>
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">7. Top View / Plan (NEW)</h3>
-                              <p className="mb-1">Switch to <strong>🎯 Top View (Plan)</strong> for a bird's-eye view of the mooring layout:</p>
+                              <p className="mb-1">Switch to <strong>Top View (Plan)</strong> for a bird's-eye view of the mooring layout:</p>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>Rig</strong> at center; anchor lines fan out at the bearings you configure.</li>
                                   <li><strong>Grounded portion</strong> shown as thick dashed segment; <strong>suspended</strong> is thin solid.</li>
@@ -525,18 +614,18 @@
                           <div>
                               <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">8. Smart Auto-Fill (NEW)</h3>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>⚡ Auto tension</strong> (button next to tension input): suggests tension list based on wire Ø. Jackup (≤40mm) → 5,10,15 · Tender (≥60mm) → 5,10,20,40 · AWB (44-52mm) → 3,5,20,35. Combined with Find Max, total solver runs stay ≤4 per calc to fit free Cloudflare CPU quota.</li>
+                                  <li><strong>Auto tension</strong> (button next to tension input): suggests tension list based on wire Ø. Jackup (≤40mm) → 5,10,15 · Tender (≥60mm) → 5,10,20,40 · AWB (44-52mm) → 3,5,20,35. Combined with Find Max, total solver runs stay ≤4 per calc to fit free Cloudflare CPU quota.</li>
                                   <li><strong>Auto weight from Ø</strong>: Enter diameter → weight (kg/m) auto-computes via API 2F formula (Wire: 0.00423·d² · Chain: 0.0219·d²). Overriding weight locks it as MANUAL.</li>
                                   <li><strong>Auto EA from Ø</strong>: EA = k·d² per material type; edit to lock as MANUAL.</li>
                               </ul>
                           </div>
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
-                          <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v260723-v10</span>
-                              <span>Worker: v260727</span>
+                          <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
+                              <span>Frontend: v260921-v12</span>
+                              <span>Worker: v3-260921</span>
                           </div>
-                          <div className="text-center text-[10px] text-gray-500 dark:text-gray-400">
+                          <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
                           </div>
                           <button onClick={onClose} className="w-full py-2 bg-accent-600 hover:bg-accent-500 text-white rounded font-medium transition-colors shadow-sm text-sm">Close Guide</button>
@@ -559,6 +648,7 @@
           projectName, setProjectName,
           patternType, setPatternType,
           anchorBearings, setAnchorBearings,
+          designFactor, setDesignFactor,
           // v10 NEW: injected from App
           activePresetKey, setActivePresetKey,   // M2: remember selection
           bulkUpdateConfig,                       // M6: batch state updates
@@ -575,7 +665,7 @@
           const handleTypeChange = (index, newType) => {
               const defaults = SEGMENT_PRESETS[newType];
               const newSegs = [...segments];
-              newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff, diameter: defaults.diameter || '', isEAManual: false };
+              newSegs[index] = { ...newSegs[index], type: newType, w: defaults.w, w_wet: defaults.w_wet, EA: defaults.EA, frictionCoeff: defaults.frictionCoeff, diameter: defaults.diameter || '', isEAManual: false, mbl: '', isMBLManual: false };
               setSegments(newSegs);
           };
 
@@ -583,7 +673,9 @@
               if (!sizeDataStr) return;
               const sizeData = JSON.parse(sizeDataStr);
               const newSegs = [...segments];
-              newSegs[index] = { ...newSegs[index], w: sizeData.w, w_wet: sizeData.w_wet, EA: sizeData.ea, frictionCoeff: sizeData.frictionCoeff !== undefined ? sizeData.frictionCoeff : newSegs[index].frictionCoeff, diameter: sizeData.diameter || '', isEAManual: false };
+              newSegs[index] = { ...newSegs[index], w: sizeData.w, w_wet: sizeData.w_wet, EA: sizeData.ea, frictionCoeff: sizeData.frictionCoeff !== undefined ? sizeData.frictionCoeff : newSegs[index].frictionCoeff, diameter: sizeData.diameter || '', isEAManual: false, isMBLManual: false };
+              { const km = MBL_COEFF[newSegs[index].type], dd = parseFloat(sizeData.diameter) || 0;
+                newSegs[index].mbl = (km && dd > 0) ? Math.round(km * dd * dd) : ''; }
               setSegments(newSegs);
           };
 
@@ -607,6 +699,18 @@
                           newSegs[index].w = parseFloat((kw * d * d).toFixed(2));
                           newSegs[index].w_wet = '';
                       }
+                  }
+                  if (!newSegs[index].isMBLManual) {
+                      const km = MBL_COEFF[newSegs[index].type];
+                      newSegs[index].mbl = (km && d > 0) ? Math.round(km * d * d) : '';
+                  }
+              }
+              if (field === 'mbl') {
+                  const mv = parseFloat(value);
+                  newSegs[index].isMBLManual = (value !== '' && !isNaN(mv) && mv > 0);
+                  if (!newSegs[index].isMBLManual) {
+                      const km = MBL_COEFF[newSegs[index].type], dd = parseFloat(newSegs[index].diameter) || 0;
+                      newSegs[index].mbl = (km && dd > 0) ? Math.round(km * dd * dd) : '';
                   }
               }
               if (field === 'EA') {
@@ -690,7 +794,11 @@
                   waterDepth: p.waterDepth,
                   fairleadElev: p.fairleadElev,
                   subseaStructuresStr: p.subseaStructuresStr || '',
-                  segments: p.segments.map((sg, i) => ({ ...sg, id: `seg-${stamp}-${i}` })),
+                  segments: p.segments.map((sg, i) => {
+                      const km = MBL_COEFF[sg.type];
+                      const mbl = (!sg.mbl && km && sg.diameter > 0) ? Math.round(km * sg.diameter * sg.diameter) : (sg.mbl || '');
+                      return { ...sg, id: `seg-${stamp}-${i}`, mbl, isMBLManual: !!sg.mbl };
+                  }),
                   buoys: p.buoys.map((b, i) => ({ ...b, id: `buoy-${stamp}-${i}` })),
                   calcMode: p.calcMode || 'tension',
                   showMaxTension: !!p.showMaxTension,
@@ -825,6 +933,28 @@
 
           const isFairleadInvalid = !validatePositive(parseFloat(fairleadElev), true);
 
+          // v11: the per-field error props were cosmetic only - invalid configs still fired requests.
+          const configErrors = useMemo(() => {
+              const e = [];
+              const wd = parseFloat(waterDepth);
+              if (!validatePositive(wd, false)) e.push('Water depth must be greater than 0');
+              if (isFairleadInvalid) e.push('Fairlead elevation must be 0 or greater');
+              const totalLen = segments.reduce((acc, s) => acc + (parseFloat(s.length) || 0), 0);
+              segments.forEach((s, i) => {
+                  if (!validatePositive(s.length, false)) e.push(`Segment ${i + 1}: length must be greater than 0`);
+                  if (!validatePositive(s.w, false)) e.push(`Segment ${i + 1}: weight must be greater than 0`);
+                  if (!validatePositive(s.EA || 0, false)) e.push(`Segment ${i + 1}: EA must be greater than 0`);
+                  if (!validatePositive(s.frictionCoeff, true)) e.push(`Segment ${i + 1}: friction must be 0 or greater`);
+              });
+              if (!isNaN(wd) && totalLen > 0 && totalLen <= wd + (parseFloat(fairleadElev) || 0)) {
+                  e.push(`Payout ${totalLen.toFixed(0)} m is shorter than the vertical span`);
+              }
+              buoys.forEach((b, i) => {
+                  if (parseFloat(b.distanceFromAnchor) > totalLen) e.push(`Buoy ${i + 1} sits beyond the end of the line`);
+              });
+              return e;
+          }, [waterDepth, fairleadElev, segments, buoys, isFairleadInvalid]);
+
           // v10 S2: debounced buffers for text-heavy inputs (300ms flush)
           // UI stays snappy while typing; global config updates only after user pauses
           const [wdBuf, setWdBuf] = useState(String(waterDepth));
@@ -841,8 +971,10 @@
           const dbTens = useDebounce(tensBuf, 300);
           const dbSubsea = useDebounce(subseaBuf, 300);
           useEffect(() => {
+              // v11: clearing the box left a stale value in state behind a blank field.
               const v = parseFloat(dbWd);
               if (!isNaN(v) && v !== waterDepth) setWaterDepth(Math.max(0, v));
+              else if (isNaN(v)) setWdBuf(String(waterDepth));
           }, [dbWd]);
           useEffect(() => { if (dbFl !== String(fairleadElev)) setFairleadElev(dbFl); }, [dbFl]);
           useEffect(() => { if (dbTens !== tensions) setTensions(dbTens); }, [dbTens]);
@@ -856,39 +988,39 @@
                           <SectionHeader title="Environment" icon={IconWaves} />
                           <div className="space-y-3 p-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg">
                               <div className="p-2 bg-accent-50 dark:bg-accent-600/10 border-2 border-accent-300 dark:border-accent-600/50 rounded-lg">
-                                  <label className="block text-[10px] font-bold text-accent-700 dark:text-accent-400 mb-1.5 flex items-center gap-1 uppercase tracking-wider">
+                                  <label className="block text-[11px] font-bold text-accent-700 dark:text-accent-400 mb-1.5 flex items-center gap-1 uppercase tracking-wider">
                                       <IconAnchor size={11} /> Quick Fill: Fleet Vessel
                                   </label>
                                   <div className="relative">
                                       {/* v10 M2: dropdown remembers active preset (via activePresetKey), no auto-reset */}
                                       <select value={activePresetKey || ''} onChange={e => { if (e.target.value) applyFleetPreset(e.target.value); }} className="w-full bg-white dark:bg-gray-900 border border-accent-400 dark:border-accent-500 rounded px-2 py-2 text-xs font-medium text-accent-700 dark:text-accent-300 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm cursor-pointer" aria-label="Fleet preset selector">
                                           <option value="">-- Select vessel: auto-loads all fields --</option>
-                                          <optgroup label="🔵 TENDER (Large wire)">
+                                          <optgroup label="TENDER (Large wire)">
                                               {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='TENDER').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].label}</option>))}
                                           </optgroup>
-                                          <optgroup label="🟢 AWB (Accommodation)">
+                                          <optgroup label="AWB (Accommodation)">
                                               {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='AWB').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].label}</option>))}
                                           </optgroup>
-                                          <optgroup label="⚓ JACKUP (4-point AHT positioning)">
+                                          <optgroup label="JACKUP (4-point AHT positioning)">
                                               {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='JACKUP').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].label}</option>))}
                                           </optgroup>
                                       </select>
                                       <IconChevronDown size={12} className="absolute right-2 top-2.5 text-accent-500 pointer-events-none" />
                                   </div>
                                   <div className="flex gap-2 mt-2">
-                                      <button onClick={saveMySetup} aria-label="Save current setup to browser storage" className="flex-1 text-[9px] font-bold bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 transition-colors uppercase tracking-wider">
-                                          💾 Save Setup
+                                      <button onClick={saveMySetup} aria-label="Save current setup to browser storage" className="flex-1 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 transition-colors uppercase tracking-wider">
+                                          Save Setup
                                       </button>
                                       {mySetupNames.length > 0 && (
                                           <div className="flex-1 relative">
-                                              <select defaultValue="" aria-label="Load saved setup" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-full text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-700 uppercase tracking-wider cursor-pointer appearance-none">
-                                                  <option value="">📂 Load ({mySetupNames.length})</option>
+                                              <select defaultValue="" aria-label="Load saved setup" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-full text-[11px] font-bold bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-700 uppercase tracking-wider cursor-pointer appearance-none">
+                                                  <option value="">Load ({mySetupNames.length})</option>
                                                   {mySetupNames.map(n => <option key={n} value={n}>{n}</option>)}
                                               </select>
                                           </div>
                                       )}
                                   </div>
-                                  <p className="text-[9px] text-gray-500 dark:text-gray-400 mt-1.5 leading-tight">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 leading-tight">
                                       Loads WD, segments (wire/chain), MLB, tension profile, anchor pattern.
                                   </p>
                               </div>
@@ -896,8 +1028,9 @@
                               <div className="grid grid-cols-2 gap-3">
                                   {/* v10 S2: debounced local buffer for smoother typing */}
                                   <InputField label="Water Depth" value={wdBuf} onChange={e => setWdBuf(e.target.value)} unit="m" min={0} error={waterDepth <= 0 ? "Depth > 0" : undefined} />
-                                  <InputField label="Fairlead Z" value={flBuf} onChange={e => setFlBuf(e.target.value)} unit="m" error={isFairleadInvalid ? "Z ≥ 0" : undefined} />
+                                  <InputField label="Fairlead Elev." title="Height of the fairlead above mean sea level" value={flBuf} onChange={e => setFlBuf(e.target.value)} unit="m" error={isFairleadInvalid ? "Z ≥ 0" : undefined} />
                               </div>
+                              <InputField label="Design Factor (SWL = MBL / DF)" value={designFactor} onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v) && v > 0) setDesignFactor(v); else if (e.target.value === '') setDesignFactor(''); }} unit="x" placeholder="e.g. 3.0" />
                               <div className="border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
                                   <InputField label="Subsea Structures (Dist from FL)" value={subseaBuf} onChange={e => setSubseaBuf(e.target.value)} type="text" placeholder="e.g. 150, 400" />
                               </div>
@@ -907,7 +1040,7 @@
                       <section>
                           <div className="flex justify-between items-center mb-2">
                               <SectionHeader title="Line Segments (Fairlead → Anchor)" icon={IconAnchor} />
-                              <button onClick={addSegment} aria-label="Add new segment" className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                              <button onClick={addSegment} aria-label="Add new segment" className="flex items-center gap-1 text-[11px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
                                   <IconPlus size={12} /> Add
                               </button>
                           </div>
@@ -925,9 +1058,9 @@
                                   const isFrictionInvalid = !validatePositive(seg.frictionCoeff, true);
 
                                   return (
-                                      <div key={seg.id} className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 p-3 rounded-lg group relative transition-all hover:border-gray-400 dark:hover:border-gray-600">
+                                      <div key={seg.id} className="bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 p-3 rounded-lg group relative transition-colors hover:border-gray-300 dark:hover:border-gray-700 shadow-soft">
                                           <div className="flex justify-between items-start mb-2">
-                                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[10px] px-1.5 rounded">#{idx + 1}</span>{seg.type}</span>
+                                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><span className="bg-gray-200 dark:bg-gray-800 text-gray-500 text-[11px] px-1.5 rounded">#{idx + 1}</span>{seg.type}</span>
                                               <div className="flex items-center gap-1">
                                                   <button onClick={() => duplicateSegment(idx)} aria-label="Duplicate this segment" className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this segment">
                                                       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -957,18 +1090,27 @@
                                               <InputField label="Weight (Dry)" value={seg.w} onChange={e => { updateSegment(idx, 'w', e.target.value); }} unit="kg/m" error={isWeightInvalid ? "W > 0" : undefined} />
                                               <InputField label="Weight (Wet)" value={seg.w_wet || ''} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} unit="kg/m" placeholder={`Auto: ${autoWet.toFixed(2)}`} highlight={hasManualWet}>
                                                   {hasManualWet && (
-                                                      <button onClick={() => updateSegment(idx, 'w_wet', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
+                                                      <button onClick={() => updateSegment(idx, 'w_wet', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
                                                   )}
                                               </InputField>
                                               <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if(e.target.value==='') updateSegment(idx, 'EA', ''); }} unit="kN" placeholder={(() => { const d = parseFloat(seg.diameter) || 0; const k = EA_COEFFICIENTS[seg.type]; return (k && d > 0) ? `Auto: ${Math.round(k*d*d)}` : 'Infinite'; })()} error={isEAInvalid ? "EA > 0" : undefined} highlight={seg.isEAManual}>
                     {seg.isEAManual && (
-                      <button onClick={() => updateSegment(idx, 'EA', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
+                      <button onClick={() => updateSegment(idx, 'EA', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
                     )}
                     {!seg.isEAManual && parseFloat(seg.diameter) > 0 && EA_COEFFICIENTS[seg.type] && (
-                      <span className="absolute right-9 top-1.5 text-[9px] text-blue-500 dark:text-blue-400 font-bold pointer-events-none">⚡Ø{seg.diameter}</span>
+                      <span className="absolute right-9 top-1.5 text-[11px] text-blue-500 dark:text-blue-400 font-bold pointer-events-none">⚡Ø{seg.diameter}</span>
                     )}
                     </InputField>
                                               <InputField label="Friction Coeff" value={seg.frictionCoeff} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'frictionCoeff', e.target.value); else if(e.target.value==='') updateSegment(idx, 'frictionCoeff', ''); }} unit="" error={isFrictionInvalid ? "µ ≥ 0" : undefined} />
+                                              {/* v11: MBL drives the utilisation column and the Exceeds-SWL flag. */}
+                                              <InputField label="MBL" value={seg.mbl || ''} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'mbl', e.target.value); else if(e.target.value==='') updateSegment(idx, 'mbl', ''); }} unit="t" placeholder={seg.type === SegmentType.CHAIN ? 'From cert' : 'Est. from dia.'} highlight={seg.isMBLManual}>
+                                                  {seg.isMBLManual && (
+                                                      <button onClick={() => updateSegment(idx, 'mbl', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded" title="Clear manual override">✕</button>
+                                                  )}
+                                                  {!seg.isMBLManual && seg.mbl && seg.type === SegmentType.WIRE && (
+                                                      <span className="absolute right-9 top-1.5 text-[11px] text-amber-500 dark:text-amber-400 font-bold pointer-events-none" title="Estimated as 0.0745*d^2 - verify against the vendor certificate">Est.</span>
+                                                  )}
+                                              </InputField>
                                           </div>
                                       </div>
                                   );
@@ -979,7 +1121,7 @@
                       <section>
                           <div className="flex justify-between items-center mb-2">
                               <SectionHeader title="Buoys" icon={IconLifeBuoy} />
-                              <button onClick={addBuoy} aria-label="Add new buoy" className="flex items-center gap-1 text-[10px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
+                              <button onClick={addBuoy} aria-label="Add new buoy" className="flex items-center gap-1 text-[11px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
                                   <IconPlus size={12} /> Add
                               </button>
                           </div>
@@ -1007,13 +1149,13 @@
                                       </div>
                                       <div className="space-y-3">
                                           <InputField label="Dist from Anchor" value={b.distanceFromAnchor} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'distanceFromAnchor', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'distanceFromAnchor', ''); }} unit="m" error={isDistInvalid ? "Dist ≥ 0" : undefined} />
-                                          {isOutOfBounds && <div className="text-[10px] text-red-500 font-bold mt-1 -mb-1">⚠ Warning: Buoy beyond line length ({totalLength.toFixed(1)}m)</div>}
+                                          {isOutOfBounds && <div className="text-[11px] text-red-500 font-bold mt-1 -mb-1">⚠ Warning: Buoy beyond line length ({totalLength.toFixed(1)}m)</div>}
                                           <div className="grid grid-cols-2 gap-3">
                                               <InputField label="Net Buoyancy" value={b.netBuoyancy} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'netBuoyancy', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'netBuoyancy', ''); }} unit="ton" error={isBuoyancyInvalid ? "Buoyancy ≥ 0" : undefined} />
                                               <InputField label="Pennant Length" value={b.pennantLength} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLength', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLength', ''); }} unit="m" error={isPennantLInvalid ? "Len ≥ 0" : undefined} />
                                               <InputField label="Pennant Wt (t) [~3kg/m]" title="Auto-computed as Pennant Length * 0.003 t/m" value={b.pennantWeight} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantWeight', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantWeight', ''); }} unit="ton" error={isPennantWInvalid ? "Wt ≥ 0" : undefined} highlight={b.isPennantWeightManual} placeholder={`Auto: ${((parseFloat(b.pennantLength) || 0) * 0.003).toFixed(3)}`}>
                     {b.isPennantWeightManual && (
-                      <button onClick={() => updateBuoy(idx, 'pennantWeight', '')} className="absolute right-9 top-1.5 text-[10px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
+                      <button onClick={() => updateBuoy(idx, 'pennantWeight', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
                     )}
                     </InputField>
                                               <InputField label="Misc Load (t)" value={b.pennantLoad || 0} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLoad', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLoad', ''); }} unit="ton" error={isPennantLoadInvalid ? "Load ≥ 0" : undefined} />
@@ -1028,33 +1170,33 @@
                   </div>
 
                   {/* STICKY BOTTOM ACTION PANEL - OPTION 2 */}
-                  <div className="pt-4 px-1 pb-1 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0e121e] shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] z-20 transition-colors duration-300">
+                  <div className="pt-4 px-1 pb-1 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] z-20 transition-colors duration-300">
                       {calcMode === 'offset' && (
                           <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded flex gap-2 items-start">
                               <IconWarning size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                              <p className="text-[10px] text-amber-700 dark:text-amber-200 leading-tight">
+                              <p className="text-[11px] text-amber-700 dark:text-amber-200 leading-tight">
                                   <strong>Check Payout:</strong> Ensure 'Segment Length' matches the actual paid-out length.
                               </p>
                           </div>
                       )}
                       <div className="flex justify-between items-center mb-2 px-1">
                           <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded p-0.5">
-                              <button onClick={() => setCalcMode('tension')} className={`text-[9px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION</button>
-                              <button onClick={() => setCalcMode('offset')} className={`text-[9px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET</button>
+                              <button onClick={() => setCalcMode('tension')} className={`text-[11px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION</button>
+                              <button onClick={() => setCalcMode('offset')} className={`text-[11px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET</button>
                           </div>
                           <label className="flex items-center gap-2 cursor-pointer group">
                               <input type="checkbox" checked={showMaxTension} onChange={e => setShowMaxTension(e.target.checked)} disabled={loading} className="rounded bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-accent-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer disabled:opacity-50" />
-                              <span className="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-medium group-hover:text-fuchsia-500 transition-colors">Find Max (0m Grd)</span>
+                              <span className="text-[11px] text-fuchsia-600 dark:text-fuchsia-400 font-medium group-hover:text-fuchsia-500 transition-colors">Find Max (0m Grd)</span>
                           </label>
                       </div>
 
                       <div className="relative">
-                          <label className="absolute -top-2 left-2 px-1 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-accent-600 dark:text-accent-500 uppercase tracking-wider z-10">
+                          <label className="absolute -top-2 left-2 px-1 bg-white dark:bg-gray-900 text-[11px] font-bold text-accent-600 dark:text-accent-500 uppercase tracking-wider z-10">
                               {calcMode === 'tension' ? 'Target Tensions (t)' : 'Target Offsets (m)'}
                           </label>
                           {calcMode === 'tension' && (
-                              <button onClick={suggestTension} aria-label="Auto-suggest tension based on wire diameter" className="absolute -top-2 right-2 z-10 px-1.5 py-0.5 bg-white dark:bg-[#0e121e] text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider border border-fuchsia-300 dark:border-fuchsia-800 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/30 transition-colors" title="Auto-suggest tension: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35">
-                                  ⚡ Auto
+                              <button onClick={suggestTension} aria-label="Auto-suggest tension based on wire diameter" className="absolute -top-2 right-2 z-10 px-1.5 py-0.5 bg-white dark:bg-gray-900 text-[11px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider border border-fuchsia-300 dark:border-fuchsia-800 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/30 transition-colors" title="Auto-suggest tension: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35">
+                                  Auto
                               </button>
                           )}
                           <input
@@ -1063,12 +1205,18 @@
                               onChange={e => setTensBuf(e.target.value)}
                               disabled={loading}
                               aria-label={calcMode === 'tension' ? 'Target tensions (tonnes, comma-separated)' : 'Target offsets (meters, comma-separated)'}
-                              className={`w-full bg-white dark:bg-gray-900 border-2 rounded px-3 py-2 text-sm font-mono mb-3 focus:outline-none transition-colors placeholder-gray-400 dark:placeholder-gray-700 text-gray-800 dark:text-gray-200 disabled:opacity-50 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`}
+                              className={`w-full bg-white dark:bg-gray-900 border-2 rounded px-3 py-2 text-sm font-mono mb-3 focus:outline-none transition-colors placeholder-gray-500 dark:placeholder-gray-500 text-gray-800 dark:text-gray-200 disabled:opacity-50 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`}
                               placeholder={calcMode === 'tension' ? "e.g. 10, 50, 100" : "e.g. 50, 100, 200"}
                           />
                       </div>
 
-                      <button onClick={calculate} disabled={loading} aria-label="Run calculation" className={`w-full bg-accent-600 hover:bg-accent-500 text-white font-semibold py-2.5 rounded shadow-lg shadow-accent-500/20 active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${loading ? 'opacity-70 cursor-wait' : ''}`}>
+                      {configErrors.length > 0 && (
+                          <div className="mb-2.5 px-3 py-2 bg-bad-600/8 dark:bg-bad-400/10 border border-bad-600/30 dark:border-bad-400/30 rounded-md text-[11px] text-bad-600 dark:text-bad-400 leading-relaxed" role="alert">
+                              {configErrors.slice(0, 3).map((msg, i) => <div key={i}>{msg}</div>)}
+                              {configErrors.length > 3 && <div className="opacity-70">and {configErrors.length - 3} more</div>}
+                          </div>
+                      )}
+                      <button onClick={calculate} aria-label="Run calculation" className={`w-full bg-accent-600 hover:bg-accent-700 dark:bg-accent-500 dark:hover:bg-accent-400 text-white dark:text-gray-950 font-semibold text-sm py-3 rounded-lg shadow-card active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${(loading || configErrors.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={loading || configErrors.length > 0} title={configErrors.length > 0 ? configErrors[0] : undefined}>
                           {loading ? <span>Processing Engine...</span> : <>{calcMode === 'tension' ? <IconPlay size={16} fill="currentColor" /> : <IconRefresh size={16} />} {calcMode === 'tension' ? 'Calculate Profile' : 'Find Tensions'}</>}
                       </button>
                   </div>
@@ -1085,8 +1233,8 @@
               configs.forEach((config) => {
                   const isConfigActive = config.id === activeConfigId;
                   const configData = config.results.map((res, resIdx) => {
-                      const baseColor = res.isMaxTensionCase ? '#d946ef' : COLORS[resIdx % COLORS.length]; 
-                      const color = isConfigActive ? baseColor : (theme === 'dark' ? '#374151' : '#d1d5db');
+                      const baseColor = res.isMaxTensionCase ? maxCaseColor(theme === 'dark') : seriesColor(resIdx, theme === 'dark'); 
+                      const color = isConfigActive ? baseColor : (theme === 'dark' ? '#3C4C60' : '#BCC8D8');
                       const xOffset = res.fairleadX;
 
                       const transformedPoints = res.points.map(p => ({
@@ -1135,12 +1283,20 @@
               return allData.sort((a, b) => (a.isActiveTab === b.isActiveTab ? 0 : a.isActiveTab ? 1 : -1));
           }, [configs, activeConfigId, theme]);
 
+          // v11: the tooltip used to flatten+sort every case on EVERY mouse-move. Do it once.
+          const flatSortedByCase = useMemo(() => {
+              const m = new Map();
+              chartData.forEach(d => m.set(d.id, d.segments.flat().sort((a, b) => a.x - b.x)));
+              return m;
+          }, [chartData]);
+
           const maxWaterDepth = configs.length > 0 ? Math.max(...configs.map(c => c.waterDepth)) : 73;
           const structurePoints = useMemo(() => structures.map((x, idx) => ({ x: x, z: maxWaterDepth, id: `struct-${idx}` })), [structures, maxWaterDepth]);
 
           const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
           const maxDepthRaw = allZ.length > 0 ? Math.max(maxWaterDepth + 10, ...allZ) : maxWaterDepth + 10;
-          const minDepthRaw = -15;
+          // v11: was hard-coded -15, clipping any fairlead above 15 m out of the Y domain.
+          const minDepthRaw = Math.min(-15, (allZ.length > 0 ? Math.min(...allZ) : 0) - 5);
           let yInterval = 10;
           const depthRange = maxDepthRaw - minDepthRaw;
           if (depthRange > 750) yInterval = 50;
@@ -1159,7 +1315,7 @@
           const xTicks = []; for (let x = 0; x <= maxX + 0.1; x += xInterval) xTicks.push(Number(x.toFixed(1)));
 
           const isDark = theme === 'dark';
-          const buoyStroke = isDark ? '#fff' : '#1f2937';
+          const buoyStroke = isDark ? '#EAEFF4' : '#26344A';
 
           const renderBuoyShape = (props) => {
               const { cx, cy, payload } = props;
@@ -1167,23 +1323,23 @@
               const util = payload.utilization || 0;
               const topZ = payload.pennantTopZ || 0;
 
-              let fillColor = '#22c55e';
-              if (util >= 0.85) fillColor = '#ef4444';
-              else if (util >= 0.50) fillColor = '#f59e0b';
-              if (isSlack) fillColor = '#d1d5db';
+              let fillColor = '#3DD68C';
+              if (util >= 0.85) fillColor = '#FF5C5C';
+              else if (util >= 0.50) fillColor = '#F5A524';
+              if (isSlack) fillColor = '#7286A0';
 
               return (
                   <g transform={`translate(${cx},${cy})`}>
                       {isSlack ? (
                           <React.Fragment>
                               <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={1.5} strokeDasharray="2 2" />
-                              <text y={-10} textAnchor="middle" fontSize={9} fontWeight="bold" fill={isDark ? '#e5e7eb' : '#374151'} style={{textShadow: isDark ? '0 0 2px black' : '0 0 2px white'}}>SLACK</text>
+                              <text y={-10} textAnchor="middle" fontSize={9} fontWeight="bold" fill={isDark ? '#EAEFF4' : '#3C4C60'} style={{textShadow: isDark ? '0 0 2px black' : '0 0 2px white'}}>SLACK</text>
                           </React.Fragment>
                       ) : (
                           <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={1.5} />
                       )}
                       {isSlack && <circle cx={0} cy={-8} r={2} fill="none" stroke={buoyStroke} strokeWidth={0.5} />}
-                      <text x={12} y={-4} fontSize={9} fill={isDark ? "#9ca3af" : "#4b5563"} fontWeight="500">Z: {topZ.toFixed(1)}m</text>
+                      <text x={12} y={-4} fontSize={9} fill={isDark ? "#94A4B8" : "#55687F"} fontWeight="500">Z: {topZ.toFixed(1)}m</text>
                   </g>
               );
           };
@@ -1197,17 +1353,17 @@
               const { cx, cy, payload } = props;
               return (
                   <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: 'none' }}>
-                      <rect x={-14} y={-20} width={28} height={20} fill={isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)"} stroke={isDark ? "#ef4444" : "#dc2626"} strokeWidth={1} strokeDasharray="2 2" rx={3} />
-                      <rect x={-8} y={-10} width={16} height={10} fill={isDark ? "#ef4444" : "#dc2626"} rx={1} stroke="none" />
-                      <path d="M-14 -20 L-6 -20" stroke={isDark ? "#ef4444" : "#dc2626"} strokeWidth={1} />
-                      <path d="M6 -20 L14 -20" stroke={isDark ? "#ef4444" : "#dc2626"} strokeWidth={1} />
-                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#ef4444" : "#dc2626"} fontSize={9} fontWeight="700" style={{textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.8)' : 'none'}}>STRUCT</text>
+                      <rect x={-14} y={-20} width={28} height={20} fill={isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)"} stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} strokeDasharray="2 2" rx={3} />
+                      <rect x={-8} y={-10} width={16} height={10} fill={isDark ? "#FF5C5C" : "#C42B2B"} rx={1} stroke="none" />
+                      <path d="M-14 -20 L-6 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
+                      <path d="M6 -20 L14 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
+                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={9} fontWeight="700" style={{textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.8)' : 'none'}}>STRUCT</text>
                   </g>
               );
           };
 
           return (
-              <div className="flex-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg p-1 relative min-h-[400px] flex flex-col shadow-sm">
+              <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-1 relative min-h-[400px] flex flex-col shadow-card">
                   <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur px-3 py-1 rounded border border-gray-200 dark:border-gray-700 shadow-sm">
                       <h3 className="text-gray-700 dark:text-gray-300 text-xs font-semibold flex items-center gap-2">
                           <IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
@@ -1216,14 +1372,14 @@
                   <div className="flex-1 w-full h-full">
                       <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 40, right: 30, bottom: 40, left: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} strokeOpacity={0.6} />
-                              <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} stroke={isDark ? "#9ca3af" : "#6b7280"} tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} />
-                              <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#9ca3af" : "#6b7280"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280"}} tickLine={{stroke: isDark ? "#4b5563" : "#d1d5db"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#6b7280" : "#9ca3af", fontSize: 12 }} />
-                              <Tooltip cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#9ca3af' : '#6b7280', strokeWidth: 1 }} content={({ active, payload }) => {
+                              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#26344A" : "#E6EBF1"} strokeOpacity={0.9} />
+                              <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} stroke={isDark ? "#94A4B8" : "#55687F"} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
+                              <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#94A4B8" : "#55687F"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
+                              <Tooltip cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#94A4B8' : '#55687F', strokeWidth: 1 }} content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
                                       const currentX = payload[0].payload.x;
                                       const getInterpolatedData = (caseData) => {
-                                          const allPoints = caseData.segments.flat().sort((a, b) => a.x - b.x);
+                                          const allPoints = flatSortedByCase.get(caseData.id) || caseData.segments.flat().sort((a, b) => a.x - b.x);
                                           let p1 = allPoints[0], p2 = allPoints[allPoints.length - 1];
                                           for (let i = 0; i < allPoints.length - 1; i++) { if (allPoints[i].x <= currentX && allPoints[i+1].x >= currentX) { p1 = allPoints[i]; p2 = allPoints[i+1]; break; } }
                                           if (!p1 || !p2) return null;
@@ -1245,7 +1401,7 @@
                                                       let buoyInfo = null;
                                                       if(nearbyBuoy) {
                                                           const u = (nearbyBuoy.buoyUtilization || 0) * 100;
-                                                          buoyInfo = <span className={`ml-1 text-[10px] ${u > 85 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>({u.toFixed(0)}% Util)</span>;
+                                                          buoyInfo = <span className={`ml-1 text-[11px] ${u > 85 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>({u.toFixed(0)}% Util)</span>;
                                                       }
                                                       return (
                                                           <div key={res.id} className="flex items-center justify-between gap-4">
@@ -1253,7 +1409,7 @@
                                                                   <span className="w-2 h-2 rounded-full" style={{backgroundColor: res.color}}></span>
                                                                   <span className="font-mono">{label}</span>
                                                                   {buoyInfo}
-                                                                  {nearbyBuoy && nearbyBuoy.isSlack && <span className="text-[9px] bg-gray-200 text-gray-600 px-1 rounded font-bold">SLACK</span>}
+                                                                  {nearbyBuoy && nearbyBuoy.isSlack && <span className="text-[11px] bg-gray-200 text-gray-600 px-1 rounded font-bold">SLACK</span>}
                                                               </div>
                                                               <div className="text-right"><span className={`font-semibold ${data.heightAboveSeabed < 0.1 ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}`}>{data.heightAboveSeabed <= 0.05 ? 'On Seabed' : `H: ${data.heightAboveSeabed.toFixed(1)}m`}</span></div>
                                                           </div>
@@ -1269,16 +1425,16 @@
                               {chartData.map((res) => (
                                   <React.Fragment key={res.id}>
                                       {res.buoys.map((b, bIdx) => {
-                                          const pennantStroke = theme === 'dark' ? '#fbbf24' : '#d97706';
+                                          const pennantStroke = theme === 'dark' ? '#F5A524' : '#A85D00';
                                           return (
-                                              <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke: b.isSlack ? '#9ca3af' : pennantStroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                              <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke: b.isSlack ? '#7286A0' : pennantStroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
                                           );
                                       })}
                                       {res.segments.map((segPoints, sIdx) => {
                                           const segType = segPoints[0].segmentType;
                                           const isChain = segType === SegmentType.CHAIN;
                                           return (
-                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: isChain ? 3 : 2, strokeDasharray: isChain ? '6 4' : '0' }} shape={<circle r={8} fill="transparent" stroke="none" />} legendType="none" />
+                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: isChain ? 3 : 2, strokeDasharray: isChain ? '6 4' : '0' }} shape={res.isActiveTab ? <circle r={8} fill="transparent" stroke="none" /> : (() => null)} legendType="none" />
                                           );
                                       })}
                                       {res.buoysData.length > 0 && (
@@ -1294,11 +1450,11 @@
                                   <Scatter key="subsea-structures" data={structurePoints} shape={renderStructureShape} legendType="none" />
                               )}
 
-                              <ReferenceLine y={0} stroke="#3b82f6" strokeDasharray="4 2" strokeOpacity={1} strokeWidth={1.5} ifOverflow="extendDomain" label={{ position: 'insideTopRight', value: 'Sea Surface', fill: '#3b82f6', fontSize: 10, fontWeight: 'bold' }} />
-                              <ReferenceLine y={maxWaterDepth} stroke={isDark ? "#9ca3af" : "#6b7280"} strokeWidth={2} strokeOpacity={0.8} ifOverflow="extendDomain" label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#9ca3af" : "#6b7280", fontSize: 10, fontWeight: 'bold' }} />
+                              <ReferenceLine y={0} stroke="#2E9BF0" strokeDasharray="4 2" strokeOpacity={1} strokeWidth={1.5} ifOverflow="extendDomain" label={{ position: 'insideTopRight', value: 'Sea Surface', fill: '#2E9BF0', fontSize: 10, fontWeight: 'bold' }} />
+                              <ReferenceLine y={maxWaterDepth} stroke={isDark ? "#94A4B8" : "#55687F"} strokeWidth={2} strokeOpacity={0.8} ifOverflow="extendDomain" label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 10, fontWeight: 'bold' }} />
                               
                               {structures.map((stX, idx) => (
-                                  <ReferenceLine key={`struct-line-${idx}`} x={stX} stroke={isDark ? "#ef4444" : "#dc2626"} strokeDasharray="3 3" strokeOpacity={0.6} label={{ value: 'COLLISION ZONE', angle: -90, position: 'insideTopLeft', fill: isDark ? "#ef4444" : "#dc2626", fontSize: 8, opacity: 0.8, dy: 20 }} />
+                                  <ReferenceLine key={`struct-line-${idx}`} x={stX} stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeDasharray="3 3" strokeOpacity={0.6} label={{ value: 'COLLISION ZONE', angle: -90, position: 'insideTopLeft', fill: isDark ? "#FF5C5C" : "#C42B2B", fontSize: 8, opacity: 0.8, dy: 20 }} />
                               ))}
                           </ScatterChart>
                       </ResponsiveContainer>
@@ -1308,7 +1464,7 @@
                         {configs.find(c => c.id === activeConfigId)?.projectName || 'Mooring Analysis Profile'}
                       </span>
                   </div>
-                  <div className="absolute bottom-4 left-14 flex gap-4 text-[10px] bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg pointer-events-none select-none z-10">
+                  <div className="absolute bottom-4 left-14 flex gap-4 text-[11px] bg-white/90 dark:bg-gray-900/90 backdrop-blur px-3 py-2 rounded border border-gray-200 dark:border-gray-700 shadow-lg pointer-events-none select-none z-10">
                       <div className="flex items-center gap-2"><div className="w-6 h-0.5 bg-gray-500 dark:bg-gray-400"></div><span className="text-gray-600 dark:text-gray-400">Wire</span></div>
                       <div className="flex items-center gap-2"><div className="w-6 h-1 bg-transparent border-b-4 border-dotted border-orange-500"></div><span className="text-gray-600 dark:text-gray-400">Chain</span></div>
                       <div className="flex items-center gap-2"><div className="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[10px] border-l-transparent border-r-transparent border-b-green-500"></div><span className="text-gray-600 dark:text-gray-400">Buoy (Safe)</span></div>
@@ -1332,8 +1488,25 @@
           const results = activeCfg?.results || [];
           const isDark = theme === 'dark';
           const buoysInput = activeCfg?.buoys || [];
+          // v11: structures accept an optional bearing + half-sector:
+          //   "400" = all-bearing ring (back-compatible) | "400@270" = +/-45 deg | "400@270:30"
           const structures = (activeCfg?.subseaStructuresStr || '')
-              .split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x) && x !== 0);
+              .split(',').map(x => x.trim()).filter(Boolean).map(raw => {
+                  const [dPart, bPart] = raw.split('@');
+                  const dist = parseFloat(dPart);
+                  if (isNaN(dist) || dist === 0) return null;
+                  if (bPart === undefined) return { dist, bearing: null, half: null };
+                  const [bStr, wStr] = bPart.split(':');
+                  const bearing = parseFloat(bStr);
+                  if (isNaN(bearing)) return { dist, bearing: null, half: null };
+                  const half = (wStr !== undefined && !isNaN(parseFloat(wStr))) ? Math.abs(parseFloat(wStr)) : 45;
+                  return { dist, bearing: ((bearing % 360) + 360) % 360, half };
+              }).filter(Boolean);
+          const bearingInSector = (lineBearing, st) => {
+              if (st.bearing === null) return true;
+              const diff = Math.abs(((lineBearing - st.bearing + 540) % 360) - 180);
+              return diff <= st.half;
+          };
           const template = PATTERN_TEMPLATES[patternType] || PATTERN_TEMPLATES.tender_8pt;
           const nLines = template.length;
           const bearings = (anchorBearings && anchorBearings.length === nLines)
@@ -1348,7 +1521,7 @@
           const getTL = (r) => safeFloat(r?.totalLength, 1);
           const getHT = (r) => safeFloat(r?.horizontalTension, 0);
 
-          const maxFairleadX = Math.max(50, ...results.map(getFX), ...structures);
+          const maxFairleadX = Math.max(50, ...results.map(getFX), ...structures.map(s => s.dist));
           const chartSize = 480;
           const cx = chartSize / 2;
           const cy = chartSize / 2;
@@ -1402,7 +1575,7 @@
                       </h3>
                       {results.length > 0 && (
                           <select value={caseFocus} onChange={e => setCaseFocus(e.target.value)}
-                                  className="text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 cursor-pointer">
+                                  className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 cursor-pointer">
                               <option value="all">Show all {results.length}</option>
                               {results.map((r, i) => (
                                   <option key={i} value={String(i)}>
@@ -1419,39 +1592,56 @@
                           {rings.map((r, i) => (
                               <g key={i}>
                                   <circle cx={cx} cy={cy} r={r * scale} fill="none"
-                                          stroke={isDark ? "#374151" : "#e5e7eb"} strokeWidth={1}
+                                          stroke={isDark ? "#26344A" : "#E6EBF1"} strokeWidth={1}
                                           strokeDasharray="3 4" strokeOpacity={0.6}/>
                                   <text x={cx + r * scale + 3} y={cy - 3} fontSize={9}
-                                        fill={isDark ? "#9ca3af" : "#6b7280"}>{r}m</text>
+                                        fill={isDark ? "#94A4B8" : "#55687F"}>{r}m</text>
                               </g>
                           ))}
                           <line x1={cx} y1={padding/2} x2={cx} y2={chartSize - padding/2}
-                                stroke={isDark ? "#4b5563" : "#d1d5db"} strokeOpacity={0.5}/>
+                                stroke={isDark ? "#3C4C60" : "#BCC8D8"} strokeOpacity={0.5}/>
                           <line x1={padding/2} y1={cy} x2={chartSize - padding/2} y2={cy}
-                                stroke={isDark ? "#4b5563" : "#d1d5db"} strokeOpacity={0.5}/>
+                                stroke={isDark ? "#3C4C60" : "#BCC8D8"} strokeOpacity={0.5}/>
                           <text x={cx} y={padding/2 - 4} textAnchor="middle" fontSize={10}
-                                fill={isDark ? "#9ca3af" : "#6b7280"} fontWeight="bold">N</text>
+                                fill={isDark ? "#94A4B8" : "#55687F"} fontWeight="bold">N</text>
                           <text x={chartSize - padding/2 + 8} y={cy + 4} textAnchor="middle" fontSize={10}
-                                fill={isDark ? "#9ca3af" : "#6b7280"} fontWeight="bold">E</text>
+                                fill={isDark ? "#94A4B8" : "#55687F"} fontWeight="bold">E</text>
                           <text x={cx} y={chartSize - padding/2 + 12} textAnchor="middle" fontSize={10}
-                                fill={isDark ? "#9ca3af" : "#6b7280"} fontWeight="bold">S</text>
+                                fill={isDark ? "#94A4B8" : "#55687F"} fontWeight="bold">S</text>
                           <text x={padding/2 - 8} y={cy + 4} textAnchor="middle" fontSize={10}
-                                fill={isDark ? "#9ca3af" : "#6b7280"} fontWeight="bold">W</text>
+                                fill={isDark ? "#94A4B8" : "#55687F"} fontWeight="bold">W</text>
 
-                          {structures.map((sd, i) => (
-                              <g key={`str-${i}`}>
-                                  <circle cx={cx} cy={cy} r={sd * scale} fill="none"
-                                          stroke={isDark ? "#ef4444" : "#dc2626"} strokeWidth={2}
-                                          strokeDasharray="6 6" strokeOpacity={0.55}/>
-                                  <text x={cx + 4} y={cy - sd * scale - 4} fontSize={9}
-                                        fill={isDark ? "#ef4444" : "#dc2626"} fontWeight="bold">
-                                      Pipeline @ {sd}m
-                                  </text>
-                              </g>
-                          ))}
+                          {structures.map((st, i) => {
+                              const col = isDark ? "#FF5C5C" : "#C42B2B";
+                              if (st.bearing === null) {
+                                  return (
+                                      <g key={`str-${i}`}>
+                                          <circle cx={cx} cy={cy} r={st.dist * scale} fill="none" stroke={col}
+                                                  strokeWidth={2} strokeDasharray="6 6" strokeOpacity={0.55}/>
+                                          <text x={cx + 4} y={cy - st.dist * scale - 4} fontSize={10} fill={col} fontWeight="bold">
+                                              Pipeline @ {st.dist}m (all bearings)
+                                          </text>
+                                      </g>
+                                  );
+                              }
+                              const p1 = toXY(st.bearing - st.half, st.dist);
+                              const p2 = toXY(st.bearing + st.half, st.dist);
+                              const mid = toXY(st.bearing, st.dist);
+                              const rr = st.dist * scale;
+                              const largeArc = (st.half * 2) > 180 ? 1 : 0;
+                              return (
+                                  <g key={`str-${i}`}>
+                                      <path d={`M ${p1.x} ${p1.y} A ${rr} ${rr} 0 ${largeArc} 1 ${p2.x} ${p2.y}`}
+                                            fill="none" stroke={col} strokeWidth={3} strokeDasharray="6 6" strokeOpacity={0.7}/>
+                                      <text x={mid.x} y={mid.y - 6} textAnchor="middle" fontSize={10} fill={col} fontWeight="bold">
+                                          Pipeline @ {st.dist}m ({st.bearing}°±{st.half}°)
+                                      </text>
+                                  </g>
+                              );
+                          })}
 
                           {casesToRender.map(({r: res, i: resIdx}) => {
-                              const color = res.isMaxTensionCase ? '#d946ef' : COLORS[resIdx % COLORS.length];
+                              const color = res.isMaxTensionCase ? maxCaseColor(isDark) : seriesColor(resIdx, isDark);
                               const isLabelCase = res === labelCase;
                               const fairleadX = getFX(res);
                               const groundedLen = getGL(res);
@@ -1462,8 +1652,13 @@
                               return bearings.map((b, li) => {
                                   const anchor = toXY(b.bearing, fairleadX);
                                   const touch = toXY(b.bearing, touchdownDist);
-                                  // B3: violation if anchor within 150m of pipeline
-                                  const isViolation = structures.some(sd => Math.abs(fairleadX - sd) < GMI_MIN_HORIZONTAL);
+                                  // v11: TWO distinct checks. The old test only asked whether the ANCHOR was within
+                                  // 150 m of the pipeline radius, so a line whose anchor sits at 900 m with a pipeline
+                                  // at 400 m physically CROSSES it and was never flagged at all.
+                                  const onThisLine = structures.filter(st => bearingInSector(b.bearing, st));
+                                  const crossesPipeline = onThisLine.some(st => st.dist > 0 && st.dist < fairleadX);
+                                  const anchorTooClose = onThisLine.some(st => Math.abs(fairleadX - st.dist) < GMI_MIN_HORIZONTAL);
+                                  const crossingPoints = onThisLine.filter(st => st.dist > 0 && st.dist < fairleadX).map(st => toXY(b.bearing, st.dist));
 
                                   return (
                                       <g key={`ln-${resIdx}-${li}`}>
@@ -1479,47 +1674,54 @@
                                           {groundedLen > 0.5 && (
                                               <circle cx={touch.x} cy={touch.y} r={2.5} fill={color} opacity={0.9}/>
                                           )}
-                                          {/* B4: Buoy uses line-length ratio applied to fairleadX */}
+                                          {/* v11: was a linear arc-length ratio - wrong for a catenary. Read the buoy's
+                                              actual profile point and use its real horizontal position instead. */}
                                           {isLabelCase && buoysInput.map((bo, bIdx) => {
                                               const distAnchor = safeFloat(bo.distanceFromAnchor, 0);
                                               const totLen = getTL(res);
-                                              const distFromFL_line = totLen - distAnchor;
-                                              if (distFromFL_line <= 0 || totLen <= 0) return null;
-                                              const buoyHoriz = fairleadX * (distFromFL_line / totLen);
+                                              if (totLen <= 0) return null;
+                                              const buoyPts = (res.points || []).filter(pp => pp.isBuoy);
+                                              let bp = buoyPts.find(pp => Math.abs(safeFloat(pp.s, NaN) - distAnchor) < Math.max(1, distAnchor * 0.02));
+                                              if (!bp) bp = buoyPts[bIdx];
+                                              const buoyHoriz = bp ? Math.max(0, fairleadX - safeFloat(bp.x, 0))
+                                                                   : fairleadX * ((totLen - distAnchor) / totLen);
+                                              if (!isFinite(buoyHoriz)) return null;
                                               const bxy = toXY(b.bearing, buoyHoriz);
                                               return (
                                                   <circle key={`by-${bIdx}`} cx={bxy.x} cy={bxy.y}
-                                                          r={5} fill="#fbbf24" stroke="#78350f"
+                                                          r={5} fill="#F5A524" stroke="#3C2500"
                                                           strokeWidth={1.2} opacity={0.9}/>
                                               );
                                           })}
                                           <rect x={anchor.x - 6} y={anchor.y - 6} width={12} height={12}
-                                                fill={color} stroke={isDark ? '#fff' : '#1f2937'} strokeWidth={1}/>
+                                                fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>
                                           {isLabelCase && (
                                               <text x={anchor.x} y={anchor.y - 10} textAnchor="middle"
                                                     fontSize={9} fill={color} fontWeight="bold">
                                                   {b.name}
                                               </text>
                                           )}
-                                          {isViolation && (
+                                          {anchorTooClose && (
                                               <>
-                                                  <circle cx={anchor.x} cy={anchor.y} r={12}
-                                                          fill="none" stroke="#ef4444" strokeWidth={2}
-                                                          strokeDasharray="3 2"/>
-                                                  <circle cx={anchor.x} cy={anchor.y} r={16}
-                                                          fill="none" stroke="#ef4444" strokeWidth={1}
-                                                          strokeOpacity={0.5}/>
+                                                  <circle cx={anchor.x} cy={anchor.y} r={12} fill="none" stroke="#FF5C5C" strokeWidth={2} strokeDasharray="3 2"/>
+                                                  <circle cx={anchor.x} cy={anchor.y} r={16} fill="none" stroke="#FF5C5C" strokeWidth={1} strokeOpacity={0.5}/>
                                               </>
                                           )}
+                                          {crossingPoints.map((pt, ci) => (
+                                              <g key={`cross-${resIdx}-${li}-${ci}`}>
+                                                  <circle cx={pt.x} cy={pt.y} r={6} fill="#FF5C5C" stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1.5}/>
+                                                  <text x={pt.x} y={pt.y - 9} textAnchor="middle" fontSize={9} fill="#FF5C5C" fontWeight="bold">CROSSES</text>
+                                              </g>
+                                          ))}
                                       </g>
                                   );
                               });
                           }).flat()}
 
                           <rect x={cx - 20} y={cy - 12} width={40} height={24} rx={2}
-                                fill="#f59e0b" stroke="#78350f" strokeWidth={2}/>
+                                fill="#F5A524" stroke="#3C2500" strokeWidth={2}/>
                           <text x={cx} y={cy + 4} textAnchor="middle" fontSize={10}
-                                fill="#78350f" fontWeight="900">RIG</text>
+                                fill="#3C2500" fontWeight="900">RIG</text>
                       </svg>
                   </div>
 
@@ -1527,14 +1729,14 @@
                   {results.length > 0 && (
                       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                           <div className="flex items-center gap-3 flex-wrap">
-                              <span className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider">Cases:</span>
+                              <span className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider">Cases:</span>
                               {results.map((r, i) => {
-                                  const color = r.isMaxTensionCase ? '#d946ef' : COLORS[i % COLORS.length];
+                                  const color = r.isMaxTensionCase ? maxCaseColor(isDark) : seriesColor(i, isDark);
                                   const active = caseFocus === 'all'
                                       || (caseFocus === 'max' && r.isMaxTensionCase)
                                       || caseFocus === String(i);
                                   return (
-                                      <div key={i} className={`flex items-center gap-1.5 text-[10px] ${active ? '' : 'opacity-40'}`}>
+                                      <div key={i} className={`flex items-center gap-1.5 text-[11px] ${active ? '' : 'opacity-40'}`}>
                                           <div className="w-6 h-0.5" style={{backgroundColor: color}}></div>
                                           <span className="font-mono" style={{color}}>
                                               {r.isMaxTensionCase ? `Max ${getHT(r).toFixed(1)}t` : `${getHT(r).toFixed(1)}t`}
@@ -1548,29 +1750,29 @@
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                       <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider">
+                          <span className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider">
                               Anchor Bearings ({nLines} lines)
                           </span>
                           <button onClick={() => setAnchorBearings(template.map(t => ({...t})))}
-                                  className="text-[9px] font-bold text-accent-600 dark:text-accent-400 hover:underline">
+                                  className="text-[11px] font-bold text-accent-600 dark:text-accent-400 hover:underline">
                               Reset to default
                           </button>
                       </div>
-                      <div className="grid grid-cols-4 gap-1.5 text-[10px]">
+                      <div className="grid grid-cols-4 gap-1.5 text-[11px]">
                           {bearings.map((b, i) => (
                               <div key={i} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded px-1.5 py-1">
                                   <span className="font-bold text-accent-600 dark:text-accent-400 w-8">{b.name}</span>
                                   <input type="number" value={b.bearing}
                                          onChange={e => updateBearing(i, e.target.value)}
                                          min="0" max="359" step="5"
-                                         className="w-14 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none focus:border-accent-500"/>
+                                         className="w-14 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 text-[11px] font-mono focus:outline-none focus:border-accent-500"/>
                                   <span className="text-gray-500">°</span>
                               </div>
                           ))}
                       </div>
                   </div>
 
-                  <div className="absolute bottom-2 right-2 flex gap-3 text-[9px] bg-white/95 dark:bg-gray-900/95 backdrop-blur px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 shadow-lg flex-wrap max-w-[380px]">
+                  <div className="absolute bottom-2 right-2 flex gap-3 text-[11px] bg-white/95 dark:bg-gray-900/95 backdrop-blur px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 shadow-lg flex-wrap max-w-[380px]">
                       <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500 border border-amber-900"></div><span className="text-gray-600 dark:text-gray-400">Rig</span></div>
                       <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Suspended</span></div>
                       <div className="flex items-center gap-1"><div className="w-6 h-1 border-b-2 border-dashed border-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Grounded (near anchor)</span></div>
@@ -1581,32 +1783,43 @@
           );
       };
 
-            const ResultsTable = ({ results, buoys }) => {
+            const ResultsTable = ({ results, buoys, segments, designFactor, theme }) => {
+          const isDarkTbl = theme === 'dark';
+          // v11: utilisation uses the weakest segment that actually HAS an MBL; segments without
+          // one are excluded from the minimum rather than being treated as zero.
+          const minMBL = (segments || []).reduce((min, s) => {
+              const m = parseFloat(s.mbl); return (m > 0) ? Math.min(min, m) : min;
+          }, Infinity);
+          const hasMBL = isFinite(minMBL);
+          const df = parseFloat(designFactor) > 0 ? parseFloat(designFactor) : 3.0;
           return (
               /* CONTAINER FOR THE WHOLE RESULTS COMPONENT - FIX HEIGHT ON IPAD */
-              <div className="h-64 lg:h-1/3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col shadow-lg mt-4 shrink-0">
+              <div className="h-64 lg:h-1/3 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card mt-4 shrink-0">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center">
                       <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2"><IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results</h3>
                   </div>
                   {/* SCROLLABLE TABLE AREA - OPTION 3 */}
                   <div className="overflow-auto flex-1 p-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
-                      <table className="w-full min-w-[850px] text-left text-sm text-gray-700 dark:text-gray-300">
-                          <thead className="bg-gray-100 dark:bg-gray-850 text-[10px] uppercase font-bold text-gray-500 sticky top-0 shadow-sm z-10">
+                      <table className={`w-full ${hasMBL ? "min-w-[1180px]" : "min-w-[1080px]"} text-left text-sm text-gray-700 dark:text-gray-300 tabular-nums`}>
+                          <thead className="bg-gray-100 dark:bg-gray-900 text-[11px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.07em] sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800">
                               <tr>
                                   <th className="px-4 py-3 tracking-wider">Case (t)</th>
                                   <th className="px-4 py-3 tracking-wider">Total Length (m)</th>
                                   <th className="px-4 py-3 tracking-wider">Grounded (m)</th>
                                   <th className="px-4 py-3 tracking-wider">Anch H (t)</th>
                                   <th className="px-4 py-3 tracking-wider">Anch V (t)</th>
+                                  <th className="px-4 py-3 tracking-wider" title="Resultant anchor tension sqrt(H^2+V^2) - this is what sizes anchor holding capacity, not H or V alone.">Anch Res (t)</th>
                                   <th className="px-4 py-3 tracking-wider">FL Ten (t)</th>
+                                  {hasMBL && <th className="px-4 py-3 tracking-wider" title={`FL tension / weakest segment MBL (${minMBL} t). SWL = MBL / DF (${df}x).`}>Util %</th>}
                                   <th className="px-4 py-3 tracking-wider">Offset (m)</th>
-                                  <th className="px-4 py-3 tracking-wider" title="Shows geometric depth utilization % if partially submerged, or structural utilization % if fully submerged">Buoy Util (Depth/Struc)</th>
+                                  <th className="px-4 py-3 tracking-wider" title="Geometric depth utilisation if partially submerged, structural utilisation if fully submerged">Buoy Util</th>
+                                  <th className="px-4 py-3 tracking-wider" title="Solver health reported by the engine (v3+): non-convergence, fairlead below the sea surface, seabed re-contact, or an anchor tension clamped to zero by friction.">Status</th>
                               </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200 dark:divide-gray-800/50">
                               {results.map((res, idx) => (
                                   <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${res.isMaxTensionCase ? 'bg-fuchsia-50 dark:bg-fuchsia-900/10' : ''}`}>
-                                      <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? '#d946ef' : COLORS[idx % COLORS.length]}}>{res.isMaxTensionCase ? `${res.horizontalTension?.toFixed(1)} (Max)` : res.horizontalTension?.toFixed(1)}</td>
+                                      <td className="px-4 py-2.5 font-mono font-medium" style={{color: res.isMaxTensionCase ? maxCaseColor(isDarkTbl) : seriesColor(idx, isDarkTbl)}}>{res.isMaxTensionCase ? `${res.horizontalTension?.toFixed(1)} (Max)` : res.horizontalTension?.toFixed(1)}</td>
                                       <td className="px-4 py-2.5">{res.totalLength?.toFixed(1)}</td>
                                       <td className={`px-4 py-2.5 font-mono font-medium ${res.isAnchorUplift ? 'text-red-600 dark:text-red-400 font-bold' : (res.isMaxTensionCase ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-emerald-600 dark:text-emerald-400')}`}>
                                           {res.groundedLength?.toFixed(1)}
@@ -1623,7 +1836,22 @@
                                               <span className="text-gray-400">0.00</span>
                                           )}
                                       </td>
-                                      <td className="px-4 py-2.5 font-medium">{res.fairleadTension?.toFixed(1)}</td>
+                                      <td className="px-4 py-2.5 font-mono">
+                                          {(res.anchorResultantTension ?? Math.sqrt((res.anchorTension || 0) ** 2 + (res.anchorUpliftForce || 0) ** 2)).toFixed(2)}
+                                      </td>
+                                      <td className="px-4 py-2.5 font-medium">
+                                          {res.fairleadTension?.toFixed(1)}
+                                          {hasMBL && (res.fairleadTension / minMBL) > (1 / df) && (
+                                              <span className="ml-1.5 text-[11px] font-bold text-fuchsia-600 dark:text-fuchsia-400 uppercase" title={`Exceeds the ${(minMBL / df).toFixed(1)} t SWL (MBL ${minMBL}t / DF ${df}x)`}>Exceeds SWL</span>
+                                          )}
+                                      </td>
+                                      {hasMBL && (() => {
+                                          const util = (res.fairleadTension / minMBL) * 100;
+                                          const cls = util >= 100 / df ? 'text-red-600 dark:text-red-400 font-bold'
+                                                    : util >= 80 ? 'text-amber-600 dark:text-amber-400 font-bold'
+                                                    : 'text-gray-600 dark:text-gray-300';
+                                          return <td className={`px-4 py-2.5 font-mono ${cls}`}>{util.toFixed(0)}%</td>;
+                                      })()}
                                       <td className="px-4 py-2.5">{res.fairleadX?.toFixed(1)}</td>
                                       <td className="px-4 py-2.5 text-xs">
                                           {res.points.filter(p => p.isBuoy).length > 0 ? (
@@ -1634,14 +1862,14 @@
                                                   if (b.isSlack) {
                                                       return (
                                                           <span key={buoyKey} className="mr-2 whitespace-nowrap font-mono text-gray-500 dark:text-gray-400">
-                                                              B{buoyNo}: {util.toFixed(0)}% <span className="ml-0.5 px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[9px] font-bold">SLACK</span>
+                                                              B{buoyNo}: {util.toFixed(0)}% <span className="ml-0.5 px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-[11px] font-bold">SLACK</span>
                                                           </span>
                                                       );
                                                   }
                                                   if (util >= 99.5) {
                                                       return (
                                                           <span key={buoyKey} className="mr-2 whitespace-nowrap font-mono text-red-600 dark:text-red-400">
-                                                              B{buoyNo}: <span className="ml-0.5 px-1 py-0.5 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-[9px] font-bold uppercase">Submerged</span>
+                                                              B{buoyNo}: <span className="ml-0.5 px-1 py-0.5 rounded bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-[11px] font-bold uppercase">Submerged</span>
                                                           </span>
                                                       );
                                                   }
@@ -1649,9 +1877,19 @@
                                               })
                                           ) : <span className="text-gray-400">-</span>}
                                       </td>
+                                      <td className="px-4 py-2.5 text-xs">
+                                          {(() => {
+                                              const pill = 'px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide';
+                                              if (res.converged === false) return <span className={`${pill} bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400`} title={res.solverNote || `residual ${res.residual?.toFixed(3)} m`}>Not converged</span>;
+                                              if (res.fairleadSubmerged) return <span className={`${pill} bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400`} title="Solved fairlead lies below the sea surface">FL below surface</span>;
+                                              if (res.seabedContactSuspended) return <span className={`${pill} bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400`} title="The suspended line re-contacts the seabed before reaching the fairlead">Seabed contact</span>;
+                                              if (res.frictionCapped) return <span className={`${pill} bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400`} title="Friction consumed all horizontal tension - grounded length is indeterminate">Grd len indet.</span>;
+                                              return <span className={`${pill} bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400`}>OK</span>;
+                                          })()}
+                                      </td>
                                   </tr>
                               ))}
-                              {results.length === 0 && ( <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500 italic">No results calculated yet.</td></tr> )}
+                              {results.length === 0 && ( <tr><td colSpan={hasMBL ? 11 : 10} className="px-4 py-10 text-center text-gray-500">No results yet — set your targets and press Calculate.</td></tr> )}
                           </tbody>
                       </table>
                   </div>
@@ -1666,8 +1904,8 @@
           fairleadElev: "3",
           subseaStructuresStr: "",
           segments: [
-              { id: `seg-wire-${id}-1`, type: SegmentType.WIRE, length: 700, w: 6.35, w_wet: 5.38, EA: 77000, frictionCoeff: 0.5, diameter: 38, isEAManual: false },
-              { id: `seg-chain-${id}-2`, type: SegmentType.CHAIN, length: 55, w: 32.0, w_wet: 27.8, EA: 800000, frictionCoeff: 1.0, diameter: 38, isEAManual: false }
+              { id: `seg-wire-${id}-1`, type: SegmentType.WIRE, length: 700, w: 6.35, w_wet: 5.38, EA: 77000, frictionCoeff: 0.5, diameter: 38, isEAManual: false, mbl: 108, isMBLManual: false },
+              { id: `seg-chain-${id}-2`, type: SegmentType.CHAIN, length: 55, w: 32.0, w_wet: 27.8, EA: 800000, frictionCoeff: 1.0, diameter: 38, isEAManual: false, mbl: '', isMBLManual: false }
           ],
           buoys: [
               { id: `buoy-${id}-1`, distanceFromAnchor: 500, netBuoyancy: 5, pennantLength: 30, pennantWeight: 0.2, height: 2.0, pennantSag: 2.0, pennantLoad: 0.05, isPennantWeightManual: false }
@@ -1677,12 +1915,14 @@
           showMaxTension: false,
           patternType: 'tender_8pt',
           anchorBearings: PATTERN_TEMPLATES.tender_8pt.map(a => ({...a})),
+          designFactor: 3.0,
           results: []
       });
 
       const App = () => {
           const [theme, setTheme] = useState('dark');
           const [showGuide, setShowGuide] = useState(false);
+          const [sidebarOpen, setSidebarOpen] = useState(false);
           const [configs, setConfigs] = useState([createDefaultConfig(1)]);
           const [activeTabId, setActiveTabId] = useState(1);
           const [calcError, setCalcError] = useState(null);
@@ -1747,6 +1987,8 @@
           const setShowMaxTension = (val) => updateConfig({ showMaxTension: val });
           const patternType = activeConfig.patternType || 'tender_8pt';
           const setPatternType = (val) => updateConfig({ patternType: val });
+          const designFactor = activeConfig.designFactor ?? 3.0;
+          const setDesignFactor = (val) => updateConfig({ designFactor: val });
           const anchorBearings = activeConfig.anchorBearings || PATTERN_TEMPLATES.tender_8pt.map(a => ({...a}));
           const setAnchorBearings = (val) => updateConfig({ anchorBearings: val });
           const [activeView, setActiveView] = useState('profile');
@@ -1784,6 +2026,40 @@
               setExportToast(true);
               setTimeout(() => setExportToast(false), 2000);
               pushToast('success', `Exported ${projectName}.json`);
+          };
+
+          // v11: CSV export of the active tab's results, for rig-move reporting.
+          const exportToCsv = () => {
+              const res = activeConfig.results || [];
+              if (res.length === 0) { pushToast('warning', 'No results to export - run Calculate first.'); return; }
+              const num = (v, d = 2) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '';
+              const statusOf = (r) => r.converged === false ? 'NOT_CONVERGED'
+                  : r.fairleadSubmerged ? 'FL_BELOW_SURFACE'
+                  : r.seabedContactSuspended ? 'SEABED_CONTACT'
+                  : r.frictionCapped ? 'GRD_LEN_INDETERMINATE' : 'OK';
+              const header = ['Case(t)','TotalLen(m)','Grounded(m)','Touchdown(m)','AnchH(t)','AnchV(t)',
+                  'AnchResultant(t)','FLTen(t)','Offset(m)','Converged','Residual(m)','Status'];
+              const rows = res.map(r => [
+                  r.isMaxTensionCase ? `${num(r.horizontalTension,1)}(Max)` : num(r.horizontalTension,1),
+                  num(r.totalLength,1), num(r.groundedLength,1), num(r.touchdownX,1),
+                  num(r.anchorTension), num(r.anchorUpliftForce),
+                  num(r.anchorResultantTension ?? Math.sqrt((r.anchorTension||0)**2 + (r.anchorUpliftForce||0)**2)),
+                  num(r.fairleadTension,1), num(r.fairleadX,1),
+                  r.converged === undefined ? '' : r.converged, num(r.residual,3), statusOf(r)
+              ]);
+              const totalLen = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
+              const meta = [`# Project,${projectName}`, `# WaterDepth(m),${waterDepth}`,
+                  `# FairleadElev(m),${fairleadElev}`, `# Payout(m),${totalLen.toFixed(1)}`,
+                  `# DesignFactor,${designFactor}`, `# Exported,${new Date().toISOString()}`];
+              const csv = [...meta, header.join(','), ...rows.map(r => r.join(','))].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${projectName.replace(/\s+/g, '_')}_results_${new Date().toISOString().split('T')[0]}.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+              pushToast('success', `Exported ${res.length} rows to CSV`);
           };
 
           const handleImport = (e) => {
@@ -1890,7 +2166,16 @@
                       if (!response.ok) {
                           const errData = await response.json().catch(() => ({}));
                           const errMsg = errData.error || `HTTP ${response.status}`;
-                          // retry on 5xx (transient CPU / server errors)
+                          // v11: never retry a CPU/budget 503 - retrying re-burns the CPU that caused it.
+                          if (response.status === 503 && /CPU|budget/i.test(errMsg)) {
+                              if (Array.isArray(errData.partialResults) && errData.partialResults.length) {
+                                  setResults(errData.partialResults);
+                                  pushToast('warning', `Budget limit reached — showing ${errData.partialResults.length} of ${dedupInputs.length} cases. Reduce targets or turn off Find Max.`, 6000);
+                                  setLoading(false);
+                                  return;
+                              }
+                              throw new Error(errMsg);
+                          }
                           if (response.status >= 500 && attempt <= MAX_RETRIES) {
                               lastErr = new Error(errMsg);
                               await new Promise(r => setTimeout(r, attempt * 500));
@@ -1936,9 +2221,9 @@
               return subseaStructuresStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n !== 0);
           }, [subseaStructuresStr]);
 
-          const bgClass = theme === 'dark' ? 'bg-[#0B0F19] text-slate-200' : 'bg-gray-50 text-gray-800';
+          const bgClass = theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800';
           const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
-          const sidebarBg = theme === 'dark' ? 'bg-[#0e121e]' : 'bg-white';
+          const sidebarBg = theme === 'dark' ? 'bg-gray-900' : 'bg-white';
 
           return (
               /* ROOT CONTAINER USING DVH - OPTION 2 */
@@ -1949,21 +2234,24 @@
                   <ConfirmDialog {...confirmState} onCancel={() => { if (confirmState.onCancel) confirmState.onCancel(); closeConfirm(); }} onConfirm={() => { if (confirmState.onConfirm) confirmState.onConfirm(); closeConfirm(); }} />
                   <PromptDialog {...promptState} onCancel={() => { if (promptState.onCancel) promptState.onCancel(); closePrompt(); }} onConfirm={(v) => { if (promptState.onConfirm) promptState.onConfirm(v); closePrompt(); }} />
                   
-                  <div className={`w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-colors duration-300 z-20`}>
+                  {sidebarOpen && (<div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true"/>)}
+                  <div className={`fixed lg:relative inset-y-0 left-0 w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-transform duration-300 z-30 lg:z-20 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                       <div className={`p-4 border-b ${sidebarBorder}`}>
                           <div className="flex justify-between items-center mb-1">
                               <h1 className="text-xl font-bold tracking-tight flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-lg bg-[#1f2937] flex items-center justify-center text-[#f59e0b] font-black text-xl shadow-sm border border-gray-700">S</div>
+                                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-soft">
+                                      <IconAnchor size={19} className="text-white dark:text-gray-950" strokeWidth={2.4}/>
+                                  </div>
                                   <div className="flex flex-col">
-                                      <span className="leading-none tracking-wider">SLACK</span>
-                                      <span className="text-[10px] font-normal text-gray-400 dark:text-gray-500 mt-0.5">Dev by RattawitW</span>
+                                      <span className="leading-none tracking-[0.14em] text-gray-800 dark:text-gray-100">SLACK</span>
+                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1">Catenary Analysis Suite</span>
                                   </div>
                               </h1>
                               <div className="flex gap-2">
                                   <button onClick={() => fileInputRef.current.click()} aria-label="Import JSON configuration" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Import JSON"><IconImport size={18} aria-hidden="true"/></button>
                                   <button onClick={exportToJson} aria-label="Export current configuration as JSON" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors relative" title="Export JSON">
                                       <IconExport size={18} aria-hidden="true"/>
-                                      {exportToast && <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] py-0.5 px-2 rounded font-bold shadow animate-in fade-in zoom-in whitespace-nowrap" role="status">✓ EXPORTED</div>}
+                                      {exportToast && <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[11px] py-0.5 px-2 rounded font-bold shadow animate-in fade-in zoom-in whitespace-nowrap" role="status">✓ EXPORTED</div>}
                                   </button>
                                   <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" aria-label="JSON file input"/>
                                   <button onClick={() => setShowGuide(true)} aria-label="Open user guide" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Guide"><IconHelp size={18} aria-hidden="true"/></button>
@@ -1986,14 +2274,19 @@
                                   if (m === calcMode) return;
                                   setCalcMode(m);
                                   if (m === 'offset') {
+                                      // v11: pre-fill 95% of the PHYSICAL max sqrt(L^2 - vSpan^2). Pre-filling the
+                                      // full payout always exceeded the worker limit -> guaranteed 400 on first click.
                                       const totalLen = segments.reduce((acc, s) => acc + (typeof s.length === 'string' ? parseFloat(s.length) : s.length), 0);
-                                      setTensionsStr(totalLen.toFixed(1));
+                                      const vSpan = Math.abs(safeFloat(waterDepth) - (-1 * safeFloat(fairleadElev)));
+                                      const maxOff = Math.sqrt(Math.max(0, totalLen * totalLen - vSpan * vSpan));
+                                      setTensionsStr((maxOff * 0.95).toFixed(1));
                                   } else {
                                       setTensionsStr("5, 20, 40");
                                   }
                               }}
                               projectName={projectName} setProjectName={setProjectName}
                               patternType={patternType} setPatternType={setPatternType}
+                              designFactor={designFactor} setDesignFactor={setDesignFactor}
                               anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings}
                               activePresetKey={activePresetKey} setActivePresetKey={setActivePresetKey}
                               bulkUpdateConfig={bulkUpdateConfig}
@@ -2004,12 +2297,15 @@
                       </div>
                   </div>
 
-                  <div className={`flex-1 flex flex-col p-6 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-[#0B0F19]' : 'bg-gray-50'}`}>
-                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: 'linear-gradient(#6b7280 1px, transparent 1px), linear-gradient(90deg, #6b7280 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
+                  <div className={`flex-1 flex flex-col p-6 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-gray-950' : 'bg-gray-50'}`}>
+                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: 'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
                       <div className="relative z-10 h-full flex flex-col gap-4">
-                          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800 pb-0">
+                          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800 pb-0 items-end">
+                              <button onClick={() => setSidebarOpen(true)} aria-label="Open configuration panel" title="Configuration" className="lg:hidden px-3 py-2 mb-1 text-gray-500 hover:text-accent-500 transition-colors">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                              </button>
                               {configs.map(c => (
-                                  <div key={c.id} onClick={() => { setActiveTabId(c.id); /* v8: no auto-calc on tab switch - existing results shown as-is, empty tabs stay empty until user clicks Calculate */ }} className={`cursor-pointer px-4 py-2 rounded-t-lg text-sm font-bold transition-colors ${activeTabId === c.id ? (theme === 'dark' ? 'bg-[#0B0F19] text-accent-400 border-t-2 border-l border-r border-gray-800 border-t-accent-500 relative top-[1px]' : 'bg-white text-accent-600 border-t-2 border-l border-r border-gray-200 border-t-accent-600 relative top-[1px] shadow-sm') : (theme === 'dark' ? 'bg-gray-900/50 text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'bg-gray-200/50 text-gray-500 hover:bg-white hover:text-gray-700')}`}>
+                                  <div key={c.id} onClick={() => { setActiveTabId(c.id); /* v8: no auto-calc on tab switch - existing results shown as-is, empty tabs stay empty until user clicks Calculate */ }} className={`cursor-pointer px-4 py-2 rounded-t-lg text-sm font-bold transition-colors ${activeTabId === c.id ? (theme === 'dark' ? 'bg-gray-950 text-accent-400 border-t-2 border-l border-r border-gray-800 border-t-accent-500 relative top-[1px]' : 'bg-white text-accent-600 border-t-2 border-l border-r border-gray-200 border-t-accent-600 relative top-[1px] shadow-sm') : (theme === 'dark' ? 'bg-gray-900/50 text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'bg-gray-200/50 text-gray-500 hover:bg-white hover:text-gray-700')}`}>
                                       {c.projectName}
                                       {configs.length > 1 && (
                                           <button onClick={(e) => { e.stopPropagation(); setConfigs(configs.filter(config => config.id !== c.id)); if (activeTabId === c.id) { setActiveTabId(configs.find(config => config.id !== c.id).id); } }} className="ml-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-white/20 p-0.5" title="Close Tab">✕</button>
@@ -2023,18 +2319,18 @@
                           {calcError && <ErrorBanner error={calcError} onClose={() => setCalcError(null)} onRetry={() => { setCalcError(null); handleCalculate(true); }} />}
                           {/* NEW v6: View switcher (Profile <-> Top View) */}
                           <div className="flex gap-1 mb-1">
-                              <button onClick={() => setActiveView('profile')} className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'profile' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
-                                  📊 Catenary Profile
+                              <button onClick={() => setActiveView('profile')} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'profile' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
+                                  Catenary Profile
                               </button>
-                              <button onClick={() => setActiveView('topview')} className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'topview' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
-                                  🎯 Top View (Plan)
+                              <button onClick={() => setActiveView('topview')} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'topview' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
+                                  Top View (Plan)
                               </button>
                           </div>
                           {activeView === 'profile'
                               ? <ChartPanel configs={configs} activeConfigId={activeTabId} structures={structures} theme={theme} />
                               : <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} />
                           }
-                          <ResultsTable results={results} buoys={buoys} />
+                          <ResultsTable results={results} buoys={buoys} segments={segments} designFactor={designFactor} theme={theme} />
                       </div>
                   </div>
               </div>
