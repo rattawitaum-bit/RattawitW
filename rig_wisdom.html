@@ -14,42 +14,42 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
     font-family:"Segoe UI",Roboto,Arial,system-ui,sans-serif;color:var(--txt);
-    font-size:12.5px;-webkit-font-smoothing:antialiased}
+    font-size:12px;-webkit-font-smoothing:antialiased}
   #app{position:fixed;inset:0}
   canvas{display:block}
-
-  /* ---------- generic panel ---------- */
   .panel{background:var(--panel);backdrop-filter:blur(9px);
     border:1px solid var(--edge);border-radius:9px;
     box-shadow:0 8px 26px rgba(0,0,0,.45)}
-  .panel h2{margin:0;padding:8px 11px;font-size:11px;letter-spacing:.10em;
+  .panel h2{margin:0;padding:6px 9px;font-size:10.5px;letter-spacing:.10em;
     text-transform:uppercase;color:var(--hd);border-bottom:1px solid var(--edge);
     display:flex;align-items:center;gap:7px;font-weight:600}
-  .sec{padding:8px 11px;border-bottom:1px solid var(--edge)}
+  .sec{padding:6px 9px;border-bottom:1px solid var(--edge)}
   .sec:last-child{border-bottom:none}
   .sec .lab{font-size:10px;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--txt-dim);margin:0 0 6px}
-
-  /* ---------- left control dock ---------- */
-  #dock{position:absolute;top:12px;left:12px;width:262px;max-height:calc(100vh - 150px);
+    color:var(--txt-dim);margin:0 0 4px;cursor:pointer;user-select:none;display:flex;
+    align-items:center;justify-content:space-between}
+  .sec .lab::after{content:'▾';font-size:9px;opacity:.7;transition:.15s}
+  .sec.collapsed .lab{margin:0}
+  .sec.collapsed .lab::after{transform:rotate(-90deg)}
+  .sec.collapsed > *:not(.lab){display:none!important}
+  #dock{position:absolute;top:10px;left:10px;width:248px;max-height:calc(100dvh - 138px);
     display:flex;flex-direction:column;overflow:hidden}
   #dockScroll{overflow-y:auto;overscroll-behavior:contain}
   #dockScroll::-webkit-scrollbar{width:8px}
   #dockScroll::-webkit-scrollbar-thumb{background:rgba(120,150,180,.3);border-radius:4px}
-
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
   button.btn{appearance:none;cursor:pointer;color:var(--txt);
     background:linear-gradient(180deg,#1b2431,#141b26);
-    border:1px solid var(--edge);border-radius:6px;padding:6px 4px;font-size:10.5px;
+    border:1px solid var(--edge);border-radius:5px;padding:5px 3px;font-size:10px;
     letter-spacing:.02em;transition:.13s;text-align:center;line-height:1.2}
   button.btn:hover{border-color:var(--accent);color:#fff;background:linear-gradient(180deg,#20303f,#182231)}
   button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   button.btn.on{background:linear-gradient(180deg,#1d4c73,#12395a);border-color:var(--accent);color:#fff}
   button.btn.mode.on{background:linear-gradient(180deg,#8a5a12,#5c3c0d);border-color:var(--accent2);color:#fff}
-
+  button.btn.skid.on{background:linear-gradient(180deg,#1d5d3a,#0e3d26);border-color:#3fbf6a;color:#fff}
   .toggle{display:flex;align-items:center;justify-content:space-between;
-    padding:3px 0;font-size:11px}
+    padding:2px 0;font-size:10.5px}
   .toggle span{color:var(--txt)}
   .sw{position:relative;width:34px;height:18px;flex:0 0 auto}
   .sw input{opacity:0;width:0;height:0;position:absolute}
@@ -60,8 +60,7 @@
   .sw input:checked + i{background:#1d4c73;border-color:var(--accent)}
   .sw input:checked + i:before{transform:translateX(16px);background:#fff}
   .sw input:focus-visible + i{outline:2px solid var(--accent);outline-offset:1px}
-
-  .rangewrap{display:flex;flex-direction:column;gap:2px;margin:4px 0}
+  .rangewrap{display:flex;flex-direction:column;gap:1px;margin:3px 0}
   .rangewrap .rl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--txt-dim)}
   .rangewrap .rl b{color:var(--accent2);font-variant-numeric:tabular-nums}
   input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:3px;
@@ -72,14 +71,12 @@
     background:var(--accent);cursor:pointer;border:2px solid #0d1117}
   input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   input[type=range]:disabled{opacity:.35}
-
-  /* ---------- right info panel ---------- */
-  #info{position:absolute;top:12px;right:12px;width:236px;max-height:calc(100vh - 24px);
+  #info{position:absolute;top:10px;right:10px;width:224px;max-height:calc(100dvh - 20px);
     overflow:hidden;display:flex;flex-direction:column}
   #infoScroll{overflow-y:auto}
   #infoScroll::-webkit-scrollbar{width:8px}
   #infoScroll::-webkit-scrollbar-thumb{background:rgba(120,150,180,.3);border-radius:4px}
-  .kv{display:flex;justify-content:space-between;gap:8px;padding:2.5px 0;font-size:11px;
+  .kv{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:10.5px;
     border-bottom:1px dotted rgba(120,150,180,.10)}
   .kv .k{color:var(--txt-dim)}
   .kv .v{color:var(--txt);text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
@@ -90,72 +87,62 @@
     background:none;border:none;line-height:1}
   #infoCollapse:hover{color:#fff}
   #info.collapsed #infoScroll{display:none}
-
-  /* ---------- readout HUD (jacking) ---------- */
-  #hud{position:absolute;left:12px;bottom:12px;width:262px}
+  #hud{position:absolute;left:10px;bottom:10px;width:248px}
+  #hudCollapse{cursor:pointer;margin-left:auto;color:var(--txt-dim);font-size:14px;background:none;border:none;line-height:1;min-width:32px;min-height:32px;display:grid;place-items:center}
+  #hudCollapse:hover{color:#fff}
+  #hud.collapsed .sec{display:none}
+  #hud.collapsed{width:178px}
   #hud .kv .v{color:var(--accent)}
-
-  /* ---------- topbar ---------- */
   #brand{position:absolute;top:12px;left:50%;transform:translateX(-50%);
     text-align:center;pointer-events:none;user-select:none}
   #brand .t1{font-size:14px;font-weight:700;letter-spacing:.16em;color:#fff;
     text-shadow:0 2px 10px rgba(0,0,0,.8)}
   #brand .t2{font-size:10px;letter-spacing:.20em;color:var(--hd);margin-top:2px;
     text-shadow:0 2px 8px rgba(0,0,0,.8)}
-
-  /* collapse button */
   #collapse{cursor:pointer;margin-left:auto;color:var(--txt-dim);font-size:14px;
     background:none;border:none;line-height:1}
   #collapse:hover{color:#fff}
-  .collapsed #dockScroll{display:none}
-
-  /* loader */
+  #dock.collapsed #dockScroll{display:none}
+  #dock.collapsed{width:148px}
+  #info.collapsed{width:148px}
   #loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     flex-direction:column;gap:14px;background:#0d1117;z-index:50}
   #loader .ring{width:44px;height:44px;border:3px solid rgba(120,150,180,.2);
     border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
   #loader .lt{font-size:12px;letter-spacing:.14em;color:var(--hd)}
   @keyframes spin{to{transform:rotate(360deg)}}
-
   #err{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
     background:rgba(224,90,58,.9);color:#fff;padding:8px 14px;border-radius:6px;
     font-size:11px;display:none;z-index:60;max-width:70%}
-
   #viewTag{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
     font-size:10px;letter-spacing:.14em;color:var(--txt-dim);background:var(--panel);
     padding:4px 12px;border-radius:20px;border:1px solid var(--edge);pointer-events:none}
-
   #mobileBar{display:none;position:absolute;z-index:40;left:50%;transform:translateX(-50%);gap:7px;padding:6px;background:rgba(13,17,23,.92);border:1px solid var(--edge);border-radius:12px;backdrop-filter:blur(10px)}
-  #mobileBar button{min-height:44px;min-width:88px;padding:8px;border:1px solid var(--edge);border-radius:8px;background:#172230;color:var(--txt);font:600 11px "Segoe UI",sans-serif}#mobileBar button.on{border-color:var(--accent);background:#16486f;color:#fff}#mobileLabels.off{background:#202832;color:#bdc7d1}
+  #mobileBar button{min-height:42px;min-width:82px;padding:8px;border:1px solid var(--edge);border-radius:8px;background:#172230;color:var(--txt);font:600 11px "Segoe UI",sans-serif}#mobileBar button.on{border-color:var(--accent);background:#16486f;color:#fff}#mobileLabels.off{background:#202832;color:#bdc7d1}
   #mobileShade{display:none;position:absolute;inset:0;z-index:19;background:rgba(0,0,0,.34)}#mobileShade.show{display:block}.mobile-handle{display:none;width:42px;height:4px;margin:7px auto;background:rgba(147,162,179,.55);border-radius:4px}
   #collapse,#infoCollapse{min-width:32px;min-height:32px;display:grid;place-items:center}
-  @media(pointer:coarse){button.btn,.toggle{min-height:44px}.sw{width:44px;height:24px}.sw i:before{width:18px;height:18px}.sw input:checked+i:before{transform:translateX(18px)}input[type=range]{height:8px;margin:9px 0}input[type=range]::-webkit-slider-thumb{width:26px;height:26px}#collapse,#infoCollapse{min-width:44px;min-height:44px}}
+  @media(pointer:coarse) and (max-width:1024px){button.btn,.toggle{min-height:38px}.sw{width:40px;height:22px}.sw i:before{width:16px;height:16px}.sw input:checked+i:before{transform:translateX(18px)}input[type=range]{height:7px;margin:7px 0}input[type=range]::-webkit-slider-thumb{width:22px;height:22px}#collapse,#infoCollapse,#hudCollapse{min-width:40px;min-height:40px}}
   @media(max-width:1024px){#mobileBar{display:flex;bottom:max(10px,env(safe-area-inset-bottom))}#dock,#info{z-index:20;transition:transform .22s,opacity .22s}#dock{top:10px;left:10px;width:min(360px,calc(100vw - 20px));max-height:calc(100dvh - 82px)}#info{top:10px;right:10px;width:min(350px,calc(100vw - 20px));max-height:calc(100dvh - 82px)}#dock.mobile-hidden{transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none}#info.mobile-hidden{transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none}#hud{left:auto;right:10px;bottom:72px;width:min(300px,calc(100vw - 20px))}#viewTag{bottom:72px;max-width:calc(100vw - 330px)}#brand .t1{font-size:11px}#brand .t2{font-size:8px}.mobile-handle{display:block}}
-  @media(max-width:600px){#brand .t1{font-size:10px}#brand .t2{display:none}#dock,#info{top:auto;left:0;right:0;bottom:0;width:100%;max-height:76dvh;border-radius:16px 16px 0 0;padding-bottom:calc(66px + env(safe-area-inset-bottom));transform:translateY(0)}#dock.mobile-hidden,#info.mobile-hidden{transform:translateY(calc(100% + 12px))}#hud{left:8px;right:8px;bottom:72px;width:auto;max-height:132px;overflow:auto}#hud .sec{display:grid;grid-template-columns:1fr 1fr}#viewTag{bottom:210px;max-width:calc(100vw - 20px)}#mobileBar{left:8px;right:8px;transform:none;justify-content:center}#mobileBar button{flex:1;min-width:0}.grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){#brand .t1{font-size:10px}#brand .t2{display:none}#dock,#info{top:auto;left:0;right:0;bottom:0;width:100%;max-height:70dvh;border-radius:16px 16px 0 0;padding-bottom:calc(66px + env(safe-area-inset-bottom));transform:translateY(0)}#dock.mobile-hidden,#info.mobile-hidden{transform:translateY(calc(100% + 12px))}#hud{left:8px;right:8px;bottom:72px;width:auto;max-height:132px;overflow:auto}#hud .sec{display:grid;grid-template-columns:1fr 1fr}#viewTag{bottom:210px;max-width:calc(100vw - 20px)}#mobileBar{left:8px;right:8px;transform:none;justify-content:center}#mobileBar button{flex:1;min-width:0}.grid{grid-template-columns:1fr 1fr}}
   @media(orientation:landscape) and (max-height:560px){#dock,#info{top:6px;bottom:64px;max-height:none;width:min(340px,44vw);border-radius:10px}#dock{left:6px;right:auto}#info{left:auto;right:6px}#dock.mobile-hidden{transform:translateX(calc(-100% - 12px))}#info.mobile-hidden{transform:translateX(calc(100% + 12px))}#hud{display:none}#viewTag{bottom:66px}}
 </style>
 </head>
 <body>
 <div id="app"></div>
-
 <div id="loader">
   <div class="ring"></div>
   <div class="lt">BUILDING RIG MODEL…</div>
 </div>
 <div id="err"></div>
-
 <div id="brand">
   <div class="t1">WISDOM</div>
   <div class="t2">CJ46X100-D · SELF-ELEVATING MODU</div>
 </div>
-
-<!-- ============ LEFT CONTROL DOCK ============ -->
 <div id="dock" class="panel">
   <h2>⚙ Rig Controls
     <button id="collapse" title="Collapse panel" aria-label="Collapse control panel" aria-expanded="true">▾</button>
   </h2>
   <div id="dockScroll">
-
     <div class="sec">
       <p class="lab">Operating Mode</p>
       <div class="grid3">
@@ -164,7 +151,6 @@
         <button class="btn mode" data-mode="transit">Afloat<br>Transit</button>
       </div>
     </div>
-
     <div class="sec">
       <p class="lab">Jacking — Air Gap (Elevated)</p>
       <div class="rangewrap">
@@ -173,16 +159,19 @@
       </div>
       <div class="rangewrap">
         <div class="rl"><span>Water depth</span><b id="wdV">75 m</b></div>
-        <input type="range" id="wdepth" min="30" max="95" step="1" value="75" aria-label="Water depth">
+        <input type="range" id="wdepth" min="30" max="95" step="0.1" value="64.7" aria-label="Water depth">
       </div>
       <div class="rangewrap">
         <div class="rl"><span>Leg penetration</span><b id="lpV">5.0 m</b></div>
         <input type="range" id="lpen" min="0" max="15" step="0.5" value="5" aria-label="Leg penetration">
       </div>
     </div>
-
     <div class="sec">
       <p class="lab">Cantilever Skidding</p>
+      <div class="grid" style="margin-bottom:6px">
+        <button class="btn skid on" data-skid="XY">X-Y Rack<br>(CJ46X100-D)</button>
+        <button class="btn skid" data-skid="DF">Long.+DF<br>(KFELS-B)</button>
+      </div>
       <div class="rangewrap">
         <div class="rl"><span>Aft reach</span><b id="clV">0.00 m</b></div>
         <input type="range" id="cantL" min="0" max="21.34" step="0.1" value="0" aria-label="Cantilever aft reach">
@@ -192,7 +181,40 @@
         <input type="range" id="cantT" min="-6.10" max="6.10" step="0.05" value="0" aria-label="Cantilever transverse offset">
       </div>
     </div>
-
+    <div class="sec">
+      <p class="lab">Wellhead Platform (WPS22)</p>
+      <div class="rangewrap">
+        <div class="rl"><span>Rig ↔ platform standoff</span><b id="soV">5.0 m</b></div>
+        <input type="range" id="standoff" min="2" max="25" step="0.5" value="5" aria-label="Rig to platform standoff">
+      </div>
+      <div class="rl" style="justify-content:flex-start;gap:6px"><span id="clashV" style="color:var(--ok)">clash: OK</span></div>
+      <div class="toggle" style="margin-top:6px"><span>Show platform</span><label class="sw"><input type="checkbox" data-vis="platform" checked><i></i></label></div>
+    </div>
+    <div class="sec">
+      <p class="lab">Platform Subsystems</p>
+      <div class="grid">
+        <div class="toggle"><span>Topsides</span><label class="sw"><input type="checkbox" data-psub="topsides" checked><i></i></label></div>
+        <div class="toggle"><span>Decks</span><label class="sw"><input type="checkbox" data-psub="decks" checked><i></i></label></div>
+        <div class="toggle"><span>Jacket</span><label class="sw"><input type="checkbox" data-psub="jacket" checked><i></i></label></div>
+        <div class="toggle"><span>Wellbay</span><label class="sw"><input type="checkbox" data-psub="wellbay" checked><i></i></label></div>
+        <div class="toggle"><span>Equipment</span><label class="sw"><input type="checkbox" data-psub="equip" checked><i></i></label></div>
+        <div class="toggle"><span>P-Crane</span><label class="sw"><input type="checkbox" data-psub="pcrane" checked><i></i></label></div>
+        <div class="toggle"><span>Vent boom</span><label class="sw"><input type="checkbox" data-psub="vent" checked><i></i></label></div>
+        <div class="toggle"><span>Risers</span><label class="sw"><input type="checkbox" data-psub="risers" checked><i></i></label></div>
+        <div class="toggle"><span>Boat land</span><label class="sw"><input type="checkbox" data-psub="boat" checked><i></i></label></div>
+      </div>
+    </div>
+    <div class="sec">
+      <p class="lab">Well-Centre Alignment</p>
+      <div class="rl"><span>Target slot</span>
+        <select id="slotSel" aria-label="Target well slot" style="background:#172230;color:var(--txt);border:1px solid var(--edge);border-radius:5px;font-size:11px;padding:2px 4px"></select></div>
+      <div class="kv"><span class="k">Δ North / East</span><span class="v" id="al_de">—</span></div>
+      <div class="kv"><span class="k">Horizontal offset</span><span class="v" id="al_ho">—</span></div>
+      <div class="kv"><span class="k">Req. skid L / T</span><span class="v" id="al_sk">—</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v" id="al_st">—</span></div>
+      <div class="toggle" style="margin-top:4px"><span>Measure tool</span><label class="sw"><input type="checkbox" id="tg_measure"><i></i></label></div>
+      <div class="kv"><span class="k">Measurement</span><span class="v" id="ms_out">off</span></div>
+    </div>
     <div class="sec">
       <p class="lab">Standard Views</p>
       <div class="grid3">
@@ -208,10 +230,10 @@
         <button class="btn view" data-view="leg">Leg/Spud</button>
         <button class="btn view" data-view="water">Waterline</button>
         <button class="btn view" data-view="seabed">Seabed</button>
+        <button class="btn view" data-view="platform">Rig@Plat</button>
         <button class="btn view" data-view="reset">Reset</button>
       </div>
     </div>
-
     <div class="sec">
       <p class="lab">Display</p>
       <div class="grid3">
@@ -220,6 +242,10 @@
         <button class="btn disp" data-disp="eng">Engineer</button>
       </div>
       <div style="height:6px"></div>
+      <div class="toggle"><span>Shadows</span>
+        <label class="sw"><input type="checkbox" id="tg_shadow" checked aria-label="Shadows"><i></i></label></div>
+      <div class="toggle"><span>Ambient occlusion</span>
+        <label class="sw"><input type="checkbox" id="tg_ao" aria-label="Ambient occlusion"><i></i></label></div>
       <div class="toggle"><span>Wireframe overlay</span>
         <label class="sw"><input type="checkbox" id="tg_wire" aria-label="Wireframe overlay"><i></i></label></div>
       <div class="toggle"><span>Transparent hull</span>
@@ -229,7 +255,6 @@
       <div class="toggle"><span>Units — Imperial</span>
         <label class="sw"><input type="checkbox" id="tg_units" aria-label="Imperial units"><i></i></label></div>
     </div>
-
     <div class="sec">
       <p class="lab">Visibility</p>
       <div class="grid">
@@ -250,11 +275,8 @@
         <div class="toggle"><span>Dimensions</span><label class="sw"><input type="checkbox" data-vis="dimensions"><i></i></label></div>
       </div>
     </div>
-
   </div>
 </div>
-
-<!-- ============ RIGHT INFO PANEL ============ -->
 <div id="info" class="panel">
   <h2>▤ Rig Data Sheet
     <button id="infoCollapse" title="Collapse panel" aria-label="Collapse info panel" aria-expanded="true">▾</button>
@@ -283,6 +305,7 @@
     </div>
     <div class="sec">
       <div class="kv"><span class="k">Operating mode</span><span class="v hi" id="s_mode">Elevated</span></div>
+      <div class="kv"><span class="k">Skid system</span><span class="v hi" id="s_skid">X-Y rack</span></div>
       <div class="kv"><span class="k">Cantilever offset</span><span class="v" id="s_cant">0.0 / 0.0</span></div>
       <div class="kv"><span class="k">Camera view</span><span class="v" id="s_view">Isometric</span></div>
     </div>
@@ -291,29 +314,30 @@
       survey control.</div>
   </div>
 </div>
-
-<!-- ============ JACKING HUD ============ -->
 <div id="hud" class="panel">
-  <h2>⇕ Jacking Readout <span style="font-size:9px;color:var(--txt-dim);font-weight:400">(visualization values)</span></h2>
+  <h2>⇕ Jacking Readout <span style="font-size:9px;color:var(--txt-dim);font-weight:400">(visualization)</span><button id="hudCollapse" title="Collapse jacking readout" aria-label="Collapse jacking readout" aria-expanded="true">▾</button></h2>
   <div class="sec">
     <div class="kv"><span class="k">Hull bottom elevation</span><span class="v" id="j_hull">—</span></div>
     <div class="kv"><span class="k">Water depth</span><span class="v" id="j_wd">—</span></div>
-    <div class="kv"><span class="k">Air gap</span><span class="v" id="j_ag">—</span></div>
+    <div class="kv"><span class="k">Requested air gap</span><span class="v" id="j_agr">—</span></div>
+    <div class="kv"><span class="k">Achieved air gap</span><span class="v" id="j_ag">—</span></div>
+    <div class="kv"><span class="k">Constraint</span><span class="v" id="j_con">—</span></div>
     <div class="kv"><span class="k">Leg penetration</span><span class="v" id="j_lp">—</span></div>
     <div class="kv"><span class="k">Leg length below hull</span><span class="v" id="j_lb">—</span></div>
   </div>
 </div>
-
 <div id="viewTag">Isometric · Forward-Starboard</div>
 <div id="mobileShade" aria-hidden="true"></div>
 <nav id="mobileBar" aria-label="Mobile controls"><button id="mobileControls" type="button" aria-controls="dock" aria-expanded="false">⚙ Controls</button><button id="mobileData" type="button" aria-controls="info" aria-expanded="false">▤ Rig Data</button><button id="mobileLabels" type="button" class="on" aria-pressed="true">Labels On</button></nav>
-
-<!-- ============ THREE.JS RUNTIME (pinned CDN) ============ -->
-<!-- NOTE: Internet access is required only to load the Three.js runtime libraries below.
-     All rig geometry, materials and application logic are contained inside this HTML file. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SSAOShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
 <script>
 "use strict";
 /* ==================================================================================
@@ -328,7 +352,6 @@ function fatal(msg){ errEl.style.display='block'; errEl.textContent=msg;
 if(!window.THREE){ fatal('Failed to load Three.js runtime (check internet connection).'); return; }
 /* A7 FIX: explicit guard for OrbitControls (loaded from a separate CDN) */
 if(!THREE.OrbitControls){ fatal('Failed to load OrbitControls runtime (check internet connection).'); return; }
-
 /* ---------------------------------------------------------------------------
    1. ENGINEERING CONSTANTS  (single source of truth — from IADC spec + GA)
    --------------------------------------------------------------------------- */
@@ -368,40 +391,93 @@ const LEG_POS = [
   {id:'Leg 2 (Port-Aft)', x:-K.LEG_SP_T/2, z:+K.LEG_SP_L/2 + LEG_SHIFT_Z},
   {id:'Leg 3 (Stbd-Aft)', x:+K.LEG_SP_T/2, z:+K.LEG_SP_L/2 + LEG_SHIFT_Z},
 ];
-const DECK_Y = K.HULL_D;             // main deck top (hull-local)
-const CANT_REF_Z = K.HULL_L/2 - 2;   // rotary centre Z at zero skid (near stern)
-
+const DECK_Y = K.HULL_D;
+const CANT_REF_Z = K.HULL_L/2 - 2;
+const SPUD_TIP_OFFSET = -K.SPUD_H*0.38;   // #2 true spudcan tip from lathe geometry
 /* ---------------------------------------------------------------------------
    2. APPLICATION STATE
    --------------------------------------------------------------------------- */
 const state = {
-  mode:'elevated', airGap:23, waterDepth:75, legPen:5,
+  mode:'elevated', airGap:23, waterDepth:64.7, legPen:5,
   cantL:0, cantT:0, display:'day', imperial:false,
-  wire:false, xhull:false, explode:false, view:'iso'
+  wire:false, xhull:false, explode:false, view:'iso',
+  skidMode:'XY'   // 'XY' = X-Y rack (CJ46X100-D, correct) | 'DF' = longitudinal + transverse-DF (KFELS-B)
 };
-
 /* ---------------------------------------------------------------------------
    3. SCENE / RENDERER / CAMERA / CONTROLS
    --------------------------------------------------------------------------- */
 const app = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,innerWidth<=1024?1.5:2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,innerWidth<=1024?1.4:1.75)); // perf: cap DPR
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.06;   // dialled back — crisp, not washed out
 app.appendChild(renderer.domElement);
-
+/* COLOR PASS: procedural gradient environment map so PBR metals actually reflect the
+   sky/sea and read as real steel instead of flat paint. Biggest single realism win. */
+function buildEnvMap(){
+  /* REALISM #4: richer equirect environment — multi-band sky, warm horizon glow, sun disc
+     and a darker sea half. Gives metals a DIRECTIONAL highlight instead of a flat wash. */
+  const W=256,H=128;
+  const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0.00,'#5d86a8');   // zenith (deeper blue → more contrast in reflections)
+  g.addColorStop(0.28,'#8fb0c6');
+  g.addColorStop(0.44,'#c3d3dc');   // pale band just above horizon
+  g.addColorStop(0.49,'#e2dcc9');   // warm horizon glow
+  g.addColorStop(0.51,'#2d4e60');   // sea starts (darker than sky → visible horizon line)
+  g.addColorStop(0.74,'#16384a');
+  g.addColorStop(1.00,'#071e2a');   // deep sea
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  // sun disc + bloom halo (matches the DirectionalLight azimuth) — creates a moving specular
+  const sx=W*0.62, sy=H*0.30;
+  const halo=x.createRadialGradient(sx,sy,0,sx,sy,W*0.20);
+  halo.addColorStop(0,'rgba(255,246,222,0.95)');
+  halo.addColorStop(0.25,'rgba(255,240,205,0.45)');
+  halo.addColorStop(1,'rgba(255,240,205,0)');
+  x.fillStyle=halo; x.fillRect(0,0,W,H);
+  x.fillStyle='#fffaf0'; x.beginPath(); x.arc(sx,sy,W*0.022,0,Math.PI*2); x.fill();
+  // faint cloud banding for broken-up reflections
+  x.globalAlpha=0.10; x.fillStyle='#ffffff';
+  for(let i=0;i<7;i++){const cy=H*(0.06+i*0.05), ch=H*0.018;
+    x.fillRect(((i*67)%W)-W*0.15, cy, W*0.45, ch);}
+  x.globalAlpha=1;
+  const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
+  tex.encoding=THREE.sRGBEncoding;
+  const pmrem=new THREE.PMREMGenerator(renderer); pmrem.compileEquirectangularShader();
+  const env=pmrem.fromEquirectangular(tex).texture; tex.dispose(); pmrem.dispose();
+  return env;
+}
 const scene = new THREE.Scene();
 const SKY = {day:0x9fc4e0, night:0x05080e, eng:0xaeb6bf};
 scene.background = new THREE.Color(SKY.day);
 scene.fog = new THREE.Fog(SKY.day, 420, 1500);
-
+scene.environment = buildEnvMap();   // COLOR PASS: PBR reflections for all standard materials
 const camera = new THREE.PerspectiveCamera(48, window.innerWidth/window.innerHeight, 0.5, 6000);
 camera.position.set(150,120,175);
-
+/* REALISM #1: SSAO composer (contact shadows in corners/recesses). Optional + off by
+   default: it is the single biggest GPU cost, and the Shadows/AO toggles are the two
+   perf levers exposed to the user. Any missing CDN part → aoAvailable stays false. */
+let composer=null, ssaoPass=null, aoOn=false;
+const aoAvailable = !!(THREE.EffectComposer && THREE.RenderPass && THREE.ShaderPass &&
+                       THREE.SSAOPass && THREE.CopyShader && THREE.SSAOShader);
+function buildComposer(){
+  if(!aoAvailable || composer) return;
+  try{
+    composer=new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene,camera));
+    ssaoPass=new THREE.SSAOPass(scene,camera,innerWidth,innerHeight);
+    ssaoPass.kernelRadius=6;      // metres-ish at this scale: tight contact shading
+    ssaoPass.minDistance=0.0009;
+    ssaoPass.maxDistance=0.13;
+    composer.addPass(ssaoPass);
+    composer.setSize(innerWidth,innerHeight);
+    composer.setPixelRatio(renderer.getPixelRatio());
+  }catch(e){ composer=null; ssaoPass=null; }
+}
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
@@ -409,7 +485,6 @@ controls.minDistance = 18;
 controls.maxDistance = 1200;
 controls.maxPolarAngle = Math.PI*0.495;   // prevent going under seabed
 controls.target.set(0,30,0);controls.screenSpacePanning=true;controls.touches.ONE=THREE.TOUCH.ROTATE;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
-
 /* ---------------------------------------------------------------------------
    4. LIGHTING
    --------------------------------------------------------------------------- */
@@ -418,7 +493,7 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
 sun.position.set(180,260,140);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048,2048);
+sun.shadow.mapSize.set(1536,1536);   // perf: smaller shadow map, still soft
 sun.shadow.camera.near = 20; sun.shadow.camera.far = 900;
 sun.shadow.camera.left=-180; sun.shadow.camera.right=180;
 sun.shadow.camera.top=260;   sun.shadow.camera.bottom=-160;
@@ -428,39 +503,40 @@ scene.add(sun.target);
 const fill = new THREE.DirectionalLight(0x9fb8d0, 0.35);
 fill.position.set(-140,90,-120); scene.add(fill);
 const nightLights = [];
-
 /* ---------------------------------------------------------------------------
    5. SHARED MATERIALS
    --------------------------------------------------------------------------- */
+/* COLOR PASS: richer saturated bases + realistic metalness so env reflections read as steel.
+   envMapIntensity lifts the reflective punch on painted-metal surfaces. */
+function MT(o){const m=new THREE.MeshStandardMaterial(o); m.envMapIntensity=(o.env!=null?o.env:1.0); return m;}
 const M = {
-  accom:   new THREE.MeshStandardMaterial({color:0xe5e6df, roughness:.82, metalness:.02}),
-  accom2:  new THREE.MeshStandardMaterial({color:0xc9ceca, roughness:.84, metalness:.02}),
-  steel:   new THREE.MeshStandardMaterial({color:0x747c7c, roughness:.80, metalness:.12}),
-  steelDk: new THREE.MeshStandardMaterial({color:0x4f565b, roughness:.82, metalness:.14}),
-  deck:    new THREE.MeshStandardMaterial({color:0x596661, roughness:.94, metalness:.04}),
-  hullSide:new THREE.MeshStandardMaterial({color:0xaeb4b5, roughness:.78, metalness:.08}),
-  hullRed: new THREE.MeshStandardMaterial({color:0x7f2f27, roughness:.86, metalness:.04}),
-  yellow:  new THREE.MeshStandardMaterial({color:0xd8a914, roughness:.70, metalness:.08}),
-  orange:  new THREE.MeshStandardMaterial({color:0xd86c22, roughness:.72, metalness:.06}),
-  red:     new THREE.MeshStandardMaterial({color:0xb44732, roughness:.74, metalness:.06}),
-  craneRed:new THREE.MeshStandardMaterial({color:0xb0342a, roughness:.66, metalness:.10}),
-  legChord:new THREE.MeshStandardMaterial({color:0x8d9392, roughness:.78, metalness:.16}),
-  brace:   new THREE.MeshStandardMaterial({color:0x747c7c, roughness:.82, metalness:.14}),
-  spud:    new THREE.MeshStandardMaterial({color:0x505956, roughness:.92, metalness:.08}),
-  derrick: new THREE.MeshStandardMaterial({color:0x9f3e30, roughness:.74, metalness:.08}),
-  glass:   new THREE.MeshStandardMaterial({color:0x2b4a5c, roughness:.15, metalness:.6,
+  accom:   MT({color:0xf2f3ee, roughness:.68, metalness:.08, env:.7}),   // brighter white superstructure
+  accom2:  MT({color:0xd6dbd6, roughness:.72, metalness:.08, env:.7}),
+  steel:   MT({color:0x7f8890, roughness:.52, metalness:.55, env:1.15}), // real galvanised steel
+  steelDk: MT({color:0x515a63, roughness:.55, metalness:.6,  env:1.15}),
+  deck:    MT({color:0x5a6b64, roughness:.86, metalness:.15, env:.6}),
+  hullSide:MT({color:0xb9c1c4, roughness:.5,  metalness:.35, env:1.0}),  // painted hull grey w/ sheen
+  hullRed: MT({color:0x9c2f22, roughness:.66, metalness:.2,  env:.8}),   // richer boot-top oxide red
+  yellow:  MT({color:0xf3b71b, roughness:.5,  metalness:.35, env:1.0}),  // vivid safety yellow
+  orange:  MT({color:0xf07a1e, roughness:.52, metalness:.25, env:.9}),
+  red:     MT({color:0xd23f2c, roughness:.55, metalness:.25, env:.9}),
+  craneRed:MT({color:0xd0342a, roughness:.48, metalness:.35, env:1.05}), // glossy crane red
+  legChord:MT({color:0x9aa2a8, roughness:.45, metalness:.62, env:1.25}), // bright leg steel
+  brace:   MT({color:0x808990, roughness:.5,  metalness:.55, env:1.15}),
+  spud:    MT({color:0x5a6169, roughness:.6,  metalness:.5,  env:1.0}),
+  derrick: MT({color:0xb5382a, roughness:.52, metalness:.3,  env:1.0}),  // stronger derrick red
+  glass:   MT({color:0x244a5e, roughness:.08, metalness:.9,  env:1.5,
              transparent:true, opacity:.55, emissive:0x0a1a24, emissiveIntensity:.4}),
-  heliDeck:new THREE.MeshStandardMaterial({color:0x356b48, roughness:.92, metalness:.02}),
-  mark:    new THREE.MeshStandardMaterial({color:0xf5f5f0, roughness:.8, metalness:.05}),
-  rail:    new THREE.MeshStandardMaterial({color:0xc8ccc6, roughness:.78, metalness:.10}),
-  dark:    new THREE.MeshStandardMaterial({color:0x2a2f36, roughness:.8, metalness:.2}),
-  pipe:    new THREE.MeshStandardMaterial({color:0x465057, roughness:.72, metalness:.28}),
-  emit:    new THREE.MeshStandardMaterial({color:0xffe08a, emissive:0xffcf5c, emissiveIntensity:.9, roughness:.5}),
-  detail: new THREE.MeshStandardMaterial({color:0x3f474d,roughness:.78,metalness:.18}),
+  heliDeck:MT({color:0x2f7d4a, roughness:.85, metalness:.06, env:.5}),   // richer green
+  mark:    MT({color:0xf7f7f2, roughness:.75, metalness:.05, env:.6}),
+  rail:    MT({color:0xf3c40e, roughness:.5,  metalness:.35, env:1.0}),  // yellow handrails (was grey)
+  dark:    MT({color:0x272c33, roughness:.6,  metalness:.4,  env:.9}),
+  pipe:    MT({color:0x4a545e, roughness:.5,  metalness:.6,  env:1.15}),
+  emit:    MT({color:0xffe08a, emissive:0xffcf5c, emissiveIntensity:.9, roughness:.5}),
+  detail:  MT({color:0x3f474d, roughness:.55, metalness:.45, env:1.0}),
 };
 const trackWire = [];
 function reg(mesh){ trackWire.push(mesh); return mesh; }
-
 function box(w,h,d,mat,cast=true){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
   m.castShadow=cast; m.receiveShadow=true; return reg(m);
@@ -502,7 +578,6 @@ function deckHouse(w,h,d,bodyMat,roofMat,opt){
 }
 function louvers(w,h,mat,n){ const g=new THREE.Group(); n=n||4;
   for(let i=0;i<n;i++){ const r=box(w,0.12,0.06,mat,false); r.position.y=(i+0.5)*(h/n)-h/2; g.add(r); } return g; }
-
 /* ---------------------------------------------------------------------------
    6. LABEL SYSTEM (canvas sprites — no external asset)
    --------------------------------------------------------------------------- */
@@ -531,7 +606,6 @@ function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,
   c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
 function spriteActive(s){ let o=s; while(o){ if(o.visible===false) return false; o=o.parent; } return true; }
 const _lv=new THREE.Vector3();
-
 /* A1 FIX: deep-dispose a group (textures, materials, geometries) and prune labelSprites */
 function disposeGroup(g){
   const removed=[];
@@ -550,14 +624,12 @@ function disposeGroup(g){
   }
   g.clear();
 }
-
 /* ---------------------------------------------------------------------------
    7. SCENE GRAPH GROUPS
    --------------------------------------------------------------------------- */
 const rigRoot   = new THREE.Group();  scene.add(rigRoot);
 const hullGroup = new THREE.Group();  rigRoot.add(hullGroup);
 const legsGroup = new THREE.Group();  rigRoot.add(legsGroup);
-
 const G = {
   hull:new THREE.Group(), accommodation:new THREE.Group(), helideck:new THREE.Group(),
   cranes:new THREE.Group(), deckEquip:new THREE.Group(), handrails:new THREE.Group(),
@@ -569,17 +641,44 @@ hullGroup.add(G.hull,G.accommodation,G.helideck,G.cranes,G.deckEquip,G.handrails
 legsGroup.add(G.legs);
 scene.add(G.labels,G.ocean,G.seabed,G.dimensions);
 G.dimensions.visible=false;
-
-const cantBox = new THREE.Group();
+/* SKID SCENE-GRAPH (supports two switchable systems):
+   G.cantilever (static, hull) ─ cantXY (transverse port-stbd carriage)
+     └ cantBox (longitudinal aft box) ─ drillPkg (DES: derrick+substructure)
+   X-Y (CJ46X100-D): whole cantilever rides transverse skid beams ON DECK →
+        cantXY.x = cantT (entire cantilever shifts port-stbd), drillPkg.x = 0.
+   Long.+DF (KFELS-B): cantilever fixed transversely, DES slides on cantilever-tip
+        beams → cantXY.x = 0, drillPkg.x = cantT.
+   Both give identical well-centre (cantT, CANT_REF_Z+cantL). */
+/* PHASE A — CORRECTED SKID HIERARCHY.
+   BUG FOUND: the longitudinal move was applied to cantBox only, while the main
+   longitudinal beams, cross girders and skid shoes were children of cantXY. Measured at
+   full reach (cantL = 21.34) the drill-floor aft edge sat 16.39 m PAST the end of the
+   beams and the package centre 4.67 m past it — the DES visibly floated off its support.
+   New chain:  G.cantilever (hull-fixed)
+                 ├ fixedSkidPads   (pads welded to the hull; the carriage slides over them)
+                 ├ G_xyDeckBeam    (transverse deck beams, X-Y system)
+                 └ cantXY   .x = cantT      transverse carriage
+                     └ cantLong .z = cantL  LONGITUDINAL carriage  <-- new
+                         ├ main longitudinal beams + cross girders
+                         └ cantBox (aft box, base z = CANT_REF_Z)
+                             └ drillPkg (DES) */
+const cantXY   = new THREE.Group();
+const cantLong = new THREE.Group();
+const cantBox  = new THREE.Group();
 const drillPkg = new THREE.Group();
-G.cantilever.add(cantBox);
+const fixedSkidPads = new THREE.Group();
+G.cantilever.add(cantXY, fixedSkidPads);
+cantXY.add(cantLong);
+cantLong.add(cantBox);
 cantBox.add(drillPkg);
 drillPkg.add(G.derrick);
-
+const G_xyDeckBeam = new THREE.Group();   // transverse skid beams ON DECK (X-Y mode)
+const G_dfTipBeam  = new THREE.Group();   // transverse skid beams at cantilever tip (DF mode)
+G.cantilever.add(G_xyDeckBeam);
+cantBox.add(G_dfTipBeam);
 /* ===========================================================================
    8. BUILDERS
    =========================================================================== */
-
 /* ---- pentagon (arrowhead) hull planform ---- */
 function hullPolygon(scale){
   const W=K.HULL_W*scale, L=K.HULL_L*scale;
@@ -633,7 +732,6 @@ function buildHull(){
   nb.userData.hullBoard=true; nb.userData.noCull=true;   // B6 FIX: fixed vessel marking
   G.hull.add(nb);
 }
-
 /* ---- LEG + SPUDCAN ---- */
 function buildLeg(){
   const grp = new THREE.Group();
@@ -646,7 +744,7 @@ function buildLeg(){
   ];
   const chordR=0.62, braceR=0.2, targetBay=6.0, nBay=Math.ceil(H/targetBay), bay=H/nBay;
   for(const c of chordXY){
-    const ch = cyl(chordR,chordR,H,M.legChord,10);
+    const ch = cyl(chordR,chordR,H,M.legChord,16);
     ch.position.set(c.x, H/2, c.z); grp.add(ch);
     const rack=box(0.5,H,0.28,M.steelDk); rack.position.set(c.x,H/2,c.z + (c.z<0? -0.7:0.5));
     grp.add(rack);
@@ -670,7 +768,7 @@ function buildLeg(){
   const prof=[
     new THREE.Vector2(0,-hS*.58),new THREE.Vector2(rD*.10,-hS*.50),new THREE.Vector2(rD*.25,-hS*.34),new THREE.Vector2(rD*.52,-hS*.12),new THREE.Vector2(rD*.78,hS*.08),new THREE.Vector2(rD*.96,hS*.22),new THREE.Vector2(rD,hS*.31),new THREE.Vector2(rD*.97,hS*.40),new THREE.Vector2(rD*.84,hS*.50),new THREE.Vector2(rD*.58,hS*.57),new THREE.Vector2(rD*.25,hS*.62),new THREE.Vector2(0,hS*.64)
   ];
-  const spud = new THREE.Mesh(new THREE.LatheGeometry(prof,40),M.spud);
+  const spud = new THREE.Mesh(new THREE.LatheGeometry(prof,64),M.spud);
   spud.castShadow=true; spud.receiveShadow=true; reg(spud);
   const spudGrp=new THREE.Group(); spudGrp.add(spud);
   spudGrp.position.y = hS*0.2;
@@ -688,29 +786,103 @@ function buildLegs(){
     G.legs.add(leg);
   });
 }
-
 /* ---- CANTILEVER + SUBSTRUCTURE + DERRICK ---- */
 function buildCantilever(){
   const beamLen = K.HULL_L*0.5 + K.CANT_AFT + 6;
+  const trvHalf = K.CANT_TR + 3;   // transverse travel half-span (+margin)
+  /* ---- TRANSVERSE SKID BEAMS ON MAIN DECK (X-Y system, GustoMSC CJ46) ----
+     Two athwartships (port-stbd) beams fixed to the hull. The entire cantilever
+     rides these and shifts transversely along them. This is the defining feature
+     of the X-Y system that was missing before. */
+  for(let i=0;i<2;i++){
+    const z = CANT_REF_Z - 8 - i*7;                       // two beams, spaced fore-aft, over the aft deck
+    const tb = box(2*trvHalf+K.SUB_W, 1.4, 2.2, M.yellow);
+    tb.position.set(0, DECK_Y+1.0, z); G_xyDeckBeam.add(tb);
+    // rack strip along the top (visible rack the cantilever pinions engage)
+    const rk = box(2*trvHalf+K.SUB_W, 0.22, 0.5, M.detail, false);
+    rk.position.set(0, DECK_Y+1.75, z); G_xyDeckBeam.add(rk);
+    // end stops
+    for(const sx of [-1,1]){const es=box(0.6,1.8,2.4,M.steelDk,false);es.position.set(sx*(trvHalf+K.SUB_W/2),DECK_Y+1.2,z);G_xyDeckBeam.add(es);}
+  }
+  /* ---- LONGITUDINAL MAIN BEAMS (2) + CROSS GIRDERS — children of cantLong, so they
+     travel aft WITH the drill package. Length/position are sized so the beams still
+     support the DES at full reach and still bear on the hull:
+       required aft end  = CANT_REF_Z + CANT_AFT + SUB_L/2 + 1.0
+       required fwd end  = -5.0 (still well inboard of the hull at max reach)
+     -> length 69.68 m, centre at z = 8.51 when cantL = 0. Verified supported at
+        cantL = 0 / 10 / 21.34, with 37.6 m of beam still over the hull at full reach. */
+  const CB_AFT  = CANT_REF_Z + K.CANT_AFT + K.SUB_L/2 + 1.0;
+  const CB_FWD  = -5.0;
+  const CB_LEN  = (CB_AFT - CB_FWD);
+  const CB_CZ   = (CB_FWD + CB_AFT)/2 - K.CANT_AFT;    // centre at cantL = 0
   for(const s of [-1,1]){
-    const beam=box(2.2, 2.6, beamLen, M.steelDk);
-    beam.position.set(s*(K.SUB_W/2-0.5), DECK_Y+1.6, CANT_REF_Z - beamLen/2 + K.CANT_AFT*0.5 + 6);
-    G.cantilever.add(beam);
+    const beam=box(2.2, 2.6, CB_LEN, M.steelDk);
+    beam.position.set(s*(K.SUB_W/2-0.5), DECK_Y+2.6, CB_CZ);
+    cantLong.add(beam);
   }
-  for(let i=0;i<4;i++){
+  for(let i=0;i<5;i++){                                  // cross girders tie the two beams
     const cg=box(K.SUB_W+2,1.4,1.6,M.steel);
-    cg.position.set(0,DECK_Y+1.6, (K.HULL_L/2-14)+i*7); G.cantilever.add(cg);
+    cg.position.set(0,DECK_Y+2.6, CB_CZ - CB_LEN*0.34 + i*(CB_LEN*0.17)); cantLong.add(cg);
   }
-  for(const sx of [-1,1])for(let i=0;i<4;i++){const shoe=box(3.2,.55,4.2,M.dark,false);shoe.position.set(sx*(K.SUB_W/2-.5),DECK_Y+.42,K.HULL_L/2-24+i*11);G.cantilever.add(shoe);}
+  for(const sx of [-1,1])for(let i=0;i<4;i++){           // shoes under the beams, travel with them
+    const shoe=box(3.2,.7,3.0,M.dark,false);
+    shoe.position.set(sx*(K.SUB_W/2-.5),DECK_Y+1.85, CB_CZ - CB_LEN*0.30 + i*(CB_LEN*0.20));
+    cantLong.add(shoe);
+  }
+  /* ---- FIXED SKID PADS on the hull: the carriage slides OVER these, they never move.
+     They give the eye a stationary reference for the sliding motion. */
+  for(const sx of [-1,1])for(let i=0;i<4;i++){
+    const pad=box(3.6,0.5,4.6,M.detail,false);
+    pad.position.set(sx*(K.SUB_W/2-0.5), DECK_Y+1.35, K.HULL_L/2-26+i*8.5);
+    fixedSkidPads.add(pad);
+    const wear=box(3.2,0.12,4.2,M.dark,false);           // wear plate on top of each pad
+    wear.position.set(sx*(K.SUB_W/2-0.5), DECK_Y+1.64, K.HULL_L/2-26+i*8.5);
+    fixedSkidPads.add(wear);
+  }
   const cbox=box(K.SUB_W+3.5, 3.2, K.SUB_L*0.8, M.steel);
-  cbox.position.set(0, DECK_Y+3.6, 0);
+  cbox.position.set(0, DECK_Y+4.6, 0);
   cantBox.add(cbox);
-  for(const sx of [-1,1])for(let i=0;i<6;i++){const st=box(.32,2.35,.9,M.detail,false);st.position.set(sx*(K.SUB_W/2+1.15),DECK_Y+3.6,-K.SUB_L*.30+i*(K.SUB_L*.12));cantBox.add(st);}
+  for(const sx of [-1,1])for(let i=0;i<6;i++){const st=box(.32,2.35,.9,M.detail,false);st.position.set(sx*(K.SUB_W/2+1.15),DECK_Y+4.6,-K.SUB_L*.30+i*(K.SUB_L*.12));cantBox.add(st);}
   const cbox2=box(K.SUB_W+1, 2.0, K.SUB_L*0.8, M.steelDk);
-  cbox2.position.set(0, DECK_Y+5.4, 0);
+  cbox2.position.set(0, DECK_Y+6.4, 0);
   cantBox.add(cbox2);
-  cantBox.position.z = CANT_REF_Z;
+  /* ---- TRANSVERSE SKID BEAMS AT CANTILEVER TIP (Long.+DF system, KFELS-B) ----
+     The drill floor slides port-stbd on these beams mounted on the cantilever box.
+     Shown only in DF mode. */
+  for(let i=0;i<2;i++){
+    const tb=box(2*trvHalf, 0.5, 1.2, M.yellow, false);
+    tb.position.set(0, DECK_Y+8.1, -K.SUB_L*0.28 + i*(K.SUB_L*0.56)); G_dfTipBeam.add(tb);
+    const rk=box(2*trvHalf, 0.16, 0.26, M.detail, false);
+    rk.position.set(0, DECK_Y+8.45, -K.SUB_L*0.28 + i*(K.SUB_L*0.56)); G_dfTipBeam.add(rk);
+  }
+  cantBox.position.z = CANT_REF_Z;   // base position only; travel lives on cantLong.z
   buildSubstructureAndDerrick();
+  applySkidMode();
+}
+/* Show the structure matching the active skid system; kinematics in updateCantilever. */
+function applySkidMode(){
+  const xy = state.skidMode==='XY';
+  G_xyDeckBeam.visible = xy;
+  G_dfTipBeam.visible  = !xy;
+}
+/* ============================================================================
+   PHASE D1 — COMPONENT IDENTITY
+   Every significant drill-package part gets: name, equipment tag, system group and
+   a short spec string. No geometry changes — this is the data foundation required
+   before a navigator/inspector can address individual components.
+   Systems follow drilling-industry grouping, not the 3D scene graph.
+   ============================================================================ */
+const DRILL_PARTS=[];
+let rotaryTableMesh=null;
+function tag(mesh,name,tagNo,system,spec){
+  if(!mesh) return mesh;
+  mesh.name=name;
+  mesh.userData.tagNo=tagNo||'';
+  mesh.userData.system=system||'';
+  mesh.userData.spec=spec||'';
+  mesh.userData.isComponent=true;
+  DRILL_PARTS.push(mesh);
+  return mesh;
 }
 function buildSubstructureAndDerrick(){
   const baseY=DECK_Y+6.4;
@@ -727,18 +899,24 @@ function buildSubstructureAndDerrick(){
   }
   const df=box(K.SUB_W, 0.8, K.SUB_L, M.steel);
   df.position.set(0, dfY, 0); drillPkg.add(df);
+  tag(df,'Drill Floor','DF-01','Structure',fmt(K.SUB_W)+' x '+fmt(K.SUB_L));
   for(const sx of [-1,1]){const e=box(.22,1.15,K.SUB_L,M.yellow,false);e.position.set(sx*(K.SUB_W/2-.18),dfY+1.05,0);drillPkg.add(e);}for(const sz of [-1,1]){const e=box(K.SUB_W,.22,.22,M.yellow,false);e.position.set(0,dfY+1.55,sz*(K.SUB_L/2-.18));drillPkg.add(e);}
-  const wb=box(K.SUB_W+0.6,4.6,0.4,M.steelDk); wb.position.set(0,dfY+2.5,-K.SUB_L/2+0.3); drillPkg.add(wb);
-  const rot=cyl(1.7,1.7,0.6,M.yellow,20); rot.position.set(0,dfY+0.6,0); drillPkg.add(rot);
-  const rotHole=cyl(0.7,0.7,0.8,M.dark,16); rotHole.position.set(0,dfY+0.7,0); drillPkg.add(rotHole);
+  const wb=box(K.SUB_W+0.6,3.2,0.35,M.steelDk);wb.position.set(0,dfY+1.8,-K.SUB_L/2+0.3);drillPkg.add(wb);
+  tag(wb,'Wind Wall (Fwd)','WW-01','Structure','lower drill-floor wind wall');
+  const wbCap=box(K.SUB_W+0.8,0.22,0.50,M.yellow,false);wbCap.position.set(0,dfY+3.45,-K.SUB_L/2+0.3);drillPkg.add(wbCap);
+  const rot=cyl(1.7,1.7,0.6,M.yellow,32); rot.position.set(0,dfY+0.6,0); drillPkg.add(rot);
+  rotaryTableMesh=rot;
+  tag(rot,'Rotary Table','RT-01','Rotating','49-1/2 in opening');
+  const rotHole=cyl(0.7,0.7,0.8,M.dark,24); rotHole.position.set(0,dfY+0.7,0); drillPkg.add(rotHole);
   /* A5 FIX: single WELL CENTRE label lives in buildLabels(); marker geometry only here */
   const dw=box(5.5,4.2,7.5,M.accom2); dw.position.set(0,dfY+2.4,K.SUB_L/2-5); drillPkg.add(dw);
-
+  tag(dw,'Drawworks','DW-01','Hoisting','main hoist unit');
   const H=K.DERR_H, bx=K.DERR_BASE_X/2, bz=K.DERR_BASE_Z/2, cw=K.DERR_CROWN/2;
   const legR=0.42;
   function legTop(sx,sz){return new THREE.Vector3(sx*cw, dfY+H, sz*cw);}
   function legBot(sx,sz){return new THREE.Vector3(sx*bx, dfY,   sz*bz);}
   const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+  drillPkg.userData.derrickAxis={bottom:new THREE.Vector3(0,dfY,0),top:new THREE.Vector3(0,dfY+H,0)};
   for(const [sx,sz] of corners){
     drillPkg.add(strut(legBot(sx,sz),legTop(sx,sz),legR,M.derrick));
   }
@@ -756,28 +934,36 @@ function buildSubstructureAndDerrick(){
                 new THREE.Vector3(w0,y0,d0),new THREE.Vector3(-w0,y0,d0)];
     for(let k=0;k<4;k++) drillPkg.add(strut(prev[k],ring[(k+1)%4],0.13,M.derrick));
   }
-  // Conservative open crown assembly within the existing 35 x 40 x 170 ft envelope.
-  const crownY=dfY+H+0.9;
-  for(const sx of [-1,1]) for(const sz of [-1,1]){
-    const post=box(0.35,2.2,0.35,M.steelDk,false);
-    post.position.set(sx*(cw+0.35),crownY,sz*(cw+0.35)); drillPkg.add(post);
+  // Compact crown-block assembly. The old tall rectangular frame with five torus
+  // rings read as a signboard. This bank uses solid sheave discs, a common axle,
+  // side plates and low perimeter guards tied directly to the derrick crown.
+  const crownBase=dfY+H;
+  const crownG=new THREE.Group();drillPkg.add(crownG);
+  const SHEAVE_X=[-2.0,-1.0,0,1.0,2.0];
+  const CROWN_LINE_X=[-1.5,-0.5,0.5,1.5];
+  const plateY=crownBase+1.15;
+  for(const sx of [-1,1]){
+    const plate=box(0.28,2.0,K.DERR_CROWN+1.0,M.steelDk,false);
+    plate.position.set(sx*3.05,plateY,0);crownG.add(plate);
   }
   for(const sz of [-1,1]){
-    const beam=box(K.DERR_CROWN+1.0,0.32,0.32,M.steelDk,false);
-    beam.position.set(0,crownY+1.0,sz*(cw+0.35)); drillPkg.add(beam);
+    const tie=box(6.4,0.32,0.32,M.steelDk,false);
+    tie.position.set(0,crownBase+0.25,sz*2.75);crownG.add(tie);
+    const topTie=box(6.4,0.24,0.24,M.steelDk,false);
+    topTie.position.set(0,crownBase+2.10,sz*2.75);crownG.add(topTie);
   }
-  for(const sx of [-1,1]){
-    const beam=box(0.32,0.32,K.DERR_CROWN+1.0,M.steelDk,false);
-    beam.position.set(sx*(cw+0.35),crownY+1.0,0); drillPkg.add(beam);
+  const axle=cyl(0.16,0.16,6.5,M.detail,14,false);axle.rotation.z=Math.PI/2;axle.position.set(0,plateY,0);crownG.add(axle);
+  for(const x of SHEAVE_X){
+    const disc=cyl(0.72,0.72,0.20,M.detail,24,false);disc.rotation.z=Math.PI/2;disc.position.set(x,plateY,0);crownG.add(disc);
+    const groove=new THREE.Mesh(new THREE.TorusGeometry(0.72,0.07,6,24),M.steelDk);groove.rotation.y=Math.PI/2;groove.position.set(x,plateY,0);reg(groove);crownG.add(groove);
   }
-  for(let i=-2;i<=2;i++){
-    const sheave=new THREE.Mesh(new THREE.TorusGeometry(0.62,0.14,8,20),M.detail);
-    sheave.rotation.y=Math.PI/2; sheave.position.set(i*1.05,crownY+0.85,0);
-    reg(sheave); drillPkg.add(sheave);
+  // Low three-sided crown guard, clear of the sheave bank.
+  for(const x of [-3.0,0,3.0]){
+    const post=box(0.08,0.85,0.08,M.yellow,false);post.position.set(x,crownBase+2.55,-2.65);crownG.add(post);
   }
-  const crownRail=box(K.DERR_CROWN+1.8,0.14,0.14,M.yellow,false);
-  crownRail.position.set(0,crownY+2.05,cw+0.85); drillPkg.add(crownRail);
-
+  const guard=box(6.1,0.08,0.08,M.yellow,false);guard.position.set(0,crownBase+2.95,-2.65);crownG.add(guard);
+  crownG.userData.sheaveCount=SHEAVE_X.length;
+  crownG.userData.centre=new THREE.Vector3(0,plateY,0);
   // Centreline guide rails, simplified travelling block and drill lines.
   for(const sx of [-1,1]){
     const guide=box(0.18,H*0.70,0.18,M.detail,false);
@@ -785,50 +971,389 @@ function buildSubstructureAndDerrick(){
   }
   const travel=box(2.2,3.4,1.6,M.red,false);
   travel.position.set(0,dfY+H*0.54,0); drillPkg.add(travel);
-  for(const sx of [-0.72,-0.24,0.24,0.72]){
-    const line=cyl(0.035,0.035,H*0.42,M.dark,5,false);
-    line.position.set(sx,dfY+H*0.76,0); drillPkg.add(line);
+  tag(travel,'Travelling Block','TB-01','Hoisting','block & hook assembly');
+  for(const sx of CROWN_LINE_X){
+    const lineLen=H*0.42;
+    const line=cyl(0.035,0.035,lineLen,M.dark,5,false);
+    line.position.set(sx,plateY-lineLen/2,0);drillPkg.add(line);
   }
-
   // U-shaped monkey board and conservative fingerboard; no vendor-specific automation.
-  const rackY=dfY+H*0.64;
+  /* PHASE B: fingerboard lowered from 0.64H to 0.56H so it sits at the top of a real
+     triple stand (~28 m above the floor). Racked stands now reach the fingers instead of
+     stopping 4 m short of them. The access ladder still runs past it (to 0.60H). */
+  const rackY=dfY+H*0.56;
+  const rackHalfW=(bx+(cw-bx)*0.56);      // taper-aware: keep the board inside the legs
   for(const sx of [-1,1]){
     const side=box(2.8,0.24,4.8,M.steelDk,false);
-    side.position.set(sx*(bx*0.70),rackY,0); drillPkg.add(side);
+    side.position.set(sx*(rackHalfW-1.5),rackY,0); drillPkg.add(side);
   }
   const back=box(bx*1.4,0.24,1.0,M.steelDk,false);
   back.position.set(0,rackY,bz*0.58); drillPkg.add(back);
-  for(let i=-4;i<=4;i++){
-    const finger=box(0.12,0.12,3.1,M.yellow,false);
-    finger.position.set(i*0.55,rackY+0.48,bz*0.40); drillPkg.add(finger);
+  tag(back,'Monkeyboard','MB-01','Racking','fingerboard platform');
+  const rackRows=[1.8,2.75,3.70];
+  for(const rz of rackRows) for(let i=-4;i<=4;i++){
+    const finger=box(0.12,0.12,1.05,M.yellow,false);
+    finger.position.set(i*0.55,rackY+0.48,rz); drillPkg.add(finger);
   }
-
-  // Access ladder contained on one derrick face.
-  for(const sx of [-1,1]){
-    const ladderRail=cyl(0.07,0.07,H*0.56,M.yellow,6,false);
-    ladderRail.position.set(-bx*0.82+sx*0.28,dfY+H*0.31,bz*0.70); drillPkg.add(ladderRail);
+  /* FIX: the access ladder now FOLLOWS THE DERRICK TAPER.
+     Previously both rails and rungs sat at a fixed x,z while the derrick narrows with
+     height, so above ~t=0.55 the ladder floated outside the leg line (measured 0.57 m
+     out at t=0.59). Rails are now built from taper-aware endpoints, so they stay
+     parallel to the port-aft leg for their whole run. */
+  const halfW=t=>bx+(cw-bx)*t;          // derrick half-width  at height fraction t
+  const halfD=t=>bz+(cw-bz)*t;          // derrick half-depth  at height fraction t
+  const LAD_T0=0.04, LAD_T1=0.60, LAD_INB=1.05, LAD_HALF=0.33;
+  function ladPoint(t,side){            // side = -1 / +1 → the two stringers
+    const w=halfW(t), d=halfD(t);
+    return new THREE.Vector3(-(w-LAD_INB)+side*LAD_HALF, dfY+t*H, (d-0.40));
   }
-  for(let i=0;i<18;i++){
-    const rung=box(0.65,0.06,0.06,M.yellow,false);
-    rung.position.set(-bx*0.82,dfY+2+i*(H*0.56/18),bz*0.70); drillPkg.add(rung);
+  for(const side of [-1,1]){
+    drillPkg.add(strut(ladPoint(LAD_T0,side), ladPoint(LAD_T1,side), 0.07, M.yellow));
   }
-
+  const LAD_RUNGS=18;
+  for(let i=0;i<=LAD_RUNGS;i++){
+    const t=LAD_T0+(LAD_T1-LAD_T0)*(i/LAD_RUNGS);
+    drillPkg.add(strut(ladPoint(t,-1), ladPoint(t,1), 0.035, M.yellow));
+  }
+  // safety cage hoops on the outboard side of the ladder
+  for(let i=1;i<LAD_RUNGS;i+=3){
+    const t=LAD_T0+(LAD_T1-LAD_T0)*(i/LAD_RUNGS);
+    const c=ladPoint(t,0);
+    const hoop=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.035,5,10,Math.PI*1.15),M.yellow);
+    hoop.position.copy(c); hoop.rotation.set(Math.PI/2,0,Math.PI*0.42); reg(hoop); drillPkg.add(hoop);
+  }
+  {const lt=ladPoint(LAD_T1,0);
+   tag(strut(ladPoint(LAD_T0,0),lt,0.001,M.yellow),'Derrick Access Ladder','LD-01','Structure','caged ladder, follows taper');}
   const td=box(2.0,3.2,2.0,M.steelDk); td.position.set(0,dfY+H*0.42,0); drillPkg.add(td);
+  tag(td,'Top Drive','TDS-01','Rotating','top drive system');
   const tdMotor=cyl(1.1,1.1,2.2,M.dark,14); tdMotor.position.set(0,dfY+H*0.42+2.2,0); drillPkg.add(tdMotor);
   const stand=cyl(0.16,0.16,H*0.6,M.pipe,8); stand.position.set(1.6,dfY+H*0.33,bz*0.3); drillPkg.add(stand);
+  tag(stand,'Stand Pipe','SP-01','Circulating','rig standpipe');
   for(const sx of [-1,1]){
     const wbk=box(0.3,4.4,K.SUB_L*0.8,M.accom2); wbk.position.set(sx*(K.SUB_W/2),dfY+2.4,0); drillPkg.add(wbk);
   }
+  buildDrillFloorEquipment(dfY);
+  buildCellarEquipment(dfY, DECK_Y+6.4);
+  buildDerrickActivity(dfY, H, bx, bz, cw);
   drillPkg.userData.wellY=dfY;
 }
+/* ============================================================================
+   PHASE D2 (Tier A) — DRILL FLOOR EQUIPMENT
+   Validated against jack-up practice:
+   - Iron roughneck: pedestal-mounted, swings between parked position, well centre
+     and the mousehole (NOV/SLB list jack-ups as a target rig type).
+   - Doghouse: steel-sided driller's shelter on the rig floor, cantilevered off the
+     substructure, with its door close to the driller's controls.
+   - Mousehole / rathole: tubulars parked vertically beside the rotary.
+   - V-door + catwalk: on a cantilever jack-up the V-door faces FORWARD (-Z, toward
+     the hull pipe racks), never aft over open water.
+   Local frame: origin = well centre, +Z = aft, -Z = forward (toward hull), +X = stbd.
+   ============================================================================ */
+function buildDrillFloorEquipment(dfY){
+  const fl=dfY+1.0;                      // working-floor top (slab 0.8 + plate)
+  const hw=K.SUB_W/2, hl=K.SUB_L/2;
+  /* ---- SLIPS + rotary bushing ring (around well centre) ---- */
+  const slips=new THREE.Mesh(new THREE.TorusGeometry(1.05,0.18,8,20),M.detail);
+  slips.rotation.x=Math.PI/2; slips.position.set(0,fl+0.1,0); reg(slips); drillPkg.add(slips);
+  tag(slips,'Rotary Slips','SL-01','Rotating','master bushing slips');
+  /* ---- MOUSEHOLE + RATHOLE (forward-stbd of the rotary, standard practice) ---- */
+  const mh=cyl(0.42,0.42,1.5,M.dark,16,false);
+  mh.position.set(2.5,fl-0.3,-1.8); drillPkg.add(mh);
+  tag(mh,'Mousehole','MH-01','Pipe Handling','single joint parking');
+  const mhRim=new THREE.Mesh(new THREE.TorusGeometry(0.46,0.09,6,16),M.yellow);
+  mhRim.rotation.x=Math.PI/2; mhRim.position.set(2.5,fl+0.42,-1.8); reg(mhRim); drillPkg.add(mhRim);
+  const rh=cyl(0.34,0.34,1.5,M.dark,14,false);
+  rh.position.set(3.6,fl-0.3,-1.8); drillPkg.add(rh);
+  tag(rh,'Rathole','RH-01','Pipe Handling','kelly / BHA parking');
+  const rhRim=new THREE.Mesh(new THREE.TorusGeometry(0.38,0.08,6,14),M.yellow);
+  rhRim.rotation.x=Math.PI/2; rhRim.position.set(3.6,fl+0.42,-1.8); reg(rhRim); drillPkg.add(rhRim);
+  /* ---- IRON ROUGHNECK — pedestal + column + articulated arm + torque wrench ----
+     Parked off well centre; the arm reaches in toward the rotary. */
+  const irX=-3.2, irZ=-1.4;
+  const irBase=cyl(0.72,0.85,0.5,M.steelDk,16); irBase.position.set(irX,fl+0.25,irZ); drillPkg.add(irBase);
+  const irCol=cyl(0.46,0.5,2.6,M.craneRed,16); irCol.position.set(irX,fl+1.8,irZ); drillPkg.add(irCol);
+  tag(irCol,'Iron Roughneck','IR-01','Pipe Handling','torque wrench + spinner');
+  // articulated arm angled toward well centre
+  const armLen=2.3, armY=fl+2.6;
+  const arm=box(armLen,0.42,0.5,M.craneRed,false);
+  arm.position.set(irX+armLen/2*0.86, armY, irZ+armLen/2*0.5);
+  arm.rotation.y=-Math.atan2(0.5,0.86); drillPkg.add(arm);
+  // torque wrench head at the inboard end of the arm
+  const twX=irX+armLen*0.86, twZ=irZ+armLen*0.5;
+  const tw=box(0.95,1.15,0.95,M.steelDk,false); tw.position.set(twX,armY-0.1,twZ); drillPkg.add(tw);
+  const spin=cyl(0.42,0.42,0.5,M.yellow,14,false); spin.position.set(twX,armY+0.75,twZ); drillPkg.add(spin);
+  const hose=cyl(0.09,0.09,1.7,M.dark,6,false); hose.rotation.z=Math.PI/2.4;
+  hose.position.set(irX+0.7,fl+1.1,irZ); drillPkg.add(hose);
+  /* ---- DOGHOUSE (driller's shelter) — stbd side, door facing the rotary ---- */
+  const dhX=hw-2.6, dhZ=2.2;
+  const dh=box(4.6,3.0,2.9,M.accom); dh.position.set(dhX,fl+1.5,dhZ); drillPkg.add(dh);
+  tag(dh,'Doghouse','DH-01','Structure','driller shelter / controls');
+  const dhRoof=box(4.9,0.2,3.2,M.steelDk,false); dhRoof.position.set(dhX,fl+3.1,dhZ); drillPkg.add(dhRoof);
+  // window band facing the well centre (-X face)
+  const dhWin=box(0.08,0.95,2.2,M.glass,false); dhWin.position.set(dhX-2.3,fl+1.9,dhZ); drillPkg.add(dhWin);
+  const dhDoor=box(0.08,2.0,0.95,M.detail,false); dhDoor.position.set(dhX-2.3,fl+1.0,dhZ-1.1); drillPkg.add(dhDoor);
+  // driller's console just outside the door
+  const cons=box(1.5,1.1,0.7,M.steelDk,false); cons.position.set(dhX-3.3,fl+0.55,dhZ-0.4); drillPkg.add(cons);
+  tag(cons,"Driller's Console",'DC-01','Controls','driller control station');
+  /* ---- V-DOOR + CATWALK RAMP (forward face, toward the hull pipe racks) ---- */
+  const vz=-hl+0.35;
+  for(const sx of [-1,1]){                       // V-door jambs in the wind wall
+    const jamb=box(0.45,4.6,0.5,M.yellow,false); jamb.position.set(sx*1.6,fl+2.3,vz); drillPkg.add(jamb);
+  }
+  const vHead=box(3.7,0.45,0.5,M.yellow,false); vHead.position.set(0,fl+4.4,vz); drillPkg.add(vHead);
+  tag(vHead,'V-Door','VD-01','Pipe Handling','tubular entry to drill floor');
+  /* CATWALK RAMP — endpoint-built geometry, no quaternion roll.
+     The previous box/quaternion rails inherited an arbitrary roll while aligning local +Z
+     to the 3D ramp vector. Adding a world-Y offset afterwards made the two rails diverge
+     visually. The deck and both guardrails are now constructed from explicit endpoints
+     with one plan-normal vector, so all three members remain straight, parallel and
+     symmetric for every camera angle and skid position. */
+  const rampTop = new THREE.Vector3(0.0,fl-0.35,vz);
+  const rampFoot= new THREE.Vector3(0.0,DECK_Y+3.5,vz-18.0);
+  const rampVec = new THREE.Vector3().subVectors(rampFoot,rampTop);
+  const rampLen = rampVec.length();
+  const rampDir = rampVec.clone().normalize();
+  const planDir = new THREE.Vector3(rampVec.x,0,rampVec.z).normalize();
+  const sideDir = new THREE.Vector3(-planDir.z,0,planDir.x); // exact horizontal normal
+  const rampMid = new THREE.Vector3().addVectors(rampTop,rampFoot).multiplyScalar(0.5);
+  // Explicit four-corner deck prism. No quaternion is used for the floor, so the
+  // walking surface cannot roll edge-on or disappear in oblique camera views.
+  const rampUp=new THREE.Vector3().crossVectors(sideDir,rampDir).normalize();
+  if(rampUp.y<0)rampUp.multiplyScalar(-1);
+  const halfW=1.30, thick=0.22;
+  const topL=rampTop.clone().addScaledVector(sideDir,-halfW);
+  const topR=rampTop.clone().addScaledVector(sideDir, halfW);
+  const footL=rampFoot.clone().addScaledVector(sideDir,-halfW);
+  const footR=rampFoot.clone().addScaledVector(sideDir, halfW);
+  const bTopL=topL.clone().addScaledVector(rampUp,-thick);
+  const bTopR=topR.clone().addScaledVector(rampUp,-thick);
+  const bFootL=footL.clone().addScaledVector(rampUp,-thick);
+  const bFootR=footR.clone().addScaledVector(rampUp,-thick);
+  const vv=[topL,topR,footL,footR,bTopL,bTopR,bFootL,bFootR];
+  const pos=[];vv.forEach(v=>pos.push(v.x,v.y,v.z));
+  const idx=[0,2,3,0,3,1, 4,7,6,4,5,7, 0,4,6,0,6,2, 1,3,7,1,7,5, 0,1,5,0,5,4, 2,6,7,2,7,3];
+  const rampGeo=new THREE.BufferGeometry();
+  rampGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  rampGeo.setIndex(idx);rampGeo.computeVertexNormals();rampGeo.computeBoundingBox();
+  const ramp=new THREE.Mesh(rampGeo,M.steel);ramp.castShadow=false;ramp.receiveShadow=true;reg(ramp);drillPkg.add(ramp);
+  ramp.userData.topY=rampTop.y;ramp.userData.footY=rampFoot.y;
+  ramp.userData.top=rampTop.clone();ramp.userData.foot=rampFoot.clone();
+  ramp.userData.surfaceNormal=rampUp.clone();ramp.userData.width=2*halfW;
+  tag(ramp,'Catwalk Ramp','CW-01','Pipe Handling','pipe ramp, V-door down to pipe landing');
 
+  // Structural edge beams and cross-members make the catwalk read as a supported tray.
+  drillPkg.add(strut(topL,footL,0.11,M.steelDk));
+  drillPkg.add(strut(topR,footR,0.11,M.steelDk));
+  for(const u of [0,0.25,0.5,0.75,1]){
+    const c=rampTop.clone().lerp(rampFoot,u);
+    const a=c.clone().addScaledVector(sideDir,-halfW);
+    const b=c.clone().addScaledVector(sideDir, halfW);
+    drillPkg.add(strut(a,b,0.075,M.steelDk));
+  }
+  const RAIL_HALF=1.30, RAIL_H=0.72;
+  const railLines=[];
+  for(const sx of [-1,1]){
+    const a=rampTop.clone().addScaledVector(sideDir,sx*RAIL_HALF); a.y+=RAIL_H;
+    const b=rampFoot.clone().addScaledVector(sideDir,sx*RAIL_HALF); b.y+=RAIL_H;
+    const rail=strut(a,b,0.075,M.yellow); drillPkg.add(rail);
+    rail.userData.catwalkRail=true; rail.userData.a=a.clone(); rail.userData.b=b.clone();
+    railLines.push(rail);
+    for(const u of [0,0.25,0.5,0.75,1]){
+      const base=rampTop.clone().lerp(rampFoot,u).addScaledVector(sideDir,sx*RAIL_HALF);
+      const top=base.clone(); top.y+=RAIL_H;
+      drillPkg.add(strut(base,top,0.045,M.yellow));
+    }
+  }
+  ramp.userData.railLines=railLines;
+
+  const rampPt=t=>rampTop.clone().lerp(rampFoot,t);
+  const landing=box(4.4,0.3,3.6,M.grate?M.grate:M.steel,false);
+  landing.position.set(rampFoot.x,rampFoot.y-0.12,rampFoot.z-1.6); drillPkg.add(landing);
+  tag(landing,'Pipe Landing','CW-02','Pipe Handling','ramp foot transfer platform');
+  for(const sx of [-1,1]){
+    const lr=box(0.1,1.0,3.6,M.yellow,false);
+    lr.position.set(rampFoot.x+sx*2.15,rampFoot.y+0.5,rampFoot.z-1.6); drillPkg.add(lr);
+  }
+  {const p=rampPt(0.5),mudTop=DECK_Y+5.0,hgt=p.y-mudTop;
+   if(hgt>0.5) for(const sx of [-1,1]){
+     const q=p.clone().addScaledVector(sideDir,sx*1.15);
+     const lg=box(0.3,hgt,0.3,M.steelDk,false); lg.position.set(q.x,mudTop+hgt/2,q.z); drillPkg.add(lg);
+   }
+  }
+  {const hgt=rampFoot.y-DECK_Y;
+   for(const sx of [-1,1]) for(const sz of [-1,1]){
+     const lg=box(0.34,hgt,0.34,M.steelDk,false);
+     lg.position.set(rampFoot.x+sx*1.9,DECK_Y+hgt/2,rampFoot.z-1.6+sz*1.4); drillPkg.add(lg);
+   }
+   const br=box(4.2,0.22,0.22,M.steelDk,false); br.position.set(rampFoot.x,DECK_Y+hgt*0.5,rampFoot.z-1.6); drillPkg.add(br);
+  }
+  const JOINT_LEN=rampLen*0.55;
+  const joint=cyl(0.17,0.17,JOINT_LEN,M.pipe,10,false);
+  const jointCentre=rampPt(0.50).addScaledVector(rampUp,0.30);
+  joint.position.copy(jointCentre);
+  joint.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),rampDir);
+  drillPkg.add(joint);
+  drillPkg.userData.partCount=DRILL_PARTS.length;
+}
+/* ============================================================================
+   PHASE D2 (Tier C) — CELLAR / SUBSTRUCTURE EQUIPMENT
+   ============================================================================ */
+function buildCellarEquipment(dfY, baseY){
+  const cel = baseY + 0.35;                 // cellar working level
+  const hw  = K.SUB_W/2, hl = K.SUB_L/2;
+  for(const sx of [-1,1]){
+    const g=box(hw-1.6, 0.12, K.SUB_L*0.78, M.detail, false);
+    g.position.set(sx*(hw*0.55), cel, 0); drillPkg.add(g);
+  }
+  const aX=hw-2.4, aZ=-hl+5.2;
+  const skid=box(4.2,0.35,3.0,M.steelDk,false); skid.position.set(aX,cel+0.2,aZ); drillPkg.add(skid);
+  const accBank=new THREE.Group(); drillPkg.add(accBank);
+  for(let r=0;r<2;r++)for(let i=0;i<6;i++){          // 12 nitrogen bottles
+    const b=cyl(0.26,0.26,2.3,M.craneRed,12,false);
+    b.position.set(aX-1.7+i*0.62, cel+1.5, aZ-0.7+r*1.4); accBank.add(b);
+    const cap=cyl(0.2,0.26,0.2,M.steelDk,10,false);
+    cap.position.set(aX-1.7+i*0.62, cel+2.72, aZ-0.7+r*1.4); accBank.add(cap);
+  }
+  const accPanel=box(1.5,1.9,0.7,M.eqBlue?M.eqBlue:M.steel,false);
+  accPanel.position.set(aX+1.6,cel+1.2,aZ); drillPkg.add(accPanel);
+  tag(accPanel,'BOP Accumulator (Koomey)','ACC-01','Well Control','N2 bottle bank + control manifold');
+  const accHdr=cyl(0.12,0.12,4.0,M.pipe,8,false); accHdr.rotation.z=Math.PI/2;
+  accHdr.position.set(aX,cel+2.95,aZ); drillPkg.add(accHdr);
+  const cX=-hw+2.6, cZ=-hl+5.6;
+  const cSkid=box(4.6,0.35,2.4,M.steelDk,false); cSkid.position.set(cX,cel+0.2,cZ); drillPkg.add(cSkid);
+  const hdr=cyl(0.28,0.28,4.2,M.pipe,12,false); hdr.rotation.z=Math.PI/2;
+  hdr.position.set(cX,cel+1.25,cZ); drillPkg.add(hdr);
+  tag(hdr,'Choke Manifold','CHK-01','Well Control','choke + valve bank');
+  for(let i=0;i<4;i++){
+    const vx=cX-1.5+i*1.0;
+    const vb=box(0.5,0.62,0.5,M.craneRed,false); vb.position.set(vx,cel+1.85,cZ); drillPkg.add(vb);
+    const hwl=new THREE.Mesh(new THREE.TorusGeometry(0.24,0.045,5,12),M.yellow);
+    hwl.position.set(vx,cel+2.28,cZ); hwl.rotation.x=Math.PI/2; reg(hwl); drillPkg.add(hwl);
+  }
+  const chokeBody=cyl(0.3,0.36,0.9,M.steelDk,12,false);
+  chokeBody.position.set(cX+1.9,cel+1.75,cZ); drillPkg.add(chokeBody);
+  const chokeLine=cyl(0.2,0.2,5.5,M.pipe,10,false);
+  chokeLine.rotation.x=Math.PI/2; chokeLine.position.set(cX+0.4,cel+1.25,cZ+3.2); drillPkg.add(chokeLine);
+  const hX=-2.2, hZ=hl-4.0;
+  const hSkid=box(4.0,0.3,2.6,M.steelDk,false); hSkid.position.set(hX,cel+0.18,hZ); drillPkg.add(hSkid);
+  const hBody=box(3.4,1.9,2.1,M.accom2,false); hBody.position.set(hX,cel+1.3,hZ); drillPkg.add(hBody);
+  tag(hBody,'Hydraulic Power Unit','HPU-01','Utilities','roughneck / BOP hydraulics');
+  for(let i=0;i<2;i++){
+    const mtr=cyl(0.35,0.35,1.1,M.steelDk,12,false); mtr.rotation.z=Math.PI/2;
+    mtr.position.set(hX-0.8+i*1.6,cel+2.5,hZ); drillPkg.add(mtr);
+  }
+  const hTank=cyl(0.55,0.55,1.6,M.eqGrey?M.eqGrey:M.accom2,14,false);
+  hTank.position.set(hX+2.4,cel+1.1,hZ); drillPkg.add(hTank);
+  const div=cyl(1.05,1.25,1.6,M.steelDk,18,false);
+  div.position.set(0,dfY-1.6,0); drillPkg.add(div);
+  tag(div,'Diverter Housing','DIV-01','Well Control','below rotary table');
+  const divFlange=cyl(1.35,1.35,0.22,M.detail,18,false);
+  divFlange.position.set(0,dfY-0.75,0); drillPkg.add(divFlange);
+  drillPkg.userData.cellarCount=6;
+}
+/* ============================================================================
+   PHASE B — DERRICK ACTIVITY  (racked stands · rotary hose · hoisting string)
+   ============================================================================ */
+function buildDerrickActivity(dfY, H, bx, bz, cw){
+  const fl = dfY + 1.0;
+  const rackY = dfY + H*0.56;
+  const halfW = t => bx + (cw-bx)*t;
+  const halfD = t => bz + (cw-bz)*t;
+  const STAND_TOP_CLEARANCE = 0.40;
+  const STAND_LEN = rackY - fl - STAND_TOP_CLEARANCE;
+  const tTop = 0.56;
+  const standsG = new THREE.Group(); drillPkg.add(standsG);
+  const colX = [1.55,2.20], rowZ = [1.80,2.75,3.70];
+  let nStand=0, worstOut=-1e9, minCorridor=Infinity;
+  for(const sx of [-1,1]) for(const cx of colX) for(const cz of rowZ){
+    const x = sx*cx;
+    const p = cyl(0.17,0.17,STAND_LEN,M.pipe,8,false);
+    p.position.set(x,fl+STAND_LEN/2,cz); standsG.add(p);
+    p.userData.standTop=fl+STAND_LEN; p.userData.standBottom=fl;
+    const collar = cyl(0.21,0.21,0.34,M.detail,8,false);
+    collar.position.set(x,fl+STAND_LEN-1.2,cz); standsG.add(collar);
+    nStand++;
+    minCorridor=Math.min(minCorridor,Math.abs(x)-0.17);
+    worstOut=Math.max(worstOut,Math.abs(x)+0.17-halfW(tTop),Math.abs(cz)+0.17-halfD(tTop));
+  }
+  for(const sx of [-1,1]) for(const cx of colX){
+    const rail=box(0.44,0.18,5.0,M.steelDk,false);
+    rail.position.set(sx*cx,fl-0.09,2.75); standsG.add(rail);
+  }
+  standsG.userData.count=nStand;
+  standsG.userData.maxProtrusion=worstOut;
+  standsG.userData.standTop=fl+STAND_LEN;
+  standsG.userData.rackY=rackY;
+  standsG.userData.minCorridor=minCorridor;
+  tag(standsG.children[0],'Racked Stands','DP-01','Racking',nStand+' x triple stand');
+
+  const spX=1.6, spZ=bz*0.3;
+  const tdY=dfY+H*0.42;
+  const hoseStart=new THREE.Vector3(spX,dfY+H*0.50,spZ);
+  const hoseEnd=new THREE.Vector3(0.10,tdY+1.75,0.05);
+  const hoseCurve=new THREE.CatmullRomCurve3([
+    hoseStart,
+    new THREE.Vector3(spX-0.15,dfY+H*0.535,spZ*0.75),
+    new THREE.Vector3(spX-0.75,dfY+H*0.525,spZ*0.40),
+    new THREE.Vector3(spX-1.25,dfY+H*0.485,spZ*0.15),
+    hoseEnd
+  ]);
+  const hose=new THREE.Mesh(new THREE.TubeGeometry(hoseCurve,24,0.13,6,false),M.dark);
+  hose.castShadow=false; hose.receiveShadow=true; reg(hose); drillPkg.add(hose);
+  hose.userData.start=hoseStart.clone(); hose.userData.end=hoseEnd.clone();
+  tag(hose,'Rotary Hose','RH-02','Circulating','standpipe to top drive');
+  for(const t of [0.0,1.0]){
+    const p=hoseCurve.getPoint(t), tangent=hoseCurve.getTangent(t).normalize();
+    const cpl=cyl(0.17,0.17,0.45,M.steelDk,10,false);
+    cpl.position.copy(p);
+    cpl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tangent);
+    cpl.userData.hoseT=t; cpl.userData.axis=tangent.clone();
+    drillPkg.add(cpl);
+  }
+  const neckCurve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(spX,dfY+H*0.47,spZ),
+    new THREE.Vector3(spX,dfY+H*0.49,spZ),
+    new THREE.Vector3(spX,dfY+H*0.50,spZ)
+  ]);
+  const gnk=new THREE.Mesh(new THREE.TubeGeometry(neckCurve,8,0.19,8,false),M.pipe);
+  gnk.castShadow=false; reg(gnk); drillPkg.add(gnk);
+
+  const hoistingAssembly=new THREE.Group();
+  hoistingAssembly.name='Hoisting Assembly';
+  drillPkg.add(hoistingAssembly);
+  const tbBot=dfY+H*0.54-1.7;
+  const tdTop=tdY+1.6, tdBot=tdY-1.6;
+  const becket=box(0.9,0.5,0.7,M.steelDk,false); becket.position.set(0,tbBot-0.3,0); hoistingAssembly.add(becket);
+  const hookBody=cyl(0.34,0.34,1.1,M.red,12,false); hookBody.position.set(0,tbBot-1.05,0); hoistingAssembly.add(hookBody);
+  tag(hookBody,'Hook','HK-01','Hoisting','block hook / becket');
+  for(const sx of [-1,1]) hoistingAssembly.add(strut(
+    new THREE.Vector3(sx*0.34,tbBot-1.5,0),new THREE.Vector3(sx*0.85,tdTop,0),0.09,M.steelDk));
+  const elevY=tdBot-2.2;
+  for(const sx of [-1,1]) hoistingAssembly.add(strut(
+    new THREE.Vector3(sx*0.78,tdBot,0),new THREE.Vector3(sx*0.62,elevY+0.25,0),0.085,M.steelDk));
+  const elev=cyl(0.62,0.62,0.7,M.craneRed,14,false); elev.position.set(0,elevY,0); hoistingAssembly.add(elev);
+  tag(elev,'Elevator','EL-01','Hoisting','pipe elevator');
+  const elevLatch=box(0.36,0.42,0.9,M.steelDk,false); elevLatch.position.set(0,elevY,0.62); hoistingAssembly.add(elevLatch);
+  const strTop=elevY-0.35, strBot=dfY+0.4, strLen=strTop-strBot;
+  const str=cyl(0.19,0.19,strLen,M.pipe,10,false); str.position.set(0,strBot+strLen/2,0); hoistingAssembly.add(str);
+  tag(str,'Drill String','DS-01','Rotating','string in the rotary');
+  for(let i=1;i<=2;i++){
+    const tj=cyl(0.24,0.24,0.4,M.detail,10,false);
+    tj.position.set(0,strBot+strLen*(i/3),0); hoistingAssembly.add(tj);
+  }
+  hoistingAssembly.userData.centrelineError=0;
+  drillPkg.userData.standCount=nStand;
+  drillPkg.userData.hoistingAssembly=hoistingAssembly;
+}
 /* ---- CRANE ---- */
-function buildCrane(px,pz,baseYtop,facingRad, boomAngleDeg){
+function buildCrane(px,pz,baseYtop,facingRad, boomAngleDeg, boomRest){
   const grp=new THREE.Group();
   grp.position.set(px, baseYtop, pz);
   grp.rotation.y=facingRad;
-  const ped=cyl(1.9,2.3,7,M.craneRed,16); ped.position.y=3.5; grp.add(ped);
-  const slew=cyl(2.2,2.2,0.8,M.steelDk,20); slew.position.y=7.2; grp.add(slew);
+  // PHASE C: parked crane — boom lowered nearly horizontal and cradled on a boom rest.
+  if(boomRest && boomAngleDeg==null) boomAngleDeg=94;
+  const ped=cyl(1.9,2.3,7,M.craneRed,28); ped.position.y=3.5; grp.add(ped);
+  const slew=cyl(2.2,2.2,0.8,M.steelDk,32); slew.position.y=7.2; grp.add(slew);
   const house=new THREE.Group(); house.position.y=7.6; grp.add(house);
   const mh=box(4.2,3.4,6.2,M.craneRed); mh.position.set(0,1.7,-1.5); house.add(mh);
   const cab=box(2.4,2.2,2.4,M.accom); cab.position.set(2.4,1.5,2.4); house.add(cab);
@@ -836,9 +1361,9 @@ function buildCrane(px,pz,baseYtop,facingRad, boomAngleDeg){
   const windF=box(2,1.25,.10,M.glass,false);windF.position.set(2.4,2,3.64);house.add(windF);const cabRoof=box(2.75,.24,2.75,M.craneRed,false);cabRoof.position.set(2.4,3,2.4);house.add(cabRoof);
   const counterW=box(3.0,2.0,2.0,M.steelDk); counterW.position.set(0,1.6,-4.2); house.add(counterW);
   const boom=new THREE.Group(); boom.position.set(0,2.0,2.6);
-  boom.rotation.x = THREE.MathUtils.degToRad(-(90-boomAngleDeg));
+  boom.rotation.x=THREE.MathUtils.degToRad(-(90-boomAngleDeg));
+  boom.userData.parked=!!boomRest; boom.userData.elevationDeg=90-boomAngleDeg;
   house.add(boom);
-  // Static visual hydraulic supports; boom angle is fixed in this viewer.
   const hinge=cyl(.72,.72,3.1,M.detail,20);hinge.rotation.z=Math.PI/2;hinge.position.set(0,2,2.5);house.add(hinge);house.add(strut(new THREE.Vector3(-1.2,1,-.2),new THREE.Vector3(-.65,4.4,5.8),.18,M.detail));house.add(strut(new THREE.Vector3(1.2,1,-.2),new THREE.Vector3(.65,4.4,5.8),.18,M.detail));
   const BL=K.CRANE_BOOM, seg=Math.round(BL/4.5), wB=1.5;
   const boomHalf=t=>THREE.MathUtils.lerp(wB/2,wB*0.22,Math.max(0,(t-0.78)/0.22));
@@ -869,25 +1394,38 @@ function buildCrane(px,pz,baseYtop,facingRad, boomAngleDeg){
     const sheave=new THREE.Mesh(new THREE.TorusGeometry(0.58,0.13,8,22),M.detail);
     sheave.rotation.y=Math.PI/2; sheave.position.x=sx; reg(sheave); head.add(sheave);
   }
+  // Hook assembly is parented to the crane root, not the rotated boom. This keeps
+  // the hoist wire vertical in world coordinates while its X/Z stays under the boom tip.
   const drop=14;
-  const wire=cyl(0.035,0.035,drop,M.dark,5,false);
-  wire.position.set(0,-drop/2,BL+0.35); boom.add(wire);
-  const block=box(1.15,1.45,0.62,M.red,false);
-  block.position.set(0,-drop,BL+0.35); boom.add(block);
-  const swivel=cyl(0.16,0.16,0.65,M.steelDk,10,false);
-  swivel.position.set(0,-drop-0.95,BL+0.35); boom.add(swivel);
+  const th=boom.rotation.x, tipZ=BL+0.35;
+  const tipLocal=new THREE.Vector3(0,0,tipZ).applyEuler(new THREE.Euler(th,0,0));
+  tipLocal.add(boom.position).add(house.position);
+  const hookG=new THREE.Group();hookG.position.set(tipLocal.x,tipLocal.y,tipLocal.z);grp.add(hookG);
+  const wire=cyl(0.035,0.035,drop,M.dark,5,false);wire.position.y=-drop/2;hookG.add(wire);
+  const block=box(0.85,1.05,0.48,M.red,false);block.position.y=-drop;hookG.add(block);
+  const swivel=cyl(0.12,0.12,0.50,M.steelDk,10,false);swivel.position.y=-drop-0.95;hookG.add(swivel);
   const hookCurve=new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0,-drop-1.20,BL+0.35),
-    new THREE.Vector3(0,-drop-2.00,BL+0.35),
-    new THREE.Vector3(0.55,-drop-2.50,BL+0.35),
-    new THREE.Vector3(0.85,-drop-2.05,BL+0.35)
+    new THREE.Vector3(0,-drop-1.20,0),new THREE.Vector3(0,-drop-2.00,0),
+    new THREE.Vector3(0.38,-drop-2.15,0),new THREE.Vector3(0.58,-drop-1.82,0)
   ]);
-  const hook=new THREE.Mesh(new THREE.TubeGeometry(hookCurve,16,0.13,8,false),M.red);
-  reg(hook); boom.add(hook);
+  const hook=new THREE.Mesh(new THREE.TubeGeometry(hookCurve,16,0.10,8,false),M.red);reg(hook);hookG.add(hook);
+  hookG.userData.tip=tipLocal.clone();hookG.userData.drop=drop;hookG.userData.wireAxis=new THREE.Vector3(0,-1,0);
+  grp.userData.hookAssembly=hookG;
+  // PHASE C: boom-rest A-frame cradle catching the lowered boom part-way along its length
+  if(boomRest){
+    const th=THREE.MathUtils.degToRad(-(90-boomAngleDeg));
+    const along=17;
+    const ry=9.6 - along*Math.sin(-th);
+    const rz=2.6 + along*Math.cos(-th);
+    for(const sx of [-1,1])
+      grp.add(strut(new THREE.Vector3(sx*1.4,0,rz-0.4),new THREE.Vector3(0,ry-0.4,rz),0.14,M.yellow));
+    const cradle=box(2.6,0.4,1.0,M.yellow,false); cradle.position.set(0,ry-0.2,rz); grp.add(cradle);
+    const vee=box(1.4,0.5,0.4,M.craneRed,false); vee.position.set(0,ry+0.05,rz); grp.add(vee);
+  }
+  grp.userData.parked=!!boomRest; grp.userData.facingRad=facingRad; grp.userData.boom=boom;
   G.cranes.add(grp);
   return grp;
 }
-
 /* ---- HELIDECK (octagon, fwd of bow) ---- */
 function buildHelideck(){
   const r=K.HELI_D/2;
@@ -900,10 +1438,19 @@ function buildHelideck(){
   const hB=makeHMark(); hB.position.set(0,0.3,0); grp.add(hB);
   const mk=new THREE.Mesh(new THREE.TorusGeometry(r*0.82,0.35,6,40),M.mark);
   mk.rotation.x=Math.PI/2; mk.position.y=0.28; reg(mk); grp.add(mk);
-  const net=new THREE.Mesh(new THREE.CylinderGeometry(r+2.4,r,1.4,24,1,true),
-            new THREE.MeshStandardMaterial({color:0xcf7a2a,roughness:.8,side:THREE.DoubleSide,
-            transparent:true,opacity:.5,wireframe:true}));
-  net.position.y=-0.7; reg(net); grp.add(net);
+  // Flat annular safety net. The previous conical wireframe hung far below the deck
+  // and read as a basket. This net remains in the helideck plane with radial supports.
+  const netMat=new THREE.MeshBasicMaterial({color:0xb57a32,transparent:true,opacity:.55,
+    wireframe:true,side:THREE.DoubleSide,depthWrite:false});
+  const net=new THREE.Mesh(new THREE.RingGeometry(r,r+2.2,24,2),netMat);
+  net.rotation.x=-Math.PI/2;net.position.y=-0.10;reg(net);grp.add(net);
+  const outer=new THREE.Mesh(new THREE.TorusGeometry(r+2.2,0.10,6,24),M.steelDk);
+  outer.rotation.x=Math.PI/2;outer.position.y=-0.08;reg(outer);grp.add(outer);
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    grp.add(strut(new THREE.Vector3(Math.cos(a)*r,-0.06,Math.sin(a)*r),
+                  new THREE.Vector3(Math.cos(a)*(r+2.2),-0.06,Math.sin(a)*(r+2.2)),0.035,M.steelDk));
+  }
   const deckTopY = DECK_Y - cy;
   const rakeZ = (-cz) - K.HULL_L/2 + 6;
   for(const sx of [-1,1]){
@@ -925,6 +1472,34 @@ function buildHelideck(){
     lt.position.set(Math.cos(a)*(r-0.4),0.55,Math.sin(a)*(r-0.4));
     lt.userData.aviation=true; reg(lt); grp.add(lt);
   }
+  /* Simplified forward towing bridle stowed beneath the bow helideck.
+     Two bridle legs lead from separated hull-side attachments to a delta plate, with a
+     short fore-runner and messenger hanging below. This represents the visible arrangement
+     only; dimensions are illustrative and not for towing design or load assessment. */
+  const towG=new THREE.Group();towG.name='Forward Tow Bridle';grp.add(towG);
+  const attachY=deckTopY+1.2;
+  const portAttach=new THREE.Vector3(-8.5,attachY,rakeZ+1.0);
+  const stbdAttach=new THREE.Vector3(8.5,attachY,rakeZ+1.0);
+  const delta=new THREE.Vector3(0,-8.5,-4.5);
+  const chainMat=MT({color:0x343a40,roughness:.52,metalness:.72,env:1.0});
+  const wireMat=MT({color:0x555d65,roughness:.45,metalness:.78,env:1.1});
+  towG.add(strut(portAttach,delta,0.11,chainMat));
+  towG.add(strut(stbdAttach,delta,0.11,chainMat));
+  for(const a of [portAttach,stbdAttach]){
+    const eye=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.085,7,18),M.steelDk);
+    eye.rotation.y=Math.PI/2;eye.position.copy(a);reg(eye);towG.add(eye);
+  }
+  const plateShape=new THREE.Shape();plateShape.moveTo(-0.8,-0.55);plateShape.lineTo(0.8,-0.55);plateShape.lineTo(0,0.85);plateShape.closePath();
+  const plateGeo=new THREE.ExtrudeGeometry(plateShape,{depth:0.18,bevelEnabled:false});plateGeo.translate(0,0,-0.09);
+  const deltaPlate=new THREE.Mesh(plateGeo,M.yellow);deltaPlate.position.copy(delta);deltaPlate.rotation.x=Math.PI/2;reg(deltaPlate);towG.add(deltaPlate);
+  const runnerEnd=new THREE.Vector3(0,-15.5,-8.0);
+  towG.add(strut(delta,runnerEnd,0.085,wireMat));
+  const messengerEnd=new THREE.Vector3(0.8,-18.0,-9.5);
+  towG.add(strut(runnerEnd,messengerEnd,0.035,M.dark));
+  const buoy=cyl(0.28,0.36,0.70,M.orange,12,false);buoy.position.copy(messengerEnd);towG.add(buoy);
+  towG.userData.attachSpacing=portAttach.distanceTo(stbdAttach);
+  towG.userData.delta=delta.clone();towG.userData.runnerEnd=runnerEnd.clone();
+  G.helideck.userData.towBridle=towG;
   G.helideck.userData.grp=grp;
 }
 function makeHMark(){
@@ -935,7 +1510,6 @@ function makeHMark(){
   const c=bar(3.6,1.2); g.add(c);
   return g;
 }
-
 /* ---- ACCOMMODATION ---- */
 function buildAccommodation(){
   const grp=new THREE.Group(); G.accommodation.add(grp);
@@ -948,97 +1522,169 @@ function buildAccommodation(){
     {y:9.8, h:3.2, w:blockW*0.84, l:blockL*0.82, m:M.accom},
     {y:13.0,h:3.0, w:blockW*0.72, l:blockL*0.7,  m:M.accom2},
   ];
+  /* FIX — BOW LEG WELL:
+     The forward leg stands at x=0, z=LEG_POS[0].z, i.e. right inside the deckhouse
+     footprint. A solid block therefore speared straight through the accommodation.
+     Real jack-ups carry a bow leg through an OPEN LEG WELL: the house is split into a
+     port and a starboard wing that wrap around the leg/jack-house, with a clear slot
+     between them. Each deck level is now built as two wings with that slot. */
+  const LEG_WELL_HALF = 8.7;
+  const bowLegZ = LEG_POS[0].z;
   grp.userData.decks=[];
   decks.forEach((d)=>{
     const dg=new THREE.Group();
     dg.position.set(0, DECK_Y+d.y+d.h/2, baseZ);
-    const b=box(d.w,d.h,d.l,d.m); dg.add(b);
-    addWindows(dg,d.w,d.h,d.l);
-    const roof=box(d.w+.45,.18,d.l+.45,M.accom2,false);roof.position.y=d.h/2+.12;dg.add(roof);
+    const halfW=d.w/2;
+    const wingW=halfW-LEG_WELL_HALF;
+    if(wingW>1.0){
+      for(const sx of [-1,1]){
+        const cx=sx*(LEG_WELL_HALF+wingW/2);
+        const b=box(wingW,d.h,d.l,d.m); b.position.x=cx; dg.add(b);
+        addWindows(dg,wingW,d.h,d.l,cx);
+        const roof=box(wingW+.45,.18,d.l+.45,M.accom2,false);
+        roof.position.set(cx+sx*0.225,d.h/2+.12,0); dg.add(roof);
+      }
+      /* FIX — CONNECT THE WINGS. */
+      const wellA=(bowLegZ+LEG_WELL_HALF)-baseZ;
+      const wellF=(bowLegZ-LEG_WELL_HALF)-baseZ;
+      const addLink=(z0,z1)=>{
+        const L=z1-z0; if(L<0.8) return;
+        const link=box(LEG_WELL_HALF*2,d.h,L,d.m);
+        link.position.set(0,0,(z0+z1)/2); dg.add(link);
+        const lroof=box(LEG_WELL_HALF*2+.3,.18,L+.3,M.accom2,false);
+        lroof.position.set(0,d.h/2+.12,(z0+z1)/2); dg.add(lroof);
+      };
+      addLink(-d.l/2, wellF);
+      addLink(wellA,  d.l/2);
+      for(const sz of [wellF,wellA]){
+        if(sz<-d.l/2-0.1||sz>d.l/2+0.1) continue;
+        const head=box(LEG_WELL_HALF*2,0.55,0.5,d.m,false);
+        head.position.set(0,d.h/2-0.3,sz); dg.add(head);
+      }
+    } else {
+      const shortL=Math.max(3.0,(baseZ+d.l/2)-(bowLegZ+LEG_WELL_HALF));
+      const b=box(d.w,d.h,shortL,d.m); b.position.z=(d.l/2)-shortL/2; dg.add(b);
+      const roof=box(d.w+.45,.18,shortL+.45,M.accom2,false);
+      roof.position.set(0,d.h/2+.12,(d.l/2)-shortL/2); dg.add(roof);
+    }
     dg.userData.baseY=DECK_Y+d.y+d.h/2;
     grp.add(dg); grp.userData.decks.push(dg);  });
-  const bridgeRibbon=box(blockW*.70,1.15,.12,M.glass,false);bridgeRibbon.position.set(0,DECK_Y+14.2,baseZ-blockL*.295);grp.add(bridgeRibbon);const roofDeck=box(blockW*.48,.35,blockL*.44,M.steelDk,false);roofDeck.position.set(0,DECK_Y+16.25,baseZ);grp.add(roofDeck);
+  /* FIX: the bridge/roof deck sat AFT of the bow leg well where only 0.67 m of house
+     remains, putting its handrail 7.11 m from the leg axis. Moved to the FORWARD end. */
+  const brZ=baseZ-blockL/2+4.3;
+  const bridgeRibbon=box(blockW*.52,1.15,.12,M.glass,false);bridgeRibbon.position.set(0,DECK_Y+14.2,brZ-3.0);grp.add(bridgeRibbon);
+  const roofDeck=box(blockW*.42,.35,blockL*.26,M.steelDk,false);roofDeck.position.set(0,DECK_Y+16.25,brZ);grp.add(roofDeck);
   const pilH=6.6;
   for(const sx of [-1,1]) for(const sz of [-1,1]){
     const pil=cyl(0.55,0.55,pilH,M.accom2,10,false);
     pil.position.set(sx*(blockW/2-0.2), DECK_Y+pilH/2, baseZ+sz*(blockL/2-0.2)); grp.add(pil);
   }
-  const canopy=pitchedRoof(7,3,0.9,M.steelDk); canopy.position.set(0,DECK_Y+3.4,baseZ-blockL/2-1.4); grp.add(canopy);
-  for(const sx of [-1,1]){ const cpost=cyl(0.12,0.12,3.2,M.detail,6,false); cpost.position.set(sx*3,DECK_Y+1.6,baseZ-blockL/2-2.7); grp.add(cpost); }
-  const rw=blockW*.48/2, rd=blockL*.44/2, rY=DECK_Y+16.6;
+  for(const sx of [-1,1]){
+    const p=box(0.5,pilH,0.5,M.steelDk,false);
+    p.position.set(sx*8.7, DECK_Y+pilH/2, LEG_POS[0].z+8.7); grp.add(p);
+  }
+  const canX=14.5;
+  const canopy=pitchedRoof(7,3,0.9,M.steelDk); canopy.position.set(canX,DECK_Y+3.4,baseZ-blockL/2-1.4); grp.add(canopy);
+  for(const sx of [-1,1]){ const cpost=cyl(0.12,0.12,3.2,M.detail,6,false); cpost.position.set(canX+sx*3,DECK_Y+1.6,baseZ-blockL/2-2.7); grp.add(cpost); }
+  const rw=blockW*.42/2, rd=blockL*.26/2, rY=DECK_Y+16.6;
   const rmPts=[[-rw,-rd],[rw,-rd],[rw,rd],[-rw,rd],[-rw,-rd]];
-  for(let i=0;i<rmPts.length-1;i++){ grp.add(strut(new THREE.Vector3(rmPts[i][0],rY,baseZ+rmPts[i][1]),new THREE.Vector3(rmPts[i+1][0],rY,baseZ+rmPts[i+1][1]),0.05,M.rail)); }
-  for(const sx of [-1,1]){ const hvac=box(3.2,1.6,2.4,M.accom2,false); hvac.position.set(sx*4.5,DECK_Y+17.2,baseZ+3); grp.add(hvac);
-    const fan=cyl(0.8,0.8,0.4,M.dark,12,false); fan.position.set(sx*4.5,DECK_Y+18.1,baseZ+3); grp.add(fan); }
-  const st=box(3.4,16.5,3.4,M.steelDk); st.position.set(blockW/2-2, DECK_Y+8.3, baseZ+9); grp.add(st);
+  for(let i=0;i<rmPts.length-1;i++){ grp.add(strut(new THREE.Vector3(rmPts[i][0],rY,brZ+rmPts[i][1]),new THREE.Vector3(rmPts[i+1][0],rY,brZ+rmPts[i+1][1]),0.05,M.rail)); }
+  for(const sx of [-1,1]){ const hvac=box(3.2,1.6,2.4,M.accom2,false); hvac.position.set(sx*4.5,DECK_Y+17.2,brZ+1.5); grp.add(hvac);
+    const fan=cyl(0.8,0.8,0.4,M.dark,12,false); fan.position.set(sx*4.5,DECK_Y+18.1,brZ+1.5); grp.add(fan); }
+  const st=box(3.4,16.5,3.4,M.steelDk); st.position.set(blockW/2-2.4, DECK_Y+8.3, baseZ-8.5); grp.add(st);
   const mast=cyl(0.18,0.28,14,M.steel,8); mast.position.set(-blockW/2+3, DECK_Y+16+7, baseZ-6); grp.add(mast);
   const yard=box(4,0.15,0.15,M.steel); yard.position.set(-blockW/2+3, DECK_Y+16+11, baseZ-6); grp.add(yard);
   const beacon=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),
     new THREE.MeshStandardMaterial({color:0x400,emissive:0xff2a2a,emissiveIntensity:0.6}));
   beacon.position.set(-blockW/2+3, DECK_Y+16+14, baseZ-6); beacon.userData.navlight=true; reg(beacon); grp.add(beacon);
-  for(let i=0;i<3;i++){
-    const v=cyl(0.9,0.9,2.4,M.steel,12); v.position.set(-4+i*4, DECK_Y+16+1.2, baseZ+2); grp.add(v);
+  for(const sx of [-1,1]) for(let i=0;i<2;i++){
+    const v=cyl(0.8,0.8,2.2,M.steel,12);
+    v.position.set(sx*(12.5+i*3.4), DECK_Y+16+1.1, baseZ+2); grp.add(v);
   }
 }
-function addWindows(dg,w,h,l){
+function addWindows(dg,w,h,l,cx){
+  cx=cx||0;
   const rows=Math.max(1,Math.floor(l/3.2));
   for(const sx of [-1,1]){
     for(let i=0;i<rows;i++){
       const wz=-l/2+2+i*3.2; if(wz>l/2-1) continue;
-      const win=box(0.08,1.0,1.7,M.glass); win.position.set(sx*(w/2), 0, wz); dg.add(win);
+      const win=box(0.08,1.0,1.7,M.glass); win.position.set(cx+sx*(w/2), 0, wz); dg.add(win);
     }
   }
   const cols=Math.max(2,Math.floor(w/3.4));
   for(let i=0;i<cols;i++){
     const wx=-w/2+2.2+i*3.4; if(wx>w/2-1) continue;
-    const win=box(1.8,1.0,0.08,M.glass); win.position.set(wx,0,-l/2); dg.add(win);
+    const win=box(1.8,1.0,0.08,M.glass); win.position.set(cx+wx,0,-l/2); dg.add(win);
   }
 }
-
 /* ---- LIFEBOATS ---- */
+function buildLifeboatStation(sx){
+  const g=new THREE.Group();
+  g.position.set(sx*(K.HULL_W/2-3.0), DECK_Y, -20);
+  g.rotation.y = (sx>0 ? 0 : Math.PI);
+  const BL=8.0, BR=1.3;
+  for(const zz of [-3.2,3.2]){
+    const post=box(0.5,6.2,0.5,M.yellow); post.position.set(-1.2,3.1,zz); g.add(post);
+    g.add(strut(new THREE.Vector3(-1.2,6.1,zz), new THREE.Vector3(3.8,5.3,zz), 0.24, M.yellow));
+    g.add(strut(new THREE.Vector3(-1.2,6.1,zz), new THREE.Vector3(-2.7,0.2,zz), 0.15, M.yellow));
+    const sh=cyl(0.28,0.28,0.22,M.steelDk,12,false); sh.rotation.x=Math.PI/2;
+    sh.position.set(3.8,5.3,zz); g.add(sh);
+  }
+  const span=box(0.36,0.36,6.9,M.yellow,false); span.position.set(-1.2,6.3,0); g.add(span);
+  const lb=new THREE.Group(); lb.position.set(2.6,2.7,0); g.add(lb);
+  const body=cyl(BR,BR,BL-2.4,M.orange,20); body.rotation.x=Math.PI/2; lb.add(body);
+  for(const s2 of [-1,1]){
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(BR,1.5,20),M.orange);
+    cone.rotation.x=s2*Math.PI/2; cone.position.z=s2*((BL-2.4)/2+0.72); reg(cone); lb.add(cone);
+  }
+  const canopy=cyl(BR*0.74,BR*0.74,BL-3.2,M.orange,18); canopy.rotation.x=Math.PI/2;
+  canopy.position.y=0.82; lb.add(canopy);
+  const coning=cyl(0.46,0.46,1.0,M.orange,14,false); coning.position.set(0,1.55,-1.5); lb.add(coning);
+  const keel=box(0.32,0.46,BL-3.0,M.detail,false); keel.position.y=-1.22; lb.add(keel);
+  for(const sd of [-1,1]){
+    for(const zz of [-1.9,-0.6,0.7,2.0]){
+      const win=box(0.1,0.4,0.7,M.glass,false); win.position.set(sd*(BR*0.72),1.0,zz); lb.add(win);
+    }
+    const rub=box(0.15,0.18,BL-2.6,M.dark,false); rub.position.set(sd*BR*0.97,0.12,0); lb.add(rub);
+  }
+  for(const zz of [-2.2,2.2]){
+    g.add(strut(new THREE.Vector3(3.8,5.25,zz), new THREE.Vector3(2.6,3.9,zz), 0.032, M.dark));
+    const hook=box(0.2,0.3,0.2,M.steelDk,false); hook.position.set(2.6,3.75,zz); g.add(hook);
+  }
+  const plat=box(1.5,0.14,BL-1.0,M.detail,false); plat.position.set(0.55,1.15,0); g.add(plat);
+  const railTop=box(0.06,0.06,BL-1.0,M.rail,false); railTop.position.set(-0.2,2.2,0); g.add(railTop);
+  for(const sd of [-1,1]){
+    g.add(strut(new THREE.Vector3(-0.2,1.2,sd*3.5), new THREE.Vector3(1.3,1.2,sd*3.5), 0.045, M.rail));
+    g.add(strut(new THREE.Vector3(-0.2,2.2,sd*3.5), new THREE.Vector3(-0.2,1.2,sd*3.5), 0.04, M.rail));
+  }
+  const winch=box(0.9,0.75,1.1,M.steelDk,false); winch.position.set(-2.2,0.55,0); g.add(winch);
+  G.lifeboats.add(g);
+  return g;
+}
 function buildLifeboats(){
-  const spots=[
-    {x:0,               z:-K.HULL_L/2+2, ry:0},
-    {x:-K.HULL_W/2+1,   z:2,             ry:Math.PI/2},
-    {x: K.HULL_W/2-1,   z:2,             ry:-Math.PI/2},
-  ];
-  spots.forEach(s=>{
-    const g=new THREE.Group(); g.position.set(s.x, DECK_Y+3.2, s.z); g.rotation.y=s.ry;
-    const post=box(0.6,6,0.6,M.yellow); post.position.set(0,3,-1.4); g.add(post);
-    const arm=box(0.5,0.5,5,M.yellow); arm.position.set(0,6,1); g.add(arm);
-    const lb=new THREE.Group(); lb.position.set(0,1.6,2.2);
-    const body=cyl(1.5,1.5,7,M.orange,14); body.rotation.z=Math.PI/2; lb.add(body);
-    const nose=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,10),M.orange); nose.position.z=3.5; lb.add(nose);
-    const tail=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,10),M.orange); tail.position.z=-3.5; lb.add(tail);
-    const canopy=cyl(0.9,0.9,6.4,M.yellow,12); canopy.rotation.z=Math.PI/2; canopy.position.y=1.1; lb.add(canopy);
-    const keel=box(.38,.42,6.1,M.detail,false);keel.position.set(0,-1.42,0);lb.add(keel);for(const sx of [-1,1])for(const zz of [-2.2,-.75,.75,2.2]){const win=box(.10,.58,1.05,M.glass,false);win.position.set(sx*.92,1.42,zz);lb.add(win);}
-    for(const zz of [-2,2]){const w=cyl(0.04,0.04,4.4,M.dark,5); w.position.set(0,3.8,zz); g.add(w);}
-    g.add(lb);
-    G.lifeboats.add(g);
-  });
+  for(const sx of [-1,1]) buildLifeboatStation(sx);
   const frb=new THREE.Group(); frb.position.set(K.HULL_W/2-2, DECK_Y+3, K.HULL_L/2-12); frb.rotation.y=-Math.PI/2;
   const rb=cyl(0.9,1.2,4.4,M.orange,12); rb.rotation.z=Math.PI/2; frb.add(rb);
   const dav=box(0.4,4,0.4,M.yellow); dav.position.set(0,2,-1.4); frb.add(dav);
   G.lifeboats.add(frb);
 }
-
 /* ---- DECK EQUIPMENT ---- */
 function buildDeckEquipment(){
   const y=DECK_Y;
   const siloR=2.2, siloH=11;
   for(let i=0;i<4;i++){
-    const s=cyl(siloR,siloR*1.05,siloH,M.accom2,16);
+    const s=cyl(siloR,siloR*1.05,siloH,M.accom2,24);
     s.position.set(-9+i*6, y+siloH/2, -2); addSiloCone(s,siloR); G.deckEquip.add(s);
   }
   for(let i=0;i<4;i++){
-    const s=cyl(siloR,siloR*1.05,siloH,M.steel,16);
+    const s=cyl(siloR,siloR*1.05,siloH,M.steel,24);
     s.position.set(-9+i*6, y+siloH/2, 6); addSiloCone(s,siloR); G.deckEquip.add(s);
   }
   const mudBase=box(K.HULL_W*0.5, 5, 14, M.steelDk); mudBase.position.set(0,y+2.5,16); G.deckEquip.add(mudBase);
   const mudWalk=box(K.HULL_W*0.5+0.6,0.2,14.6,M.detail,false); mudWalk.position.set(0,y+5.15,16); G.deckEquip.add(mudWalk);
   for(let i=0;i<4;i++){
     const t=box(6.2,3,3.2,M.steel); t.position.set(-11+i*7.4, y+6.5, 16); G.deckEquip.add(t);
-    const lid=cyl(1.6,1.6,6.0,M.steelDk,14,false); lid.rotation.z=Math.PI/2; lid.position.set(-11+i*7.4,y+8.0,16); G.deckEquip.add(lid);
+    const lid=cyl(1.6,1.6,6.0,M.steelDk,20,false); lid.rotation.z=Math.PI/2; lid.position.set(-11+i*7.4,y+8.0,16); G.deckEquip.add(lid);
     const agit=cyl(0.28,0.28,1.3,M.dark,8,false); agit.position.set(-11+i*7.4,y+8.9,16); G.deckEquip.add(agit);
   }
   const shk=deckHouse(9,4.2,6,M.accom2,M.steelDk,{vents:1}); shk.position.set(-14,y,20); G.deckEquip.add(shk);
@@ -1047,8 +1693,8 @@ function buildDeckEquipment(){
   const mach=deckHouse(20,7,14,M.accom2,M.steelDk,{vents:0,ridge:2.4,door:false}); mach.position.set(0,y,-14); G.deckEquip.add(mach);
   for(const sx of [-1,1]){ const lv=louvers(0.1,4.4,M.detail,6); lv.position.set(sx*10.05,y+3.6,-14); G.deckEquip.add(lv); }
   for(let i=0;i<3;i++){
-    const ex=cyl(0.72,0.86,7,M.steelDk,12); ex.position.set(-6+i*6,y+10.5,-14); G.deckEquip.add(ex);
-    const exCap=cyl(0.95,0.95,0.5,M.dark,12,false); exCap.position.set(-6+i*6,y+14.2,-14); G.deckEquip.add(exCap);
+    const ex=cyl(0.72,0.86,7,M.steelDk,20); ex.position.set(-6+i*6,y+10.5,-14); G.deckEquip.add(ex);
+    const exCap=cyl(0.95,0.95,0.5,M.dark,20,false); exCap.position.set(-6+i*6,y+14.2,-14); G.deckEquip.add(exCap);
   }
   for(const sx of [-1,1]){
     const rackBase=box(4.5,1.0,26,M.steelDk); rackBase.position.set(sx*(K.HULL_W/2-5), y+0.6, 3); G.deckEquip.add(rackBase);
@@ -1059,8 +1705,8 @@ function buildDeckEquipment(){
   }
   const sack=deckHouse(8,4,6,M.accom2,M.steelDk,{vents:0}); sack.position.set(-16,y,9); G.deckEquip.add(sack);
   const moon=box(6,0.4,6,M.dark); moon.position.set(0,y+0.3,CANT_REF_Z-2); G.deckEquip.add(moon);
-  const bop=cyl(1.6,1.8,4,M.steelDk,14); bop.position.set(0,y+2,CANT_REF_Z-2); G.deckEquip.add(bop);
-  const bopFlange=cyl(2.0,2.0,0.4,M.detail,14,false); bopFlange.position.set(0,y+3.8,CANT_REF_Z-2); G.deckEquip.add(bopFlange);
+  const bop=cyl(1.6,1.8,4,M.steelDk,22); bop.position.set(0,y+2,CANT_REF_Z-2); G.deckEquip.add(bop);
+  const bopFlange=cyl(2.0,2.0,0.4,M.detail,22,false); bopFlange.position.set(0,y+3.8,CANT_REF_Z-2); G.deckEquip.add(bopFlange);
   const ws=deckHouse(9,4,7,M.accom,M.steelDk,{vents:1}); ws.position.set(15,y,-2); G.deckEquip.add(ws);
   for(const sx of [-1,1]){
     const ls=box(3.5,2.2,3.5,M.yellow); ls.position.set(sx*(K.HULL_W/2-3), y+1.1, -8); G.deckEquip.add(ls);
@@ -1071,9 +1717,8 @@ function buildDeckEquipment(){
   }
 }
 function addSiloCone(silo,r){
-  const cone=cyl(0.15,r,2.2,silo.material,16); cone.position.y=-(silo.geometry.parameters.height/2)-1.1; silo.add(cone);
+  const cone=cyl(0.15,r,2.2,silo.material,24); cone.position.y=-(silo.geometry.parameters.height/2)-1.1; silo.add(cone);
 }
-
 /* ---- HANDRAILS ---- */
 function buildHandrails(){
   const W=K.HULL_W/2-0.6, L=K.HULL_L/2-0.6, y=DECK_Y+0.25, railH=1.1;
@@ -1096,22 +1741,77 @@ function buildHandrails(){
     G.handrails.add(strut(a,b,0.04,M.rail));
   }
 }
-
 /* ---- OCEAN + SEABED ---- */
 let oceanMesh, oceanBase;
 function buildOcean(){
   const geo=new THREE.PlaneGeometry(2600,2600,72,72);   // A9: reduced from 90x90
   geo.rotateX(-Math.PI/2);
   oceanBase=geo.attributes.position.array.slice();
-  const mat=new THREE.MeshStandardMaterial({color:0x115b6e,roughness:.30,metalness:.40,
+  const mat=new THREE.MeshStandardMaterial({color:0x0a4358,roughness:.22,metalness:.45,envMapIntensity:.7,
     transparent:true,opacity:.9});
   oceanMesh=new THREE.Mesh(geo,mat); oceanMesh.receiveShadow=true; oceanMesh.position.y=0;
   G.ocean.add(oceanMesh);
 }
-function buildSeabed(){
-  const geo=new THREE.PlaneGeometry(1400,1400,60,60);geo.rotateX(-Math.PI/2);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);pos.setY(i,Math.sin(x*.035)*Math.cos(z*.04)*1.4+Math.sin(x*.11+z*.07)*.35+Math.cos(x*.075-z*.09)*.22);}geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();const sb=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x93805a,roughness:1,metalness:0}));sb.receiveShadow=true;G.seabed.add(sb);G.seabed.userData.mesh=sb;const grid=new THREE.GridHelper(400,40,0x7890a0,0x53616b);grid.position.y=.10;grid.material.transparent=true;grid.material.opacity=.16;grid.visible=false;G.seabed.add(grid);G.seabed.userData.grid=grid;const cm=new THREE.MeshBasicMaterial({color:0x453c2e,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});G.seabed.userData.contacts=[];LEG_POS.forEach(p=>{const c=new THREE.Mesh(new THREE.CircleGeometry(K.SPUD_D*.62,32),cm);c.rotation.x=-Math.PI/2;c.position.set(p.x,.08,p.z);c.renderOrder=2;G.seabed.add(c);G.seabed.userData.contacts.push(c);});
+/* ============================================================================
+   ITEM 7 — FOAM RINGS AROUND THE LEGS  (rebuilt in full this time)
+   The legs pass through the ocean plane with no local interaction. Foam is added as
+   flattened, layered rings at each leg's world X/Z, held permanently at sea level (y=0).
+   CRITICAL: foam must NOT be parented to legsGroup, because legsGroup/each leg carries
+   the JACKING (vertical) position via setLegY() — if foam were a child of a leg, it would
+   jack up and down with the leg instead of staying on the sea surface. So the foam group
+   is added directly under G.ocean (a world-space group already in the scene), and it
+   only ever reads each leg's world X/Z from LEG_POS — never its Y.
+   ============================================================================ */
+const G_foam = new THREE.Group();
+function seededWave(seed,i){return Math.sin(seed*12.9898+i*78.233)*0.5+Math.sin(seed*4.173+i*19.19)*0.5;}
+function irregularRingGeometry(rIn,rOut,segments,seed){
+  const pos=[],idx=[];
+  for(let i=0;i<=segments;i++){
+    const a=i/segments*Math.PI*2;
+    const wob=seededWave(seed,i)*0.055+Math.sin(a*3+seed)*0.035;
+    const ri=rIn*(1+wob), ro=rOut*(1+wob*0.7+Math.cos(a*2-seed)*0.025);
+    pos.push(Math.cos(a)*ri,Math.sin(a)*ri,0, Math.cos(a)*ro,Math.sin(a)*ro,0);
+  }
+  for(let i=0;i<segments;i++){const a=i*2,b=a+1,c=a+2,d=a+3;idx.push(a,b,d,a,d,c);}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
+  g.userData.rIn=rIn; g.userData.rOut=rOut; return g;
 }
-
+function syncFoamVisibility(){
+  G_foam.visible=!!(G.ocean.visible&&state.mode!=='transit');
+}
+function buildFoamRings(){
+  while(G_foam.children.length){const c=G_foam.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+  const LEG_RADIUS=K.CHORD_SP/Math.sqrt(3);
+  const opacity=[0.34,0.23,0.14];
+  LEG_POS.forEach((p,idx)=>{
+    const legG=new THREE.Group(); legG.position.set(p.x,0.03,p.z); legG.userData.legIdx=idx;
+    for(let layer=0;layer<3;layer++){
+      const rIn=LEG_RADIUS*0.88+layer*0.50;
+      const rOut=rIn+0.65+layer*0.15;
+      const mat=new THREE.MeshStandardMaterial({color:0xdcf3fb,roughness:.88,metalness:.03,
+        transparent:true,opacity:opacity[layer],depthWrite:false,side:THREE.DoubleSide});
+      const ring=new THREE.Mesh(irregularRingGeometry(rIn,rOut,32,idx*7+layer*3+1),mat);
+      ring.rotation.x=-Math.PI/2; ring.position.y=layer*0.02; ring.rotation.z=idx*0.45+layer*0.55;
+      ring.renderOrder=3; ring.userData.foamLayer=layer; ring.userData.baseOpacity=opacity[layer];
+      legG.add(ring);
+    }
+    G_foam.add(legG);
+  });
+  G.ocean.add(G_foam); syncFoamVisibility();
+}
+function updateFoam(t){
+  if(!G_foam.visible)return;
+  G_foam.children.forEach((legG,i)=>legG.children.forEach((ring,layer)=>{
+    const s=1.0+0.025*Math.sin(t*0.55+i*1.3+layer*0.8);
+    ring.scale.set(s,s,1);
+    ring.rotation.z+=0.00025*(layer+1);
+    ring.material.opacity=ring.userData.baseOpacity*(0.94+0.06*Math.sin(t*0.7+i+layer));
+  }));
+}
+function buildSeabed(){
+  const geo=new THREE.PlaneGeometry(1400,1400,60,60);geo.rotateX(-Math.PI/2);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);pos.setY(i,Math.sin(x*.035)*Math.cos(z*.04)*1.4+Math.sin(x*.11+z*.07)*.35+Math.cos(x*.075-z*.09)*.22);}geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();const sb=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x6b5a3c,roughness:1,metalness:0}));sb.receiveShadow=true;G.seabed.add(sb);G.seabed.userData.mesh=sb;const grid=new THREE.GridHelper(400,40,0x7890a0,0x53616b);grid.position.y=.10;grid.material.transparent=true;grid.material.opacity=.16;grid.visible=false;G.seabed.add(grid);G.seabed.userData.grid=grid;const cm=new THREE.MeshBasicMaterial({color:0x453c2e,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});G.seabed.userData.contacts=[];LEG_POS.forEach(p=>{const c=new THREE.Mesh(new THREE.CircleGeometry(K.SPUD_D*.62,32),cm);c.rotation.x=-Math.PI/2;c.position.set(p.x,.08,p.z);c.renderOrder=2;G.seabed.add(c);G.seabed.userData.contacts.push(c);});
+}
 /* ---- LABELS ---- */
 function buildLabels(){
   const y=DECK_Y, dfTop=DECK_Y+K.DFLOOR_H;
@@ -1145,7 +1845,6 @@ function buildLabels(){
     G.labels.add(s); G.labels.userData.spudLabels.push(s);
   });
 }
-
 /* ---- DIMENSION OVERLAYS ---- */
 function dimLine(a,b,txt){
   const g=new THREE.Group();
@@ -1153,7 +1852,7 @@ function dimLine(a,b,txt){
   const geo=new THREE.BufferGeometry().setFromPoints([a,b]);
   g.add(new THREE.Line(geo,mat));
   const mid=new THREE.Vector3().addVectors(a,b).multiplyScalar(.5);
-  const lab=makeLabel(txt,'#8fd0ff','rgba(6,20,32,0.85)',3);  // makeLabel registers sprite
+  const lab=makeLabel(txt,'#8fd0ff','rgba(6,20,32,0.85)',3);
   lab.userData.dimLabel=true; lab.position.copy(mid); g.add(lab); g.userData.dimLabel=lab;
   return g;
 }
@@ -1179,7 +1878,6 @@ function buildDimensions(){
   G.dimensions.add(dimLine(new THREE.Vector3(0,DECK_Y+4,K.HULL_L/2),new THREE.Vector3(0,DECK_Y+4,K.HULL_L/2+K.CANT_AFT),
     fmt(K.CANT_AFT,'Cant aft')));
 }
-
 /* ---------------------------------------------------------------------------
    9. FORMAT / UNIT HELPERS
    --------------------------------------------------------------------------- */
@@ -1190,11 +1888,10 @@ function fmt(m,prefix){
 function fmtPair(a,b){ return state.imperial
   ? (a/FT).toFixed(0)+'×'+(b/FT).toFixed(0)+' ft'
   : a.toFixed(1)+'×'+b.toFixed(1)+' m'; }
-/* A2 FIX: unit-aware scalar value for slider badges */
-function fmtVal(m,dp){ return state.imperial
-  ? (m/FT).toFixed(dp)+' ft'
-  : m.toFixed(dp)+' m'; }
-
+function fmtVal(m,dp){ return state.imperial ? (m/FT).toFixed(dp)+' ft' : m.toFixed(dp)+' m'; }
+function uLen(m,dp){dp=(dp==null?2:dp);return state.imperial?(m/FT).toFixed(dp)+' ft':m.toFixed(dp)+' m';}
+function fmtSigned(m,dp){return (m>=0?'+':'')+uLen(m,dp==null?2:dp);}
+function fmtClear(m){return uLen(Math.abs(m),1);}
 /* ---------------------------------------------------------------------------
    10. JACKING + SKIDDING UPDATE
    --------------------------------------------------------------------------- */
@@ -1209,7 +1906,7 @@ function updateJacking(){
     airGap = -(K.DRAFT);
     penetration = 0;
     const spudTipY = hullBottomY - K.SPUD_H*0.4;
-    legsGroup.children.forEach(setLegY(spudTipY));
+    legsGroup.children.forEach(setLegY(spudTipY - SPUD_TIP_OFFSET));
     legBelow = hullBottomY - spudTipY;
   } else {
     penetration = state.legPen;
@@ -1222,27 +1919,54 @@ function updateJacking(){
       airGap = hullBottomY - seaY;
       legBelow = K.LEG_BELOW; jackClamped = true;
     } else { jackClamped = false; }
-    legsGroup.children.forEach(setLegY(spudTipY - (-K.SPUD_H*0.35)));
+    legsGroup.children.forEach(setLegY(spudTipY - SPUD_TIP_OFFSET));
   }
   hullGroup.position.y = hullBottomY;
-
-  setTxt('j_hull', fmt(hullBottomY,'') + (hullBottomY>=0?' (above SL)':' (below SL)'));
-  setTxt('j_wd', fmt(state.waterDepth,''));
-  setTxt('j_ag', state.mode==='transit' ? 'afloat'
-                 : fmt(airGap,'') + (jackClamped?' ⚠ leg-limited':''));
-  setTxt('j_lp', state.mode==='transit' ? 'n/a (afloat)' : fmt(penetration,''));
-  setTxt('j_lb', fmt(Math.max(0,legBelow),''));
-  /* A4 FIX: seabed visibility is owned solely by setVis(); no coupling here */
+  if(typeof syncFoamVisibility==='function') syncFoamVisibility();
+  setTxt('j_hull', uLen(hullBottomY)+(hullBottomY>=0?' (above SL)':' (below SL)'));
+  setTxt('j_wd', uLen(state.waterDepth));
+  if(state.mode==='transit'){ setTxt('j_agr','n/a (afloat)'); setTxt('j_ag','afloat'); setTxt('j_con','—'); }
+  else { const modeLimited=(state.mode==='preload'&&state.airGap>12);
+    setTxt('j_agr',uLen(state.airGap,1)); setTxt('j_ag',uLen(airGap,1));
+    let con='none'; if(jackClamped)con='leg length below hull'; else if(modeLimited)con='preload mode limit (12 m)';
+    setTxt('j_con',con); const ce=document.getElementById('j_con'); if(ce)ce.style.color=(con==='none')?'var(--txt)':'var(--warn)'; }
+  setTxt('j_lp', state.mode==='transit'?'n/a (afloat)':uLen(penetration,1));
+  setTxt('j_lb', uLen(Math.max(0,legBelow)));
 }
 function setLegY(tipY){
   return function(leg){ leg.position.y = tipY; };
 }
 function updateCantilever(){
-  cantBox.position.z = CANT_REF_Z + state.cantL;
-  drillPkg.position.x = state.cantT;
-  setTxt('s_cant', state.cantL.toFixed(1)+' / '+state.cantT.toFixed(1)+' m');
+  cantLong.position.z = state.cantL;
+  cantXY.position.x  = (state.skidMode==='XY') ? state.cantT : 0;
+  drillPkg.position.x= (state.skidMode==='DF') ? state.cantT : 0;
+  setTxt('s_cant', fmtSigned(state.cantL)+' / '+fmtSigned(state.cantT));
+  if(window.__updateClearance) window.__updateClearance();
+  if(typeof updateAlignment==='function') updateAlignment();
 }
-
+function computeClearance(){
+  const plat=G.platform; if(!plat) return null;
+  const platSouth=plat.position.z-(window.__platSouthHalf||10.2);
+  const comps=[
+    {name:'Hull transom',z:K.HULL_L/2,kind:'structural'},
+    {name:'Aft jack-house',z:K.LEG_SP_L/2+LEG_SHIFT_Z+7.9,kind:'structural'},
+    {name:'Drill package',z:CANT_REF_Z+state.cantL+K.SUB_L*0.4,kind:'cantilever'}
+  ];
+  let worst={name:'',gap:Infinity,kind:''};
+  for(const cmp of comps){const gap=platSouth-cmp.z; if(gap<worst.gap)worst={name:cmp.name,gap,kind:cmp.kind};}
+  const wellCentre=CANT_REF_Z+state.cantL;
+  return {worst,cantOverPlatform:(wellCentre>platSouth),wellCentreZ:wellCentre,platSouth};
+}
+window.__updateClearance=function(){
+  const el=document.getElementById('clashV'); if(!el)return;
+  const c=computeClearance(); if(!c)return; const w=c.worst; let txt,col;
+  if(w.gap<0){
+    if(w.kind==='cantilever'&&c.cantOverPlatform){txt='OPERATIONAL OVERLAP · cantilever over platform ('+fmtClear(-w.gap)+' in)';col='var(--warn)';}
+    else{txt='STRUCTURAL CLASH · '+w.name+' ('+fmtClear(-w.gap)+' in)';col='var(--bad)';}
+  } else if(w.gap<3){txt='WARNING · '+w.name+' '+fmtClear(w.gap);col='var(--warn)';}
+  else{txt='CLEAR · '+w.name+' '+fmtClear(w.gap);col='var(--ok)';}
+  el.textContent=txt; el.style.color=col;
+};
 /* ---------------------------------------------------------------------------
    11. DISPLAY MODES
    --------------------------------------------------------------------------- */
@@ -1262,8 +1986,9 @@ function applyDisplay(){
     setNightLights(false); setEmissive(false);
   } else {
     scene.fog.near=420; scene.fog.far=1500;
-    hemi.intensity=0.85; sun.intensity=1.15; fill.intensity=0.35;
-    hemi.color.set(0xbcd6ee); sun.color.set(0xfff4e0);
+    scene.fog.near=650; scene.fog.far=2200;   // push haze back — model stays sharp
+    hemi.intensity=0.55; sun.intensity=1.7; fill.intensity=0.28;
+    hemi.color.set(0xb0cadd); sun.color.set(0xfff2df);
     setNightLights(false); setEmissive(false);
   }
   updateInspectionEnvironment();
@@ -1290,7 +2015,6 @@ function setEmissive(on){
       o.material.emissiveIntensity = on?1.5:0.4;
   });
 }
-
 /* ---------------------------------------------------------------------------
    12. WIREFRAME / TRANSPARENT / EXPLODE
    --------------------------------------------------------------------------- */
@@ -1304,7 +2028,6 @@ function applyExplode(){
   if(!list) return;
   list.forEach((dg,i)=>{ dg.position.y = dg.userData.baseY + (state.explode? i*4.0 : 0); });
 }
-
 /* ---------------------------------------------------------------------------
    13. VISIBILITY TOGGLES
    --------------------------------------------------------------------------- */
@@ -1313,16 +2036,15 @@ function setVis(key,on){
   if(key==='spudcans'){ G.spudcans.forEach(s=>s.visible=on);
     if(G.labels.userData.spudLabels) G.labels.userData.spudLabels.forEach(l=>l.visible=on&&labelsOn); return; }
   if(key==='labels'){labelsOn=on;G.labels.visible=on;labelSprites.forEach(s=>{if(!s.userData.dimLabel)s.visible=on;});document.querySelectorAll('[data-vis="labels"]').forEach(x=>x.checked=on);const b=document.getElementById('mobileLabels');if(b){b.classList.toggle('on',on);b.classList.toggle('off',!on);b.textContent=on?'Labels On':'Labels Off';b.setAttribute('aria-pressed',String(on));}return;}
-  if(G[key]){if(Array.isArray(G[key]))G[key].forEach(m=>m.visible=on);else G[key].visible=on;if(key==='seabed')updateInspectionEnvironment();}
+  if(G[key]){if(Array.isArray(G[key]))G[key].forEach(m=>m.visible=on);else G[key].visible=on;if(key==='seabed')updateInspectionEnvironment();if(key==='ocean'&&typeof syncFoamVisibility==='function')syncFoamVisibility();}
 }
-
 /* ---------------------------------------------------------------------------
    14. CAMERA PRESETS
    --------------------------------------------------------------------------- */
 const VIEW_TAGS={iso:'Isometric · Forward-Starboard',top:'Top / Plan',fwd:'Forward Elevation',
   aft:'Aft Elevation',port:'Port Elevation',stbd:'Starboard Elevation',drill:'Drill-Floor Close-up',
   heli:'Helideck Close-up',cant:'Cantilever Close-up',leg:'Leg & Spudcan Close-up',
-  water:'Low-Angle Waterline',seabed:'Seabed & Spudcan Inspection',reset:'Isometric · Forward-Starboard'};
+  water:'Low-Angle Waterline',seabed:'Seabed & Spudcan Inspection',platform:'Rig @ WPS22 Platform',reset:'Isometric · Forward-Starboard'};
 function setView(v){
   state.view=v;
   controls.maxPolarAngle=(v==='leg'||v==='water'||v==='seabed')?Math.PI*.86:Math.PI*.495;
@@ -1343,14 +2065,13 @@ function setView(v){
     case 'leg':{const p=LEG_POS[2],bed=-state.waterDepth;A(p.x+42,bed+24,p.z+46,p.x,bed+3,p.z);break;}
     case 'water':A(220,6,120,0,10,0);break;
     case 'seabed':{const bed=-state.waterDepth;A(70,bed+32,75,0,bed+1,0);break;}
+    case 'platform':{const pz=(G.platform?G.platform.position.z:46);A(-150,55,pz*0.5-30,0,18,pz*0.5+6);break;}
   }
   updateInspectionEnvironment();
   setTxt('s_view', VIEW_TAGS[v]||'—');
   document.getElementById('viewTag').textContent = VIEW_TAGS[v]||'—';
-  /* B1 FIX: reflect active view on the buttons */
   document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
 }
-
 function updateInspectionEnvironment(){const inspect=state.view==='leg'||state.view==='seabed';if(oceanMesh){oceanMesh.material.opacity=inspect?.42:.90;oceanMesh.material.depthWrite=!inspect;oceanMesh.material.needsUpdate=true;}const grid=G.seabed.userData.grid;if(grid)grid.visible=G.seabed.visible&&(inspect||state.display==='eng');}
 /* ---------------------------------------------------------------------------
    15. INFO PANEL POPULATE
@@ -1371,13 +2092,11 @@ function refreshInfo(){
   rebuildDimLabels();
 }
 function rebuildDimLabels(){
-  disposeGroup(G.dimensions);   // A1 FIX
+  disposeGroup(G.dimensions);
   buildDimensions();
   G.dimensions.visible=document.querySelector('[data-vis="dimensions"]').checked;
 }
 function setTxt(id,t){const e=document.getElementById(id); if(e) e.textContent=t;}
-
-/* A2 FIX: re-render slider value badges in the active unit */
 function refreshSliderBadges(){
   setTxt('agV', fmtVal(state.airGap,1));
   setTxt('wdV', fmtVal(state.waterDepth,0));
@@ -1385,36 +2104,510 @@ function refreshSliderBadges(){
   setTxt('clV', fmtVal(state.cantL,2));
   setTxt('ctV', fmtVal(state.cantT,2));
 }
-
 /* ---------------------------------------------------------------------------
    16. BUILD ALL
    --------------------------------------------------------------------------- */
+/* ===========================================================================
+   WPS22 WELLHEAD PLATFORM — imported as a namespaced module into the WISDOM host.
+   Merged-scene convention (WISDOM frame): +Z = North (toward platform),
+   rig sits at origin (South). Platform placed North of rig with ~5 m standoff.
+   Units: metres, y=0 = sea level (LAT). Jacket extended to true seabed -64.70.
+   Source: WPS22 equipment-layout drawings (sheets 0002-0009) + site photos.
+   =========================================================================== */
+function buildPlatformWPS(){
+  const PLAT=new THREE.Group();
+  PLAT.rotation.y=Math.PI;
+  scene.add(PLAT);
+  G.platform=PLAT;
+  const SUB={topsides:new THREE.Group(),decks:new THREE.Group(),jacket:new THREE.Group(),
+    wellbay:new THREE.Group(),risers:new THREE.Group(),boat:new THREE.Group(),
+    pcrane:new THREE.Group(),vent:new THREE.Group(),equip:new THREE.Group(),
+    prails:new THREE.Group(),envelopes:new THREE.Group()};
+  Object.keys(SUB).forEach(k=>{SUB[k].name=k;PLAT.add(SUB[k]);});
+  G.platSub=SUB;
+  let CUR=PLAT;
+  const PLAT_SOUTH_HALF=10.2;
+  const RIG_AFT_JACKHOUSE=K.LEG_SP_L/2+LEG_SHIFT_Z+7.9;
+  window.__platSouthHalf=PLAT_SOUTH_HALF;
+  window.__setStandoff=function(S){
+    PLAT.position.z=RIG_AFT_JACKHOUSE+S+PLAT_SOUTH_HALF;
+    if(window.__updateClearance) window.__updateClearance();
+    if(typeof updateAlignment==='function') updateAlignment();
+  };
+  window.__setStandoff(5);
+  const PS=(c,r=.6,m=.35,env=1.0)=>{const mm=new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});mm.envMapIntensity=env;return mm;};
+  const PM={
+    y:PS(0xf2c21a,.5,.4,1.05), yd:PS(0xcf9c14,.58,.4,1.0), r:PS(0xa2432e,.6,.3,.9),
+    w:PS(0xeceae0,.7,.15,.7), d:PS(0x20272d,.6,.4,.9), g:PS(0x2f8a54,.72,.12,.6),
+    grate:PS(0x77848c,.7,.3,.9), grey:PS(0x939ba1,.48,.6,1.2), rail:PS(0xf3c40e,.5,.4,1.0),
+    blue:PS(0x1f7fb8,.5,.35,.95), green:PS(0x2f7a5e,.62,.2,.7), orange:PS(0xd06a24,.55,.3,.9),
+    red:PS(0xc93422,.55,.3,.95)
+  };
+  const pbox=(w,h,dd,m,x=0,y=0,z=0,sh=true)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,dd),m);o.position.set(x,y,z);o.castShadow=sh;o.receiveShadow=true;CUR.add(o);return o;};
+  const pcyl=(r1,r2,h,m,x=0,y=0,z=0,n=12,sh=true)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,n),m);o.position.set(x,y,z);o.castShadow=sh;o.receiveShadow=true;CUR.add(o);return o;};
+  const pbar=(a,b,r,m)=>{const v=new THREE.Vector3().subVectors(b,a);const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.length(),8),m);o.position.copy(a).addScaledVector(v,.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());o.castShadow=(r>0.12);o.receiveShadow=true;CUR.add(o);return o;};
+  const Y={sea:0,boat:3.16,frmg:6.40,sump:8.85,lower:12.45,mezz:15.25,upper:18.95,slew:21.31,turret:23.58};
+  const BED=-state.waterDepth;
+  function deckBox(y,w,d,border){
+    pbox(w,.10,d,PM.grate,0,y-.02,0,false);
+    pbox(w-border*2,.12,d-border*2,PM.g,0,y+.05,0,false);
+    const gh=2.0,t=.34;
+    for(const sz of [-1,1])pbox(w,gh,t,PM.y,0,y-gh/2,sz*d/2,false);
+    for(const sx of [-1,1])pbox(t,gh,d,PM.y,sx*w/2,y-gh/2,0,false);
+    for(const sx of [-1,1])for(const sz of [-1,1])pbox(.6,gh,.6,PM.yd,sx*w/2,y-gh/2,sz*d/2,false);
+  }
+  function perimRail(y,w,d){const h=y+1.0;
+    const pts=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2],[-w/2,-d/2]];
+    for(let i=0;i<4;i++){pbar(new THREE.Vector3(pts[i][0],h,pts[i][1]),new THREE.Vector3(pts[i+1][0],h,pts[i+1][1]),.03,PM.rail);
+      pbar(new THREE.Vector3(pts[i][0],h-.5,pts[i][1]),new THREE.Vector3(pts[i+1][0],h-.5,pts[i+1][1]),.024,PM.rail);}
+  }
+  CUR=SUB.decks;
+  deckBox(Y.lower,18.6,14.4,1.3); perimRail(Y.lower,18.6,14.4);
+  deckBox(Y.mezz,18.6,14.4,1.3);  perimRail(Y.mezz,18.6,14.4);
+  deckBox(Y.upper,20.4,16.0,1.6); perimRail(Y.upper,20.4,16.0);
+  deckBox(Y.sump,12.0,10.4,1.1);  perimRail(Y.sump,12.0,10.4);
+  CUR=SUB.topsides;
+  for(const x of [-8.2,8.2])for(const z of [-6.4,6.4])
+    pbox(1.0,Y.upper-Y.sump,1.0,PM.y,x,(Y.upper+Y.sump)/2,z,false);
+  CUR=SUB.decks; const uy=Y.upper+.12;
+  for(let x=-9;x<9;x+=1.1){for(const sz of [-1,1]){const s=pbox(.5,.03,.8,PM.d,x,uy,sz*7.4,false);s.rotation.y=.6;}}
+  for(const lx of [-3,3])pbox(.85,.03,14,PM.red,lx,uy,0,false);
+  const WELLBAY_YAW=THREE.MathUtils.degToRad(-32);
+  const wellbay=new THREE.Group(); wellbay.position.set(-0.6,Y.lower,0); wellbay.rotation.y=WELLBAY_YAW;
+  SUB.wellbay.add(wellbay); G.plat_wellbay=wellbay; CUR=SUB.wellbay;
+  const wtree=(x,y,z,w,hh,d,m,sh=true)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),m);o.position.set(x,y,z);o.castShadow=sh;o.receiveShadow=true;wellbay.add(o);return o;};
+  const wtcyl=(r1,r2,hh,m,x,y,z,nn=8)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,hh,nn),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;wellbay.add(o);return o;};
+  const SLOT_NAMES='ABCDEFGHJKLMNPQRSTUVWYZ'.split('').concat(['ZA']);
+  const slots=[]; let treeCount=0, si=0;
+  for(let r=0;r<2;r++)for(let c=0;c<12;c++){
+    const x=-6.3+c*1.12+0.6, z=r?1.4:-1.4;
+    wtcyl(.16,.16,1.5,PM.red,x,.9,z,8); wtree(x,1.75,z,.34,.34,.34,PM.red);
+    wtree(x,1.6,z-0.35,.5,.14,.14,PM.grey,false);
+    slots.push({name:'WPS22-'+(SLOT_NAMES[si]||('S'+si)), local:new THREE.Vector3(x,1.0,z), phase1E:(si<19)});
+    si++; treeCount++;
+  }
+  wellbay.userData.treeCount=treeCount; wellbay.userData.slots=slots;
+  wtree(0,.14,0,15.0,.2,3.6,PM.yd,false);
+  CUR=SUB.equip;
+  pbox(7.2,1.7,7.6,PM.d,-0.8,Y.lower+1.0,0);
+  pbox(4.8,2.4,3.0,PM.w,6.3,Y.lower+1.4,4.3);
+  pbox(6.6,2.6,3.2,PM.green,-3.6,Y.mezz+1.3,3.6);
+  pbox(2.4,1.7,2.7,PM.orange,-3.1,Y.mezz+1.1,3.6,false);
+  const sep=pcyl(.7,.7,5.8,PM.grey,-5.0,Y.mezz+1.15,-4.6,22);sep.rotation.z=Math.PI/2;
+  const co =pcyl(.28,.28,3.9,PM.grey,-5.0,Y.mezz+2.0,2.0,10);
+  for(const zz of [-2,1]){pcyl(1.05,1.05,2.4,PM.w,7.2,Y.mezz+1.3,zz,22);}
+  pcyl(.75,.75,4.6,PM.grey,-4,Y.sump+2.4,-3,22);
+  CUR=SUB.pcrane; const cx=-8.0,cz=5.4;
+  pcyl(.9,1.25,3.6,PM.y,cx,Y.upper+1.8,cz,24);
+  pcyl(1.5,1.5,0.6,PM.yd,cx,Y.upper+3.7,cz,28);
+  pbox(2.6,1.6,2.2,PM.red,cx-.3,Y.upper+4.6,cz+.2);
+  pbox(1.3,1.3,1.2,PM.red,cx+1.3,Y.upper+4.5,cz-.2,false);
+  const pivY=Y.upper+4.6, pivZ=cz-1.4, tilt=THREE.MathUtils.degToRad(5);
+  const BL=16.5;
+  const bw=0.5;
+  const chord=(sx,sy,t)=>new THREE.Vector3(cx+sx*bw, pivY+sy*bw + t*BL*Math.sin(tilt), pivZ - t*BL*Math.cos(tilt));
+  for(let i=0;i<8;i++){
+    const t0=i/8,t1=(i+1)/8;
+    for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]])
+      pbar(chord(sx,sy,t0),chord(sx,sy,t1),0.05,i%2?PM.w:PM.grey);
+  }
+  for(let i=0;i<8;i++){const t0=i/8,t1=(i+1)/8;
+    pbar(chord(-1,-1,t0),chord(1,-1,t1),0.03,PM.grey);
+    pbar(chord(-1,1,t0),chord(1,1,t1),0.03,PM.grey);}
+  const tipZ=pivZ-BL*Math.cos(tilt), tipY=pivY+BL*Math.sin(tilt);
+  pbox(1.1,0.7,0.5,PM.d,cx,tipY,tipZ,false);
+  const REST_T=0.72;
+  const restZ=pivZ-REST_T*BL*Math.cos(tilt),restBoomY=pivY+REST_T*BL*Math.sin(tilt);
+  const rTopY=restBoomY-0.55;
+  for(const sx of [-1.2,1.2]) pbar(new THREE.Vector3(cx+sx,Y.upper+0.1,restZ+0.6),new THREE.Vector3(cx,rTopY,restZ),0.09,PM.yd);
+  pbar(new THREE.Vector3(cx-1.2,Y.upper+0.1,restZ+0.6),new THREE.Vector3(cx+1.2,Y.upper+0.1,restZ+0.6),0.06,PM.yd);
+  pbox(1.6,0.35,0.6,PM.yd,cx,rTopY,restZ,false);
+  pbox(0.9,0.4,0.4,PM.red,cx,rTopY+0.3,restZ,false);
+  pbar(new THREE.Vector3(cx,tipY-0.3,tipZ),new THREE.Vector3(cx,tipY-1.8,tipZ),0.03,PM.d);
+  pbox(0.5,0.6,0.35,PM.red,cx,tipY-2.1,tipZ,false);
+  SUB.pcrane.userData.boomLength=BL;SUB.pcrane.userData.restFraction=REST_T;SUB.pcrane.userData.tipBeyondRest=(1-REST_T)*BL;
+  CUR=SUB.vent; const vx=0,vz=-8.0;
+  const vBase=new THREE.Vector3(vx,Y.upper+1.0,vz);
+  const vLen=14, vRake=THREE.MathUtils.degToRad(38);
+  const vDir=new THREE.Vector3(0,Math.sin(vRake),-Math.cos(vRake));
+  const vTip=vBase.clone().addScaledVector(vDir,vLen);
+  const vw=0.7;
+  const side=new THREE.Vector3(1,0,0);
+  const perp=new THREE.Vector3().crossVectors(vDir,side).normalize();
+  const vc=(sx,sp,t)=>vBase.clone().addScaledVector(vDir,t*vLen).addScaledVector(side,sx*vw).addScaledVector(perp,sp*vw);
+  const nB=9;
+  for(let i=0;i<nB;i++){const t0=i/nB,t1=(i+1)/nB;
+    for(const [sx,sp] of [[-1,-1],[1,-1],[1,1],[-1,1]])
+      pbar(vc(sx,sp,t0),vc(sx,sp,t1),0.05,i%2?PM.red:PM.w);
+    for(const [a,b] of [[[-1,-1],[1,-1]],[[1,-1],[1,1]],[[1,1],[-1,1]],[[-1,1],[-1,-1]]])
+      pbar(vc(a[0],a[1],t1),vc(b[0],b[1],t1),0.03,PM.grey);
+    pbar(vc(-1,-1,t0),vc(1,1,t1),0.028,PM.grey);
+  }
+  pbar(new THREE.Vector3(vx,Y.upper+0.2,vz+1.6),vBase.clone().addScaledVector(vDir,vLen*0.45),0.12,PM.yd);
+  const fq=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),vDir);
+  const nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.45,2.2,20),PM.d);
+  nozzle.position.copy(vTip.clone().addScaledVector(vDir,0.6)); nozzle.quaternion.copy(fq);
+  nozzle.castShadow=true; SUB.vent.add(nozzle);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.12,8,16),PM.grey);
+  ring.position.copy(vTip.clone().addScaledVector(vDir,1.7)); ring.quaternion.copy(fq); SUB.vent.add(ring);
+  const flame=new THREE.Mesh(new THREE.ConeGeometry(0.8,2.6,20),
+     new THREE.MeshStandardMaterial({color:0xff7a1e,emissive:0xff5a10,emissiveIntensity:0.85,roughness:.5}));
+  flame.position.copy(vTip.clone().addScaledVector(vDir,3.2)); flame.quaternion.copy(fq);
+  flame.userData.flame=true;flame.visible=false;SUB.vent.add(flame);
+  const flame2=new THREE.Mesh(new THREE.ConeGeometry(0.4,1.5,16),
+     new THREE.MeshStandardMaterial({color:0xffd24a,emissive:0xffc23a,emissiveIntensity:1.0,roughness:.5}));
+  flame2.position.copy(vTip.clone().addScaledVector(vDir,3.0));flame2.quaternion.copy(fq);flame2.visible=false;SUB.vent.add(flame2);
+  const sub=new THREE.Group(); SUB.jacket.add(sub); G.plat_substructure=sub;
+  const sbar=(a,b,r,m)=>{const v=new THREE.Vector3().subVectors(b,a);const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.length(),8),m);o.position.copy(a).addScaledVector(v,.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());o.castShadow=(r>0.12);o.receiveShadow=true;sub.add(o);return o;};
+  const scyl=(r1,r2,hh,m,x,y,z,nn=10)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,hh,nn),m);o.position.set(x,y,z);o.receiveShadow=true;sub.add(o);return o;};
+  const sbox=(w,hh,d,m,x,y,z)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),m);o.position.set(x,y,z);o.receiveShadow=true;sub.add(o);return o;};
+  function buildSubstructure(bed){
+    for(const gg of [sub,SUB.boat,SUB.risers]) while(gg.children.length){const c=gg.children.pop();if(c.geometry)c.geometry.dispose();gg.remove(c);}
+    const topH=4.57,baseH=7.6; const hw=e=>THREE.MathUtils.lerp(baseH,topH,(e-bed)/(Y.sump-bed));
+    for(const sx of [-1,1])for(const sz of [-1,1]){
+      const a=new THREE.Vector3(sx*topH,Y.sump,sz*topH),b=new THREE.Vector3(sx*baseH,bed,sz*baseH); sbar(a,b,.62,PM.r);
+      const dir=new THREE.Vector3().subVectors(b,a);
+      for(let e=1;e<=6;e++){const p=a.clone().addScaledVector(dir,e/7);const bd=scyl(.68,.68,.7,PM.w,p.x,p.y,p.z,10);bd.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());}
+      scyl(.7,.7,100,PM.d,b.x,bed-50,b.z,10); scyl(.95,.95,6,PM.grey,b.x,bed+3,b.z,10);
+    }
+    const els=[Y.sump-1,Y.frmg-2,bed*0.10,bed*0.34,bed*0.62,bed*0.87,bed+4];
+    const cor=e=>[[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sz])=>{const h2=hw(e);return new THREE.Vector3(sx*h2,e,sz*h2);});
+    for(let i=0;i<els.length;i++){const c=cor(els[i]),o=[0,1,2,3,0];for(let k=0;k<4;k++)sbar(c[o[k]],c[o[k+1]],.16,PM.r);
+      if(i<els.length-1){const cl=cor(els[i+1]),f=[[0,1],[1,2],[2,3],[3,0]];for(const [p,q] of f){sbar(c[p],cl[q],.12,PM.r);sbar(c[q],cl[p],.12,PM.r);}}}
+    const mk=(g,geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;g.add(o);return o;};
+    const bx=-6.6,bz=4.4;
+    mk(SUB.boat,new THREE.BoxGeometry(3.0,.16,3.0),PM.yd,bx,Y.boat,bz);
+    for(const zz of [bz-0.9,bz+0.9])mk(SUB.boat,new THREE.CylinderGeometry(.17,.17,7,10),PM.r,bx-1.15,Y.boat-2.5,zz);
+    const rlen=Y.frmg-bed;
+    mk(SUB.risers,new THREE.CylinderGeometry(.16,.16,rlen,10),PM.grey,4.9,(Y.frmg+bed)/2,-4.9);
+    mk(SUB.risers,new THREE.CylinderGeometry(.14,.14,rlen,10),PM.grey,-4.9,(Y.frmg+bed)/2,-4.9);
+  }
+  buildSubstructure(BED); G.rebuildPlatformSub=buildSubstructure;
+  return PLAT;
+}
 function buildAll(){
   buildHull();
   buildLegs();
   buildCantilever();
-  // QC: repositioned clear of jacking houses (port-aft crane previously clashed at 6.0 m).
-  // Verified min clearance to nearest jack house ≥14 m; all on-deck, matches GA (2×port, 1×stbd).
-  buildCrane(-28, -12, DECK_Y, THREE.MathUtils.degToRad(40),  46);  // Port-Fwd
-  buildCrane(-29,  11, DECK_Y, THREE.MathUtils.degToRad(150), 46);  // Port-Aft
-  buildCrane( 29,  11, DECK_Y, THREE.MathUtils.degToRad(-100),46);  // Stbd
+  // Raised standby/working poses. Each boom is routed outward from the rig centre;
+  // hook lines are created under the crane root so they remain world-vertical.
+  buildCrane(-28,-12,DECK_Y,THREE.MathUtils.degToRad(-135),46,false); // Port-Fwd: port-forward
+  buildCrane(-29, 11,DECK_Y,THREE.MathUtils.degToRad(-45), 46,false); // Port-Aft: port-aft
+  buildCrane( 29, 11,DECK_Y,THREE.MathUtils.degToRad(45),  46,false); // Stbd-Aft: stbd-aft
   buildHelideck();
   buildAccommodation();
   buildLifeboats();
   buildDeckEquipment();
   buildHandrails();
   buildOcean();
+  buildFoamRings();
   buildSeabed();
   buildLabels();
   buildDimensions();
+  buildPlatformWPS();
 }
-
+function runGeometryQC(){
+  const results=[],V=new THREE.Vector3();
+  const chk=(name,cond,d)=>results.push({name,pass:!!cond,detail:d||''});
+  chk('Rig legs = 3',G.legs.children.length===3,'got '+G.legs.children.length);
+  const wb=G.plat_wellbay,tc=wb?wb.userData.treeCount:0; chk('Wellbay X-trees = 24',tc===24,'got '+tc);
+  let bOK=false,bt='n/a'; if(wb){wb.updateWorldMatrix(true,false);const o=new THREE.Vector3().setFromMatrixPosition(wb.matrixWorld);const p=new THREE.Vector3(0,0,-1).applyMatrix4(wb.matrixWorld).sub(o);const brg=THREE.MathUtils.radToDeg(Math.atan2(p.x,p.z));bt=brg.toFixed(1)+'°';bOK=Math.abs(brg+32)<0.5;}
+  chk('Wellbay bearing = N32W',bOK,bt);
+  const hd=G.helideck.userData.grp; let hOK=false,ht='n/a'; if(hd){hd.getWorldPosition(V);const front=V.z-K.HELI_D/2,oa=K.HULL_L/2-K.OA_L;ht=front.toFixed(2)+' vs '+oa.toFixed(2);hOK=Math.abs(front-oa)<0.5;}
+  chk('Helideck front = OA length',hOK,ht);
+  {const bed=-state.waterDepth,sp=state.legPen,sm=state.mode; state.mode='elevated';state.legPen=0;updateJacking();
+   const leg=G.legs.children[0];leg.updateWorldMatrix(true,false);const oy=new THREE.Vector3().setFromMatrixPosition(leg.matrixWorld).y;const tip=oy+SPUD_TIP_OFFSET;
+   chk('Spudcan tip on seabed @pen0',Math.abs(tip-bed)<0.05,'tip '+tip.toFixed(2)+' bed '+bed.toFixed(2)); state.legPen=sp;state.mode=sm;updateJacking();}
+  {const sub=G.plat_substructure;let ok=false,t='n/a';if(sub){let mn=Infinity;sub.traverse(o=>{if(o.geometry){o.getWorldPosition(V);if(V.y<mn)mn=V.y;}});const bed=-state.waterDepth;t='min '+mn.toFixed(0)+' bed '+bed.toFixed(0);ok=mn<=bed-40;}chk('Platform piles below seabed',ok,t);}
+  chk('Cantilever aft ≤ 21.34',state.cantL<=21.34+1e-6,state.cantL.toFixed(2));
+  chk('Cantilever trans ≤ ±6.10',Math.abs(state.cantT)<=6.10+1e-6,state.cantT.toFixed(2));
+  let bad=0;scene.traverse(o=>{const p=o.position,r=o.rotation,s=o.scale;[p.x,p.y,p.z,r.x,r.y,r.z,s.x,s.y,s.z].forEach(v=>{if(!Number.isFinite(v))bad++;});});
+  chk('No NaN/Inf transforms',bad===0,bad+' bad');
+  const cl=computeClearance();chk('Clearance engine returns value',cl&&Number.isFinite(cl.worst.gap),cl?cl.worst.name:'null');
+  chk('Platform group children',G.platform&&G.platform.children.length>8,G.platform?G.platform.children.length:0);
+  chk('Spudcans = 3',G.spudcans.length===3,'got '+G.spudcans.length);
+  chk('Drill parts tagged',DRILL_PARTS.length>=15,'got '+DRILL_PARTS.length);
+  {const bad=DRILL_PARTS.filter(p=>!p.name||!p.userData.tagNo||!p.userData.system);
+   chk('All tags complete',bad.length===0,bad.length+' incomplete');}
+  {const sys=new Set(DRILL_PARTS.map(p=>p.userData.system));
+   chk('Drill systems >=5',sys.size>=5,[...sys].join(','));}
+  {const need=['IR-01','DH-01','MH-01','SL-01','VD-01','CW-01'];
+   const have=DRILL_PARTS.map(p=>p.userData.tagNo);
+   const miss=need.filter(t=>have.indexOf(t)<0);
+   chk('Tier-A equipment present',miss.length===0,miss.length?('missing '+miss.join(',')):'IR/DH/MH/SL/VD/CW');}
+  {const bx2=K.DERR_BASE_X/2, cw2=K.DERR_CROWN/2, LT0=0.04, LT1=0.60, INB=1.05, LH=0.33;
+   const outX=t=>{const w=bx2+(cw2-bx2)*t; return (w-INB)+LH;};
+   const legX=t=>bx2+(cw2-bx2)*t;
+   let worst=-1e9; for(let i=0;i<=10;i++){const t=LT0+(LT1-LT0)*i/10; worst=Math.max(worst,outX(t)-legX(t));}
+   chk('Ladder inside derrick taper',worst<0,'max protrusion '+worst.toFixed(2)+' m');}
+  {const V3a=new THREE.Vector3(); const legZ=LEG_POS[0].z, WELL=8.7; let worst=0,hits=0;
+   G.accommodation.traverse(o=>{
+     if(!o.geometry||!o.geometry.parameters)return;
+     const p=o.geometry.parameters; if(p.width==null||p.depth==null)return;
+     if(p.width<1.2||p.depth<1.2)return;
+     o.getWorldPosition(V3a);
+     const xInner=Math.abs(V3a.x)-p.width/2, xOuter=Math.abs(V3a.x)+p.width/2;
+     const spansX=(xInner < WELL-0.05) && (xOuter > -WELL+0.05) && (Math.abs(V3a.x)-p.width/2 < WELL-0.05);
+     const zNear=Math.abs(V3a.z-legZ) < p.depth/2;
+     if(spansX && zNear){ hits++; worst=Math.min(worst,xInner-WELL); }
+   });
+   chk('Bow leg well clear of accom',hits===0,hits?(hits+' blocks, worst '+worst.toFixed(1)+' m'):'open well');}
+  {const rp=DRILL_PARTS.find(p=>p.userData.tagNo==='CW-01');
+   let ok=false,t='n/a';
+   if(rp&&rp.userData.topY!=null){
+     const topY=rp.userData.topY, footY=rp.userData.footY;
+     const descends=footY<topY-1.0;
+     const overDeck=footY-DECK_Y;
+     const supported=overDeck>0 && overDeck<5.0;
+     t=(descends?'descends ':'RISES ')+(topY-footY).toFixed(1)+' m, foot '+overDeck.toFixed(1)+' m over deck';
+     ok=descends&&supported;
+   }
+   chk('Catwalk ramp descends to deck',ok,t);}
+  {const rp=DRILL_PARTS.find(p=>p.userData.tagNo==='CW-01');let ok=false,d='no ramp';
+   if(rp&&rp.userData.railLines&&rp.userData.railLines.length===2){
+     const r0=rp.userData.railLines[0],r1=rp.userData.railLines[1];
+     const v0=new THREE.Vector3().subVectors(r0.userData.b,r0.userData.a).normalize();
+     const v1=new THREE.Vector3().subVectors(r1.userData.b,r1.userData.a).normalize();
+     const sepA=r0.userData.a.distanceTo(r1.userData.a),sepB=r0.userData.b.distanceTo(r1.userData.b);
+     const parallel=v0.dot(v1)>0.999999,constant=Math.abs(sepA-sepB)<0.001;
+     const up=rp.userData.surfaceNormal||new THREE.Vector3();
+     const faceUp=up.y>0.70;
+     ok=parallel&&constant&&Math.abs(sepA-2.60)<0.01&&faceUp&&rp.geometry.index.count>=36;
+     d='parallel '+v0.dot(v1).toFixed(6)+', width '+sepA.toFixed(2)+'/'+sepB.toFixed(2)+' m, normalY '+up.y.toFixed(3);
+   }
+   chk('Catwalk rails straight/parallel',ok,d);}
+  {const V6=new THREE.Vector3(); const rIn=K.HULL_W/2-5-2.25, rOut=K.HULL_W/2-5+2.25;
+   let hits=0,detail='clear of racks';
+   G.lifeboats.traverse(o=>{
+     if(!o.geometry||!o.geometry.parameters)return;
+     const p=o.geometry.parameters; if(p.height==null||p.height<3)return;
+     o.getWorldPosition(V6);
+     const ax=Math.abs(V6.x);
+     if(ax>rIn&&ax<rOut&&V6.z>-10&&V6.z<16){hits++;detail='leg at x='+ax.toFixed(1)+' on rack';}
+   });
+   chk('Lifeboat davits clear pipe racks',hits===0,detail);}
+  {const V7=new THREE.Vector3(); const legZ=LEG_POS[0].z, WELL=8.7; let hits=0;
+   G.accommodation.traverse(o=>{
+     if(!o.geometry||!o.geometry.parameters)return;
+     const p=o.geometry.parameters; if(p.radiusTop==null)return;
+     o.getWorldPosition(V7);
+     if(Math.abs(V7.x)<WELL && Math.abs(V7.z-legZ)<WELL) hits++;
+   });
+   chk('No accom drums in bow leg well',hits===0,hits?hits+' inside well':'well clear');}
+  {let nb=0,bow=0; const V4=new THREE.Vector3();
+   G.lifeboats.children.forEach(o=>{nb++;o.getWorldPosition(V4);if(V4.z<-K.HULL_L/2+6)bow++;});
+   chk('Lifeboats port/stbd only',bow===0&&nb>=2,nb+' stations, '+bow+' on bow');}
+  {let joined=false; const V5=new THREE.Vector3();
+   G.accommodation.traverse(o=>{
+     if(!o.geometry||!o.geometry.parameters)return;
+     const p=o.geometry.parameters; if(p.width==null||p.depth==null)return;
+     if(p.width<8||p.depth<0.8)return;
+     o.getWorldPosition(V5);
+     if(Math.abs(V5.x)<1.0 && p.width>=17) joined=true;
+   });
+   chk('Accom wings joined',joined,joined?'link spans centreline':'wings separate');}
+  {const CB_AFT=CANT_REF_Z+K.CANT_AFT+K.SUB_L/2+1.0, CB_FWD=-5.0;
+   const CB_LEN=CB_AFT-CB_FWD, CB_CZ=(CB_FWD+CB_AFT)/2-K.CANT_AFT;
+   let worst=-1e9, at=0;
+   for(const cl of [0, K.CANT_AFT*0.5, K.CANT_AFT]){
+     const beamAft = CB_CZ + CB_LEN/2 + cl;
+     const dfAft   = CANT_REF_Z + cl + K.SUB_L/2;
+     const over    = dfAft - beamAft;
+     if(over>worst){worst=over;at=cl;}
+   }
+   chk('DES supported at all reaches',worst<=0,'max overhang '+worst.toFixed(2)+' m @cantL '+at.toFixed(1));}
+  {const CB_AFT=CANT_REF_Z+K.CANT_AFT+K.SUB_L/2+1.0, CB_FWD=-5.0;
+   const CB_LEN=CB_AFT-CB_FWD, CB_CZ=(CB_FWD+CB_AFT)/2-K.CANT_AFT;
+   const fwdAtMax = CB_CZ - CB_LEN/2 + K.CANT_AFT;
+   const onHull   = Math.min(CB_CZ+CB_LEN/2+K.CANT_AFT, K.HULL_L/2) - fwdAtMax;
+   chk('Beams still bear on hull @max',fwdAtMax < K.HULL_L/2 && onHull > 20,
+       'fwd end '+fwdAtMax.toFixed(1)+', '+onHull.toFixed(1)+' m on hull');}
+  {const moved = (typeof cantLong!=='undefined') && cantLong.children.length>=10;
+   chk('Longitudinal carriage populated',moved,(typeof cantLong!=='undefined')?cantLong.children.length+' children':'no carriage');}
+  {const sc=drillPkg.userData.standCount||0;
+   chk('Racked stands present',sc===12,'got '+sc);}
+  {let g=null; drillPkg.traverse(o=>{if(o.userData&&o.userData.maxProtrusion!=null)g=o;});
+   const mp=g?g.userData.maxProtrusion:1;
+   chk('Stands inside derrick taper',mp<0,'max protrusion '+mp.toFixed(2)+' m');}
+  {const have=DRILL_PARTS.map(p=>p.userData.tagNo);
+   const need=['DP-01','RH-02','HK-01','EL-01','DS-01'];
+   const miss=need.filter(t=>have.indexOf(t)<0);
+   chk('Derrick activity tagged',miss.length===0,miss.length?('missing '+miss.join(',')):'DP/RH/HK/EL/DS');}
+  {const need=['ACC-01','CHK-01','HPU-01','DIV-01'];
+   const have=DRILL_PARTS.map(p=>p.userData.tagNo);
+   const miss=need.filter(t=>have.indexOf(t)<0);
+   chk('Cellar equipment present',miss.length===0,miss.length?('missing '+miss.join(',')):'ACC/CHK/HPU/DIV');}
+  {const V2=new THREE.Vector3();const vd=DRILL_PARTS.find(p=>p.userData.tagNo==='VD-01');
+   let fwd=false;if(vd){vd.getWorldPosition(V2);const wc=CANT_REF_Z+state.cantL;fwd=V2.z<wc;}
+   chk('V-door faces forward',fwd,vd?'z<wellCentre':'no v-door');}
+  const nsub=G.platSub?Object.keys(G.platSub).length:0; chk('Platform subsystems present',nsub>=9,'got '+nsub);
+  const slots=(G.plat_wellbay&&G.plat_wellbay.userData.slots)||[]; chk('Slot list built (1E=19)',slots.filter(s=>s.phase1E).length===19,'got '+slots.filter(s=>s.phase1E).length);
+  {const saved={mode:state.skidMode,L:state.cantL,T:state.cantT};
+   const cases=[['XY',0,0],['XY',K.CANT_AFT,0],['XY',0,-K.CANT_TR],['XY',0,K.CANT_TR],
+                ['DF',0,0],['DF',K.CANT_AFT,0],['DF',0,-K.CANT_TR],['DF',0,K.CANT_TR]];
+   let worst=0,badCase='none';
+   for(const [sm,L,T] of cases){state.skidMode=sm;state.cantL=L;state.cantT=T;applySkidMode();updateCantilever();scene.updateMatrixWorld(true);
+     const a=actualWellCentreWorld(),e=rigWellCentreWorld();const er=Math.hypot(a.x-e.x,a.z-e.z);
+     if(er>worst){worst=er;badCase=sm+' L'+L.toFixed(2)+' T'+T.toFixed(2);}
+   }
+   state.skidMode=saved.mode;state.cantL=saved.L;state.cantT=saved.T;applySkidMode();updateCantilever();scene.updateMatrixWorld(true);
+   chk('Actual rotary position: 8 skid cases',worst<=0.01,'worst '+worst.toFixed(4)+' m @ '+badCase);
+   chk('Skid hierarchy restored',cantLong.position.z===state.cantL&&
+       cantXY.position.x===(state.skidMode==='XY'?state.cantT:0)&&
+       drillPkg.position.x===(state.skidMode==='DF'?state.cantT:0),'mode '+state.skidMode);
+  }
+  /* Deep visual geometry checks: crane parking and derrick symmetry */
+  {let count=0,badAngle=0,badWire=0,badHook=0;
+   G.cranes.children.forEach(g=>{const b=g.userData.boom,hg=g.userData.hookAssembly;if(!b||!hg)return;count++;
+     const elev=Math.abs(b.userData.elevationDeg||0);if(elev<40||elev>50)badAngle++;
+     const axis=hg.userData.wireAxis;if(!axis||axis.dot(new THREE.Vector3(0,-1,0))<0.999)badWire++;
+     if(hg.position.y-hg.userData.drop>=hg.position.y)badHook++;
+   });
+   chk('Cranes raised with vertical hooks',count===3&&badAngle===0&&badWire===0&&badHook===0,
+       count+' cranes, angle '+badAngle+' bad, wire '+badWire+' bad, hook '+badHook+' bad');}
+  {const a=drillPkg.userData.derrickAxis;let ok=false,d='no axis';if(a){
+     const dx=a.top.x-a.bottom.x,dz=a.top.z-a.bottom.z;ok=Math.hypot(dx,dz)<1e-9;d='axis offset '+Math.hypot(dx,dz).toFixed(4)+' m';}
+   chk('Derrick centreline vertical',ok,d);}
+  {const bx2=K.DERR_BASE_X/2,bz2=K.DERR_BASE_Z/2,cw2=K.DERR_CROWN/2;
+   chk('Derrick taper symmetric',bx2>cw2&&bz2>cw2,'base '+(2*bx2).toFixed(2)+'x'+(2*bz2).toFixed(2)+' crown '+(2*cw2).toFixed(2));}
+  {let cg=null;drillPkg.traverse(o=>{if(o.userData&&o.userData.sheaveCount!=null)cg=o;});
+   chk('Crown block compact and complete',!!cg&&cg.userData.sheaveCount===5,cg?cg.userData.sheaveCount+' sheaves':'no crown group');}
+  /* Overview realism checks derived from multi-angle visual inspection */
+  {const rp=DRILL_PARTS.find(p=>p.userData.tagNo==='CW-01');let ok=false,d='no catwalk';if(rp){
+     const dx=Math.abs(rp.userData.foot.x-rp.userData.top.x),dz=rp.userData.top.z-rp.userData.foot.z;
+     ok=dx<0.01&&dz>15&&(rp.userData.surfaceNormal&&rp.userData.surfaceNormal.y>0.70);
+     d='transverse '+dx.toFixed(2)+' m, forward run '+dz.toFixed(2)+' m';}
+   chk('Catwalk aligned with V-door centreline',ok,d);}
+  {let flat=false;G.helideck.traverse(o=>{if(o.geometry&&o.geometry.type==='RingGeometry')flat=true;});
+   chk('Helideck safety net is flat annulus',flat,flat?'RingGeometry present':'not found');}
+  {let visible=0;if(G.platSub&&G.platSub.vent)G.platSub.vent.traverse(o=>{if(o.userData&&o.userData.flame&&o.visible)visible++;});
+   chk('Static flare flame disabled',visible===0,visible+' visible flame meshes');}
+  /* WPS crane reach and forward towing-bridle visual checks */
+  {const c=G.platSub&&G.platSub.pcrane?G.platSub.pcrane.userData:null;
+   chk('WPS crane projects beyond boom rest',!!c&&c.boomLength>=16&&c.tipBeyondRest>=4,
+       c?('boom '+c.boomLength.toFixed(1)+' m, beyond rest '+c.tipBeyondRest.toFixed(1)+' m'):'no crane data');}
+  {const tg=G.helideck.userData.towBridle;let ok=false,d='not found';if(tg){
+     const drop=tg.userData.delta.y-tg.userData.runnerEnd.y;
+     ok=tg.userData.attachSpacing>=15&&drop>5&&tg.parent===G.helideck.userData.grp;
+     d='spacing '+tg.userData.attachSpacing.toFixed(1)+' m, runner drop '+drop.toFixed(1)+' m';}
+   chk('Forward tow bridle under helideck',ok,d);}
+  /* PHASE 1 correction checks */
+  {let g=null;drillPkg.traverse(o=>{if(o.userData&&o.userData.standTop!=null&&o.userData.rackY!=null)g=o;});
+   const gap=g?g.userData.rackY-g.userData.standTop:999;
+   chk('Stand top below fingerboard',gap>=0.30&&gap<=0.60,'clearance '+gap.toFixed(2)+' m');
+   chk('Central hoisting corridor clear',!!g&&g.userData.minCorridor>=1.0,g?'half-clear '+g.userData.minCorridor.toFixed(2)+' m':'no stand group');}
+  {const h=DRILL_PARTS.find(p=>p.userData.tagNo==='RH-02');let ok=false,d='no hose';
+   if(h&&h.userData.start&&h.userData.end){const a=h.geometry.parameters.path.getPoint(0),b=h.geometry.parameters.path.getPoint(1);
+     const e0=a.distanceTo(h.userData.start),e1=b.distanceTo(h.userData.end);ok=e0<=0.01&&e1<=0.01;d='endpoint err '+Math.max(e0,e1).toFixed(3)+' m';}
+   chk('Rotary hose endpoints',ok,d);}
+  {let badAxis=0,n=0;drillPkg.traverse(o=>{if(o.userData&&o.userData.hoseT!=null){n++;const qAxis=new THREE.Vector3(0,1,0).applyQuaternion(o.quaternion).normalize();if(qAxis.dot(o.userData.axis)<0.999)badAxis++;}});
+   chk('Hose couplings follow tangent',n===2&&badAxis===0,n+' couplings, '+badAxis+' bad');}
+  {const LEG_RADIUS=K.CHORD_SP/Math.sqrt(3);let ok=true,maxOut=0;
+   G_foam.traverse(o=>{if(o.geometry&&o.geometry.userData&&o.geometry.userData.rOut){maxOut=Math.max(maxOut,o.geometry.userData.rOut);if(o.geometry.userData.rIn<LEG_RADIUS*0.80||o.geometry.userData.rOut>LEG_RADIUS+3.0)ok=false;}});
+   chk('Foam radius uses leg envelope',ok,'leg R '+LEG_RADIUS.toFixed(2)+' max foam '+maxOut.toFixed(2));}
+  {const sm=state.mode,ov=G.ocean.visible;state.mode='transit';G.ocean.visible=true;syncFoamVisibility();const hidden=!G_foam.visible;
+   state.mode='elevated';syncFoamVisibility();const shown=G_foam.visible;G.ocean.visible=false;syncFoamVisibility();const follows=!G_foam.visible;
+   state.mode=sm;G.ocean.visible=ov;syncFoamVisibility();chk('Foam visibility follows mode/ocean',hidden&&shown&&follows,'transit hidden / elevated visible / ocean hidden');}
+  /* ITEM 6/7 checks */
+  chk('Ocean normal cadence below position cadence',OCEAN_NORMAL_HZ_DESKTOP<OCEAN_POSITION_HZ&&OCEAN_NORMAL_HZ_MOBILE<OCEAN_POSITION_HZ,OCEAN_POSITION_HZ+'/'+OCEAN_NORMAL_HZ_DESKTOP+'/'+OCEAN_NORMAL_HZ_MOBILE+' Hz');
+  chk('Ocean normals attribute present',!!(oceanMesh&&oceanMesh.geometry.attributes.normal),
+      oceanMesh?'attr exists':'no ocean mesh');
+  {let bad2=0; if(oceanMesh){const n=oceanMesh.geometry.attributes.normal;
+     if(n) for(let i=0;i<Math.min(n.count,50);i++){ if(!Number.isFinite(n.getX(i))) bad2++; }}
+   chk('Ocean normals finite',bad2===0,bad2+' non-finite (sampled)');}
+  chk('Foam stations = 3',G_foam.children.length===3,'got '+G_foam.children.length);
+  {let ok=true; G_foam.children.forEach(g=>{ if(Math.abs(g.position.y-0.03)>1e-6) ok=false; });
+   chk('Foam fixed at sea level',ok,'y=0.03 for all stations');}
+  {let onLegsGroup=false; legsGroup.traverse(o=>{ if(o===G_foam) onLegsGroup=true; });
+   chk('Foam not parented to legsGroup',!onLegsGroup,onLegsGroup?'FOUND under legsGroup':'independent of legsGroup');}
+  {let ok=true; G_foam.children.forEach((g,i)=>{
+     if(Math.abs(g.position.x-LEG_POS[i].x)>1e-6 || Math.abs(g.position.z-LEG_POS[i].z)>1e-6) ok=false; });
+   chk('Foam X/Z aligned with leg world positions',ok,'matches LEG_POS for all 3 legs');}
+  {const savedMode=state.mode, savedPen=state.legPen;
+   state.mode='elevated'; state.legPen=12; updateJacking();
+   const before=G_foam.children.map(g=>g.position.y.toFixed(3)).join(',');
+   state.legPen=savedPen; state.mode=savedMode; updateJacking();
+   const after=G_foam.children.map(g=>g.position.y.toFixed(3)).join(',');
+   chk('Foam remains at sea level after jacking',before===after && before==='0.030,0.030,0.030',
+       'before='+before+' after='+after);}
+  {let bad3=0; scene.traverse(o=>{const p=o.position,r=o.rotation,s=o.scale;[p.x,p.y,p.z,r.x,r.y,r.z,s.x,s.y,s.z].forEach(v=>{if(!Number.isFinite(v))bad3++;});});
+   chk('No NaN/Inf after item 6-7',bad3===0,bad3+' bad');}
+  const pass=results.filter(r=>r.pass).length,fail=results.length-pass;
+  console.log('Geometry QC: '+pass+' PASS / '+fail+' FAIL');
+  results.forEach(r=>console.log((r.pass?'  PASS':'  FAIL')+': '+r.name+(r.detail?'  ['+r.detail+']':'')));
+  window.__geomQC=results; return {pass,fail};
+}
 /* ---------------------------------------------------------------------------
    17. UI WIRING
    --------------------------------------------------------------------------- */
-function setCantSlidersEnabled(on){   // B5 FIX
+function setCantSlidersEnabled(on){
   document.getElementById('cantL').disabled=!on;
   document.getElementById('cantT').disabled=!on;
+}
+let alignTarget=null;
+const _slotMarker=(function(){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,10,10),
+    new THREE.MeshStandardMaterial({color:0x33ff88,emissive:0x0a5,emissiveIntensity:0.6}));
+  m.visible=false; scene.add(m); return m;
+})();
+function rigWellCentreWorld(){
+  return new THREE.Vector3(state.cantT,hullGroup.position.y+K.DFLOOR_H+K.HULL_D,CANT_REF_Z+state.cantL);
+}
+function actualWellCentreWorld(){
+  const p=new THREE.Vector3(); if(rotaryTableMesh)rotaryTableMesh.getWorldPosition(p); return p;
+}
+function populateSlots(){
+  const sel=document.getElementById('slotSel'); if(!sel) return;
+  const wb=G.plat_wellbay; if(!wb||!wb.userData.slots) return;
+  sel.innerHTML=''; wb.userData.slots.forEach((s,i)=>{ if(!s.phase1E)return;
+    const o=document.createElement('option'); o.value=i; o.textContent=s.name; sel.appendChild(o); });
+  sel.onchange=()=>{ selectSlot(parseInt(sel.value)); };
+  selectSlot(parseInt(sel.value||'0'));
+}
+function selectSlot(i){
+  const wb=G.plat_wellbay; if(!wb||!wb.userData.slots) return;
+  alignTarget=wb.userData.slots[i]; updateAlignment();
+}
+function updateAlignment(){
+  if(!alignTarget){return;}
+  const wb=G.plat_wellbay; wb.updateWorldMatrix(true,false);
+  const slotW=alignTarget.local.clone().applyMatrix4(wb.matrixWorld);
+  _slotMarker.position.copy(slotW); _slotMarker.visible=(G.platform&&G.platform.visible);
+  const wc=rigWellCentreWorld();
+  const dN=slotW.z-wc.z, dE=slotW.x-wc.x;
+  const ho=Math.hypot(dN,dE);
+  const needL=state.cantL+dN, needT=state.cantT+dE;
+  const reachable=(needL>=0 && needL<=21.34 && Math.abs(needT)<=6.10);
+  setTxt('al_de', fmtSigned(dN,2)+' / '+fmtSigned(dE,2));
+  setTxt('al_ho', uLen(ho,2));
+  setTxt('al_sk', fmtSigned(needL,2)+' / '+fmtSigned(needT,2));
+  const st=document.getElementById('al_st');
+  if(st){ if(!reachable){st.textContent='UNREACHABLE (cant limit)';st.style.color='var(--bad)';}
+    else if(ho<0.5){st.textContent='Within visualization tol.';st.style.color='var(--ok)';}
+    else{st.textContent='Skid required';st.style.color='var(--warn)';} }
+}
+let measureOn=false, measurePts=[], _ray=new THREE.Raycaster(), _ndc=new THREE.Vector2();
+const _measGroup=new THREE.Group(); scene.add(_measGroup);
+function clearMeasure(){ while(_measGroup.children.length){const c=_measGroup.children.pop();if(c.geometry)c.geometry.dispose();_measGroup.remove(c);} measurePts=[]; setTxt('ms_out', measureOn?'pick point A':'off'); }
+function measureDot(p){ const d=new THREE.Mesh(new THREE.SphereGeometry(0.7,10,10),new THREE.MeshBasicMaterial({color:0xffd24a})); d.position.copy(p); _measGroup.add(d); }
+function measurePick(clientX,clientY){
+  const r=renderer.domElement.getBoundingClientRect();
+  _ndc.x=((clientX-r.left)/r.width)*2-1; _ndc.y=-((clientY-r.top)/r.height)*2+1;
+  _ray.setFromCamera(_ndc,camera);
+  const targets=[]; scene.traverse(o=>{ if(o.isMesh && o!==oceanMesh && o.parent!==_measGroup &&
+     !(o.parent&&o.parent.type==='Sprite') && o.visible) targets.push(o); });
+  const hits=_ray.intersectObjects(targets,false);
+  if(!hits.length) return;
+  const p=hits[0].point.clone(); measurePts.push(p); measureDot(p);
+  if(measurePts.length===1){ setTxt('ms_out','pick point B'); }
+  else if(measurePts.length===2){
+    const a=measurePts[0],b=measurePts[1];
+    const g=new THREE.BufferGeometry().setFromPoints([a,b]);
+    _measGroup.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:0xffd24a})));
+    const d3=a.distanceTo(b), dx=b.x-a.x, dy=b.y-a.y, dz=b.z-a.z, dh=Math.hypot(dx,dz);
+    setTxt('ms_out','3D '+uLen(d3,2)+' · H '+uLen(dh,2)+' · ΔY '+fmtSigned(dy,2));
+    measurePts=[];
+  }
 }
 function wireUI(){
   const dock=document.getElementById('dock'),info=document.getElementById('info'),shade=document.getElementById('mobileShade'),bc=document.getElementById('mobileControls'),bd=document.getElementById('mobileData'),bl=document.getElementById('mobileLabels');dock.insertAdjacentHTML('afterbegin','<div class="mobile-handle"></div>');info.insertAdjacentHTML('afterbegin','<div class="mobile-handle"></div>');const compact=()=>matchMedia('(max-width:1024px)').matches;function closePanels(){if(!compact())return;dock.classList.add('mobile-hidden');info.classList.add('mobile-hidden');shade.classList.remove('show');[bc,bd].forEach(b=>{b.classList.remove('on');b.setAttribute('aria-expanded','false');});}function openPanel(target,button){if(!compact())return;const other=target===dock?info:dock,ob=button===bc?bd:bc,opening=target.classList.contains('mobile-hidden');other.classList.add('mobile-hidden');ob.classList.remove('on');ob.setAttribute('aria-expanded','false');target.classList.toggle('mobile-hidden',!opening);button.classList.toggle('on',opening);button.setAttribute('aria-expanded',String(opening));shade.classList.toggle('show',opening);}bc.onclick=()=>openPanel(dock,bc);bd.onclick=()=>openPanel(info,bd);bl.onclick=()=>setVis('labels',!labelsOn);shade.onclick=closePanels;document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanels();});function syncResponsive(){if(compact())closePanels();else{dock.classList.remove('mobile-hidden');info.classList.remove('mobile-hidden');shade.classList.remove('show');}}window.addEventListener('resize',syncResponsive,{passive:true});syncResponsive();
@@ -1427,27 +2620,72 @@ function wireUI(){
     setCantSlidersEnabled(!transit);
     updateJacking(); refreshInfo();
   });
+  const dockSections=[...document.querySelectorAll('#dockScroll .sec')];
+  const compactAccordion=()=>matchMedia('(max-width:1024px), (max-height:820px)').matches;
+  dockSections.forEach((sec,i)=>{
+    const lab=sec.querySelector('.lab'); if(!lab)return;
+    lab.setAttribute('role','button'); lab.setAttribute('tabindex','0');
+    lab.setAttribute('aria-expanded',String(i<2));
+    if(i>=2) sec.classList.add('collapsed');
+    const toggleSection=()=>{
+      const opening=sec.classList.contains('collapsed');
+      if(opening&&compactAccordion()) dockSections.forEach(x=>{x.classList.add('collapsed');const l=x.querySelector('.lab');if(l)l.setAttribute('aria-expanded','false');});
+      sec.classList.toggle('collapsed',!opening);
+      lab.setAttribute('aria-expanded',String(opening));
+      if(opening) sec.scrollIntoView({block:'nearest'});
+    };
+    lab.onclick=toggleSection;
+    lab.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleSection();}};
+  });
+  document.querySelectorAll('[data-skid]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-skid]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.skidMode=b.dataset.skid;
+    applySkidMode(); updateCantilever();
+    setTxt('s_skid', state.skidMode==='XY'?'X-Y rack':'Long.+DF');
+  });
   document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
   document.querySelectorAll('[data-disp]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('[data-disp]').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); state.display=b.dataset.disp; applyDisplay();
   });
   bindRange('airgap','agV',v=>{state.airGap=v;updateJacking();},()=>fmtVal(state.airGap,1));
-  bindRange('wdepth','wdV',v=>{state.waterDepth=v;updateJacking();},()=>fmtVal(state.waterDepth,0));
+  bindRange('wdepth','wdV',v=>{state.waterDepth=v;updateJacking();if(G.rebuildPlatformSub)G.rebuildPlatformSub(-state.waterDepth);},()=>fmtVal(state.waterDepth,0));
   bindRange('lpen','lpV',v=>{state.legPen=v;updateJacking();},()=>fmtVal(state.legPen,1));
   bindRange('cantL','clV',v=>{state.cantL=v;updateCantilever();},()=>fmtVal(state.cantL,2));
   bindRange('cantT','ctV',v=>{state.cantT=v;updateCantilever();},()=>fmtVal(state.cantT,2));
+  bindRange('standoff','soV',v=>{ if(window.__setStandoff) window.__setStandoff(v); },x=>uLen(x,1));
+  document.getElementById('tg_shadow').onchange=e=>{renderer.shadowMap.enabled=e.target.checked;
+    scene.traverse(o=>{if(o.material){o.material.needsUpdate=true;}});};
+  const aoChk=document.getElementById('tg_ao');
+  if(aoChk){
+    if(!aoAvailable){ aoChk.disabled=true;
+      const row=aoChk.closest?aoChk.closest('.toggle'):null;
+      if(row){ row.style.opacity=.45; row.title='Post-processing runtime unavailable'; } }
+    aoChk.onchange=e=>{ aoOn=e.target.checked && aoAvailable; if(aoOn) buildComposer(); if(aoOn&&!composer) aoOn=false; };
+  }
   document.getElementById('tg_wire').onchange=e=>{state.wire=e.target.checked;applyWire();};
   document.getElementById('tg_xhull').onchange=e=>{state.xhull=e.target.checked;applyXHull();};
   document.getElementById('tg_explode').onchange=e=>{state.explode=e.target.checked;applyExplode();};
-  /* A2 FIX: unit toggle now refreshes info, jacking readouts AND slider badges */
   document.getElementById('tg_units').onchange=e=>{
     state.imperial=e.target.checked; refreshInfo(); updateJacking(); updateCantilever(); refreshSliderBadges();
   };
   document.querySelectorAll('[data-vis]').forEach(cb=>cb.onchange=()=>setVis(cb.dataset.vis,cb.checked));
+  document.querySelectorAll('[data-psub]').forEach(cb=>cb.onchange=()=>{
+    const g=G.platSub&&G.platSub[cb.dataset.psub]; if(g)g.visible=cb.checked; });
+  populateSlots();
+  const mchk=document.getElementById('tg_measure');
+  if(mchk) mchk.onchange=e=>{ measureOn=e.target.checked; controls.enabled=!measureOn;
+    clearMeasure(); setTxt('ms_out', measureOn?'pick point A':'off'); };
+  renderer.domElement.addEventListener('pointerdown',ev=>{ if(!measureOn)return; ev.preventDefault();
+    measurePick(ev.clientX,ev.clientY); },{passive:false});
   document.getElementById('collapse').onclick=()=>{
     const dk=document.getElementById('dock'); dk.classList.toggle('collapsed');
     const closed=dk.classList.contains('collapsed');document.getElementById('collapse').textContent=closed?'▸':'▾';document.getElementById('collapse').setAttribute('aria-expanded',String(!closed));
+  };
+  document.getElementById('hudCollapse').onclick=()=>{
+    const hud=document.getElementById('hud'); hud.classList.toggle('collapsed');
+    const closed=hud.classList.contains('collapsed'), b=document.getElementById('hudCollapse');
+    b.textContent=closed?'▸':'▾'; b.setAttribute('aria-expanded',String(!closed));
   };
   document.getElementById('infoCollapse').onclick=()=>{
     const inf=document.getElementById('info'); inf.classList.remove('autocollapse');
@@ -1459,24 +2697,46 @@ function bindRange(id,valId,cb,fmtFn){
   const el=document.getElementById(id);
   el.addEventListener('input',()=>{const v=parseFloat(el.value);cb(v);document.getElementById(valId).textContent=fmtFn(v);});
 }
-
 /* ---------------------------------------------------------------------------
    18. ANIMATION LOOP
    --------------------------------------------------------------------------- */
 const clock=new THREE.Clock();
-let lastOceanUpdate=-1;
+let lastOceanUpdate=-1,lastOceanNormalUpdate=-1;
+const OCEAN_POSITION_HZ=30,OCEAN_NORMAL_HZ_DESKTOP=15,OCEAN_NORMAL_HZ_MOBILE=10;
 function animate(){
   requestAnimationFrame(animate);
   const t=clock.getElapsedTime();
-  const oceanInterval=innerWidth<=1024?1/30:0;
-  if(oceanMesh&&G.ocean.visible&&(oceanInterval===0||t-lastOceanUpdate>=oceanInterval)){lastOceanUpdate=t;
+  /* ITEM 6.2: multi-direction waves. The old formula only combined an X-running and a
+     Z-running sine, which reads as a visible grid pattern (the crests line up with the
+     mesh axes). Two diagonal terms are added so the surface breaks up the grid without
+     changing the update cadence or adding a new dependency. */
+  const oceanInterval=1/OCEAN_POSITION_HZ;
+  const normalInterval=1/(window.innerWidth<=1024?OCEAN_NORMAL_HZ_MOBILE:OCEAN_NORMAL_HZ_DESKTOP);
+  if(oceanMesh&&G.ocean.visible&&(t-lastOceanUpdate>=oceanInterval)){lastOceanUpdate=t;
     const pos=oceanMesh.geometry.attributes.position, arr=oceanBase;
     for(let i=0;i<pos.count;i++){
       const x=arr[i*3], z=arr[i*3+2];
-      pos.setY(i, Math.sin(x*0.03+t*0.9)*0.55 + Math.cos(z*0.045+t*0.7)*0.45);
+      const wave =
+          Math.sin(x*0.030 + t*0.90)*0.42
+        + Math.cos(z*0.045 + t*0.70)*0.30
+        + Math.sin((x+z)*0.021 + t*0.55)*0.22
+        + Math.sin((x*0.7 - z)*0.055 + t*1.10)*0.10;
+      pos.setY(i, wave);
     }
     pos.needsUpdate=true;
+    /* ITEM 6.1: recompute normals after moving vertices. The mesh previously only ever
+       used its flat initial normals (computed once at construction, before any wave
+       displacement), so lighting/reflections never matched the animated surface. Tied to
+       the same 30 Hz cadence as the position update — no extra per-frame cost beyond it. */
+    if(t-lastOceanNormalUpdate>=normalInterval){
+      lastOceanNormalUpdate=t;
+      oceanMesh.geometry.computeVertexNormals();
+      oceanMesh.geometry.attributes.normal.needsUpdate=true;
+    }
   }
+  /* ITEM 7: foam breathing animation — independent of the ocean vertex update above,
+     runs every frame (cheap: just scale/rotation on 9 small ring meshes). */
+  updateFoam(t);
   if(labelsOn && G.labels.userData.spudLabels){
     G.labels.userData.spudLabels.forEach(l=>{
       const idx=l.userData.spudIdx, leg=G.legs.children[idx];
@@ -1504,7 +2764,7 @@ function animate(){
   for(const s of active){
     const u=s.userData;
     const hw=(u.txtLen*3.3+16), hh=15;
-    if(u.noCull){   // B6 FIX: fixed markings bypass collision culling
+    if(u.noCull){
       placed.push({x:u._sx,y:u._sy,hw,hh});
     } else {
       let ok=true;
@@ -1520,18 +2780,18 @@ function animate(){
     s.scale.set(sc*(u.aspect||1), sc, 1);
   }
   controls.update();
-  renderer.render(scene,camera);
+  if(aoOn && composer) composer.render();
+  else renderer.render(scene,camera);
 }
-
 /* ---------------------------------------------------------------------------
    19. RESIZE
    --------------------------------------------------------------------------- */
 window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<=1024?1.5:2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<=1024?1.4:1.75));
   renderer.setSize(innerWidth,innerHeight);
+  if(composer){composer.setSize(innerWidth,innerHeight);composer.setPixelRatio(renderer.getPixelRatio());}
 });
-
 /* ---------------------------------------------------------------------------
    20. INIT
    --------------------------------------------------------------------------- */
@@ -1543,6 +2803,8 @@ try{
   updateCantilever();
   refreshInfo();
   refreshSliderBadges();
+  if(window.__updateClearance) window.__updateClearance();
+  runGeometryQC();
   setView('iso');
   document.getElementById('loader').style.display='none';
   animate();
@@ -1551,6 +2813,7 @@ try{
   fatal('Build error: '+err.message);
 }
 })();
+
 </script>
 </body>
 </html>
