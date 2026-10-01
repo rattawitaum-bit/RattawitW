@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#02080d">
-<title>The Unseen Offshore — Reveal the Unseen · v2.0</title>
+<title>The Unseen Offshore — Reveal the Unseen · v2.1.6</title>
 <meta name="description" content="The Unseen Offshore — interactive Geomatics visual story (GSI, 2D seismic, GTI, rig move, positioning). Synthetic teaching scene.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2302080d%22/%3E%3Cpath d=%22M4 20q6-5 12 0t12 0%22 stroke=%22%233fe0f0%22 stroke-width=%222.5%22 fill=%22none%22/%3E%3Cpath d=%22M16 8v8%22 stroke=%22%23ffb547%22 stroke-width=%222.5%22/%3E%3C/svg%3E">
 <style>
@@ -112,6 +112,7 @@ button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 .gti-readout strong{color:#85efce}.gti-key{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:10px;color:#9db4c0}.gti-key i{width:10px;height:10px;border-radius:2px;background:#65e2bd}
 @media(max-width:900px){.gti-controls{top:auto;right:12px;bottom:132px;width:min(340px,calc(100vw - 24px));padding:11px}.gti-controls h2{font-size:12px;margin-bottom:7px}.gti-controls p{display:none}.gti-controls label{margin:8px 0 3px}.gti-readout{min-height:0;font-size:10px;margin-top:5px;padding-top:5px}.gti-key{display:none}.steps button{font-size:8px;padding:7px 4px 9px}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation:none!important}}
+body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{transition-duration:.01ms!important;animation:none!important}
 /* Focused controls remain above the chapter rail and outside the canvas. */
 .seismic-controls{position:fixed;right:24px;top:78px;width:min(380px,35vw);z-index:17;padding:17px;border:1px solid rgba(150,205,228,.3);border-radius:16px;background:rgba(3,15,23,.89);backdrop-filter:blur(16px);box-shadow:0 22px 65px #0006}
 .seismic-controls.off{display:none}.seismic-controls strong{font-size:13px;letter-spacing:.06em}.seismic-controls p{font-size:11px;line-height:1.5;color:#b8cbd5}.seis-row{display:flex;gap:5px;margin:13px 0}.seis-row button,.seis-fire{border:1px solid rgba(150,205,228,.25);border-radius:8px;background:#0d2939;padding:9px;color:#d9edf1;font:600 10px Segoe UI,Tahoma,sans-serif;cursor:pointer}.seis-row button{flex:1}.seis-row button.on,.seis-fire:hover{border-color:#3fe0f0;color:#fff;background:#185168}.seis-fire{width:100%;border-color:#f2bd73;color:#ffe3ad}
@@ -169,6 +170,7 @@ button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 <aside class="seismic-controls off" id="seismicControls" aria-label="2D seismic conceptual controls">
   <strong id="seisTitle">2D seismic · conceptual</strong>
   <div class="seis-row"><button data-seis="spread" class="on">SPREAD</button><button data-seis="shot">SHOT GATHER</button><button data-seis="section">SECTION</button><button data-seis="compare">SOURCES</button></div>
+  <div class="seis-row" id="shallowSources"><button data-shallow="boomer" class="on">BOOMER</button><button data-shallow="sparker">SPARKER</button></div>
   <button id="fireSeis" class="seis-fire">FIRE CONCEPTUAL PULSE</button>
   <p id="seisNote">96 groups at 12.5 m spacing. 1,200 m nominal active length; first-to-last group span 1,187.5 m. Source-to-first receiver 25 m. Synthetic, not field data.</p>
 </aside>
@@ -206,7 +208,7 @@ button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 addEventListener('error',()=>{const l=document.getElementById('loader');if(l){l.classList.remove('off');l.firstElementChild.textContent='Unable to render this scene on this browser · open in current Microsoft Edge or Google Chrome'}},{once:true});
 (() => {
 /* =========================================================================
-   THE UNSEEN OFFSHORE — v2.0 (visual + code pass on v1.10 One Seabed: SITE table — one pipeline, one BH-01/CPT-01, survey block covers anchors, plan backdrop from the same MBES; + v1.9 operation realism)
+   THE UNSEEN OFFSHORE — v2.1.6 (visual + code pass on v1.10 One Seabed: SITE table — one pipeline, one BH-01/CPT-01, survey block covers anchors, plan backdrop from the same MBES; + v1.9 operation realism)
    Single-file, offline, no dependencies. All seabed, geology, sensor, rig-move
    and position data are SYNTHETIC and generated procedurally at load time.
    World frame (GSI): x = along-line (m, 0..1000), y = across-line (m),
@@ -217,22 +219,22 @@ const easeIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 /* ---------- text ---------- */
 const T={
 en:{sub:'Geomatics · interactive visual story',load:'Building a synthetic seabed…',
- note:'v2.0 · Synthetic teaching scene · acquisition is time-compressed · not survey results or clearance',
+ note:'v2.1.6 · Synthetic teaching scene · acquisition is time-compressed · not survey results or clearance',
  steps:['Surface','Beneath','Scan','2D seismic','GTI','GSI × GTI','Ground','Move','Approach','Legs','Precision','Tender (optional)','One seabed'],
  ch:[
   {e:'01 — Surface',t:'The sea looks empty.',b:'Offshore decisions depend on what no one can see: the shape of the seabed, the objects lying on it and the ground beneath. Geomatics makes that hidden world measurable.',c:'Reveal the unseen  ↓'},
   {e:'02 — Beneath',t:'Light fades. Sound travels.',b:'At survey depths the seabed is dark to the eye. The survey vessel works as one coordinated measurement platform: positioning and motion sensors tell every acoustic sensor exactly where it is.',c:'Start the survey line  →'},
   {e:'03 — Scan',t:'Each sensor sees a different seabed.',b:'Choose a sensor lens and drag the vessel along the line. Knowledge appears only where the seabed has actually been measured. The towfish is positioned by USBL, not layback alone; the line is one of a grid spaced for 200% side-scan coverage.',c:'See the combined picture  →'},
-  {e:'04 — 2D SEISMIC',t:'A source, a streamer, a reflection.',b:'A conceptual GI-gun pulse travels through the water and reflects from interfaces. A towed streamer records the returning wavefield in two-way time; a shot gather is not the processed section, and the section needs a velocity model to be shown in depth. Receiver geometry is drawn on a separate horizontal scale. SOURCES compares boomer, sparker and 2DHR on the same ground.',c:'Investigate the ground  →'},
+  {e:'04 — 2D SEISMIC',t:'A source, a streamer, a reflection.',b:'The long-streamer shot gather illustrates a GI-gun source and receivers recording reflections in two-way time; it is not a processed depth section. The separate inset shows a GI gun alongside one selected shallow source, boomer or sparker, with its own illustrative 40 m hydrophone. The two receiver layouts use different horizontal scales; the inset is not the source geometry of the long-streamer gather. SOURCES compares synthetic responses on the same ground, not a field acquisition design.',c:'Investigate the ground  →'},
   {e:'05 — GTI',t:'A vessel, two distinct deployments.',b:'The drill string runs from the derrick through the moonpool into a seabed frame; the SEACALF CPT unit is lowered over the stern. Press ▶ to drill or push: the borehole returns lab results on discrete samples, CPTU a continuous trace. The vessel holds station on DP2 with heave compensation so the string stays still. Synthetic, not design data.',c:'See the combined picture  →'},
   {e:'06 — GSI × GTI',t:'Time, depth, tie — then the ground model.',b:'GSI reflectors are measured in two-way time. A velocity model converts them to depth; the borehole shows the misfit and the velocity is calibrated until reflectors tie to logged boundaries. CPT confirms at a second point, and the tied reflectors carry soil units between stations. Tap the scene or press play.',c:'See the combined picture  →'},
   {e:'07 — Before the move',t:'The ground frames the questions.',b:'At the destination, seabed contacts, shallow reflectors and point-specific soil evidence sit around an illustrative three-leg footprint. They inform specialist review; they do not certify a location.',c:'Move the giant  →'},
   {e:'08 — Move the giant',t:'A floating jack-up crosses the sea.',b:'Play or scrub the synthetic tow. The hull floats with legs raised and spudcans pulled up near the keel. The main tug tows from the bow; the escort tug is made fast on the quarter — it adds pull on the long tow and, in an emergency, brakes or helps turn the rig. A story, not a tow plan.',c:'Enter the approach  →'},
-  {e:'09 — The approach',t:'Soft pin, run anchors, heave in.',b:'The tow stops at a soft-pin position about 100 m from the platform: legs are lowered just onto the seabed to hold station. The escort is released and runs four anchors, then returns to the quarter. Legs are lifted and the rig is heaved in on its four anchor wires to the planned final position. Synthetic; no clearance assessed.',c:'Watch the legs  →'},
-  {e:'10 — Legs meet the seabed',t:'Staged preload, leg by leg.',b:'After initial seating at a low air gap (≤0.6 m), each leg is proof-loaded in steps and held until settlement stops before the next step. Penetration is compared with the LPA from BH-01 Su and CPT qc; rack phase difference (RPD) is watched against the rig-specific limit. Tugs and anchors hold until preload ends. What-if: a weak layer BH-01 missed — stop jacking, dump preload. Synthetic, not an LPA.',c:'Reveal precision  →'},
+  {e:'09 — The approach',t:'Soft pin, run anchors, heave in.',b:'The illustrated tow stops at a soft-pin position shown about 100 m from the platform in this synthetic layout. This is not a measured clearance. Legs briefly touch the seabed; the escort is released while four anchors are run, then reconnects on starboard as a conceptual emergency-assist arrangement. The rig lifts its legs and heaves toward the illustrated final position. Anchor geometry, towline and emergency response require project-specific assessment; no route or clearance is approved here.',c:'Watch the legs  →'},
+  {e:'10 — Legs meet the seabed',t:'Staged preload, leg by leg.',b:'This synthetic sequence illustrates low-air-gap seating, staged loading and leg penetration, followed by elevation and tug release. BH-01 Su, CPT qc, an illustrative LPA and rack phase difference (RPD) are shown as concepts, not validated limits or proof of settlement. The main tug and starboard escort remain attached through preload in this animation and release at the air-gap phase; anchor recovery is depicted separately. The weak-layer what-if is a teaching scenario, not an instruction to jack or dump preload. Not a preload procedure or design calculation.',c:'Reveal precision  →'},
   {e:'11 — Precision reveal',t:'One reference. Three perspectives.',b:'Plan first, then Navigation, then Total Station: each stern-centre is drawn at true relative scale on a local metre grid, with its difference to Plan. Then the illustrative cantilever envelope is checked against every platform well slot. Synthetic, not an approved final position.',c:'See the tender contrast  →'},
-  {e:'12 — Tender vignette',t:'A different rig. A different pattern.',b:'A tender rig does not stand on legs: it is moored alongside the platform. Lines are revealed one at a time as an AHT runs each anchor. Where a line crosses the existing pipeline, a mid-line buoy is fitted at the crossing to lift the wire clear. Illustrative 8-point pattern, not a mooring analysis.',c:'Return to the seabed  →'},
-  {e:'13 — One seabed',t:'One seabed. One evidence chain.',b:'Every chapter in one spatial frame: MBES shape, SSS texture, SBP layers, magnetic steel, 2DHR structure, BH and CPT evidence, the interpreted ground model — and the decisions they support: anchors, spudcan penetration, final position and well-slot access. Synthetic teaching scene, not a design calculation.',c:'Watch again  ↺'}],
+  {e:'12 — Tender vignette',t:'A different rig. A different pattern.',b:'A tender rig is illustrated moored alongside a platform with an eight-point pattern. Lines appear as an AHT runs the anchors. Where the synthetic wire geometry crosses the illustrated pipeline, a mid-line buoy marker is shown as a concept. It does not establish wire-to-pipeline separation, buoy sizing or a required field arrangement; these need project-specific mooring and crossing assessment.',c:'Return to the seabed  →'},
+  {e:'13 — One seabed',t:'One seabed. One evidence chain.',b:'The layers share an illustrative spatial frame: MBES shape, SSS texture, SBP shallow reflectors, MAG response, 2DHR structure, BH/CPT point evidence and an interpreted ground model. Together they frame questions about anchors, spudcan penetration, final position and well-slot access; they do not resolve or approve those decisions. Synthetic teaching scene, not survey results, clearance or a design calculation.',c:'Watch again  ↺'}],
  quote:'You see the platform. We see everything beneath the decision.',
  k:['Measures','Reveals','Limits'],
  lens:{
@@ -252,22 +254,22 @@ en:{sub:'Geomatics · interactive visual story',load:'Building a synthetic seabe
   chan_b:'Buried channel — invisible from the seabed',gas_b:'Gas in sediment — signal blanked below',pipe_b:'Pipeline — diffraction hyperbola',
   boulder_g:'Boulder — no magnetic signature',pipe_g:'Pipeline — strong anomaly',debris_g:'Ferrous debris — weak anomaly, 22 m off-line',plat_g:'Steel jacket — large anomaly'}},
 th:{sub:'Geomatics · เรื่องเล่าแบบภาพโต้ตอบ',load:'กำลังสร้างพื้นทะเลจำลอง…',
- note:'v2.0 · ภาพสังเคราะห์ · การวิ่งแนวเร่งเวลา · ไม่ใช่ผลสำรวจหรือการอนุมัติจุด',
+ note:'v2.1.6 · ภาพสังเคราะห์ · การวิ่งแนวเร่งเวลา · ไม่ใช่ผลสำรวจหรือการอนุมัติจุด',
  steps:['ผิวน้ำ','ใต้ทะเล','สแกน','2D seismic','GTI','GSI × GTI','ข้อมูลดิน','ย้ายแท่น','เข้าใกล้','วางขา','ยืนยันตำแหน่ง','Tender (เสริม)','พื้นทะเลเดียว'],
  ch:[
   {e:'01 — ผิวน้ำ',t:'ทะเลดูว่างเปล่า',b:'การตัดสินใจงาน offshore ขึ้นอยู่กับสิ่งที่ไม่มีใครมองเห็น ทั้งรูปร่างพื้นทะเล วัตถุที่วางอยู่ และชั้นดินที่อยู่ใต้ลงไป งาน Geomatics ทำให้โลกที่ซ่อนอยู่นี้วัดได้',c:'เปิดเผยสิ่งที่มองไม่เห็น  ↓'},
   {e:'02 — ใต้ทะเล',t:'แสงจางหาย เสียงเดินทางต่อ',b:'ที่ความลึกระดับงานสำรวจ ตาเปล่ามองไม่เห็นพื้นทะเล เรือสำรวจจึงทำงานเป็นแพลตฟอร์มการวัดหนึ่งเดียว ระบบระบุตำแหน่งและการเคลื่อนที่บอกเซนเซอร์เสียงทุกตัวว่าอยู่ตรงไหน',c:'เริ่มวิ่งแนวสำรวจ  →'},
   {e:'03 — สแกน',t:'เซนเซอร์แต่ละตัวเห็นพื้นทะเลคนละแบบ',b:'เลือกมุมมองเซนเซอร์ แล้วลากเรือไปตามแนว ข้อมูลจะปรากฏเฉพาะพื้นที่ที่วัดแล้วจริงเท่านั้น ตำแหน่งอุปกรณ์ลากใช้ USBL ไม่ใช่ layback อย่างเดียว และแนวนี้เป็นหนึ่งใน grid ที่วางระยะให้ side-scan ครอบคลุม 200%',c:'ดูภาพรวมทั้งหมด  →'},
-  {e:'04 — 2D SEISMIC',t:'ต้นกำเนิดคลื่น สายรับ และแนวสะท้อน',b:'GI gun ปล่อยคลื่นจำลองผ่านน้ำ คลื่นสะท้อนจากรอยต่อชั้นดินและถูกบันทึกด้วย streamer ข้อมูลบันทึกเป็นเวลาเดินทางไป-กลับ ภาพ shot gather ไม่ใช่หน้าตัดที่ประมวลผลแล้ว และหน้าตัดต้องใช้โมเดลความเร็วจึงแสดงเป็นความลึกได้ รูปชุดรับใช้สเกลแนวนอนแยกจากเรือ ปุ่ม SOURCES เทียบ boomer, sparker และ 2DHR บนพื้นดินเดียวกัน',c:'ตรวจชั้นดิน  →'},
+  {e:'04 — 2D SEISMIC',t:'ต้นกำเนิดคลื่น สายรับ และแนวสะท้อน',b:'ภาพ shot gather ของ streamer ยาวแสดง GI gun กับกลุ่มรับที่บันทึกคลื่นสะท้อนเป็นเวลาเดินทางไป-กลับ ไม่ใช่หน้าตัดความลึกที่ประมวลผลแล้ว ภาพแทรกอีกชุดแสดง GI gun ร่วมกับแหล่งกำเนิดชั้นตื้นที่เลือกเพียงหนึ่งชนิด คือ boomer หรือ sparker และ hydrophone จำลองยาว 40 ม. ชุดรับทั้งสองใช้สเกลแนวนอนต่างกัน ภาพแทรกไม่ใช่ geometry ของ shot gather สายยาว ปุ่ม SOURCES เปรียบเทียบผลตอบสนองสังเคราะห์บนชั้นดินเดียวกัน ไม่ใช่แบบสำรวจภาคสนาม',c:'ตรวจชั้นดิน  →'},
   {e:'05 — GTI',t:'เรือลำเดียว สองรูปแบบการทำงาน',b:'ก้านเจาะลงจาก derrick ผ่าน moonpool เข้าสู่โครงบนพื้นทะเล ส่วน SEACALF ถูกหย่อนลงทางท้ายเรือ กด ▶ เพื่อเจาะหรือกดหัววัด borehole ให้ผลแล็บจากตัวอย่างเป็นช่วง CPTU ให้กราฟต่อเนื่อง เรือรักษาตำแหน่งด้วย DP2 และมี heave compensation ให้ก้านเจาะนิ่ง ข้อมูลสังเคราะห์ ไม่ใช้ออกแบบ',c:'ดูภาพรวมทั้งหมด  →'},
   {e:'06 — GSI × GTI',t:'เวลา ความลึก tie แล้วจึงเป็นแบบจำลองดิน',b:'แนวสะท้อน GSI วัดเป็นเวลาเดินทางไป-กลับ ต้องใช้โมเดลความเร็วแปลงเป็นความลึก borehole แสดงค่าคลาดเคลื่อนแล้วปรับความเร็วจนแนวสะท้อนตรงกับขอบชั้นจาก log (tie) CPT ยืนยันอีกจุด จากนั้นแนวสะท้อนที่ tie แล้วใช้ลากชั้นดินระหว่างจุด แตะภาพหรือกด ▶',c:'ดูภาพรวม  →'},
   {e:'07 — ก่อนย้ายแท่น',t:'ข้อมูลพื้นทะเลช่วยตั้งคำถาม',b:'ที่ตำแหน่งปลายทาง วัตถุบนพื้นทะเล แนวสะท้อนชั้นตื้น และข้อมูลดินเฉพาะจุด อยู่รอบ footprint สามขาแบบสมมติ ข้อมูลเหล่านี้ใช้ประกอบการพิจารณาของผู้เชี่ยวชาญ ไม่ได้รับรองตำแหน่ง',c:'ดูการย้ายแท่น  →'},
   {e:'08 — ย้ายแท่น',t:'Jack-up ลอยน้ำข้ามทะเล',b:'เล่นหรือเลื่อนเวลาการลากจูงจำลอง ตัวแท่นลอยน้ำ ยกขาขึ้น spudcan ดึงขึ้นชิดท้องแท่น เรือลากหลักลากจากหัวแท่น ส่วนเรือ escort ผูกสายอยู่ข้างท้ายแท่น (port/starboard) ช่วยลากในระยะไกล และในกรณีฉุกเฉินช่วยเบรกหรือช่วยหมุนแท่น ภาพนี้ไม่ใช่แผนลากจูง',c:'ดูการเข้าใกล้  →'},
-  {e:'09 — เข้าใกล้',t:'Soft pin ทำสมอ แล้วดึงเข้า',b:'ลากมาหยุดที่ตำแหน่ง soft pin ห่าง platform ราว 100 ม. ลดขาแตะพื้นทะเลเพื่อยึดตำแหน่ง ปลดเรือ escort ออกไปทำสมอ 4 เส้น เมื่อเสร็จ escort กลับมาต่อข้าง port/starboard จากนั้นยกขาและใช้วินช์ดึงสมอ 4 เส้นพาแท่นเข้าสู่ตำแหน่ง final ตามแผน ข้อมูลสังเคราะห์ ไม่ได้ประเมินระยะปลอดภัย',c:'ดูการวางขา  →'},
-  {e:'10 — วางขา',t:'Preload เป็นขั้น ทีละขา',b:'หลังวางขาเริ่มต้นที่ air gap ต่ำ (≤0.6 ม.) แต่ละขาถูกเพิ่มน้ำหนักเป็นขั้น และถือน้ำหนักจนการทรุดตัวหยุดก่อนขึ้นขั้นถัดไป เทียบ penetration กับ LPA จาก Su ของ BH-01 และ qc ของ CPT พร้อมเฝ้าดู rack phase difference (RPD) เทียบขีดจำกัดของแท่น เรือลากและสมอยึดจนจบ preload ปุ่ม what-if: ชั้นอ่อนที่ BH-01 ไม่พบ — หยุด jack ปล่อย preload ค่าสังเคราะห์ ไม่ใช่ LPA จริง',c:'ดูการยืนยันตำแหน่ง  →'},
+  {e:'09 — เข้าใกล้',t:'Soft pin ทำสมอ แล้วดึงเข้า',b:'ภาพจำลองแสดงแท่นหยุดที่ soft pin ซึ่งวาดให้ห่าง platform ราว 100 ม. ในผังสังเคราะห์ ระยะนี้ไม่ใช่ clearance ที่ตรวจวัด ขาแตะพื้นทะเลชั่วคราว จากนั้นปลด escort ระหว่างวางสมอ 4 เส้น แล้วกลับมาต่อทาง starboard เพื่อสื่อแนวคิดการช่วยดึงในเหตุฉุกเฉิน ก่อนยกขาและดึงแท่นเข้าตำแหน่ง final ตามภาพ แนวสมอ สายลาก และการตอบสนองฉุกเฉินต้องประเมินเฉพาะงาน ภาพนี้ไม่อนุมัติเส้นทางหรือระยะปลอดภัย',c:'ดูการวางขา  →'},
+  {e:'10 — วางขา',t:'Preload เป็นขั้น ทีละขา',b:'ลำดับสังเคราะห์แสดงการวางขาที่ air gap ต่ำ การเพิ่มน้ำหนักเป็นขั้น การทรุดตัวของขา การยกแท่น และการปลดเรือ โดยนำ Su จาก BH-01, qc จาก CPT, LPA จำลอง และ rack phase difference (RPD) มาอธิบายแนวคิด ไม่ใช่ขีดจำกัดที่ตรวจรับหรือหลักฐานว่าการทรุดตัวหยุดแล้ว ในภาพ main tug และ escort ทาง starboard ต่อสายผ่านช่วง preload และปลดเมื่อเข้าสู่ช่วง air gap ส่วนการเก็บสมอแสดงแยกต่างหาก what-if ชั้นอ่อนเป็นกรณีสอน ไม่ใช่คำสั่งให้ jack หรือปล่อย preload ไม่ใช่ขั้นตอน preload หรือผลคำนวณออกแบบ',c:'ดูการยืนยันตำแหน่ง  →'},
   {e:'11 — ยืนยันตำแหน่ง',t:'จุดอ้างอิงเดียว สามแหล่งข้อมูล',b:'แสดง Plan ก่อน ตามด้วย Navigation และ Total Station จุดกึ่งกลางท้ายแท่นวาดตามสเกลจริงบนกริดเมตรท้องถิ่น พร้อมค่าต่างจาก Plan แล้วตรวจว่าขอบเขต cantilever เข้าถึง well slot ของ platform ได้ครบทุกช่อง ค่าสังเคราะห์ ไม่ใช่ตำแหน่งที่อนุมัติ',c:'ดูความต่างของ Tender  →'},
-  {e:'12 — ฉากเสริม Tender',t:'คนละแท่น คนละรูปแบบการยึด',b:'Tender rig ไม่ได้ยืนบนขา แต่ผูกยึดข้าง platform ด้วยสายสมอ สายปรากฏทีละเส้นขณะเรือ AHT นำสมอไปวาง เส้นที่พาดข้ามท่อเดิมต้องติด mid-line buoy ณ ตำแหน่งที่ข้ามเพื่อยกสายให้พ้นท่อ รูปแบบ 8 จุดเพื่ออธิบาย ไม่ใช่การวิเคราะห์ mooring',c:'กลับสู่ภาพรวม  →'},
-  {e:'13 — พื้นทะเลเดียว',t:'พื้นทะเลเดียว ห่วงโซ่หลักฐานเดียว',b:'ทุกบทอยู่ในกรอบพิกัดเดียว: รูปร่างจาก MBES ผิวสัมผัสจาก SSS ชั้นตื้นจาก SBP เหล็กจาก MAG โครงสร้างลึกจาก 2DHR หลักฐานจาก BH และ CPT แบบจำลองชั้นดินที่ตีความ และการตัดสินใจที่ข้อมูลรองรับ: สมอ penetration ของ spudcan ตำแหน่งสุดท้าย และการเข้าถึง well slot ภาพสังเคราะห์ ไม่ใช่การคำนวณออกแบบ',c:'ดูอีกครั้ง  ↺'}],
+  {e:'12 — ฉากเสริม Tender',t:'คนละแท่น คนละรูปแบบการยึด',b:'ภาพจำลองแสดง tender rig ผูกยึดข้าง platform ด้วยสมอ 8 จุด สายปรากฏตามลำดับขณะ AHT วางสมอ เมื่อ geometry สายจำลองตัดท่อที่วาดไว้ ภาพจะแสดง marker ของ mid-line buoy เพื่ออธิบายแนวคิด marker นี้ไม่ยืนยันระยะห่างสายกับท่อ ขนาดทุ่น หรือรูปแบบที่ต้องใช้จริง การออกแบบ mooring และจุดข้ามท่อต้องประเมินเฉพาะงาน',c:'กลับสู่ภาพรวม  →'},
+  {e:'13 — พื้นทะเลเดียว',t:'พื้นทะเลเดียว ห่วงโซ่หลักฐานเดียว',b:'ชั้นข้อมูลอยู่ในกรอบพิกัดสังเคราะห์เดียวกัน: รูปร่างจาก MBES ผิวสัมผัสจาก SSS แนวสะท้อนชั้นตื้นจาก SBP การตอบสนอง MAG โครงสร้างจาก 2DHR ข้อมูลเฉพาะจุดจาก BH/CPT และแบบจำลองชั้นดินที่ตีความ ข้อมูลเหล่านี้ช่วยตั้งคำถามเรื่องสมอ การทรุดของ spudcan ตำแหน่งสุดท้าย และการเข้าถึง well slot ไม่ได้ตัดสินหรืออนุมัติผลดังกล่าว ภาพเพื่อการสอน ไม่ใช่ผลสำรวจ ระยะปลอดภัย หรือผลคำนวณออกแบบ',c:'ดูอีกครั้ง  ↺'}],
  quote:'คุณเห็นแท่น — เราเห็นทุกอย่างที่อยู่ใต้การตัดสินใจ',
  k:['วัดอะไร','เผยอะไร','ข้อจำกัด'],
  lens:{
@@ -295,7 +297,7 @@ function vn(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf
   const a=h2(xi,yi),b=h2(xi+1,yi),c=h2(xi,yi+1),d=h2(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
 function fbm(x,y){let s=0,a=.5,f=1;for(let k=0;k<4;k++){s+=a*vn(x*f+k*17.3,y*f-k*9.1);f*=2;a*=.5}return s/.9375}
 /* ---------- synthetic world ---------- */
-const LINE_START=60, LINE_END=990, FISH_LB=60, MAG_LB=100, FISH_ALT=8, MAG_ALT=5;
+const LINE_START=60, LINE_END=990, FISH_LB=110, MAG_TAIL=50, MAG_LB=FISH_LB+MAG_TAIL, FISH_ALT=8, MAG_ALT=5;
 const OBJ=[{x:300,y:18,r:3.2,h:2.2,fe:false},{x:344,y:-41,r:2.2,h:1.5,fe:false},{x:780,y:-22,r:2.6,h:1.3,fe:true},{x:852,y:17,r:1.8,h:1.1,fe:false}];   // last = site SSS contact C-01
 const LEGS=[{x:891,y:46,r:1.1,h:60},{x:909,y:46,r:1.1,h:60},{x:891,y:64,r:1.1,h:60},{x:909,y:64,r:1.1,h:60}];
 const PLAT={x:900,y:55};
@@ -416,7 +418,7 @@ function buildWorld(){
 }
 /* ---------- state ---------- */
 const SEIS={groups:96,spacing:12.5,active:1200,first:6.25,source:-18.75};
-const S={seisMode:'spread',shot:-100,lang:'en',mode:'presenter',ch:0,chT:0,playing:true,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
+const S={seisMode:'spread',shallow:'boomer',shot:-100,lang:'en',mode:'presenter',ch:0,chT:0,playing:true,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
   r:0,rT:0,span:1000,spanT:1000,camX:0,t:0,ship:60,drag:false,lens:'mbes',fT:0,gtiDepth:0,gtiMethod:'bh',moveT:0,moveView:'cinematic',precT:0,tenderT:0,found:{},callouts:[],dragHint:0,bridgeT:0,pt:false,lineDone:false};
 const PRES=[7,10,42,30,26,22,10,26,36,36,26,18,26];   // presenter loops after the finale (kiosk use)
 const SOUND_LABEL={en:['SOUND OFF','SOUND ON'],th:['เสียงปิด','เสียงเปิด']};
@@ -660,12 +662,12 @@ function drawShip(){
 }
 function towGeometry(){
   const fx=S.ship-FISH_LB,mx=S.ship-MAG_LB,fz=seabed(fx,0)-FISH_ALT,mz=seabed(mx,0)-MAG_ALT;
-  const fa=S.reduced?0:.8*Math.sin(S.t*.5);return {st:PA(S.ship-29,0,15*.25/1.3*4),F:P(fx,FEATH(),fz+fa),M:P(mx,MFEATH(),mz+fa*.6),fx,mx,fz,mz};
+  const fa=S.reduced?0:.8*Math.sin(S.t*.5);return {st:PA(S.ship-29,0,15*.25/1.3*4),F:P(fx,FEATH(),fz+fa),M:P(mx,FEATH(),mz+fa*.6),fx,mx,fz,mz};
 }
 /* ---------- USBL + survey grid (Phase 3): positioning by acoustic fix, coverage by overlapping lines ---------- */
-const FEATH=()=>-6.2+1.4*Math.sin(S.t*.21),MFEATH=()=>-9.5+1.8*Math.sin(S.t*.17+1);   // cross-track drift from current (m)
+const FEATH=()=>-6.2+1.4*Math.sin(S.t*.21);   // cross-track drift from current (m)
 const GRID={sp:75,rng:75,nad:FISH_ALT,lines:[-375,-300,-225,-150,-75,0,75,150,225,300,375,450],cur:5,x0:LINE_START,x1:LINE_END,bx0:60,bx1:1290,xl:[300,700,1100]};
-function usblFix(){const fy=FEATH(),fx=S.ship-FISH_LB+60*(1-Math.cos(Math.atan2(Math.abs(fy),60)));return {x:fx,y:fy,d:Math.hypot(fx-(S.ship-FISH_LB),fy)}}
+function usblFix(){const fy=FEATH(),fx=S.ship-FISH_LB+FISH_LB*(1-Math.cos(Math.atan2(Math.abs(fy),FISH_LB)));return {x:fx,y:fy,d:Math.hypot(fx-(S.ship-FISH_LB),fy)}}
 /* fold of SSS coverage at a point: lines already run count fully, current line counts behind the fish */
 function sssFold(x,y){let n=0;GRID.lines.forEach((ly,i)=>{const dy=Math.abs(y-ly);if(dy>GRID.rng||dy<GRID.nad)return;
   if(i<GRID.cur&&x>=GRID.bx0&&x<=GRID.bx1)n++;else if(i===GRID.cur&&x>=GRID.x0&&x<=S.ship-FISH_LB)n++});return n}
@@ -734,7 +736,7 @@ function drawTow(){
   ctx.beginPath();ctx.moveTo(st[0],st[1]);ctx.quadraticCurveTo(c[0],c[1],g.F[0],g.F[1]);ctx.stroke();
   ctx.strokeStyle='rgba(151,173,177,.46)';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(st[0],st[1]);ctx.quadraticCurveTo(c[0],c[1]-1,g.F[0],g.F[1]-1);ctx.stroke();
   ctx.strokeStyle='rgba(180,196,200,.45)';ctx.lineWidth=Math.max(1,kx*.3);
-  ctx.beginPath();ctx.moveTo(st[0]-3,st[1]);ctx.quadraticCurveTo((st[0]+g.M[0])/2,Math.max(g.M[1],c[1])+7,g.M[0],g.M[1]);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(g.F[0],g.F[1]);ctx.quadraticCurveTo((g.F[0]+g.M[0])/2,Math.max(g.F[1],g.M[1])+7,g.M[0],g.M[1]);ctx.stroke();
   const fish=(p,len,col,secondary)=>{
     ctx.save();ctx.translate(p[0],p[1]);const sway=S.reduced?0:Math.sin(S.t*1.2)*.025;ctx.rotate(sway);
     const halo=ctx.createRadialGradient(0,0,0,0,0,len*2.4);halo.addColorStop(0,secondary);halo.addColorStop(1,'rgba(0,0,0,0)');
@@ -823,7 +825,7 @@ function decLayer(){if(DEC)return DEC;DEC=mk(MBW,MBH);const g=DEC.getContext('2d
   for(const [[x,y],col] of[[BH_G,'#73e2bd'],[CP_G,'#8ccaff']]){g.strokeStyle=col;g.lineWidth=4;g.beginPath();g.moveTo(U(x)-10,V(y));g.lineTo(U(x)+10,V(y));g.moveTo(U(x),V(y)-10);g.lineTo(U(x),V(y)+10);g.stroke()}
   return DEC}
 function drawStack(){
-  const f=S.reduced?1:easeIO(clamp(S.fT,0,1)),m=W<900,th=S.lang==='th';
+  const f=S.reduced?clamp(S.fT,0,1):easeIO(clamp(S.fT,0,1)),m=W<900,th=S.lang==='th';
   ctx.fillStyle=`rgba(2,8,13,${.94*clamp(S.fT*1.5,0,1)})`;ctx.fillRect(0,0,W,H);
   const Wp=m?W*.5:Math.min(W*.42,700),ox0=m?W*.06:W*.35,oy0=m?H*.58:H*.47,a=[Wp,-Wp*.07],c=[Wp*.08,-Wp*.14],gp=(m?H*.055:H*.075)*f,t=T[S.lang].stack,hs=H*(m?.07:.1),hs2=H*(m?.06:.085),lf=m?10:13;
   const plate=(img,o,col,lab,pw,ph)=>{const GA=ctx.globalAlpha;
@@ -832,7 +834,7 @@ function drawStack(){
     ctx.setTransform(DPR*a[0]/pw,DPR*a[1]/pw,-DPR*c[0]/ph,-DPR*c[1]/ph,DPR*(o[0]+c[0]),DPR*(o[1]+c[1]));ctx.drawImage(img,0,0);ctx.restore();
     ctx.fillStyle=col;ctx.font=font(lf,700);ctx.fillText(lab,o[0]+a[0]+c[0]+12,o[1]+a[1]+c[1]*.5+4)};
   const oM=[ox0,oy0],oS=[ox0,oy0-gp-Wp*.02],oG=[ox0,oy0-2*gp-Wp*.04],oD=[ox0,oy0-3*gp-Wp*.06],cur=(fx,z,hh,y0=0)=>[oM[0]+a[0]*fx,oM[1]+a[1]*fx+y0+z/30*hh];
-  const ap=t0=>S.reduced?1:clamp((S.fT-t0)/.22,0,1),stage=(t0,o,fn)=>{const q=ap(t0);if(q<=0)return;ctx.globalAlpha=q;fn([o[0],o[1]+(1-sEase(q))*H*.06]);ctx.globalAlpha=1};
+  const ap=t0=>S.reduced?(S.fT>=t0?1:0):clamp((S.fT-t0)/.22,0,1),stage=(t0,o,fn)=>{const q=ap(t0);if(q<=0)return;ctx.globalAlpha=q;fn([o[0],o[1]+(1-sEase(q))*H*.06]);ctx.globalAlpha=1};
   // SBP curtain (0–30 m BSF) with the interpreted ground model tinted by confidence
   ctx.save();ctx.setTransform(DPR*a[0]/SBW,DPR*a[1]/SBW,0,DPR*hs/SBH,DPR*oM[0],DPR*oM[1]);ctx.globalAlpha=.95;ctx.drawImage(rev.sbp,0,0);ctx.restore();
   if(f>.4){ctx.save();for(let i=0;i<50;i++){const f0=i/50,f1=(i+1)/50,fm=(f0+f1)/2,conf=.1+.34*Math.exp(-Math.min(Math.abs(fm-BH_X),Math.abs(fm-CP_X))/.04);let za=0;
@@ -1068,6 +1070,7 @@ function drawSeismic(){
  seaTop(water);
  {c.save();c.beginPath();c.rect(0,bed,w,h-bed);c.clip();grain('Sand',0,w,bed,h,55);c.restore();c.strokeStyle='#d5c6a4aa';c.lineWidth=1.5;c.beginPath();for(let x=0;x<=w;x+=6){const yy=bed+(fbm(x*.01,3.3)-.5)*4;x?c.lineTo(x,yy):c.moveTo(x,yy)}c.stroke()}
  if(S.seisMode==='compare'){drawSourceCompare();return}
+ drawShallowSpread(water);
  const L=small?74:170,x0=small?12:w*.31,x1=w*.96,px=m=>x0+L+(m+40)/1300*(x1-x0-L),y=water+23,gx=px(SEIS.source);
  c.save();c.strokeStyle='#d9b981';c.lineWidth=3;c.beginPath();c.moveTo(px(0),y);c.lineTo(px(1200),y);c.stroke();
  for(let i=0;i<SEIS.groups;i++){let x=px(SEIS.first+i*SEIS.spacing);c.fillStyle=i%12===0?'#e8fcfa':'#68d8d4';c.beginPath();c.arc(x,y,i%12===0?2.6:1.3,0,7);c.fill()}
@@ -1107,6 +1110,14 @@ function drawSeismic(){
  else{c.fillStyle='#a8c9d0';c.fillText(th?'เลือก SHOT GATHER, SECTION หรือ SOURCES':'Select SHOT GATHER, SECTION or SOURCES',qx+12,qy+58)}c.restore();
  if(!small){c.font=font(11,400);c.fillStyle='#a9c6cf';c.fillText(th?'สเกลแนวนอนเฉพาะ streamer · เรือ/ความลึกไม่ตามสเกล · คลื่นแสดงแนวคิด':'HORIZONTAL STREAMER SCALE ONLY · vessel/depth not to scale · pulses illustrate paths',qx,qy-8)}
 }
+/* Separate short-receiver acquisition alongside the GI gun/long streamer; not on the long-streamer scale. */
+function drawShallowSpread(water){const c=ctx,th=S.lang==='th',small=W<900,x=small?W*.36:W*.52,y=small?water-78:water-112,w=Math.min(small?W*.60:W*.38,550),h=small?68:92,k=S.shallow;
+ c.save();c.fillStyle='rgba(3,15,25,.92)';c.fillRect(x,y,w,h);c.strokeStyle=k==='boomer'?'#e0b53a':'#8fd3ff';c.strokeRect(x,y,w,h);
+ txt(th?'GI GUN + '+k.toUpperCase()+' (เลือกหนึ่ง)':'GI GUN + '+k.toUpperCase()+' (ONE SELECTED)',x+8,y+16,'#eaf6f7',small?8:11,700);
+ const sx=x+18,sy=y+39,ex=x+w-16,ey=sy+5;c.strokeStyle='#c8d8db';c.lineWidth=1.5;c.beginPath();c.moveTo(sx,sy);c.lineTo(ex,sy);c.stroke();
+ c.fillStyle=k==='boomer'?'#e0b53a':'#8fd3ff';if(k==='boomer'){c.fillRect(sx+18,sy-4,32,5);c.strokeStyle='#e0b53a';c.strokeRect(sx+14,sy-7,40,10)}else for(let j=0;j<6;j++)c.fillRect(sx+18+j*6,sy+2,2,6);
+ c.strokeStyle='#d9b981';c.lineWidth=2;c.beginPath();c.moveTo(sx+60,ey);c.lineTo(ex,ey);c.stroke();for(let j=0;j<9;j++){c.fillStyle='#68d8d4';c.beginPath();c.arc(sx+65+j*(ex-sx-70)/8,ey,2,0,7);c.fill()}
+ txt(th?'HYDROPHONE 40 ม. · สเกลแยก':'40 m HYDROPHONE · SEPARATE SCALE',sx+6,y+h-9,'#d9b981',small?8:10,700);c.restore()}
 /* Boomer vs sparker vs 2DHR: same synthetic ground, different wavelet and attenuation. */
 function drawSourceCompare(){const c=ctx,small=W<900,th=S.lang==='th',cr=$('seismicControls').getBoundingClientRect();
  const x0=small?8:W*.31,x1=small?W-8:W*.96,y0=small?H*.34:Math.max(H*.36,cr.bottom+30),y1=small?(cr.top>0?cr.top-10:H*.62):H-92,gap=small?6:14,cw=(x1-x0-gap*2)/3;
@@ -1204,7 +1215,7 @@ function drawBridge(){
 const tx=(en,th)=>S.lang==='th'?th:en;
 function txt(s,x,y,col='#d4eaf0',size=11,w=600,align='left'){size=Math.max(size,W>=900?9.5:8);ctx.save();ctx.font=font(size,w);
   if(align==='left'){const room=W-x-8,mw=ctx.measureText(s).width;if(mw>room&&room>40){size=Math.max(8,size*room/mw);ctx.font=font(size,w)}}ctx.fillStyle=col;ctx.textAlign=align;ctx.fillText(s,x,y);ctx.restore()}
-function tag(s,x,y,col='#d4eaf0',size=11,align='left'){size=Math.max(size,W>=900?11:8);ctx.save();ctx.font=font(size,600);const w=ctx.measureText(s).width+12,h=size+9,bx=align==='center'?x-w/2:align==='right'?x-w:x;
+function tag(s,x,y,col='#d4eaf0',size=11,align='left'){size=Math.max(size,W>=900?11:8);ctx.save();ctx.font=font(size,600);const w=ctx.measureText(s).width+12,h=size+9,bx=clamp(align==='center'?x-w/2:align==='right'?x-w:x,8,Math.max(8,W-w-8));
   ctx.fillStyle='rgba(3,15,25,.82)';roundRect(bx,y-h+4,w,h,5);ctx.fill();ctx.strokeStyle=col+'88';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle=col;ctx.fillText(s,bx+6,y-1);ctx.restore()}
 /* Viewport that avoids the narrative card (left) and the rail (bottom). */
 function VR(){const m=W<900;if(m){const r=$('moveControls').getBoundingClientRect(),y1=r.height>0?r.top-12:H-250;return {x0:8,x1:W-8,y0:H*.42,y1:Math.max(H*.42+120,y1),m,lx:8}}const lx=Math.min(450,W*.33);return {x0:S.vx??lx,x1:W-24,y0:Math.max(250,H*.28),y1:H-92,m,lx}}
@@ -1213,7 +1224,7 @@ const PH=[
  {k:'approach',a:.40,b:.48,en:'APPROACH → TURN → SOFT-PIN POSITION ~100 m',th:'เข้าใกล้ → หมุนตัว → ตำแหน่ง SOFT PIN ~100 ม.'},
  {k:'softpin',a:.48,b:.52,en:'SOFT PIN · SPUDCANS JUST ON SEABED',th:'SOFT PIN · spudcan แตะพื้นทะเล'},
  {k:'anchors',a:.52,b:.64,en:'ESCORT RELEASED · RUNNING 4 ANCHORS',th:'ปลด ESCORT · ทำสมอ 4 เส้น'},
- {k:'reconnect',a:.64,b:.67,en:'ESCORT BACK ON QUARTER',th:'ESCORT กลับมาต่อข้างแท่น'},
+ {k:'reconnect',a:.64,b:.67,en:'ESCORT RECONNECTED · STARBOARD EMERGENCY ASSIST',th:'ESCORT ต่อสายข้าง STARBOARD · พร้อมช่วยฉุกเฉิน'},
  {k:'warp',a:.67,b:.76,en:'LEGS UP · HEAVE IN ON 4 ANCHORS → FINAL',th:'ยกขา · ดึงสมอ 4 เส้น → FINAL'},
  {k:'lower',a:.76,b:.79,en:'LEGS LOWERING → CONTACT',th:'ลดขา → สัมผัสพื้น'},
  {k:'seat',a:.79,b:.80,en:'INITIAL SEATING · AIR GAP ≤ 0.6 m',th:'วางขาเริ่มต้น · AIR GAP ≤ 0.6 ม.'},
@@ -1290,8 +1301,10 @@ function pose(t){
   if(t<.76){const u=sEase(sm(t,.69,.76));return {x:lerp(SOFT.x,fin.x,u),y:lerp(SOFT.y,fin.y,u),h:lerp(0,fin.h,u)}}
   return fin}
 /* Illustrative 4-point anchor pattern (world E/N, platform centre = 0,0); fairleads in the rig frame (stern 0, bow -72). */
-const ANCH=[{f:[-68,26],a:[-347,181]},{f:[-68,-26],a:[-347,-179]},{f:[-6,30],a:[-57,331]},{f:[-6,-30],a:[-57,-329]}];
-const ESC_L=[-24,-46],ESC_ATT=[-24,-32],RUN0=.52,RUNW=.03;
+const ANCH_RADIUS=300,anchorAt=(f,b)=>[SOFT.x+f[0]+ANCH_RADIUS*Math.sin(b*Math.PI/180),SOFT.y+f[1]+ANCH_RADIUS*Math.cos(b*Math.PI/180)];
+const ANCH=[{f:[-68,26],a:[-347,181]},{f:[-68,-26],a:[-347,-179]},
+ {f:[-6,30],a:anchorAt([-6,30],40)},{f:[-6,-30],a:anchorAt([-6,-30],140)}];
+const ESC_SEP=250,ESC_L=[ESC_SEP,-46],ESC_STBD=[25,-ESC_SEP],ESC_ATT=[-24,-32],RUN0=.52,RUNW=.03;
 const lw2w=(P,l)=>{const r=rot(P.h,l[0],l[1]);return [P.x+r[0],P.y+r[1]]};
 function anchorsLaid(t){let n=0;for(let i=0;i<4;i++)if(t>=RUN0+(i+.7)*RUNW)n++;return n}
 const ROUTE_LEN=ROUTE.slice(1).reduce((s,p,i)=>s+Math.hypot(p[0]-ROUTE[i][0],p[1]-ROUTE[i][1]),0);
@@ -1346,23 +1359,24 @@ function planBG(cx,cy,k,dark){ctx.save();ctx.globalCompositeOperation='destinati
 /* Tug arrangement. Main tug on the bow. Escort made fast on the quarter: adds pull on the long tow,
    brakes or turns the rig in an emergency; released at soft pin to run the 4 anchors, then returns. */
 function tugSet(t){
-  const J=jack(t);if(!J.afloat)return [];
+  const J=jack(t);if(!J.afloat){const alpha=1-sm(t,.945,.95);return alpha>0?[{role:'hold',pos:[-72-140,0],att:[-72,0],alpha},{role:'escort',pos:ESC_STBD,att:ESC_ATT,dir:'travel',alpha}]:[];}
   const fade=1-sm(t,.775,.79),out=[];
   if(t<.40)out.push({role:'main',pos:[-72-450,0],att:[-72,0]});
   else out.push({role:(t<.48&&J.appr<.6)?'main':'hold',pos:[-72-140,0],att:[-72,0],alpha:fade});
-  if(t<RUN0||t>=RUN0+4*RUNW)out.push({role:'escort',pos:ESC_L,att:ESC_ATT,dir:'travel',alpha:fade});
+  if(t<RUN0)out.push({role:'escort',pos:ESC_L,att:ESC_ATT,dir:'travel',alpha:fade});
+  else if(t>=RUN0+4*RUNW)out.push({role:'escort',pos:ESC_STBD,att:ESC_ATT,dir:'travel',alpha:fade});
   else{const i=Math.min(3,Math.floor((t-RUN0)/RUNW)),u=(t-RUN0-i*RUNW)/RUNW,P=pose(t),F=lw2w(P,ANCH[i].f),A=ANCH[i].a;
     if(u<.7){const q=sEase(u/.7);out.push({role:'run',i,w:true,pos:[lerp(F[0],A[0],q),lerp(F[1],A[1],q)],att:ANCH[i].f,dir:Math.atan2(A[1]-F[1],A[0]-F[0])})}
-    else{const N=i<3?lw2w(P,ANCH[i+1].f):lw2w(P,ESC_L),q=sEase((u-.7)/.3);out.push({role:'ret',i,w:true,pos:[lerp(A[0],N[0],q),lerp(A[1],N[1],q)],att:null,dir:Math.atan2(N[1]-A[1],N[0]-A[0])})}}
+    else{const N=i<3?lw2w(P,ANCH[i+1].f):lw2w(P,ESC_STBD),q=sEase((u-.7)/.3);out.push({role:'ret',i,w:true,pos:[lerp(A[0],N[0],q),lerp(A[1],N[1],q)],att:null,dir:Math.atan2(N[1]-A[1],N[0]-A[0])})}}
   return out}
-const ROLE={main:['MAIN TUG · TOWING FROM BOW','เรือลากหลัก · ลากจากหัวแท่น'],hold:['MAIN TUG · BOW HOLD-BACK','เรือลากหลัก · หน่วงหัวแท่น'],escort:['ESCORT · ON QUARTER · PULL / BRAKE / TURN','ESCORT · ผูกข้างท้าย · ช่วยลาก / เบรก / หมุน'],run:['ESCORT RUNNING ANCHOR','ESCORT กำลังวางสมอ'],ret:['ESCORT RETURNING','ESCORT กำลังกลับ'],assist:['ESCORT ON QUARTER','ESCORT ข้างท้าย']};
+const ROLE={main:['MAIN TUG · TOWING FROM BOW','เรือลากหลัก · ลากจากหัวแท่น'],hold:['MAIN TUG · BOW HOLD-BACK','เรือลากหลัก · หน่วงหัวแท่น'],escort:['ESCORT · STARBOARD EMERGENCY ASSIST','ESCORT · ต่อสายข้าง STARBOARD · ช่วยฉุกเฉิน'],run:['ESCORT RUNNING ANCHOR','ESCORT กำลังวางสมอ'],ret:['ESCORT RETURNING','ESCORT กำลังกลับ'],assist:['ESCORT ON QUARTER','ESCORT ข้างท้าย']};
 const ROLE_S={main:['MAIN TUG','เรือลากหลัก'],hold:['MAIN TUG · HOLD-BACK','เรือลากหลัก · หน่วง'],escort:['ESCORT','ESCORT'],run:['ESCORT → A','ESCORT → A'],ret:['ESCORT ←','ESCORT ←'],assist:['ESCORT','ESCORT']};
 const roleTxt=g=>tx(...ROLE[g.role])+(g.role==='run'?' A'+(g.i+1):'');
 const roleShort=g=>tx(...ROLE_S[g.role])+(g.role==='run'?(g.i+1):'');
 function drawTugsPlan(sx,sy,k,h,t,labels=true,toS=null){
   for(const g of tugSet(t)){const al=g.alpha??1;if(al<=0)continue;
     let tp;if(g.w){if(!toS)continue;tp=toS(g.pos[0],g.pos[1])}else{const P0=rot(h,g.pos[0],g.pos[1]);tp=[sx+P0[0]*k,sy-P0[1]*k]}
-    let dir=g.dir==='travel'?h+Math.PI:(typeof g.dir==='number'?g.dir:h+Math.PI);
+    let dir=g.dir==='travel'?h:(typeof g.dir==='number'?g.dir:h+Math.PI);
     if(g.att){const A=rot(h,g.att[0],g.att[1]),ap=[sx+A[0]*k,sy-A[1]*k];if(g.dir===undefined)dir=Math.atan2(-(tp[1]-ap[1]),tp[0]-ap[0]);
       ctx.save();ctx.globalAlpha=al;ctx.strokeStyle=g.role==='run'?'#ffd08a':'#eac78b';ctx.lineWidth=g.role==='run'?1.8:1.6;ctx.beginPath();ctx.moveTo(ap[0],ap[1]);
       const mx=(ap[0]+tp[0])/2,my=(ap[1]+tp[1])/2;ctx.quadraticCurveTo(mx+2,my+4,tp[0],tp[1]);ctx.stroke();ctx.restore()}
@@ -1538,7 +1552,7 @@ function platformSide(xL,wy,s,bed){const c=ctx,deckB=wy-14*s,deckT=wy-20*s,w=30*
 /* ---------- CH08 cinematic tow: the world scrolls astern (time-compressed) so the tow visibly progresses ---------- */
 const wrapX=(x,a,b)=>{const w=b-a;return a+(((x-a)%w)+w)%w};
 function cinematicTow(t){const v=VR(),th=S.lang==='th',wy=v.m?H*.52:H*.60,s=Math.min((v.x1-v.x0)*.5/72,(wy-72)/100,(H-80-wy)/WD),J=jack(t),cx=(v.x0+v.x1)/2-10*s,c=ctx,fs=v.m?8:10;
-  const dist=J.route*ROUTE_LEN,sc=dist*.5+(S.reduced?0:S.t*6),bed=seaSideBG(wy,s),hz=wy-Math.max(14,H*.028);
+  const dist=J.route*ROUTE_LEN,sc=S.reduced?0:dist*.5+S.t*6,bed=seaSideBG(wy,s),hz=wy-Math.max(14,H*.028);
   // horizon: other platforms drift slowly astern (parallax); destination grows near the end
   for(let k=0;k<5;k++){const x=wrapX(W*1.6*h2(k,301)-dist*.02,-80,W+80),hh=7+12*h2(k,302);c.fillStyle='rgba(28,46,58,.6)';c.fillRect(x,hz-hh*.62,hh*1.1,hh*.28);c.fillRect(x+hh*.15,hz-hh*.36,hh*.08,hh*.36);c.fillRect(x+hh*.85,hz-hh*.36,hh*.08,hh*.36)}
   const near=sm(J.route,.7,1);if(near>0){const px=v.x1-30,hh=10+near*42;c.fillStyle=`rgba(40,60,72,${.35+.5*near})`;c.fillRect(px-hh*.8,hz-hh,hh*.8,hh*.35);c.fillRect(px-hh*.7,hz-hh*.65,hh*.1,hh*.65);c.fillRect(px-hh*.2,hz-hh*.65,hh*.1,hh*.65)}
@@ -1548,9 +1562,9 @@ function cinematicTow(t){const v=VR(),th=S.lang==='th',wy=v.m?H*.52:H*.60,s=Math
     else{c.strokeStyle='rgba(214,198,160,.35)';c.lineWidth=1;c.beginPath();c.moveTo(x-10,y+1);c.quadraticCurveTo(x,y-3,x+10,y+1);c.stroke()}}
   c.fillStyle='rgba(206,214,186,.22)';for(let k=0;k<110;k++){const x=wrapX(h2(k,321)*(W+40)-sc*(.5+.5*h2(k,322)),-20,W+20),y=wy+8+h2(k,323)*(bed-wy-12);c.fillRect(x,y,1.3,1.3)}
   c.strokeStyle='rgba(240,250,250,.55)';c.lineWidth=1;for(let k=0;k<34;k++){const x=wrapX(h2(k,331)*(W+80)-sc*.9,-40,W+40),y=wy-2-h2(k,332)*(wy-hz-3),l=3+7*h2(k,333);c.beginPath();c.moveTo(x,y);c.lineTo(x+l,y);c.stroke()}
-  const bob=S.reduced?0:Math.sin(S.t*.9)*1.2,sX0=cx-36*s,escX=sX0-8*s;
+  const bob=S.reduced?0:Math.sin(S.t*.9)*1.2,sX0=cx-36*s,escX=Math.max(v.x0+20,sX0-Math.min(ESC_SEP*s,(v.x1-v.x0)*.28));
   // escort made fast on the (far) quarter: drawn first, the hull hides its waterline
-  tugSide(escX,wy+1+bob*.5,1.1*s,1,.85);
+  tugSide(escX,wy+1+bob*.5,1.1*s,-1,.85);
   const R=rigSide(cx,wy+bob,s,-1,{rise:0,legBottom:J.legBottom,ballast:0});
   c.strokeStyle='rgba(229,197,139,.85)';c.lineWidth=1.4;c.beginPath();c.moveTo(R.sternX+3*s,R.deckY+3*s);c.quadraticCurveTo(R.sternX-2*s,wy+2*s,escX+12*s,wy-3*s);c.stroke();
   // main tug ahead, tow wire sags below the surface
@@ -1562,7 +1576,7 @@ function cinematicTow(t){const v=VR(),th=S.lang==='th',wy=v.m?H*.52:H*.60,s=Math
   foam(R.bowX-6*s,R.bowX+2*s,wy);foam(tx1-16*TS,tx1+16*TS,wy);
   waterVeil(wy,bed);
   tag(tx(...ROLE.main),tx1,ty-13*TS-8,'#f0d29a',fs,'center');
-  tag(v.m?tx(...ROLE_S.escort):tx(...ROLE.escort),Math.max(v.x0+120,escX),wy-14*1.1*s-10,'#b9d4d8',fs,'center');
+  tag(v.m?tx(...ROLE_S.escort):tx(...ROLE.escort),escX,wy-14*1.1*s-10,'#b9d4d8',fs,'center');
   const sp=R.keelY+(J.legBottom-5)*s;c.strokeStyle='#f1cf95';c.setLineDash([3,4]);c.beginPath();c.moveTo(R.bowX+8,sp);c.lineTo(R.bowX+8,bed);c.stroke();c.setLineDash([]);
   tag(th?'spudcan ดึงขึ้นชิดท้องแท่น · พ้นพื้นทะเล':'SPUDCANS PULLED UP NEAR KEEL · CLEAR OF SEABED',R.bowX+14,(sp+bed)/2+4,'#f1cf95',fs);
   tag(th?'พื้นทะเล ~35 ม. · สังเคราะห์':'SEABED ~35 m · SYNTHETIC',v.lx+6,bed+18,'#d8cfb8',fs);
@@ -1583,15 +1597,15 @@ function cinematicApproach(t){const v=VR(),th=S.lang==='th',wy=v.m?H*.52:H*.60,J
   const platL=v.x1-34*s,Ex=E=>{const e=E<-160?-160+(E+160)*.2:E;return platL+(e+15)*s};
   const a=J.appr,turn=t<.40?0:t<.48?(a<.3?0:a<.6?sEase((a-.3)/.3):1):1;let f=-Math.cos(Math.PI*turn);if(Math.abs(f)<.12)f=f<0?-.12:.12;
   const cE=p.x+rot(p.h,-36,0)[0],cx=Ex(cE),sXw=cx+36*f*s,bXw=cx-36*f*s,tl=tugSet(t),esc=tl.find(g=>g.role!=='main'&&g.role!=='hold'),main=tl.find(g=>g.role==='main'||g.role==='hold'),laid=anchorsLaid(t),tight=t>=.67;
-  const fE=Math.sign(f)*Math.max(Math.abs(f),.75),eX=sXw-fE*30*s;   // escort kept clear of the foreshortened hull during the turn
-  if(esc&&!esc.w)tugSide(eX,wy+1,1.05*s,-Math.sign(f),.85*(esc.alpha??1));
+  const fE=Math.sign(f)*Math.max(Math.abs(f),.75),eX=clamp(sXw+fE*Math.min(ESC_SEP*s,(v.x1-v.x0)*.25),v.x0+20,v.x1-20);   // escort kept clear of the foreshortened hull during the turn
+  if(esc&&!esc.w&&t<RUN0)tugSide(eX,wy+1,1.05*s,Math.sign(f),.85*(esc.alpha??1));
   // laid anchor wires: A1/A2 run ahead of the bow, A3/A4 to the sides (out of the picture plane)
   for(let i=0;i<laid;i++){const bow=i<2,F=bow?bXw:sXw,ax=bow?Ex(ANCH[i].a[0])+(i?10:0):F-(10+i*4)*s*f;
     c.strokeStyle=tight?'rgba(255,208,138,.95)':'rgba(232,193,133,.7)';c.lineWidth=tight?1.7:1.2;c.beginPath();c.moveTo(F,wy+1.5*s);c.quadraticCurveTo(bow?(F+ax)/2:F-f*3*s,bow?bed-(tight?10:2)*s:wy+(bed-wy)*.75,ax,bed);c.stroke();
     c.fillStyle='#d8b877';c.beginPath();c.moveTo(ax-4,bed);c.lineTo(ax+4,bed);c.lineTo(ax,bed-5);c.closePath();c.fill()}
   const R=rigSide(cx,wy,s,f,{rise:0,legBottom:J.legBottom,ballast:0});
   platformSide(platL,wy,s,bed);
-  if(esc&&!esc.w){c.strokeStyle='rgba(229,197,139,.8)';c.lineWidth=1.3;c.beginPath();c.moveTo(sXw,R.deckY+2*s);c.quadraticCurveTo((sXw+eX)/2,wy+3*s,eX+Math.sign(f)*16*1.05*s,wy-1*s);c.stroke();tag(v.m?roleShort(esc):roleTxt(esc),eX,wy-14*1.05*s-(v.m?22:36),'#b9d4d8',fs,'center')}
+  if(esc&&!esc.w&&t<RUN0){c.strokeStyle='rgba(229,197,139,.8)';c.lineWidth=1.3;c.beginPath();c.moveTo(sXw,R.deckY+2*s);c.quadraticCurveTo((sXw+eX)/2,wy+3*s,eX+Math.sign(f)*16*1.05*s,wy-1*s);c.stroke();tag(v.m?roleShort(esc):roleTxt(esc),eX,wy-14*1.05*s-(v.m?22:36),'#b9d4d8',fs,'center')}
   if(esc&&esc.w){const far=Math.abs(esc.pos[1])>60,ex=clamp(Ex(esc.pos[0]),v.x0+20,v.x1-20),k=far?.6:1.05,fc=Math.cos(esc.dir)>=0?1:-1;
     tugSide(ex,wy+(far?-2:1),k*s,fc,far?.7:1);
     if(esc.role==='run'){const F=esc.i<2?bXw:sXw;c.strokeStyle='#ffd08a';c.lineWidth=1.3;c.beginPath();c.moveTo(F,wy+1.5*s);c.quadraticCurveTo((F+ex)/2,wy+(far?5:10)*s,ex-fc*14*k*s,wy+1);c.stroke()}
@@ -1600,14 +1614,22 @@ function cinematicApproach(t){const v=VR(),th=S.lang==='th',wy=v.m?H*.52:H*.60,J
     c.strokeStyle='#e5c58b';c.lineWidth=1.6;c.beginPath();c.moveTo(bXw,R.deckY+3*s);c.quadraticCurveTo((bXw+tugX)/2,wy+4*s,tugX-dirB*16*TS,wy+1);c.stroke();tugSide(tugX,wy+2,TS,dirB,main.alpha??1,main.role==='main'?1:.4);
     tag(roleTxt(main),tugX,wy-13*TS-8,'#f0d29a',fs,'center');c.globalAlpha=1}
   waterVeil(wy,bed);
-  {const px=Ex(pipeE(0));c.fillStyle='#8e9ba1';c.beginPath();c.arc(px,bed-2,Math.max(2.5,.5*s),0,7);c.fill();
-   if(laid>=1){c.fillStyle='#ff8a3d';c.beginPath();c.arc(px,wy+(bed-wy)*.35,Math.max(3,1.2*s),0,7);c.fill();c.strokeStyle='#e8eef0';c.lineWidth=1;c.beginPath();c.moveTo(px,wy+(bed-wy)*.35);c.lineTo(px,bed-6);c.stroke()}
-   if(!v.m)tag(laid>=1?(th?'ท่อเดิม · MLB บน A1/A2':'PIPELINE · MLB ON A1/A2'):(th?'ท่อเดิม':'EXISTING PIPELINE'),px,bed+18,'#b8c6ca',fs,'center')}
+  // Pipeline is not in the rig side-elevation plane: show its plan relation, not a false contact under the spudcan.
+  if(t>=.44){const gap=SOFT.x-62-pipeE(0);tag((th?'ท่อเดิมอยู่ด้านตะวันตกใน PLAN · ระยะ E ขาหัวที่ soft pin ~':'PIPELINE WEST IN PLAN · BOW-LEG E OFFSET AT SOFT PIN ~')+gap.toFixed(0)+' m · '+(th?'ไม่ใช่ clearance':'NOT CLEARANCE'),v.lx+6,bed+22,'#b8c6ca',fs)}
+  if(esc&&!esc.w&&t>=RUN0+4*RUNW){
+    const ix=v.x1-(v.m?138:220)-8,iy=clamp(v.m?v.y0+68:wy-182,64,Math.max(64,H-196)),iw=v.m?138:220,ih=v.m?108:164,kk=Math.min((iw-25)/330,(ih-36)/330);
+    c.fillStyle='rgba(3,15,25,.94)';c.fillRect(ix,iy,iw,ih);c.strokeStyle='#4f8796';c.strokeRect(ix,iy,iw,ih);
+    txt(th?'มุมบน · STARBOARD':'PLAN INSET · STARBOARD',ix+7,iy+15,'#e6d3a8',v.m?8:10,700);
+    const rx=ix+iw*.42,ry=iy+35,att=lw2w(p,ESC_ATT),ep=lw2w(p,ESC_STBD),ax=rx+(att[0]-p.x)*kk,ay=ry-(att[1]-p.y)*kk,ex=rx+(ep[0]-p.x)*kk,ey=ry-(ep[1]-p.y)*kk;
+    rigPlan(rx,ry,kk,p.h,{outline:true,col:'#ffd08a'});
+    c.strokeStyle='#eac78b';c.lineWidth=1.5;c.beginPath();c.moveTo(ax,ay);c.lineTo(ex,ey);c.stroke();tugPlan(ex,ey,kk,p.h,{alpha:.95});
+    txt(th?'ESCORT · ต่อสายช่วยฉุกเฉิน':'ESCORT · EMERGENCY LINE',ix+7,iy+ih-8,'#b9d4d8',v.m?8:9,700);
+  }
   if(J.soft)tag(th?'SOFT PIN · spudcan แตะพื้นทะเล':'SOFT PIN · SPUDCANS JUST ON SEABED',cx,bed-10,'#9fd8e0',fs,'center');
   if(t>=.44){const d=-15-p.x,y=wy-3*s;if(d>1.5&&f>0){c.strokeStyle='#9fd8e0';c.lineWidth=1;c.beginPath();c.moveTo(sXw,y);c.lineTo(platL,y);c.moveTo(sXw,y-4);c.lineTo(sXw,y+4);c.moveTo(platL,y-4);c.lineTo(platL,y+4);c.stroke();
     tag('≈ '+d.toFixed(0)+' m',(sXw+platL)/2,y-8,'#9fd8e0',fs,'center')}}
   // the side view cannot show a heading change: during the turn a top-view inset shows the rotation
-  {const tw=1-Math.abs(-Math.cos(Math.PI*turn));if(turn>0&&turn<1&&tw>.05){const iw=v.m?120:190,ih=v.m?96:150,ix=v.x1-iw-8,iy=v.m?v.y0+70:wy-ih-90,kk=Math.min((iw-20)/110,(ih-36)/110);
+  {const tw=1-Math.abs(-Math.cos(Math.PI*turn));if(turn>0&&turn<1&&tw>.05){const iw=v.m?120:190,ih=v.m?96:150,ix=v.x1-iw-8,iy=clamp(v.m?v.y0+70:wy-ih-90,64,Math.max(64,H-ih-86)),kk=Math.min((iw-20)/110,(ih-36)/110);
     c.globalAlpha=clamp(tw*3,0,1);c.fillStyle='rgba(3,15,25,.9)';c.fillRect(ix,iy,iw,ih);c.strokeStyle='#4f8796';c.strokeRect(ix,iy,iw,ih);
     txt(th?'มุมบน · กำลังหมุน':'TOP VIEW · TURNING',ix+8,iy+15,'#e6d3a8',v.m?8:10,700);
     const ccx=ix+iw/2,ccy=iy+20+(ih-20)/2;c.strokeStyle='rgba(159,216,224,.5)';c.setLineDash([3,3]);c.beginPath();c.arc(ccx,ccy,46*kk,0,7);c.stroke();c.setLineDash([]);
@@ -1677,11 +1699,11 @@ function drawMonitor(x,y,w,h,J){const c=ctx,th=S.lang==='th',L=J.L,RL=25,RM=RL*1
 function legScene(t){const v=VR(),th=S.lang==='th',J=jack(t),top=v.m?H*.40:78,avail=(v.m?v.y1:H-96)-top,s=Math.min(avail/(100+WD+18),(v.x1-v.x0)/125),wy=top+100*s,bed=wy+WD*s,c=ctx,fs=v.m?8:10;
   seaSideBG(wy,s,false);soilStrata(bed,s,.6);
   c.strokeStyle='#d5c6a4';c.lineWidth=2;c.beginPath();c.moveTo(0,bed);c.lineTo(W,bed);c.stroke();
-  const platL=v.x1-32*s,cx=platL-12*s-36*s,fa=1-sm(t,.945,.95);
-  if(fa>0)tugSide(cx+18*s,wy+1,1.05*s,-1,.8*fa);
+  const platL=v.x1-32*s,cx=platL-12*s-36*s,boats=tugSet(t),main=boats.find(g=>g.role==='hold'),escort=boats.find(g=>g.role==='escort'),fa=main?.alpha??0;
+  // Starboard escort is out of the side-elevation plane after reconnect; see approach plan view.
   const R=rigSide(cx,wy,s,1,{rise:J.rise,legBottom:J.legBottom,lbs:J.lbs,ballast:J.ballast,lights:true});
   platformSide(platL,wy,s,bed);
-  if(fa>0){const tgx=Math.max(v.x0+18*s,R.bowX-34*s);c.globalAlpha=fa;c.strokeStyle='#e5c58b';c.lineWidth=1.5;c.beginPath();c.moveTo(R.bowX,R.deckY+3*s);c.quadraticCurveTo((R.bowX+tgx)/2,wy+4*s,tgx+16*1.1*s,wy+1);c.stroke();tugSide(tgx,wy+2,1.1*s,-1);c.globalAlpha=1}
+  if(main&&fa>0){const tgx=Math.max(v.x0+18*s,R.bowX-34*s);c.globalAlpha=fa;c.strokeStyle='#e5c58b';c.lineWidth=1.5;c.beginPath();c.moveTo(R.bowX,R.deckY+3*s);c.quadraticCurveTo((R.bowX+tgx)/2,wy+4*s,tgx+16*1.1*s,wy+1);c.stroke();tugSide(tgx,wy+2,1.1*s,-1);c.globalAlpha=1}
   // anchor wires stay tensioned through lowering, preload and jacking; recovered only once the rig is at air gap
   {const rv=sm(t,.945,.959),aS=1-sm(rv,0,.45),aB=1-sm(rv,.5,.95),tight=!S.pt||!J.pt;
    if(aB>0){c.globalAlpha=aB;c.strokeStyle='#ffd08a';c.lineWidth=1.6;const fx=R.bowX+2*s,fy=R.keelY-1*s;c.beginPath();c.moveTo(fx,fy);c.quadraticCurveTo((fx+v.lx)/2,bed-6*s,v.lx-10,bed);c.stroke();c.beginPath();c.moveTo(fx,fy);c.quadraticCurveTo((fx+v.lx)/2,bed-2*s,v.lx-10,bed+3);c.stroke();
@@ -1689,8 +1711,8 @@ function legScene(t){const v=VR(),th=S.lang==='th',J=jack(t),top=v.m?H*.40:78,av
    if(aS>0){c.globalAlpha=aS*.8;c.setLineDash([5,4]);c.strokeStyle='#ffd08a';c.lineWidth=1.3;const sx=R.sternX-10*s;c.beginPath();c.moveTo(sx,R.keelY-1*s);c.lineTo(sx-18*s,bed);c.stroke();c.setLineDash([]);
      if(!v.m)tag(th?'A3/A4 ไปด้านข้าง (นอกระนาบภาพ)':'A3/A4 TO THE SIDES (OUT OF PLANE)',sx-20*s,bed-10,'#ffd08a',fs,'right')}
    c.globalAlpha=1;
-   if(t>=.945&&!v.m)tag(th?'AHT เก็บสมอ '+(rv<.5?'A4, A3':'A2, A1')+' · ต่อสายสมอหลังแท่นยืนบนขาแล้ว':'AHT RECOVERING '+(rv<.5?'A4, A3':'A2, A1')+' · ONLY AFTER THE RIG STANDS ON ITS LEGS',v.lx+6,v.m?v.y0+58:top+82,'#f0d29a',fs,'left');
-   else if(t<.945&&!J.pt&&!v.m)tag(th?'เรือลาก + สมอ 4 เส้น ยึดตำแหน่งจนจบ preload':'TUGS + 4 ANCHOR WIRES HOLD POSITION UNTIL PRELOAD IS COMPLETE',v.lx+6,v.m?v.y0+58:top+82,'#b9d4d8',fs,'left')}
+   if(t>=.945&&!v.m)tag(th?'ปลดเรือลาก · AHT เก็บสมอ '+(rv<.5?'A4, A3':'A2, A1')+' · หลังถึง AIR GAP':'TUGS RELEASED · AHT RECOVERING '+(rv<.5?'A4, A3':'A2, A1')+' · AT AIR GAP',v.lx+6,v.m?v.y0+58:top+82,'#f0d29a',fs,'left');
+   else if(escort&&!J.pt&&!v.m)tag(th?'เรือลาก + สมอ 4 เส้น · escort ต่อสาย STARBOARD (นอกระนาบภาพ)':'TUGS + 4 ANCHOR WIRES · ESCORT MADE FAST STARBOARD (OUT OF SIDE VIEW)',v.lx+6,v.m?v.y0+58:top+82,'#b9d4d8',fs,'left')}
   waterVeil(wy,bed);
   const bhx=R.sternX+(SITE.bh.e-SPLAN.x)*s;c.strokeStyle='#73e2bd';c.setLineDash([3,4]);c.beginPath();c.moveTo(bhx,bed);c.lineTo(bhx,Math.min(H-90,bed+30*s));c.stroke();c.setLineDash([]);tag('BH-01',bhx+4,bed+14,'#73e2bd',fs);
   if(S.pt){const lx0=cx-26*s,z0=bed+12.2*s,z1=bed+13.6*s;c.fillStyle='rgba(88,84,74,.9)';c.beginPath();c.ellipse(lx0,(z0+z1)/2,14*s,(z1-z0)/2,0,0,7);c.fill();c.setLineDash([3,3]);c.strokeStyle='#ff9a8a';c.lineWidth=1.2;c.stroke();c.setLineDash([]);
@@ -1714,6 +1736,8 @@ function legScene(t){const v=VR(),th=S.lang==='th',J=jack(t),top=v.m?H*.40:78,av
   const mx=v.x0+36,my=v.m?v.y1-40:v.y1-50;c.save();c.strokeStyle='#cfe3e3';c.lineWidth=1;c.beginPath();c.moveTo(mx-24,my-14);c.lineTo(mx+10,my-14);c.lineTo(mx+10,my+14);c.lineTo(mx-24,my+14);c.lineTo(mx-34,my);c.closePath();c.stroke();
   for(const [a,b,i] of[[4,-9,1],[4,9,2],[-27,0,0]]){c.fillStyle=LCOL[i];c.beginPath();c.arc(mx+a,my+b,3.2,0,7);c.fill()}c.fillStyle='#bfe9ef';c.beginPath();c.moveTo(mx-8,my+30);c.lineTo(mx-12,my+22);c.lineTo(mx-4,my+22);c.fill();c.restore();
   txt(th?'มุมมอง':'VIEW',mx+2,my+32,'#bfe9ef',9,600);
+  if(escort){const k=v.m?.17:.22,ix=v.m?v.x1-110:v.x1-160,iy=v.m?v.y0+72:top+95,iw=v.m?105:155,ih=v.m?86:116,rx=ix+iw*.52,ry=iy+28,p=pose(t),ap=lw2w(p,escort.att),ep=lw2w(p,escort.pos),ax=rx+(ap[0]-p.x)*k,ay=ry-(ap[1]-p.y)*k,ex=rx+(ep[0]-p.x)*k,ey=ry-(ep[1]-p.y)*k;c.save();c.globalAlpha=escort.alpha??1;c.fillStyle='rgba(3,15,25,.9)';c.fillRect(ix,iy,iw,ih);c.strokeStyle='#4f8796';c.strokeRect(ix,iy,iw,ih);rigPlan(rx,ry,k,p.h,{outline:true,col:'#ffd08a'});c.strokeStyle='#eac78b';c.lineWidth=1.5;c.beginPath();c.moveTo(ax,ay);c.lineTo(ex,ey);c.stroke();tugPlan(ex,ey,k,p.h,{});txt(th?'ESCORT · STARBOARD':'ESCORT · STARBOARD',ix+5,iy+ih-9,'#b9d4d8',v.m?8:9,700);c.restore()}
+
   if(!v.m){const cr=$('card').getBoundingClientRect(),y0=cr.bottom+12,h=Math.min(330,H-92-y0-6);if(h>=190&&cr.width>200)drawLPA(cr.left,y0,cr.width,h,J);
     if(J.L)drawMonitor(v.lx,top+96,Math.min(390,cx-36*s-v.lx-30),210,J)}
   else if(J.L)tag((th?'LPA คาด ':'LPA PRED ')+pb.toFixed(1)+' m · '+(th?'วัดได้ ':'OBS ')+J.L.legs.map(q=>q.pen.toFixed(1)).join('/')+' · RPD '+Math.round(Math.max(...J.L.legs.map(q=>q.rpd))/25*100)+' %',v.lx+6,v.y0+58,J.pt?'#ff7a6e':'#ffd08a',8);
@@ -1825,7 +1849,7 @@ function tenderScene(){const v0=VR(),v=Object.assign({},v0,{x1:v0.m?v0.x1:v0.x1-
   tag(th?'ชุดเจาะติดตั้งบน platform · แนวคิด':'DRILLING SET ON PLATFORM · CONCEPT',Sx(0),Sy(0)-22*KH,'#cfe3e3',fs,'center');
   for(const [bx,by,i] of buoys){c.fillStyle='#ff8a3d';c.beginPath();c.arc(bx,by,6,0,7);c.fill();c.strokeStyle='#fff';c.lineWidth=1.6;c.stroke();tag('MLB · A'+(i+1),bx+10,by+4,'#ffb08a',fs)}
   const ncr=TCROSS.filter(Boolean).length;
-  tag((th?'สายพาดข้ามท่อ ':'LINES CROSSING PIPELINE ')+ncr+' · '+(th?'ติด mid-line buoy แล้ว ':'MID-LINE BUOYS FITTED ')+nMLB+'/'+ncr,v.lx+6,v.y0+14,nMLB===ncr?'#8ff0c0':'#ffb08a',fs);
+  tag((th?'สายพาดข้ามท่อ ':'LINES CROSSING PIPELINE ')+ncr+' · '+(th?'ติด mid-line buoy แล้ว ':'MID-LINE BUOYS FITTED ')+nMLB+'/'+ncr,v.lx+6,v.y0+14,ncr>0&&nMLB===ncr?'#8ff0c0':'#ffb08a',fs);
   if(!v0.m){const mh=Math.min(230,v.y1-v.y0-10);mlbInset(v0.x1-316,v.y0+4,316,mh,nMLB>0);
     // true-scale close-up: tender, gangway, platform and the first 60 m of each wire
     const y0=v.y0+mh+16,h=v.y1-y0;if(h>150){const x0=v0.x1-316,w=316,ex=[-150,40],ny=[-110,90],kk=Math.min((w-16)/(ex[1]-ex[0]),(h-40)/(ny[1]-ny[0])),gx=x0+w/2-(ex[0]+ex[1])/2*kk,gy=y0+22+(h-30)/2,QX=E=>gx+E*kk,QY=N=>gy-N*kk;
@@ -1892,13 +1916,20 @@ function siteQC(){const r=[],ok=(n,b,d)=>r.push({check:n,ok:!!b,detail:d});
   const an=ANCH.map((A,i)=>{const [x,y]=S2G(A.a[0],A.a[1]);return cov2('A'+(i+1),x,y)});ok('jack-up anchors inside SSS 200% block',an.every(a=>a[3]),an.map(a=>a[0]+':'+a[1]+'×'+(a[2]<2?' (nadir fill)':'')).join(' '));
   const ta=TLINES.map(([fe,fn,az],i)=>{const a=az*Math.PI/180,[x,y]=S2G(fe+Math.cos(a)*360,fn+Math.sin(a)*360);return cov2('T'+(i+1),x,y)});ok('tender anchors inside SSS 200% block',ta.every(a=>a[3]),ta.map(a=>a[0]+':'+a[1]+'×'+(a[2]<2?' (nadir fill)':'')).join(' '));
   const fin={x:SPLAN.x+POS.nav.e,y:SPLAN.y+POS.nav.n,h:POS.nav.h*Math.PI/180},jx=ANCH.map((A,i)=>segX(lw2w(fin,A.f),A.a,PIPE_S[0],PIPE_S[1])?'A'+(i+1):null).filter(Boolean);
-  ok('jack-up wires crossing pipeline get MLB',jx.length>0,jx.join(',')+' crossing → MLB drawn');
+  ok('jack-up pipeline crossing markers follow segment intersections',jx.length>0,jx.join(',')+' crossing → plan marker (not buoy clearance verification)');
   ok('tender wires crossing pipeline get MLB',TCROSS.some(Boolean),TCROSS.map((x,i)=>x?'T'+(i+1):null).filter(Boolean).join(','));
+  const az=i=>{const F=lw2w(SOFT,ANCH[i].f),A=ANCH[i].a;return (Math.atan2(A[0]-F[0],A[1]-F[1])*180/Math.PI+360)%360};
+  ok('A3/A4 bearing from soft-pin fairleads',Math.abs(az(2)-40)<1e-8&&Math.abs(az(3)-140)<1e-8,'A3 '+az(2).toFixed(2)+'°, A4 '+az(3).toFixed(2)+'°');
+  const q=tugSet(.65).find(g=>g.role==='escort'),during=tugSet(.59).some(g=>g.role==='escort'),post=tugSet(.70).find(g=>g.role==='escort');
+  ok('escort detached while running anchors, starboard after reconnect',!during&&q&&post&&q.pos[1]<0&&post.pos[1]<0&&q.att===ESC_ATT,'local N '+(q?q.pos[1]:'missing'));
+  const sf=lw2w(SOFT,[-62,0]),sg=sf[0]-pipeE(sf[1]);ok('soft-pin bow leg east of pipeline in plan',sg>0,'E offset '+sg.toFixed(1)+' m; NOT clearance');
+  const jxEach=[.52,.56,.59,.62,.65,.70,.75].map(t=>({t,laid:anchorsLaid(t),cross:ANCH.slice(0,anchorsLaid(t)).map((A,i)=>segX(lw2w(pose(t),A.f),A.a,PIPE_S[0],PIPE_S[1])?i+1:null).filter(Boolean)}));
+  ok('anchor crossing geometry computed per timeline',jxEach.every(q=>q.cross.every(i=>i<=q.laid)),JSON.stringify(jxEach));
   ok('SBP channel = bridge channel',Math.abs(BF(580)-.16)<1e-9,'centre x 580 · half 60 m');
   return r}
 window.unseenSiteQC=()=>{const r=siteQC();console.table(r);return r};
 let SNAP=null;
-function snapshot(kind){if(S.reduced||!cv.width)return;if(!SNAP)SNAP=document.createElement('canvas');SNAP.width=cv.width;SNAP.height=cv.height;SNAP.getContext('2d').drawImage(cv,0,0);S.snapT=0;S.snapK=kind}
+function snapshot(kind){if(S.reduced||!S.playing||!cv.width)return;if(!SNAP)SNAP=document.createElement('canvas');SNAP.width=cv.width;SNAP.height=cv.height;SNAP.getContext('2d').drawImage(cv,0,0);S.snapT=0;S.snapK=kind}
 function drawSnap(dt){if(!SNAP||S.snapT==null||S.snapT>=.9)return;S.snapT+=dt;const e=sEase(clamp(S.snapT/.9,0,1)),w=cv.width,h=cv.height;ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1-e;
   if(S.snapK==='tilt'){ctx.translate(0,h*.5);ctx.scale(1,1-.6*e);ctx.translate(0,-h*.5-h*.1*e)}else{ctx.translate(w/2,h/2);ctx.scale(1+.05*e,1+.05*e);ctx.translate(-w/2,-h/2)}
   ctx.drawImage(SNAP,0,0);ctx.restore()}
@@ -1914,7 +1945,7 @@ function camTarget(){
   return {r:1,span:1000,camX:0};
 }
 function go(ch){
-  ch=clamp(ch,0,12);S.cardOpen=false;const prev=S.ch;if(prev!==ch)snapshot('fade');S.vxSnap=true;$('card').classList.remove('mini');S.ch=ch;S.chT=0;S.callouts=[];
+  ch=clamp(ch,0,12);stopCues();S.cardOpen=false;const prev=S.ch;if(prev!==ch)snapshot('fade');S.vxSnap=true;$('card').classList.remove('mini');S.ch=ch;S.chT=0;S.callouts=[];
   if(ch===4){S.gtiDepth=0;S.gtiMethod=S.mode==='presenter'?'cpt':S.gtiMethod}
   if(ch===3){S.seisMode='spread';S.shot=S.t+.4}
   if(CHW[ch])S.moveT=CHW[ch][0];
@@ -1927,7 +1958,7 @@ function go(ch){
   const c=camTarget();S.rT=c.r;S.spanT=c.span;
   if(Math.abs(prev-ch)>1||ch>=3){S.r=c.r;S.span=c.span;S.camX=c.camX}
   const card=$('card');card.classList.add('swap');setTimeout(()=>{fillCard();card.classList.remove('swap')},S.reduced?0:260);
-  applyUI();say(T[S.lang].ch[ch].e+'. '+T[S.lang].ch[ch].t);
+  applyUI();syncCues();say(T[S.lang].ch[ch].e+'. '+T[S.lang].ch[ch].t);
 }
 function fillCard(){const L=T[S.lang],c=L.ch[S.ch];
   $('eyebrow').textContent=c.e;$('title').textContent=c.t;$('body').textContent=c.b;$('cta').textContent=c.c;
@@ -1951,6 +1982,7 @@ function applyUI(){const L=T[S.lang],ch=S.ch;
   $('moveControls').classList.toggle('off',!MOVE_CH.includes(ch));
   $('mPres').classList.toggle('on',S.mode==='presenter');$('mExp').classList.toggle('on',S.mode==='explore');
   $('lEN').classList.toggle('on',S.lang==='en');$('lTH').classList.toggle('on',S.lang==='th');
+  document.body.classList.toggle('reduced-motion',S.reduced);
   $('motionBtn').textContent=S.reduced?(S.lang==='th'?'ลดการเคลื่อนไหว':'REDUCED'):(S.lang==='th'?'การเคลื่อนไหว':'MOTION');
   $('motionBtn').setAttribute('aria-pressed',String(S.reduced));
   $('playBtn').textContent=S.playing?'❚❚':'▶';
@@ -1963,6 +1995,7 @@ function applyUI(){const L=T[S.lang],ch=S.ch;
   $('fireSeis').textContent=S.lang==='th'?'ยิงคลื่นจำลอง':'FIRE CONCEPTUAL PULSE';
   $('seisNote').textContent=S.seisMode==='compare'?(S.lang==='th'?'ภาพตัดสังเคราะห์จากพื้นดินชุดเดียวกัน ความถี่สูง = ละเอียดแต่ทะลุตื้น ความถี่ต่ำ = ทะลุลึกแต่หยาบ ค่าเป็นลำดับขนาดทั่วไป ขึ้นกับระบบ พลังงาน และชนิดดิน':'Same synthetic ground, three wavelets. Higher frequency = finer detail but shallower penetration. Typical orders of magnitude; depend on system, energy and ground.'):S.lang==='th'?'96 กลุ่มรับ ห่าง 12.5 ม. · ความยาว active 1,200 ม. · ช่วงกลุ่มแรกถึงกลุ่มสุดท้าย 1,187.5 ม. · source ถึงกลุ่มแรก 25 ม. · สเกลแนวนอนเฉพาะ streamer · ชุดอ้างอิง ข้อมูลสังเคราะห์':'96 groups at 12.5 m spacing. 1,200 m nominal active length; first-to-last group span 1,187.5 m. Source-to-first receiver 25 m. Horizontal scale applies to the streamer only. Reference configuration; synthetic, not field data.';
   document.querySelectorAll('[data-seis]').forEach(b=>b.classList.toggle('on',b.dataset.seis===S.seisMode));
+  document.querySelectorAll('[data-shallow]').forEach(b=>b.classList.toggle('on',b.dataset.shallow===S.shallow));
   fillLens();updateGTIUI();updateMoveUI();
 }
 /* ---------- acquisition panel ---------- */
@@ -1987,28 +2020,48 @@ function fillChips(){const L=T[S.lang].chips,p=Math.round(coverage(S.lens)*100),
   $('psub').textContent=p+'%';
 }
 /* ---------- sound: synthesized, off by default ---------- */
-const AU={on:false,ctx:null,g:null};
+const AU={on:false,ctx:null,g:null,cues:new Set()};
 function soundInit(){const A=window.AudioContext||window.webkitAudioContext;if(!A)return false;const a=new A(),n=a.sampleRate*4,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);let l=0;
   for(let i=0;i<n;i++){const w=Math.random()*2-1;l=(l+.02*w)/1.02;d[i]=l*3.2}
   const src=a.createBufferSource();src.buffer=b;src.loop=true;const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;
   const lfo=a.createOscillator(),lg=a.createGain();lfo.frequency.value=.08;lg.gain.value=180;lfo.connect(lg).connect(lp.frequency);
   const g=a.createGain();g.gain.value=0;src.connect(lp).connect(g).connect(a.destination);src.start();lfo.start();AU.ctx=a;AU.g=g;return true}
-function soundLevel(){if(!AU.g)return;const v=AU.on&&S.playing?.22:0;AU.g.gain.setTargetAtTime(v,AU.ctx.currentTime,.4)}
-function ping(f=880,dur=.5,vol=.06){if(!AU.on||!AU.ctx||!S.playing)return;const a=AU.ctx,o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(f,a.currentTime);o.frequency.exponentialRampToValueAtTime(f*.6,a.currentTime+dur);
-  g.gain.setValueAtTime(vol,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+dur)}
+function soundLevel(){if(!AU.g)return;const v=AU.on&&S.playing?.035:0;AU.g.gain.setTargetAtTime(v,AU.ctx.currentTime,.4)}
+function stopCues(){if(!AU.ctx)return;for(const q of AU.cues){try{q.g.gain.cancelScheduledValues(AU.ctx.currentTime);q.g.gain.setTargetAtTime(0,AU.ctx.currentTime,.012);q.o.stop(AU.ctx.currentTime+.08)}catch{}}AU.cues.clear()}
+function ping(f=880,dur=.5,vol=.06,manual=false){if(!AU.on||!AU.ctx||(!S.playing&&!manual)||document.hidden)return;
+ const a=AU.ctx,o=a.createOscillator(),g=a.createGain(),q={o,g},at=a.currentTime;o.type='sine';o.frequency.setValueAtTime(f,at);o.frequency.exponentialRampToValueAtTime(f*.7,at+dur);
+ g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(vol,at+.025);g.gain.exponentialRampToValueAtTime(.0001,at+dur);o.connect(g).connect(a.destination);AU.cues.add(q);o.onended=()=>AU.cues.delete(q);o.start(at);o.stop(at+dur+.02)}
+const CUES={enter:[330,.14,.013],softpin:[410,.18,.018],anchor:[530,.12,.018],reconnect:[610,.19,.018],warp:[390,.16,.016],contact:[460,.19,.018],stable:[690,.16,.016],preload:[575,.17,.016],release:[360,.22,.015],precision:[740,.13,.015],tender:[510,.13,.016],mlb:[670,.14,.016],finale:[440,.26,.016],step:[620,.10,.014],fire:[520,.24,.025],sensor:[650,.09,.012]};
+function cue(name,manual=false){const c=CUES[name];if(c)ping(...c,manual)}
+let cueScene=-1,cuePhase='',cueLaid=0,cueLeg='',cuePrecision=0,cueTender=0,cueMLB=0,cueBridge=-1,cueFinal=false;
+function syncCues(){cueScene=S.ch;cuePhase=S.ch>=7&&S.ch<=9?jack(S.moveT).p.k:'';cueLaid=anchorsLaid(S.moveT);cueLeg=S.ch===9&&jack(S.moveT).L?jack(S.moveT).L.legs.map(q=>q.st).join(','):'';cuePrecision=precN();cueTender=Math.min(8,Math.floor(S.tenderT*8+1e-6));cueMLB=TLINES.reduce((n,_,i)=>n+(TCROSS[i]&&S.tenderT*8>=i+TCROSS[i].t?1:0),0);cueBridge=Math.min(BR_N-1,Math.floor(S.bridgeT/4));cueFinal=S.fT>=.85}
+function eventCues(){if(!S.playing)return;
+ if(cueScene!==S.ch){syncCues();if([1,7].includes(S.ch))cue('enter');return}
+ if(S.ch===8||S.ch===9){const phase=jack(S.moveT).p.k,laid=anchorsLaid(S.moveT);
+  if(phase!==cuePhase){const k={softpin:'softpin',reconnect:'reconnect',warp:'warp',lower:'contact',recover:'release',dump:'preload'}[phase];if(k)cue(k);cuePhase=phase}
+  if(laid>cueLaid&&S.ch===8)cue('anchor');cueLaid=laid}
+ if(S.ch===9){const j=jack(S.moveT),states=j.L?.legs.map(q=>q.st).join(',')||'';
+  if(!j.pt&&states.split(',').filter(x=>x==='stable').length>cueLeg.split(',').filter(x=>x==='stable').length)cue('stable');cueLeg=states;
+  // Phase changes are cued once above; leg state only adds a stable cue.
+ }
+ if(S.ch===10){const n=precN();if(n>cuePrecision)cue('precision');cuePrecision=n}
+ if(S.ch===11){const n=Math.min(8,Math.floor(S.tenderT*8+1e-6)),mlb=TLINES.reduce((v,_,i)=>v+(TCROSS[i]&&S.tenderT*8>=i+TCROSS[i].t?1:0),0);if(n>cueTender)cue('tender');if(mlb>cueMLB)cue('mlb');cueTender=n;cueMLB=mlb}
+ if(S.ch===5){const step=Math.min(BR_N-1,Math.floor(S.bridgeT/4));if(step>cueBridge)cue('step');cueBridge=step}
+ if(S.ch===12&&!cueFinal&&S.fT>=.85){cue('finale');cueFinal=true}}
+
 /* ---------- presenter timing ---------- */
 function advance(dt){
   const ch=S.ch,pres=S.mode==='presenter',dur=PRES[ch];
   if(ch===2&&S.playing&&!S.drag&&!S.lineDone){S.ship=Math.min(990,S.ship+dt*(pres?27:18));if(S.ship>=990)S.lineDone=true}
   if(ch===3&&S.playing){if(pres){const m=S.chT<7?'spread':S.chT<13?'shot':S.chT<19?'section':'compare';if(m!==S.seisMode){S.seisMode=m;applyUI()}}
-    if(S.seisMode==='spread'&&S.t-S.shot>3.2){S.shot=S.t;ping(520,.7,.05)}}
+    if(S.seisMode==='spread'&&S.t-S.shot>3.2){S.shot=S.t;cue('fire')}}
   if(ch===4&&S.playing&&!pres&&S.gtiDepth<30){S.gtiDepth=Math.min(30,S.gtiDepth+dt*1.6);updateGTIUI()}   // explore: ▶ drills / pushes
   if(ch===5&&S.playing)S.bridgeT+=dt;
-  if(ch===4&&S.playing&&pres){const half=(dur-2)/2,m=S.chT<half?'cpt':'bh',f=clamp((S.chT%half)/(half-1),0,1);if(m!==S.gtiMethod)S.gtiMethod=m;S.gtiDepth=+(30*f).toFixed(1);updateGTIUI()}
+  if(ch===4&&S.playing&&pres){const half=(dur-2)/2,m=S.chT<half?'cpt':'bh',f=clamp((S.chT%half)/(half-1),0,1);if(m!==S.gtiMethod){S.gtiMethod=m;cue('step')}S.gtiDepth=+(30*f).toFixed(1);updateGTIUI()}
   if(CHW[ch]&&S.playing){const [a,b]=CHW[ch];if(ch===10)S.moveT=1;else S.moveT=Math.min(b-1e-4,S.moveT+dt*(b-a)/(pres?dur-3:dur+6))}
   if(ch===10&&S.playing)S.precT=Math.min(1,S.precT+dt/(pres?dur-4:14));
   if(ch===11&&S.playing)S.tenderT=Math.min(1,S.tenderT+dt/(pres?dur-2:16));
-  if(ch===12)S.fT=Math.min(1,S.fT+dt/3.4);
+  if(ch===12&&S.playing)S.fT=Math.min(1,S.fT+dt/3.4);
   if(pres&&S.chT>8&&!S.cardOpen&&ch>0&&ch<12&&W>=900){const cd=$('card');if(!cd.classList.contains('mini')){cd.classList.add('mini','compact')}}
   if(pres&&S.playing&&S.chT>dur){if(ch<12)go(ch+1);else{reset();S.mode='presenter';applyUI()}}
   const bar=$('steps').children[ch];if(bar){const em=bar.querySelector('em');const w=(pres&&isFinite(dur)?clamp(S.chT/dur,0,1)*100:0).toFixed(0)+'%';if(em.style.width!==w)em.style.width=w}
@@ -2028,10 +2081,10 @@ function drawGSI(){
 let last=performance.now(),G12=null;
 function frame(now){
   const dt=Math.min(.12,(now-last)/1000);last=now;const pf0=performance.now();   // wall-clock based: presenter timing does not depend on frame rate
-  if(S.playing||S.ch!==2)S.t+=dt;S.chT+=dt;
-  const c=camTarget(),k=S.reduced?1:1-Math.pow(.02,dt);S.r=lerp(S.r,c.r,k);S.span=lerp(S.span,c.span,k);S.camX=lerp(S.camX,c.camX,k);
-  {const lx=Math.min(450,W*.33),tg=(W>=900&&$('card').classList.contains('mini'))?40:lx;S.vx=(S.vx==null||S.reduced||S.vxSnap)?tg:lerp(S.vx,tg,1-Math.pow(.2,dt));S.vxSnap=false}
-  advance(dt);geo();record();
+  if(S.playing){S.t+=dt;S.chT+=dt}
+  const c=camTarget(),k=!S.playing?0:S.reduced?1:1-Math.pow(.02,dt);S.r=lerp(S.r,c.r,k);S.span=lerp(S.span,c.span,k);S.camX=lerp(S.camX,c.camX,k);
+  {const lx=Math.min(450,W*.33),tg=(W>=900&&$('card').classList.contains('mini'))?40:lx;S.vx=(S.vx==null||S.reduced||S.vxSnap)?tg:lerp(S.vx,tg,S.playing?1-Math.pow(.2,dt):0);S.vxSnap=false}
+  advance(dt);eventCues();geo();record();
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
   if(S.ch<=2)drawGSI();
   else if(S.ch===3)drawSeismic();
@@ -2040,42 +2093,43 @@ function frame(now){
   else if(S.ch<=11)drawMoveScene();
   else {if(G12&&G12.width===cv.width&&G12.height===cv.height){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(G12,0,0);ctx.restore()}
     else{drawGSI();if(S.fT>=.7){G12=G12||document.createElement('canvas');G12.width=cv.width;G12.height=cv.height;G12.getContext('2d').drawImage(cv,0,0)}}drawStack()}
-  drawSnap(dt);
+  drawSnap(S.playing?dt:0);
   if(S.ch===2){drawPanel();fillChips()}
   if(MOVE_CH.includes(S.ch))updateMoveUI();
   perfTick(performance.now()-pf0,dt);
   requestAnimationFrame(frame);
 }
 /* ---------- input ---------- */
-function setPlaying(p){S.playing=p;soundLevel();applyUI()}
-function reset(){clearCoverage();$('chips').innerHTML='';S.ship=60;S.lineDone=false;S.moveView='cinematic';S.pt=false;setPlaying(true);go(0)}
+function setPlaying(p){S.playing=p;if(!p)stopCues();soundLevel();applyUI()}
+function reset(){stopCues();S.t=0;S.chT=0;S.fT=0;S.bridgeT=0;S.precT=0;S.tenderT=0;SNAP=null;S.snapT=null;clearCoverage();$('chips').innerHTML='';S.ship=60;S.lineDone=false;S.moveView='cinematic';S.pt=false;setPlaying(true);go(0)}
 $('cta').onclick=()=>S.ch===12?reset():go(S.ch+1);
 $('card').addEventListener('click',e=>{if(e.target.id==='cta'||!$('card').classList.contains('mini'))return;S.cardOpen=true;$('card').classList.remove('mini');$('card').classList.toggle('compact',cardRule())});
 $('prevBtn').onclick=()=>go(S.ch-1);$('nextBtn').onclick=()=>go(S.ch+1);
-$('playBtn').onclick=()=>{if(!S.playing&&S.ch===4&&S.gtiDepth>=30)S.gtiDepth=0;if(!S.playing&&S.ch===5&&S.bridgeT>=16)S.bridgeT=0;setPlaying(!S.playing)};$('resetBtn').onclick=reset;
+$('playBtn').onclick=()=>{if(!S.playing&&S.ch===4&&S.gtiDepth>=30)S.gtiDepth=0;if(!S.playing&&S.ch===5&&S.bridgeT>=16)S.bridgeT=0;syncCues();setPlaying(!S.playing)};$('resetBtn').onclick=reset;
 $('mPres').onclick=()=>{S.mode='presenter';S.chT=0;applyUI()};$('mExp').onclick=()=>{S.mode='explore';applyUI()};
 $('lEN').onclick=()=>{S.lang='en';fillCard();applyUI()};$('lTH').onclick=()=>{S.lang='th';fillCard();applyUI()};
-$('motionBtn').onclick=()=>{S.reduced=!S.reduced;applyUI()};
+$('motionBtn').onclick=()=>{S.reduced=!S.reduced;SNAP=null;S.snapT=null;applyUI()};
 $('fsBtn').onclick=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{})};
-$('soundBtn').onclick=()=>{if(!AU.ctx&&!soundInit())return;AU.on=!AU.on;if(AU.ctx.state==='suspended')AU.ctx.resume();soundLevel();applyUI()};
-document.querySelectorAll('.lensbar button').forEach(b=>b.onclick=()=>{S.lens=b.dataset.lens;S.callouts=[];fillLens();ping(LENSES.indexOf(S.lens)*140+600,.25,.04)});
+$('soundBtn').onclick=()=>{if(!AU.ctx&&!soundInit())return;AU.on=!AU.on;if(!AU.on)stopCues();if(AU.ctx.state==='suspended')AU.ctx.resume();soundLevel();applyUI()};
+document.querySelectorAll('.lensbar button').forEach(b=>b.onclick=()=>{S.lens=b.dataset.lens;S.callouts=[];fillLens();cue('sensor',true)});
 document.querySelectorAll('[data-seis]').forEach(b=>b.onclick=()=>{S.seisMode=b.dataset.seis;if(S.mode==='presenter')S.mode='explore';applyUI()});
-$('fireSeis').onclick=()=>{S.seisMode='spread';S.shot=S.t;ping(520,.7,.05);applyUI()};
-$('gtiBH').onclick=()=>{S.gtiMethod='bh';S.gtiDepth=0;if(S.mode==='presenter')S.mode='explore';applyUI()};
-$('gtiCPT').onclick=()=>{S.gtiMethod='cpt';S.gtiDepth=0;if(S.mode==='presenter')S.mode='explore';applyUI()};
+document.querySelectorAll('[data-shallow]').forEach(b=>b.onclick=()=>{S.shallow=b.dataset.shallow;if(S.mode==='presenter')S.mode='explore';applyUI()});
+$('fireSeis').onclick=()=>{S.seisMode='spread';S.shot=S.t;cue('fire',true);applyUI()};
+$('gtiBH').onclick=()=>{cue('step',true);S.gtiMethod='bh';S.gtiDepth=0;if(S.mode==='presenter')S.mode='explore';applyUI()};
+$('gtiCPT').onclick=()=>{cue('step',true);S.gtiMethod='cpt';S.gtiDepth=0;if(S.mode==='presenter')S.mode='explore';applyUI()};
 $('gtiDepth').oninput=e=>{S.gtiDepth=+e.target.value;if(S.playing)setPlaying(false);if(S.mode==='presenter')S.mode='explore';applyUI()};
 $('ptN').onclick=()=>{S.pt=false;updateMoveUI()};$('ptP').onclick=()=>{S.pt=true;if(S.mode==='presenter'){S.mode='explore';applyUI()}updateMoveUI()};
 $('viewCinema').onclick=()=>{if(S.moveView!=='cinematic')snapshot('fade');S.moveView='cinematic';updateMoveUI()};$('viewPlan').onclick=()=>{if(S.moveView!=='plan')snapshot('tilt');S.moveView='plan';updateMoveUI()};
 $('moveRange').oninput=e=>{const v=+e.target.value/1000;
   if(S.ch===10)S.precT=v;else if(S.ch===11)S.tenderT=v;else if(CHW[S.ch]){const [a,b]=CHW[S.ch];S.moveT=a+v*(b-a-1e-4)}
-  if(S.playing)setPlaying(false);updateMoveUI()};
+  if(S.playing)setPlaying(false);syncCues();updateMoveUI()};
 const shipFromEvent=e=>{const r=cv.getBoundingClientRect();return clamp(S.camX+(e.clientX-r.left)/kx,60,990)};
-cv.addEventListener('pointerdown',e=>{if(S.ch===5){S.bridgeT=((Math.min(BR_N-1,Math.floor(S.bridgeT/4))+1)%BR_N)*4;if(S.mode==='presenter'){S.mode='explore';applyUI()}return}if(S.ch!==2)return;S.drag=true;cv.setPointerCapture(e.pointerId);cv.classList.add('drag');S.ship=shipFromEvent(e);if(S.mode==='presenter'){S.mode='explore';applyUI()}});
+cv.addEventListener('pointerdown',e=>{if(S.ch===5){S.bridgeT=((Math.min(BR_N-1,Math.floor(S.bridgeT/4))+1)%BR_N)*4;setPlaying(false);syncCues();cue('step',true);if(S.mode==='presenter')S.mode='explore';applyUI();return}if(S.ch!==2)return;S.drag=true;cv.setPointerCapture(e.pointerId);cv.classList.add('drag');S.ship=shipFromEvent(e);if(S.mode==='presenter'){S.mode='explore';applyUI()}});
 cv.addEventListener('pointermove',e=>{if(S.ch===2)cv.classList.toggle('can-drag',!S.drag);if(!S.drag)return;S.ship=shipFromEvent(e);S.lineDone=coverage('mag')>.995});
 const endDrag=()=>{S.drag=false;cv.classList.remove('drag')};cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(S.ch+1);else if(e.key==='ArrowLeft')go(S.ch-1);else if(e.key===' '){e.preventDefault();setPlaying(!S.playing)}else if(e.key==='P'){PRF.on=!PRF.on}});
 addEventListener('resize',()=>{G12=null;resize();applyUI();fillCard()});
-document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;document.hidden?AU.ctx.suspend():AU.on&&AU.ctx.resume()});
+document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;document.hidden?(stopCues(),AU.ctx.suspend()):AU.on&&AU.ctx.resume()});
 /* ---------- boot ---------- */
 resize();applyUI();fillCard();
 setTimeout(()=>{buildWorld();$('loader').classList.add('off');last=performance.now();requestAnimationFrame(frame)},30);
