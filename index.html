@@ -1,412 +1,60 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<!doctype html>
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Offshore Geo Tools | Command Center</title>
-  <meta name="description" content="Advanced geomatics and offshore engineering toolset."/>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Rattawit's geomatics tools, offshore visualizations, and project utilities.">
+<meta name="theme-color" content="#f4f2eb"><link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%224%22%20fill%3D%22%23f4f2eb%22%2F%3E%3Cpath%20d%3D%22M6%206h14v14H6zM28%206h14v14H28zM6%2028h14v14H6z%22%20fill%3D%22%23242824%22%2F%3E%3Cpath%20d%3D%22M28%2028h14v14H28z%22%20fill%3D%22%23b4472c%22%2F%3E%3C%2Fsvg%3E"><title>Offshore Geo Tools / Rattawit W.</title>
+<script>try{const t=localStorage.getItem('geo-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
-:root {
-  /* Dark Theme (Default) */
-  --bg-main: #060910;
-  --bg-gradient: linear-gradient(160deg, #060910 0%, #0c1222 50%, #111a30 100%);
-  --card-bg: rgba(15, 23, 42, 0.6);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --text-title: #f1f5f9;
-  --text-body: #94a3b8;
-  --header-bg: rgba(6, 9, 16, 0.8);
-  --accent-glow: rgba(59, 130, 246, 0.15);
-  --filter-btn-bg: rgba(30, 41, 59, 0.5);
-  --contour-opacity: 0.05;
-}
+:root{color-scheme:light;--paper:#f4f2eb;--surface:#faf9f5;--ink:#242824;--muted:#64685f;--line:#d2d2c6;--accent:#b4472c;--soft:#e9e8df;--marine:#2d625c;--ochre:#886423;--rust:#a3452e;--focus:#345f51}
+[data-theme=dark]{color-scheme:dark;--paper:#1c211f;--surface:#232a26;--ink:#edece2;--muted:#b2b6ab;--line:#454d45;--accent:#ed9679;--soft:#303831;--marine:#9ac9bc;--ochre:#dec285;--rust:#eca78d;--focus:#b9d7c4}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 'Segoe UI',Arial,sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit}button,input{font:inherit;color:inherit}button{cursor:pointer}a,button,input{-webkit-tap-highlight-color:transparent}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:4px}button{min-height:44px}svg{display:block}::selection{background:var(--ink);color:var(--paper)}
+.wrap{width:min(1240px,100%);margin:auto;padding-inline:36px}.mono{font-family:Consolas,'Courier New',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase}.skip{position:fixed;top:-90px;left:12px;z-index:10;padding:12px;background:var(--surface);border:2px solid var(--focus)}.skip:focus{top:12px}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-block:23px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:13px;text-decoration:none}.brand-mark{width:37px;height:37px}.brand-name{font-size:16px;font-weight:650;letter-spacing:-.4px}.brand-sub{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.header-right{display:flex;align-items:center;gap:24px}.owner{font-size:12px;color:var(--muted)}.theme{border:1px solid var(--line);background:none;padding:0 12px;display:flex;align-items:center;gap:8px;font-size:11px;border-radius:2px}.theme svg{width:16px;height:16px}
+.intro{display:grid;grid-template-columns:1.5fr 1fr;gap:36px;padding-block:45px 32px;align-items:end}.eyebrow{display:flex;gap:9px;align-items:center;color:var(--muted);margin-bottom:16px}.eyebrow:before{content:'';width:7px;height:7px;background:var(--accent)}h1{font-size:clamp(36px,4.8vw,62px);line-height:1.06;font-weight:600;letter-spacing:-.055em;margin:0}h1 em{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.045em}.intro-aside{max-width:350px;justify-self:end}.intro-aside p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.75}.intro-index{display:flex;gap:24px;border-top:1px solid var(--line);padding-top:13px;color:var(--muted)}.intro-index b{color:var(--ink);font-size:12px;letter-spacing:0;margin-right:5px}
+.toolbar{display:flex;justify-content:space-between;gap:20px;align-items:center;padding-block:16px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}.tabs{display:flex;gap:22px;overflow-x:auto;scrollbar-width:thin}.tab{border:0;background:none;padding:10px 0;white-space:nowrap;color:var(--muted);font-size:12px;position:relative}.tab[aria-pressed=true]{color:var(--ink);font-weight:650}.tab[aria-pressed=true]:after{content:'';position:absolute;bottom:2px;left:0;right:0;height:2px;background:var(--accent)}.search{display:flex;align-items:center;border:1px solid var(--line);background:var(--surface);min-width:240px;max-width:310px;width:100%;height:44px;border-radius:2px}.search>svg{width:16px;height:16px;margin-left:12px;flex-shrink:0;color:var(--muted)}.search input{border:0;background:none;width:100%;min-width:0;padding:10px;outline-offset:0;font-size:12px}.search button{border:0;background:none;width:38px;flex-shrink:0;font-size:20px;color:var(--muted)}[hidden]{display:none!important}
+.section-label{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:26px 0 15px}.section-label h2{font:inherit;font-size:11px;font-weight:650;letter-spacing:.12em;text-transform:uppercase;margin:0}.section-label span{color:var(--muted);font-size:10px}
+.catalogue{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:36px;border-top:1px solid var(--line)}.tool{display:grid;grid-template-columns:44px 1fr 22px;gap:15px;align-items:center;padding:20px 8px 20px 0;border-bottom:1px solid var(--line);text-decoration:none;min-width:0;transition:background .15s}.tool:hover{background:var(--soft)}.tool-icon{width:42px;height:42px;color:var(--muted)}.tool-icon svg{width:42px;height:42px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.tool h3{margin:0;font-size:14px;font-weight:600;letter-spacing:-.15px}.tool p{margin:5px 0 0;font-size:11px;line-height:1.6;color:var(--muted)}.tool .type{display:block;color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}.tool .arrow{color:var(--muted)}.empty{padding:45px 0;text-align:center}.empty h2{font-size:20px;font-weight:600;margin:0 0 6px}.empty p{color:var(--muted);font-size:12px}.empty button{background:none;border:1px solid var(--line);padding:0 16px}.results{padding-top:12px;color:var(--muted);font-size:10px;min-height:28px}
+footer{margin-top:42px}.footer-inner{border-top:1px solid var(--ink);padding-block:20px 28px;display:flex;justify-content:space-between;gap:20px;color:var(--muted);font-size:11px}.footer-inner strong{font-weight:600;color:var(--ink)}.footer-inner .mono{font-size:9px}
+@media(max-width:1000px){.wrap{padding-inline:24px}.tabs{gap:16px}.toolbar{display:block}.search{max-width:none;margin-top:12px}.catalogue{column-gap:24px}}
+@media(max-width:680px){.wrap{padding-inline:18px}header .wrap{padding-block:16px}.brand-name{font-size:14px}.brand-sub{font-size:8px}.brand-mark{width:30px;height:30px}.header-right{gap:0}.owner{display:none}.theme{padding:0 10px}.theme-label{display:none}.intro{grid-template-columns:1fr;gap:20px;padding-block:28px 24px}h1{font-size:42px}.eyebrow{font-size:9px;margin-bottom:12px}.intro-aside{justify-self:start;max-width:none}.intro-aside p{font-size:12px;margin-bottom:14px;max-width:400px}.intro-index{gap:20px;padding-top:10px}.toolbar{padding-block:8px 14px}.tabs{gap:22px}.tab{font-size:11px}.search{margin-top:8px}.catalogue{grid-template-columns:1fr}.tool{padding-block:17px;gap:12px;grid-template-columns:38px 1fr 20px}.tool-icon,.tool-icon svg{width:36px;height:36px}.tool h3{font-size:13px}.tool p{font-size:11px}.footer-inner{display:block;font-size:10px}.footer-inner>span{display:block;margin-bottom:8px}footer{margin-top:28px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 
-[data-theme="light"] {
-  --bg-main: #f8fafc;
-  --bg-gradient: linear-gradient(160deg, #f8fafc 0%, #f1f5f9 100%);
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --card-border: rgba(148, 163, 184, 0.2);
-  --text-title: #0f172a;
-  --text-body: #475569;
-  --header-bg: rgba(255, 255, 255, 0.8);
-  --accent-glow: rgba(59, 130, 246, 0.05);
-  --filter-btn-bg: rgba(241, 245, 249, 1);
-  --contour-opacity: 0.15;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-button, input, .tool-card { transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s; }
-html, body { height: 100%; }
-body {
-  font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
-  background: var(--bg-gradient);
-  color: var(--text-body);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-}
-
-/* Background Animation */
-.contour-bg {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  opacity: var(--contour-opacity);
-  background-image: 
-    repeating-radial-gradient(circle at 20% 30%, transparent 0, transparent 100px, #94a3b8 101px, transparent 102px),
-    repeating-radial-gradient(circle at 80% 70%, transparent 0, transparent 150px, #94a3b8 151px, transparent 152px);
-  filter: blur(1px);
-  animation: drift 60s linear infinite;
-}
-@keyframes drift {
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.1) rotate(2deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Header */
-.site-header {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--header-bg);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--card-border);
-}
-.header-inner {
-  max-width: 1200px; margin: 0 auto; padding: 12px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  display: grid; place-items: center;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-}
-.brand-icon svg { width: 22px; height: 22px; color: #fff; }
-.brand-text h1 { font-size: 16px; font-weight: 700; color: var(--text-title); letter-spacing: -0.01em; }
-.brand-text p { font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-
-/* Theme Toggle Button */
-.theme-toggle {
-  background: var(--filter-btn-bg);
-  border: 1px solid var(--card-border);
-  width: 40px; height: 40px; border-radius: 10px;
-  cursor: pointer; display: grid; place-items: center; color: var(--text-title);
-}
-.theme-toggle:hover { background: var(--card-border); }
-
-/* Filter bar */
-.filter-bar { border-bottom: 1px solid var(--card-border); background: rgba(0,0,0,0.05); }
-.filter-inner { max-width: 1200px; margin: 0 auto; padding: 8px 24px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
-.filter-inner::-webkit-scrollbar { display: none; }
-.search-wrap { margin-left: auto; position: relative; min-width: 220px; }
-.tool-search {
-  width: 100%; padding: 7px 32px 7px 11px; border-radius: 8px;
-  border: 1px solid var(--card-border); background: var(--filter-btn-bg); color: var(--text-title);
-  font: inherit; font-size: 12px; outline: none;
-}
-.tool-search:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
-.search-clear { position:absolute; right:7px; top:50%; transform:translateY(-50%); border:0; background:none; color:var(--text-body); cursor:pointer; font-size:16px; line-height:1; display:none; }
-.filter-btn:focus-visible, .theme-toggle:focus-visible, .tool-card:focus-visible, .search-clear:focus-visible {
-  outline: 3px solid rgba(59,130,246,.55); outline-offset: 2px;
-}
-.filter-btn {
-  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
-  border: 1px solid transparent; background: transparent; color: var(--text-body);
-  cursor: pointer; white-space: nowrap; transition: 0.2s;
-}
-.filter-btn:hover { color: var(--text-title); background: var(--filter-btn-bg); }
-.filter-btn.active {
-  background: #3b82f6; border-color: #3b82f6; color: #fff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-/* Hero Section */
-.hero { text-align: left; max-width: 1200px; margin: 0 auto; padding: 60px 24px 20px; position: relative; z-index: 1; }
-.hero-tag {
-  display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(59,130,246,0.1);
-  color: #3b82f6; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;
-}
-.hero h2 { font-size: clamp(32px, 5vw, 48px); font-weight: 800; color: var(--text-title); letter-spacing: -0.03em; line-height: 1.1; }
-.hero p { font-size: 16px; color: var(--text-body); margin-top: 12px; max-width: 600px; }
-
-/* Tools Grid */
-.tools-grid {
-  max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;
-  position: relative; z-index: 1;
-}
-
-/* Enhanced Card Design */
-.tool-card {
-  position: relative; text-decoration: none; color: inherit;
-  background: var(--card-bg);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--card-border);
-  border-radius: 16px; padding: 24px;
-  display: flex; flex-direction: column; gap: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0; transform: translateY(20px);
-  animation: cardFadeIn 0.5s ease forwards;
-}
-@keyframes cardFadeIn { to { opacity: 1; transform: translateY(0); } }
-
-.tool-card:hover {
-  transform: translateY(-5px);
-  border-color: #3b82f6;
-  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5), 0 0 15px var(--accent-glow);
-}
-
-.card-top { display: flex; align-items: center; justify-content: space-between; }
-.card-icon {
-  width: 48px; height: 48px; border-radius: 12px;
-  display: grid; place-items: center; background: rgba(148, 163, 184, 0.1);
-  color: var(--text-title);
-}
-.card-badge {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 4px 10px; border-radius: 6px; background: rgba(148, 163, 184, 0.1);
-}
-
-.card-body h3 { font-size: 18px; font-weight: 700; color: var(--text-title); margin-bottom: 6px; }
-.card-body p { font-size: 13px; line-height: 1.6; color: var(--text-body); }
-
-.card-footer { 
-  margin-top: auto; padding-top: 16px; border-top: 1px solid var(--card-border);
-  display: flex; align-items: center; justify-content: space-between; font-size: 11px;
-  font-weight: 600; color: #3b82f6;
-}
-.card-arrow { transition: transform 0.3s; }
-.tool-card:hover .card-arrow { transform: translateX(4px); }
-
-/* Category Coloring (Subtle Accents) */
-.cat-Geodetic { --accent: #3b82f6; }
-.cat-Mapping { --accent: #10b981; }
-.cat-Engineering { --accent: #f59e0b; }
-.cat-QC { --accent: #8b5cf6; }
-.cat-Viewer { --accent: #06b6d4; }
-.cat-Tide { --accent: #14b8a6; }
-.cat-Rig { --accent: #ef4444; }
-
-.tool-card:hover .card-icon { background: var(--accent); color: white; }
-.tool-card:hover .card-badge { background: var(--accent); color: white; }
-
-/* Empty state */
-.empty-state { display: none; padding: 80px 24px; text-align: center; color: var(--text-body); }
-.empty-state h3 { color: var(--text-title); margin-bottom: 6px; }
-.tool-count { font-size: 11px; color: var(--text-body); margin-left: 4px; align-self: center; white-space: nowrap; }
-
-/* Footer */
-.site-footer {
-  margin-top: auto; padding: 24px;
-  border-top: 1px solid var(--card-border);
-  background: rgba(0,0,0,0.1);
-}
-.footer-inner {
-  max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between;
-  font-size: 12px; color: var(--text-body);
-}
-
-@media(max-width: 640px) {
-  .header-inner, .filter-inner, .hero, .tools-grid { padding-left: 16px; padding-right: 16px; }
-  .tools-grid { grid-template-columns: 1fr; padding-top: 24px; }
-  .hero { padding-top: 36px; }
-  .search-wrap { order: 2; flex: 1 0 100%; min-width: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
-  .tool-card { opacity: 1; transform: none; }
-}
-</style>
-</head>
-<body>
-
-<div class="contour-bg"></div>
-
-<header class="site-header">
-  <div class="header-inner">
-    <div class="brand">
-      <div class="brand-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-      </div>
-      <div class="brand-text">
-        <h1>Offshore Geo Tools</h1>
-        <p>Command Center</p>
-      </div>
-    </div>
-    
-    <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
-      <svg class="sun-icon" style="display:none" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-  </div>
-  <div class="filter-bar">
-    <div class="filter-inner" id="filterContainer"></div>
-  </div>
-</header>
-
-<main>
-  <div class="hero">
-    <span class="hero-tag">Offshore Engineering</span>
-    <h2>Precision Tools for <br/>Marine Geomatics.</h2>
-    <p>A suite of high-performance tools designed for offshore survey, geodetic transformations, and hydrographic operations.</p>
-  </div>
-
-  <div id="cardsGrid" class="tools-grid"></div>
-
-  <div id="emptyState" class="empty-state">
-    <h3>No tools found in this category</h3>
-    <button onclick="setFilter('All')" style="margin-top:10px; color:#3b82f6; background:none; border:none; cursor:pointer; font-weight:600;">Show all tools</button>
-  </div>
-</main>
-
-<footer class="site-footer">
-  <div class="footer-inner">
-    <span>&copy; <span id="year"></span> Offshore Geo Tools • Built for Precision</span>
-    <span>Developed by <strong style="color:var(--text-title)">Rattawit W.</strong></span>
-  </div>
-</footer>
-
+.tool.marine .tool-icon{color:var(--marine)}.tool.ochre .tool-icon{color:var(--ochre)}.tool.rust .tool-icon{color:var(--rust)}
+</style></head>
+<body><a class="skip" href="#main">Skip to applications</a>
+<header><div class="wrap"><a class="brand" href="./" aria-label="Offshore Geo Tools home"><span class="brand-mark"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M5 5h14v14H5zM29 5h14v14H29zM5 29h14v14H5z" fill="currentColor"/><path d="M29 29h14v14H29z" fill="var(--accent)"/><path d="M24 0v48M0 24h48" stroke="currentColor" stroke-width="1"/></svg></span><span class="brand-name">Offshore Geo Tools<span class="brand-sub">Rattawit W. / Field & digital tools</span></span></a><div class="header-right"><span class="owner">Independent tools. Connected workflows.</span><button class="theme" id="theme" type="button" aria-label="Switch to dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg><span class="theme-label" id="themeLabel">Dark</span></button></div></div></header>
+<main class="wrap" id="main"><section class="intro" aria-labelledby="pageTitle"><div><div class="eyebrow mono">Geomatics / Offshore / Development</div><h1 id="pageTitle">Tools for the field.<br><em>Perspective for the work.</em></h1></div><div class="intro-aside"><p>Survey utilities, offshore visualizations, and simpler project handoffs to Copilot. A single collection for everyday work.</p><div class="intro-index mono"><span><b id="total">12</b> applications</span><span>One collection / All tools</span></div></div></section>
+<section class="toolbar" aria-label="Find applications"><div class="tabs" id="tabs" role="group" aria-label="Application category"></div><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg><input id="search" type="search" aria-label="Search applications" placeholder="Find an app or workflow" autocomplete="off"><button id="clear" type="button" aria-label="Clear search" hidden>×</button></div></section>
+<div class="results mono" id="results" role="status" aria-live="polite"></div>
+<section id="toolsSection" aria-labelledby="toolsTitle"><div class="section-label"><h2 id="toolsTitle">Applications</h2><span>Survey / Visualization / Development</span></div><div class="catalogue" id="catalogue"></div></section>
+<section class="empty" id="empty" hidden><h2>No matching applications</h2><p>Try a different search or return to the full collection.</p><button id="reset" type="button">Show all applications</button></section>
+<noscript><p>Enable JavaScript to use the application catalogue.</p></noscript>
+</main><footer class="wrap"><div class="footer-inner"><span><strong>Offshore Geo Tools</strong> · Developed by Rattawit W.</span><span class="mono">Coordinates / Ground / Structures / Code</span></div></footer>
 <script>
-const tools = [
-  { file:'Coordinate_Converter.html', title:'Coordinate Converter', category:'Geodetic', badge:'Geodetic', icon:'compass', description:'High-precision conversion between Geodetic, UTM, and local grid systems.' },
-  { file:'Gulf_of_Thailand_Tide.html', title:'Gulf of Thailand Tide', category:'Tide', badge:'Tide', icon:'tide', description:'Real-time and predictive tidal computation for Gulf of Thailand regions.' },
-  { file:'DistanceMap_Final.html', title:'Distance Map', category:'Mapping', badge:'Mapping', icon:'route', description:'Generate complex distance matrices and offline mapping visualizations.' },
-  { file:'SLACK_Catenary.html', title:'Catenary Calculation', category:'Engineering', badge:'Engineering', icon:'catenary', description:'Compute complex mooring profiles and grounded line lengths.' },
-  { file:'QC_Jackup.html', title:'QC Jackup', category:'QC', badge:'QC', icon:'jackup', description:'Validation engine for jack-up rig leg positioning and coordinate integrity.' },
-  { file:'Jackup_Position_Confirmation.html', title:'Jack-up Position Confirmation', category:'Engineering', badge:'Positioning', icon:'position', description:'Confirm jack-up stern position and heading from CAD, Total Station observations, and optional Plan/Nav cross-checks.' },
-  { file:'rig_wisdom.html', title:'WISDOM Rig Visualization', category:'Rig', badge:'3D Rig', icon:'rig3d', description:'Interactive 3D engineering visualization of WISDOM jack-up rig, drilling systems, cantilever skidding, jacking, and wellhead platform interface.' },
-  { file:'geojson_viewer_v_35c.html', title:'GeoJSON Viewer', category:'Viewer', badge:'Viewer', icon:'viewer', description:'Advanced offline viewer for GeoJSON layers with dynamic styling.' },
-  { file:'xy_contour_studio.html', title:'XY Contour Studio', category:'Mapping', badge:'Mapping', icon:'contour', description:'Topographic contour generation engine from raw XYZ data sets.' },
-  { file:'Platform_slot_calculator.html', title:'Platform Slot Calc', category:'Engineering', badge:'Engineering', icon:'slot', description:'Precise layout calculation for offshore platform slot configurations.' }
-];
-
-const icons = {
-  compass:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='10'/><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'/></svg>`,
-  route:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 18l6-6-6-6'/><circle cx='7' cy='6' r='3'/><circle cx='17' cy='18' r='3'/></svg>`,
-  catenary:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 6c3 8 6 12 9 12s6-4 9-12'/><circle cx='3' cy='6' r='2' fill='currentColor'/><circle cx='21' cy='6' r='2' fill='currentColor'/></svg>`,
-  jackup:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='10' width='18' height='4' rx='1'/><path d='M6 14v6M18 14v6M9 10V4h6v6'/></svg>`,
-  position:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='8'/><circle cx='12' cy='12' r='2'/><path d='M12 2v4M12 18v4M2 12h4M18 12h4'/></svg>`,
-  rig3d:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 10h16v4H4z'/><path d='M7 14v7M17 14v7'/><path d='M9 10l3-7 3 7'/><path d='M10 7h4'/><path d='M12 3v7'/></svg>`,
-  viewer:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></svg>`,
-  contour:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M2 12c5 0 5-5 10-5s5 5 10 5'/><path d='M2 17c5 0 5-5 10-5s5 5 10 5' opacity='0.5'/><path d='M2 7c5 0 5-5 10-5s5 5 10 5' opacity='0.5'/></svg>`,
-  slot:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='2'/><line x1='3' y1='9' x2='21' y2='9'/><line x1='9' y1='21' x2='9' y2='9'/></svg>`,
-  tide:`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M2 12c3 0 3-3 6-3s3 3 6 3 3-3 6-3 3 3 6 3'/><path d='M2 16c3 0 3-3 6-3s3 3 6 3 3-3 6-3 3 3 6 3' opacity='0.4'/></svg>`
-};
-
-const arrowSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M12 5l7 7-7 7'/></svg>`;
-
-let activeFilter = 'All';
-let searchQuery = '';
-const grid = document.getElementById('cardsGrid');
-const emptyState = document.getElementById('emptyState');
-const filterContainer = document.getElementById('filterContainer');
-
-function renderFilters(){
-  const cats = ['All', ...new Set(tools.map(t=>t.category))];
-  filterContainer.innerHTML = '';
-  cats.forEach(cat=>{
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = cat;
-    btn.className = 'filter-btn' + (activeFilter===cat?' active':'');
-    btn.setAttribute('aria-pressed', activeFilter===cat ? 'true' : 'false');
-    btn.onclick = ()=> setFilter(cat);
-    filterContainer.appendChild(btn);
-  });
-  const count = document.createElement('span');
-  count.className = 'tool-count';
-  count.id = 'toolCount';
-  filterContainer.appendChild(count);
-  const wrap = document.createElement('div');
-  wrap.className = 'search-wrap';
-  wrap.innerHTML = `<input id="toolSearch" class="tool-search" type="search" placeholder="Search tools" aria-label="Search tools" autocomplete="off"><button type="button" class="search-clear" id="searchClear" aria-label="Clear search">×</button>`;
-  filterContainer.appendChild(wrap);
-  const input = wrap.querySelector('#toolSearch');
-  const clear = wrap.querySelector('#searchClear');
-  input.value = searchQuery;
-  clear.style.display = searchQuery ? 'block' : 'none';
-  input.addEventListener('input', ()=>{ searchQuery=input.value.trim().toLowerCase(); clear.style.display=searchQuery?'block':'none'; filterAndRender(); });
-  clear.addEventListener('click', ()=>{ searchQuery=''; input.value=''; clear.style.display='none'; filterAndRender(); input.focus(); });
+'use strict';
+const apps=[{"file": "The_Unseen_Offshore.html", "title": "The Unseen Offshore", "category": "Visualization", "badge": "Interactive story", "icon": "unseen", "description": "From seabed sensors and seismic to ground investigation, rig moves, and final positioning. One connected visual story.", "detail": "EN / TH · Presenter / Kiosk / Explore", "color": "marine", "number": "01"}, {"file": "rig_wisdom.html", "title": "WISDOM", "category": "Visualization", "badge": "3D engineering", "icon": "wisdom", "description": "Explore the CJ46X100-D jack-up: jacking, cantilever skidding, well-slot alignment, and the rig-move story.", "detail": "Story / Explore · 3D views", "color": "ochre", "number": "02"}, {"file": "CodeBridge.html", "title": "CodeBridge", "category": "Development", "badge": "Copilot file handoff", "icon": "bridge", "description": "Turn a project ZIP or folder into readable TXT for Copilot, reducing manual file preparation and repeated uploads. Apply returned changes back to the original project.", "detail": "TXT / ZIP · Local processing", "color": "rust", "number": "03"}, {"file": "Coordinate_Converter.html", "title": "Coordinate Converter", "category": "Geodetic", "badge": "Coordinates", "icon": "compass", "description": "Geodetic, UTM, and local-grid coordinate conversion."}, {"file": "Gulf_of_Thailand_Tide.html", "title": "Gulf of Thailand Tide", "category": "Tide", "badge": "Tides", "icon": "tide", "description": "Tidal calculations for Gulf of Thailand locations."}, {"file": "DistanceMap_Final.html", "title": "Distance Map", "category": "Mapping", "badge": "Mapping", "icon": "route", "description": "Distance calculations and map-based visualization."}, {"file": "SLACK_Catenary.html", "title": "Catenary Calculation", "category": "Engineering", "badge": "Mooring", "icon": "catenary", "description": "Mooring-line profiles and grounded line lengths."}, {"file": "QC_Jackup.html", "title": "QC Jackup", "category": "QC", "badge": "QA / QC", "icon": "jackup", "description": "Review jack-up leg positions and coordinate consistency."}, {"file": "Jackup_Position_Confirmation.html", "title": "Jack-up Position Confirmation", "category": "Engineering", "badge": "Positioning", "icon": "position", "description": "Compare CAD, Total Station, and Plan/Nav positions."}, {"file": "geojson_viewer_v_35c.html", "title": "GeoJSON Viewer", "category": "Viewer", "badge": "GIS", "icon": "viewer", "description": "Inspect GeoJSON layers and adjust their display styles."}, {"file": "xy_contour_studio.html", "title": "XY Contour Studio", "category": "Mapping", "badge": "Terrain", "icon": "contour", "description": "Generate contours from XYZ point data."}, {"file": "Platform_slot_calculator.html", "title": "Platform Slot Calculator", "category": "Engineering", "badge": "Well slots", "icon": "slot", "description": "Calculate offshore platform well-slot layouts."}];
+const marks={"unseen": "<path d=\"M7 27h14l6-7h18l5 7h7l-5 8H16z\"/><path d=\"M29 20v-9h11v9M34 11V7M8 40q8-4 16 0t16 0t16 0\"/><path d=\"m32 37-14 16m14-16v18m0-18 14 16\"/><path d=\"M9 58q10-7 21-2t25-2M9 64q12-5 24-1t22-1\"/>", "wisdom": "<path d=\"M11 31h36v10H11zM47 33h14v5H47M18 41v23M39 41v23M26 31V7h5v24M26 7l5 8-5 8 5 8M18 43l5 7-5 7 5 7M39 43l5 7-5 7 5 7M23 41v23M44 41v23M13 64h13M36 64h11M53 38v23M60 38v23M50 61h13M8 50h8M26 50h10\"/>", "bridge": "<path d=\"M8 10h18l8 8v17H8zM26 10v9h8M38 37h18l8 8v17H38zM56 37v9h8M14 23l-3 4 3 4m12-8 3 4-3 4M44 49l-3 4 3 4m12-8 3 4-3 4M21 40v12h12m-5-5 5 5-5 5M51 32V20H39m5-5-5 5 5 5\"/>", "compass": "<circle cx=\"36\" cy=\"36\" r=\"24\"/><path d=\"m46 23-6 17-17 9 9-18zM36 6v8M36 58v8M6 36h8M58 36h8\"/>", "route": "<circle cx=\"15\" cy=\"17\" r=\"5\"/><circle cx=\"56\" cy=\"55\" r=\"5\"/><path d=\"M15 22v20q0 13 13 13h23M56 50V30q0-13-13-13H29m7-7-7 7 7 7\"/>", "catenary": "<path d=\"M9 17q10 37 31 37h23M9 11v12M63 48v12M15 63h45M15 60v6M60 60v6\"/><circle cx=\"9\" cy=\"17\" r=\"3\"/>", "jackup": "<path d=\"M10 29h44v12H10zM18 41v20M46 41v20M28 29V12h9v17M24 56l5 5 12-13\"/><path d=\"M58 13v17M51 22l7 8 7-8\"/>", "position": "<circle cx=\"36\" cy=\"36\" r=\"21\"/><circle cx=\"36\" cy=\"36\" r=\"5\"/><path d=\"M36 5v17M36 50v17M5 36h17M50 36h17M19 60h34\"/>", "viewer": "<path d=\"m36 10 27 14-27 14L9 24zM9 36l27 14 27-14M9 48l27 14 27-14\"/>", "contour": "<path d=\"M9 38c0-17 14-27 30-22s27 22 17 36S12 57 9 38zM20 36c1-12 13-16 23-10s14 16 5 23-30 2-28-13zM31 35c3-6 13-2 12 5s-16 4-12-5z\"/>", "slot": "<path d=\"M12 12h48v48H12zM12 28h48M28 12v48M44 12v48M12 44h48\"/><circle cx=\"36\" cy=\"36\" r=\"4\"/>", "tide": "<path d=\"M8 29q7-8 14 0t14 0t14 0t14 0M8 42q7-8 14 0t14 0t14 0t14 0M8 55q7-8 14 0t14 0t14 0t14 0M36 7v13m-6-6 6 6 6-6\"/>"};
+const groups=[['All','All applications'],['Visualization','Visualization'],['Survey','Survey & GIS'],['Engineering','Engineering'],['Development','Development']];
+let active='All';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const svg=key=>`<svg viewBox="0 0 72 72" aria-hidden="true">${marks[key]||marks.position}</svg>`;
+function group(a){return ['Geodetic','Mapping','Tide','Viewer'].includes(a.category)?'Survey':['QC','Engineering'].includes(a.category)?'Engineering':a.category}
+function render(){
+ const q=$('search').value.trim().toLowerCase();
+ const found=apps.filter(a=>(active==='All'||group(a)===active)&&(!q||`${a.title} ${a.description} ${a.category} ${a.badge} ${a.detail||''}`.toLowerCase().includes(q)));
+ $('catalogue').innerHTML=found.map(a=>`<a class="tool ${a.color||''}" href="${esc(a.file)}" aria-label="Open ${esc(a.title)}"><div class="tool-icon">${svg(a.icon)}</div><div><span class="type">${esc(a.badge)}</span><h3>${esc(a.title)}</h3><p>${esc(a.description)}</p></div><span class="arrow" aria-hidden="true">↗</span></a>`).join('');
+ $('toolsSection').hidden=!found.length;$('empty').hidden=!!found.length;
+ $('results').textContent=`${String(found.length).padStart(2,'0')} / ${apps.length} applications${active==='All'?'':' · '+groups.find(g=>g[0]===active)[1]}`;
+ $('clear').hidden=!$('search').value;
 }
-
-function setFilter(cat) {
-  activeFilter = cat;
-  renderFilters();
-  filterAndRender();
-}
-
-function filterAndRender(){
-  const filtered = tools.filter(t=> {
-    const inCategory = activeFilter==='All' || t.category===activeFilter;
-    const haystack = `${t.title} ${t.category} ${t.badge} ${t.description}`.toLowerCase();
-    return inCategory && (!searchQuery || haystack.includes(searchQuery));
-  });
-  renderCards(filtered);
-  grid.style.display = filtered.length ? 'grid' : 'none';
-  emptyState.style.display = filtered.length ? 'none' : 'block';
-  const count = document.getElementById('toolCount');
-  if(count) count.textContent = `${filtered.length}/${tools.length}`;
-}
-
-function renderCards(list){
-  grid.innerHTML = '';
-  list.forEach((t, i)=>{
-    const card = document.createElement('a');
-    card.href = t.file;
-    card.setAttribute('aria-label', `Launch ${t.title}`);
-    card.className = `tool-card cat-${t.category}`;
-    card.style.animationDelay = `${i * 0.05}s`;
-    
-    card.innerHTML = `
-      <div class="card-top">
-        <div class="card-icon">${icons[t.icon]}</div>
-        <span class="card-badge">${t.badge}</span>
-      </div>
-      <div class="card-body">
-        <h3>${t.title}</h3>
-        <p>${t.description}</p>
-      </div>
-      <div class="card-footer">
-        <span>LAUNCH TOOL</span>
-        <span class="card-arrow">${arrowSvg}</span>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-// Theme Toggle Logic
-const themeToggle = document.getElementById('themeToggle');
-const html = document.documentElement;
-const sunIcon = themeToggle.querySelector('.sun-icon');
-const moonIcon = themeToggle.querySelector('.moon-icon');
-
-function updateThemeIcons(theme) {
-  if (theme === 'light') {
-    sunIcon.style.display = 'none';
-    moonIcon.style.display = 'block';
-  } else {
-    sunIcon.style.display = 'block';
-    moonIcon.style.display = 'none';
-  }
-}
-
-themeToggle.onclick = () => {
-  const currentTheme = html.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', newTheme);
-  localStorage.setItem('geo-theme', newTheme);
-  updateThemeIcons(newTheme);
-};
-
-// Init
-const savedTheme = localStorage.getItem('geo-theme') || 'dark';
-html.setAttribute('data-theme', savedTheme);
-updateThemeIcons(savedTheme);
-
-document.getElementById('year').textContent = new Date().getFullYear();
-renderFilters();
-filterAndRender();
+for(const [key,label] of groups){const b=document.createElement('button');b.type='button';b.className='tab';b.textContent=label;b.dataset.group=key;b.setAttribute('aria-pressed',String(key===active));b.onclick=()=>{active=key;document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed',String(t.dataset.group===active)));render()};$('tabs').append(b)}
+$('search').addEventListener('input',render);
+$('clear').onclick=()=>{$('search').value='';render();$('search').focus()};
+$('reset').onclick=()=>{$('search').value='';document.querySelector('.tab').click()};
+function theme(){const dark=document.documentElement.dataset.theme==='dark';$('themeLabel').textContent=dark?'Light':'Dark';$('theme').setAttribute('aria-label',`Switch to ${dark?'light':'dark'} theme`);document.querySelector('meta[name="theme-color"]').content=dark?'#1c211f':'#f4f2eb'}
+$('theme').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('geo-theme',document.documentElement.dataset.theme)}catch(e){}theme()};
+$('total').textContent=apps.length;theme();render();
 </script>
-  <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
-</body>
-</html>
+</body></html>
