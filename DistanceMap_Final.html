@@ -6,161 +6,229 @@
 <title>GOT — Distance Matrix & Map (Indian 1975 → WGS84)</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 <style>
-  :root{ --line:#e5e7eb; --text:#111827; --muted:#6b7280; --brand:#1f7ae0; --bg:#ffffff; --radius:12px; --table-scale:1.0; --hl:#eef6ff; }
+  :root{ --ink:#0f172a; --text:#1e293b; --muted:#64748b; --line:#e2e8f0; --line2:#cbd5e1; --bg:#f1f5f9; --card:#fff;
+         --brand:#1f7ae0; --brand-d:#0b4fb3; --brand-l:#e8f1ff; --ok:#15803d; --warn:#b45309; --radius:10px; --table-scale:1.0; --hl:#eaf2ff; --panel-w:430px; }
   *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:var(--bg)}
-  header{padding:10px 16px;border-bottom:1px solid var(--line);background:#fff}
-  header .titlerow{display:flex;align-items:baseline;justify-content:space-between}
-  header h1{margin:0;font-size:18px}
-  header .sub{color:var(--muted);font-size:12px}
-  .metabar{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;color:#475569;font-size:12px}
-  .metabar b{font-weight:700}
-
-  .wrap{display:grid;grid-template-columns:420px 1fr;gap:0;height:calc(100% - 78px)}
-  .panel{display:flex;flex-direction:column;background:#fff;border-right:1px solid var(--line);min-width:340px}
-  #mapWrap{position:relative}
-  #map{position:absolute;inset:0}
-
-  .card{background:#fff;border-bottom:1px solid var(--line);padding:12px}
-  .card h3{margin:0 0 8px 0;font-size:14px}
+  body{display:flex;flex-direction:column;margin:0;font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:var(--text);background:var(--bg)}
+  button,input,select{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* ---------- header ---------- */
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--line);flex:none}
+  .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .brand .logo{width:32px;height:32px;flex:none}
+  .brand h1{margin:0;font-size:15px;line-height:1.2;color:var(--ink);white-space:nowrap}
+  .brand .sub{color:var(--muted);font-size:11.5px;white-space:nowrap}
+  .metabar{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;font-size:11.5px;color:var(--muted)}
+  .metabar .chip{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .metabar .chip b{color:var(--ink);font-weight:650}
+  .iconbtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;flex:none}
+  .iconbtn:hover{background:var(--bg)}
+  /* ---------- layout ---------- */
+  .wrap{display:grid;grid-template-columns:var(--panel-w) 1fr;grid-template-rows:minmax(0,1fr);flex:1;min-height:0;transition:grid-template-columns .18s ease}
+  .wrap.collapsed{grid-template-columns:0 1fr}
+  .wrap.collapsed .panel{padding:0;border:0;overflow:hidden;visibility:hidden}
+  .panel{display:flex;flex-direction:column;gap:8px;padding:8px;background:var(--bg);border-right:1px solid var(--line);min-height:0;overflow-y:auto;overflow-x:hidden}
+  #mapWrap{position:relative;min-width:0}
+  #map{position:absolute;inset:0;background:#e8edf2}
+  #mapEmpty{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:500;background:rgba(15,23,42,.86);color:#fff;border-radius:999px;padding:7px 14px;font-size:12px;pointer-events:none;box-shadow:0 4px 14px rgba(15,23,42,.25)}
+  #fatal{background:#fef2f2;color:#991b1b;border-bottom:1px solid #fecaca;padding:8px 14px;font-size:12.5px}
+  /* ---------- cards ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 2px rgba(15,23,42,.04);flex:none}
+  .card h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .card h3 .step{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;letter-spacing:0}
+  .card h3 .grow{flex:1}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-  input[type="number"], select, input[type="file"]{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:600}
-  .btn:hover{background:#f3f4f6}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .muted{color:var(--muted);font-size:12px}
-  .drop{border:1.5px dashed #cbd5e1;border-radius:12px;padding:10px;text-align:center;color:#334155;background:#fcfcfe}
-  .drop.drag{background:#eef2ff;border-color:#93c5fd;color:#1e3a8a}
-
-  .tabs{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line)}
-  .tab{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-weight:600}
-  .tab.active{background:#eef6ff;border-color:#93c5fd;color:#0b3d91}
-  .tabpanes{flex:1;overflow:auto;border-top:1px dashed var(--line);padding:10px 12px}
-
+  label.fld{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:600}
+  input[type="number"],select,.inp{width:100%;height:34px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)}
+  select{text-overflow:ellipsis}
+  .suffix{position:relative} .suffix input{padding-right:30px} .suffix span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none}
+  /* dropzone */
+  .drop{display:flex;align-items:center;gap:12px;padding:12px;border:1.5px dashed var(--line2);border-radius:var(--radius);background:#f8fafc;cursor:pointer;color:var(--text);transition:background .12s,border-color .12s}
+  .drop:hover,.drop:focus-within{background:var(--brand-l);border-color:#93c5fd}
+  .drop.drag{background:var(--brand-l);border-color:var(--brand);color:var(--brand-d)}
+  .card.loaded .drop{padding:7px 10px} .card.loaded .drop small{display:none} .card.loaded .drop svg{width:18px;height:18px}
+  .drop svg{flex:none;color:var(--brand)} .drop b{display:block;color:var(--ink)} .drop small{display:block;color:var(--muted);font-size:11.5px;margin-top:1px}
+  .rowbar{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .summary{flex:1;min-width:0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .summary b{color:var(--ink)}
+  button.link{border:0;background:none;color:var(--brand-d);cursor:pointer;padding:2px 4px;border-radius:6px;font-weight:600;font-size:12px}
+  button.link:hover{background:var(--brand-l)} button.link.danger{color:#b91c1c} button.link.danger:hover{background:#fef2f2}
+  /* switch */
+  .switch{display:flex;align-items:center;gap:10px;margin-top:8px;cursor:pointer;color:var(--text);font-size:12.5px;user-select:none}
+  .switch input{position:absolute;opacity:0;width:0;height:0}
+  .switch .slider{position:relative;flex:none;width:34px;height:20px;border-radius:999px;background:var(--line2);transition:background .15s}
+  .switch .slider::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+  .switch input:checked + .slider{background:var(--brand)} .switch input:checked + .slider::after{transform:translateX(14px)}
+  .switch input:focus-visible + .slider{outline:2px solid var(--brand);outline-offset:2px}
+  details.more{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+  details.more summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);list-style:none;display:flex;align-items:center;gap:6px}
+  details.more summary::before{content:"\25B8";display:inline-block;transition:transform .12s} details.more[open] summary::before{transform:rotate(90deg)}
+  details.more .grid2{margin-top:8px} .range{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted)} .range input{flex:1}
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--line2);background:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--ink);white-space:nowrap}
+  .btn:hover{background:var(--bg)} .btn:disabled{opacity:.55;cursor:progress}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 1px 2px rgba(31,122,224,.35)} .btn.primary:hover{background:var(--brand-d)}
+  .btn.block{width:100%;height:38px;font-size:13px}
+  .btn svg{flex:none}
+  .btngrid{display:grid;gap:6px;margin-top:6px} .btngrid.c3{grid-template-columns:repeat(3,1fr)} .btngrid.c2{grid-template-columns:repeat(2,1fr)}
+  .btngrid .btn{padding:0 8px;min-width:0}
+  .group-label{display:none}
+  /* list / matrix tabs */
+  .listcard{display:flex;flex-direction:column;flex:1 0 200px;min-height:200px;padding:0;overflow:hidden}
+  .tabs{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);background:#fff}
+  .tab{height:28px;padding:0 12px;border:1px solid transparent;border-radius:999px;background:none;cursor:pointer;font-weight:650;font-size:12.5px;color:var(--muted)}
+  .tab:hover{background:var(--bg)} .tab.active{background:var(--brand-l);border-color:#bfdbfe;color:var(--brand-d)}
+  .tabs .inp{height:28px;margin-left:auto;max-width:120px;min-width:0;font-size:12px}
+  .tabpanes{flex:1;min-height:0;overflow:auto;background:#fff}
+  .empty-hint{padding:22px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.5}
   table{width:100%;border-collapse:separate;border-spacing:0;font-size:calc(12px * var(--table-scale))}
-  thead th{position:sticky;top:0;background:#f8fafc;border-bottom:1px solid var(--line);font-weight:700;color:#0f172a}
+  thead th{position:sticky;top:0;z-index:2;background:#f8fafc;border-bottom:1px solid var(--line);font-weight:700;color:var(--ink);text-align:left}
   th,td{border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
-  tbody tr:nth-child(odd){background:#fafafa}
-  tbody tr:hover{background:#f3f4f6}
-  th:first-child, td:first-child{position:sticky;left:0;background:inherit;z-index:1}
-  thead th:first-child{z-index:3}
-  th:first-child, td:first-child{border-right:1px solid #d1d5db;background:#f9fafb}
+  tbody tr:nth-child(odd){background:#fcfdff} tbody tr:hover{background:#f1f5f9}
+  #poiTable tbody tr{cursor:pointer} #poiTable tbody tr.is-ref td{background:var(--brand-l)} #poiTable td.nm{max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink)}
+  #poiTable td.dm{font-variant-numeric:tabular-nums}
+  #distTable tbody tr{cursor:pointer} #distTable td.nm{max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--ink)}
+  #distTable td.num{text-align:right;font-variant-numeric:tabular-nums} #distTable th.num{text-align:right}
+  #distTable tbody tr.sel td{background:#fef3c7} #distTable tbody tr.sel td:first-child{background:#fef3c7}
+  .disthead{padding:7px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);background:#fff}
+  .disthead b{color:var(--ink)}
+  .mrlist{max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin-top:6px;background:#fff}
+  label.mr{display:block;font-size:12px;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  label.mr input{margin-right:6px;vertical-align:-2px}
+  .mrhint{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .mrcount{margin-left:auto;font-weight:700;color:var(--brand-d)}
+  th:first-child,td:first-child{position:sticky;left:0;background:inherit;z-index:1;border-right:1px solid var(--line)}
+  thead th:first-child{z-index:3} th:first-child,td:first-child{background:#f8fafc}
+  #poiTable tbody tr.is-ref td:first-child{background:var(--brand-l)}
   #matrixTable thead th{text-align:center} #matrixTable td{text-align:center}
-  .row-hl th, .row-hl td{background:var(--hl)!important}
-  .col-hl{background:var(--hl)!important}
-  td.empty{background:#f0f0f0;color:var(--muted)} /* light grey null cells */
-
-  .distance-chip{font:11px/1.0 Inter, system-ui, sans-serif;color:#111827}
-  .text-halo{ text-shadow:0 0 2px #fff,0 0 4px #fff,0 0 6px #fff,0 0 8px #fff,-1px 0 1px #fff,1px 0 1px #fff,0 -1px 1px #fff,0 1px 1px #fff; font-weight:700;white-space:nowrap }
-  .poi-chip-svg{pointer-events:none}
-  /* Enhanced label appearance and leader lines */
-  .poi-chip-svg svg { filter: drop-shadow(0 1px 3px rgba(0,0,0,0.12)); }
-  .leader-line { pointer-events: none; }
-  .badge-ref{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;font-size:11px}
-
-  @media print{ @page{ size:A3 landscape; margin:8mm } .wrap{grid-template-columns:1fr} .panel{display:none} header{position:static} }
-
-  /* Sticky columns (first already sticky via :first-child). Add a second sticky col. */
-  .sticky-2{ position:sticky; left:var(--sticky-left-1, 160px); background:inherit; z-index:1; border-right:1px solid #d1d5db }
-  /* Ensure header second col stays above cells */
-  thead .sticky-2{ z-index:3; }
-
-  /* Footer credit */
-  #app-credit{ position:fixed; bottom:8px; right:12px; font-size:12px; color:#64748b; background:rgba(255,255,255,.9);
-    border:1px solid #e5e7eb; padding:4px 8px; border-radius:8px; backdrop-filter:saturate(120%) blur(2px); }
-  @media print{ #app-credit{ position:static; border:none; background:none; padding:0; } }
-
+  #matrixTable thead th>div{width:112px;margin:0 auto;line-height:1.15;overflow-wrap:anywhere;white-space:normal;font-size:11px}
+  #matrixTable tbody th>div,#matrixTable thead th>div{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  #matrixTable tbody th>div{width:132px;line-height:1.15;overflow-wrap:anywhere;white-space:normal;text-align:left}
+  .sticky-2{position:sticky;left:var(--sticky-left-1,160px);background:inherit;z-index:1;border-right:1px solid #d1d5db}
+  thead .sticky-2{z-index:3}
+  .row-hl th,.row-hl td{background:var(--hl)!important} .col-hl{background:var(--hl)!important}
+  td.empty{background:#f0f0f0;color:var(--muted)} td .muted{color:var(--muted);font-size:11px}
+  .badge-ref{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--brand);color:#fff;font-size:10.5px;font-weight:700;vertical-align:1px}
+  /* status */
+  .status{flex:none;position:sticky;bottom:0;z-index:6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;padding:9px 12px 9px 28px;border-radius:var(--radius);border:1px solid var(--line);background:#fff;font-size:12px;line-height:1.4;color:var(--text)}
+  .status::before{content:"";position:absolute;left:12px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--ok)}
+  .status.warn{background:#fffbeb;border-color:#fde68a;color:#78350f} .status.warn::before{background:var(--warn)}
+  /* map overlays */
+  .distance-chip{font:11px/1.0 Inter,system-ui,sans-serif;color:#111827}
+  .text-halo{text-shadow:0 0 2px #fff,0 0 4px #fff,0 0 6px #fff,0 0 8px #fff,-1px 0 1px #fff,1px 0 1px #fff,0 -1px 1px #fff,0 1px 1px #fff;font-weight:700;white-space:nowrap}
+  .dchip{background:rgba(255,255,255,.95);border:1px solid #bfdbfe;border-radius:8px;font:600 11px/14px Inter,system-ui,sans-serif;color:#1e3a8a;text-align:center;white-space:nowrap;pointer-events:none;box-sizing:border-box}
+  .poi-chip-svg{pointer-events:none} .poi-chip-svg svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.14))} .leader-line{pointer-events:none}
+  .map-legend{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;line-height:1.25;font:12px Inter,system-ui,sans-serif;max-width:230px;box-shadow:0 2px 8px rgba(15,23,42,.12)}
+  .map-legend div{overflow-wrap:anywhere}
+  .leaflet-bar a.fitbtn{display:grid;place-items:center;font-size:15px;line-height:1;color:#334155}
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr;grid-template-rows:auto 68vh} .panel{border-right:0} header.top .metabar{display:none} }
+  @media print{ @page{size:A3 landscape;margin:8mm} .wrap{grid-template-columns:1fr} .panel,.iconbtn{display:none} }
 </style>
 </head>
 <body>
-<header>
-  <div class="titlerow">
-    <h1>GOT — Distance Matrix & Map</h1>
-    <div class="sub">Indian 1975 / UTM 47N → WGS84 (DM)</div>
+<div id="fatal" hidden></div>
+<header class="top">
+  <div class="brand">
+    <button id="btnPanel" class="iconbtn" type="button" title="Show / hide side panel" aria-label="Show or hide side panel"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="1.8" y="2.5" width="12.4" height="11" rx="2"/><path d="M6 2.5v11"/></svg></button>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f8cf0"/><stop offset="1" stop-color="#0b4fb3"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#lg)"/><path d="M8 22l7-9 3 5 6-9" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/><circle cx="8" cy="22" r="2.6" fill="#fff"/><circle cx="15" cy="13" r="2.2" fill="#fff"/><circle cx="18" cy="18" r="2.2" fill="#fff"/><circle cx="24" cy="9" r="2.6" fill="#fff"/></svg>
+    <div><h1>GOT — Distance Matrix &amp; Map</h1><div class="sub">Indian 1975 / UTM 47N → WGS84 (DM)</div></div>
   </div>
   <div id="metaBar" class="metabar">
-    <span>Owner: <b>PPD/P Geomatics</b></span> •
-	<span>V260414</span> •
-    <span>Now: <b id="dateHeader"></b></span> •
-    <span>Speed: <b id="speedHeader">8</b> kn</span>
+    <span class="chip">Owner <b>POP Geomatics</b></span>
+    <span class="chip">V261010.6b</span>
+    <span class="chip">Speed <b id="speedHeader">8</b> kn</span>
+    <span class="chip"><b id="dateHeader"></b></span>
   </div>
 </header>
-
-<div class="wrap">
-  <aside class="panel">
-    <div class="card">
-      <h3>Upload</h3>
-      <div class="row">
-        <button id="btnTemplate" class="btn">⬇ CSV Template</button>
-        <input id="file" type="file" accept="*/*" title="CSV: Name,Easting,Northing"/>
+<div class="wrap" id="wrap">
+  <aside class="panel" id="panel">
+    <section class="card" id="dataCard">
+      <h3><span class="step">1</span>Data</h3>
+      <label id="drop" class="drop" for="file">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <span><b id="dropTitle">Drop a CSV here or click to browse</b><small>Name, Easting, Northing [, Type] &bull; UTM 47N (m) &bull; up to 200 POIs</small></span>
+        <input id="file" class="sr-only" type="file" accept=".csv,.json,text/csv,text/plain,application/json,application/vnd.ms-excel" title="CSV: Name,Easting,Northing[,Type]"/>
+      </label>
+      <div class="rowbar">
+        <div id="dataSummary" class="summary">No data loaded</div>
+        <button id="btnTemplate" class="link" type="button">CSV template</button>
+        <button id="btnClear" class="link danger" type="button">Clear</button>
       </div>
-      <div id="drop" class="drop" style="margin-top:8px">Drag & drop CSV here</div>
-      <p class="muted" style="margin-top:6px">CSV headers: <b>Name,Easting,Northing</b> • UTM 47N (m)</p>
-    </div>
+      <div class="rowbar" style="margin-top:2px">
+        <div class="summary">Session (POIs + settings)</div>
+        <button id="btnSaveSession" class="link" type="button" title="Save POIs, reference, speed, map selection and view to a .json file">Save</button>
+        <button id="btnLoadSession" class="link" type="button" title="Load a saved session (.json)">Load</button>
+        <input id="sessionFile" class="sr-only" type="file" accept=".json,application/json" aria-label="Load session file">
+      </div>
+    </section>
 
-    <div class="card">
-      <h3>Settings</h3>
+    <section class="card">
+      <h3><span class="step">2</span>Settings</h3>
       <div class="grid2">
-        <div>
-          <label for="speed">Speed (knots)</label>
-          <input id="speed" type="number" min="0.1" step="0.1" value="8">
+        <div><label class="fld" for="speed">Speed</label><div class="suffix"><input id="speed" type="number" min="0.1" max="60" step="0.1" value="8"><span>kn</span></div></div>
+        <div><label class="fld" for="refSelect">Reference point</label><select id="refSelect"><option value="">— None —</option></select></div>
+      </div>
+      <label class="switch"><input type="checkbox" id="toggleLines"/><span class="slider"></span><span>Show lines &amp; distances from reference</span></label>
+      <details class="more">
+        <summary>Display &amp; PDF options</summary>
+        <div class="grid2">
+          <div><label class="fld" for="baseSelect">Basemap</label><select id="baseSelect"><option value="esri-gray">Esri Light Gray</option><option value="esri-ocean">Esri Ocean</option><option value="osm">OpenStreetMap</option><option value="carto">CARTO (API key)</option><option value="none">None (vector only)</option></select></div>
+          <div><label class="fld" for="pdfMapMode">PDF map page</label><select id="pdfMapMode"><option value="vector">Vector (clean)</option><option value="shot">With basemap</option></select></div>
         </div>
-        <div>
-          <label for="refSelect">Reference Point</label>
-          <select id="refSelect"><option value="">— None —</option></select>
+        <div class="range"><span>Table size</span><input id="zoomRange" type="range" min="0.8" max="1.2" step="0.02" value="1.00" aria-label="Table size"></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h3><span class="step">3</span>Export</h3>
+      <button id="btnExport" class="btn primary block" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span id="exportLbl">Export PDF &middot; matrix + map</span></button>
+      <div class="btngrid c2">
+        <button id="btnExportMatrixOnly" class="btn" type="button">Matrix PDF</button>
+        <button id="btnExportMatrixExcel" class="btn" type="button">Matrix CSV</button>
+      </div>
+      <div class="btngrid c3">
+        <button id="btnPreviewMapA3" class="btn" type="button">Map A3</button>
+        <button id="btnPreviewPOIs" class="btn" type="button">POI list</button>
+        <button id="btnPreviewMatrix" class="btn" type="button">Matrix</button>
+      </div>
+      <details class="more" id="multiRef">
+        <summary>Multi-reference maps<span id="multiCount" class="mrcount"></span></summary>
+        <div class="rowbar" style="margin-top:6px"><button id="mrAll" class="link" type="button">All</button><button id="mrNone" class="link" type="button">None</button><button id="mrCur" class="link" type="button">Current ref only</button></div>
+        <div id="mrList" class="mrlist"></div>
+        <div class="mrhint">Export PDF = matrix page + one map page per ticked POI (distance lines always on). Nothing ticked = one map for the selected reference.</div>
+      </details>
+    </section>
+
+    <section class="card listcard">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="poi" type="button" role="tab">POI list</button>
+        <button class="tab" data-tab="matrix" type="button" role="tab">Matrix</button>
+        <button class="tab" data-tab="dist" type="button" role="tab">Distances</button>
+        <input id="poiFilter" class="inp" type="search" placeholder="Filter POIs…" aria-label="Filter POI list" autocomplete="off">
+      </div>
+      <div class="tabpanes">
+        <div id="pane-poi">
+          <table id="poiTable">
+            <thead><tr><th>Name</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th><th>Easting (m)</th><th>Northing (m)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div id="poiEmpty" class="empty-hint">No POIs yet.<br>Drop a CSV above, or download the template.</div>
+        </div>
+        <div id="pane-matrix" style="display:none"><table id="matrixTable"><thead></thead><tbody></tbody></table></div>
+        <div id="pane-dist" style="display:none">
+          <div id="distHead" class="disthead"></div>
+          <table id="distTable" style="display:none"><thead><tr><th>To</th><th class="num">nm</th><th class="num">h:mm</th><th class="num">km</th></tr></thead><tbody></tbody></table>
+          <div id="distEmpty" class="empty-hint">Pick a reference point (list, map or dropdown).<br>Distances are listed nearest first; click a row to zoom to its line.</div>
         </div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="toggleLines"/> Show lines from reference point
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          Zoom table <input id="zoomRange" type="range" min="0.8" max="1.2" step="0.02" value="1.00" style="width:160px">
-        </label>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Export & Preview</h3>
-      <div class="row">
-        <button id="btnExport" class="btn primary">🖨 Export PDF (2 pages)</button>
-        <button id="btnExportMatrixOnly" class="btn">🖨 Export Matrix Only</button>
-        <button id="btnExportMatrixExcel" class="btn">⬇ Export Matrix (Excel)</button>
-        <button id="btnPreviewMapA3" class="btn">👁 Preview Map (A3 Portrait)</button>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button id="btnPreviewPOIs" class="btn">👁 Preview POI List</button>
-        <button id="btnPreviewMatrix" class="btn">👁 Preview Matrix</button>
-        <button id="btnClear" class="btn" style="margin-left:auto">Clear</button>
-      </div>
-    </div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="poi">POI List</button>
-      <button class="tab" data-tab="matrix">Matrix</button>
-    </div>
-    <div class="tabpanes">
-      <div id="pane-poi">
-        <table id="poiTable">
-          <thead><tr><th>Name</th><th>Easting (m)</th><th>Northing (m)</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="pane-matrix" style="display:none">
-        <table id="matrixTable"><thead></thead><tbody></tbody></table>
-      </div>
-    </div>
-    <div id="statusArea" class="card muted">Ready.</div>
+    </section>
+    <div id="statusArea" class="status">Ready.</div>
   </aside>
-
-  <main id="mapWrap"><div id="map"></div></main>
+  <main id="mapWrap"><div id="map"></div><div id="mapEmpty">Load a CSV to plot POIs on the map</div></main>
 </div>
-
 <!-- Libs -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
@@ -170,12 +238,35 @@
 const CFG = {
   /** Base circle radius (Leaflet units). */
   MARKER_BASE_RADIUS: 8,
-  /** Scale for short-name (red) markers; 1.0 = same size as base. */
-  RED_SHORTNAME_SCALE: 1.0,
-  /** Scale for non-reference, non-short-name markers (30–50% smaller recommended). */
+  /** Scale for markers of the 2nd+ Type (the 1st Type and the reference use the base radius). */
   OTHER_POI_SCALE: 0.6,
-  /** Names shorter than this (ignoring spaces) are treated as "short". */
-  SHORT_NAME_THRESHOLD: 6
+  /** Distance method: 'vincenty' (WGS84 ellipsoid) or 'haversine' (sphere, legacy). */
+  DIST_METHOD: 'vincenty',
+  /** POIs closer than this (nm) share ONE map marker/label (matrix still lists each). */
+  MERGE_NM: 0.05,
+  /** Matrix PDF: repeat 'nm' in every cell (false = unit stated once in the header -> bigger font). */
+  MATRIX_UNIT_IN_CELL: false,
+  MATRIX_MAX_FONT: 10,
+  /** PDF basemap mosaic: target pixels per mm of page width (9 = ~230 dpi) and max tiles per export. */
+  PDF_TILE_PX_PER_MM: 9,
+  PDF_TILE_MAX: 150,
+  /** Print-friendly basemap: white veil over the PDF tiles (0 = none, 0.35 = light). */
+  PDF_BASEMAP_LIGHTEN: 0.35,
+  /** Map/PDF labels longer than this are shortened with an ellipsis (full names stay in tables/CSV). */
+  MAP_LABEL_MAX: 22,
+  /** Hard cap on loaded POIs (tested up to 200). */
+  MAX_POIS: 200,
+  /** Up to this many POIs: ONE matrix page + full label engine (unchanged behaviour). Above: matrix is split in blocks, labels are de-cluttered. */
+  MATRIX_SINGLE_MAX: 40,
+  /** Large matrix (PDF): max columns / rows per A3 page. */
+  MATRIX_BLOCK_COLS: 40,
+  MATRIX_BLOCK_ROWS: 40,
+  /** Labels (screen + PDF): above this many labels the fast de-cluttering layout is used (labels that do not fit are hidden, hover shows the name). */
+  LABEL_FULL_MAX: 40,
+  /** Ask before building more than this many map pages in one PDF. */
+  MULTI_CONFIRM_MAPS: 30,
+  /** Lists above MATRIX_SINGLE_MAX: map frame (screen fit + PDF) = 'pois' (bounding box of the POIs; restricted areas are clipped) or 'all' (whole restricted-area extent, as for small lists). */
+  LARGE_MAP_EXTENT: 'pois'
 };
 /* ===== End Config ===== */
 
@@ -226,8 +317,30 @@ function indian1975UTMToWGS84(e,n){
 /* ========= Helpers ========= */
 const kmToNm=km=>km/1.852;
 function haversineKm(a1,o1,a2,o2){const R=6371.0088,t=d=>d*Math.PI/180,dA=t(a2-a1),dO=t(o2-o1),A=Math.sin(dA/2)**2+Math.cos(t(a1))*Math.cos(t(a2))*Math.sin(dO/2)**2;return 2*R*Math.asin(Math.sqrt(A));}
+/* WGS84 ellipsoidal (Vincenty inverse). Falls back to haversine if not converged. Set CFG.DIST_METHOD='haversine' to revert. */
+function distKm(lat1,lon1,lat2,lon2){
+  if(CFG.DIST_METHOD!=='vincenty') return haversineKm(lat1,lon1,lat2,lon2);
+  const a=a_wgs,f=f_wgs,b=(1-f)*a,L=degToRad(lon2-lon1);
+  const U1=Math.atan((1-f)*Math.tan(degToRad(lat1))),U2=Math.atan((1-f)*Math.tan(degToRad(lat2)));
+  const sU1=Math.sin(U1),cU1=Math.cos(U1),sU2=Math.sin(U2),cU2=Math.cos(U2);
+  let lam=L,lamP,it=0,sS,cS,sig,cSqA,c2SM;
+  do{
+    const sL=Math.sin(lam),cL=Math.cos(lam);
+    sS=Math.sqrt((cU2*sL)**2+(cU1*sU2-sU1*cU2*cL)**2);
+    if(sS===0) return 0;
+    cS=sU1*sU2+cU1*cU2*cL; sig=Math.atan2(sS,cS);
+    const sA=cU1*cU2*sL/sS; cSqA=1-sA*sA;
+    c2SM=cSqA!==0?cS-2*sU1*sU2/cSqA:0;
+    const C=f/16*cSqA*(4+f*(4-3*cSqA));
+    lamP=lam; lam=L+(1-C)*f*sA*(sig+C*sS*(c2SM+C*cS*(-1+2*c2SM*c2SM)));
+  }while(Math.abs(lam-lamP)>1e-12&&++it<100);
+  if(it>=100) return haversineKm(lat1,lon1,lat2,lon2);
+  const u2=cSqA*(a*a-b*b)/(b*b),A=1+u2/16384*(4096+u2*(-768+u2*(320-175*u2))),B=u2/1024*(256+u2*(-128+u2*(74-47*u2)));
+  const dS=B*sS*(c2SM+B/4*(cS*(-1+2*c2SM*c2SM)-B/6*c2SM*(-3+4*sS*sS)*(-3+4*c2SM*c2SM)));
+  return b*A*(sig-dS)/1000;
+}
 function fmtNum(x){return(x==null||!isFinite(x))?'':x.toLocaleString(undefined,{maximumFractionDigits:2});}
-function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg),d=Math.floor(a),m=(a-d)*60,dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m.toFixed(3)}’${dir}`;}
+function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg);let d=Math.floor(a),m=Math.round((a-d)*60000)/1000;if(m>=60){d+=1;m=0;}const dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m.toFixed(3)}’${dir}`;}
 function esc(s){return String(s).replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function hrsToHM(hrs){ if(!isFinite(hrs)) return '—'; let h=Math.floor(hrs); let m=Math.round((hrs-h)*60); if(m===60){h+=1;m=0;} return `${h}:${String(m).padStart(2,'0')}`; }
 function ydm(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
@@ -246,7 +359,7 @@ function breakNameTwoLines(s){
   return parts.slice(0, half).join(' ') + '\n' + parts.slice(half).join(' ');
 }
 /* ========= State & elements ========= */
-let pois=[]; let map,bgPolyLayer,markersLayer,linesLayer;
+let _hadRef=false, _markerObjs=[], _multiSel=new Set(), _mrKey=null, _distSel=-1, _distRef=-2, _forceRef=null, hiLayer; let pois=[]; let map,bgPolyLayer,markersLayer,labelsLayer,linesLayer,baseLayer; let _savedRef='';
 const els={
   file:document.getElementById('file'),
   drop:document.getElementById('drop'),
@@ -264,173 +377,393 @@ const els={
   zoom:document.getElementById('zoomRange'),
   status:document.getElementById('statusArea'),
   dateHeader:document.getElementById('dateHeader'),
-  speedHeader:document.getElementById('speedHeader')
+  speedHeader:document.getElementById('speedHeader'),
+  base:document.getElementById('baseSelect'),
+  pdfMode:document.getElementById('pdfMapMode'),
+  summary:document.getElementById('dataSummary'),
+  filter:document.getElementById('poiFilter'),
+  btnPanel:document.getElementById('btnPanel')
 };
-const setStatus=(msg,ok=true)=>{els.status.textContent=msg; els.status.style.color=ok?'#111827':'#7c2d12';};
+const setStatus=(msg,ok=true)=>{ els.status.textContent=msg; els.status.title=msg; els.status.className='status'+(ok?'':' warn'); };
+const shortLabel=(s,max)=>{ s=String(s==null?'':s); max=max||CFG.MAP_LABEL_MAX; return s.length>max?s.slice(0,max-1).replace(/\s+$/,'')+'\u2026':s; };
+const fmtNow=()=>new Date().toLocaleString([], {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
 /* ========= Map ========= */
+/* Basemaps: CARTO raster tiles now need an API key (watermark "API KEY REQUIRED"). Default = keyless Esri. */
+const BASEMAPS={
+  'esri-gray':{url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',opt:{maxNativeZoom:16},attr:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors'},
+  'esri-ocean':{url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',opt:{maxNativeZoom:13},attr:'Tiles &copy; Esri &mdash; GEBCO, NOAA, Garmin and other contributors'},
+  'osm':{url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',opt:{maxNativeZoom:19},attr:'&copy; OpenStreetMap contributors'},
+  'carto':{url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key={key}',opt:{maxNativeZoom:20},attr:'&copy; OpenStreetMap contributors &copy; CARTO'}
+};
+let _tileErr=0,_tileOk=0;
+function setBasemap(id){
+  if(baseLayer){ map.removeLayer(baseLayer); baseLayer=null; }
+  _tileErr=0; _tileOk=0;
+  const b=BASEMAPS[id]; if(!b) return;               // 'none' = vector only
+  let key='';
+  if(id==='carto'){
+    key=localStorage.getItem('got_carto_key')||'';
+    if(!key){
+      key=(prompt('CARTO API key (free: carto.com/basemaps/apikey)')||'').trim();
+      if(!key){ els.base.value='esri-gray'; return setBasemap('esri-gray'); }
+      localStorage.setItem('got_carto_key',key);
+    }
+  }
+  baseLayer=L.tileLayer(b.url,Object.assign({maxZoom:19,attribution:b.attr,crossOrigin:true,key},b.opt)).addTo(map);
+  baseLayer.bringToBack();
+  baseLayer.on('tileload',()=>{ _tileOk++; });
+  baseLayer.on('tileerror',()=>{ if(++_tileErr===6 && _tileOk===0) setStatus('Basemap tiles not loading (blocked / key / offline). Change Basemap or select "None".',false); });
+}
 function initMap(){
-  const mapWrap=document.getElementById('mapWrap');
-  const resize=()=>{ const rect=mapWrap.getBoundingClientRect(); document.getElementById('map').style.height = rect.height+'px'; if(map) map.invalidateSize(); };
-  const vhFix=()=>{ const hHeader=78; const h=window.innerHeight - hHeader; mapWrap.style.height = (h>200?h:200)+'px'; };
-  vhFix(); window.addEventListener('resize', ()=>{ vhFix(); resize(); });
+  window.addEventListener('resize', ()=>{ if(map) map.invalidateSize(); });
 
   map=L.map('map',{zoomControl:true,preferCanvas:true,zoomSnap:0.5,zoomDelta:0.5});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'&copy; OSM & CARTO',crossOrigin:true}).addTo(map);
   L.control.scale({imperial:false}).addTo(map);
+  const fitCtl=L.control({position:'topleft'});
+  fitCtl.onAdd=function(){ const d=L.DomUtil.create('div','leaflet-bar'), a=L.DomUtil.create('a','fitbtn',d); a.href='#'; a.title='Fit to data'; a.setAttribute('role','button'); a.setAttribute('aria-label','Fit to data'); a.innerHTML='&#10530;';
+    if(L.DomEvent){ L.DomEvent.disableClickPropagation(d); L.DomEvent.on(a,'click',e=>{ L.DomEvent.preventDefault(e); fitMap(); }); } return d; };
+  fitCtl.addTo(map);
   const legend=L.control({position:'bottomright'});
   legend.onAdd=function(){
-    const d=L.DomUtil.create('div'); d.style.cssText='background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;line-height:1.2;font:12px Inter,sans-serif';
-    d.innerHTML=`<div style="font-weight:600;margin-bottom:4px">Legend</div>
-      <div><span style="display:inline-block;width:12px;height:12px;background:#0ea5e9;opacity:.25;border:1px solid #0284c7;margin-right:6px;vertical-align:middle"></span>Restricted Area</div>
-      <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1f7ae0;margin-right:6px"></span>Reference point</div>
-      <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#111827;margin-right:6px;border:2px solid #fff;box-shadow:0 0 0 1px #6b7280"></span>POI</div>
-      <div><span style="display:inline-block;width:18px;height:2px;background:#2563eb;margin-right:6px;vertical-align:middle"></span>Distance line</div>`;
-    return d;
+    const d=L.DomUtil.create('div','map-legend'); d.className='map-legend'; legendEl=d; updateLegend(); return d;
   };
   legend.addTo(map);
 
   map.createPane('bgPoly'); map.getPane('bgPoly').style.zIndex=200; map.getPane('bgPoly').style.pointerEvents='none';
   bgPolyLayer=L.geoJSON(GOT_POLY,{pane:'bgPoly',style:{color:'#0284c7',weight:1,opacity:0.7,fillColor:'#0ea5e9',fillOpacity:0.12}}).addTo(map);
   markersLayer=L.layerGroup().addTo(map);
+  labelsLayer=L.layerGroup().addTo(map);
   linesLayer=L.layerGroup().addTo(map);
-  // Recalculate label positions when view changes (guard against fitMap re-triggering moveend)
-  map.on('zoomend moveend', ()=>{ if(_renderInProgress) return; setTimeout(()=>{ renderPOIs(); drawLines(); }, 80); });
+  hiLayer=L.layerGroup().addTo(map);
+  map.on('click',clearHi);
+  // Labels use pixel offsets -> re-layout only when zoom/size changes (NOT on pan; no auto re-fit)
+  map.on('zoomend moveend resize', ()=>{ applyMarkerScale(); clearTimeout(_rlTimer); _rlTimer=setTimeout(renderLabels,80); });
   fitMap();
-  resize();
 }
 const _measureCtx=document.createElement('canvas').getContext('2d');
 function measureTextPx(text,px=12,f='Inter, system-ui, sans-serif',w=700){_measureCtx.font=`${w} ${px}px ${f}`;return{w:_measureCtx.measureText(text).width,h:px};}
 function escapeXml(s){return String(s).replace(/[<>&'"]/g,c=>c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':c==="'"?'&#39;':'&quot;');}
 function makePoiChipSVG(name,{ref=false,fontPx=12,padX=7,padY=3}={}){const f='Inter, system-ui, sans-serif',w=700,{w:tw}=measureTextPx(name,fontPx,f,w),halo=3,chipW=Math.ceil(tw+padX*2),chipH=Math.ceil(fontPx+padY*2),textY=padY+fontPx-2,fill='#fff',stroke=ref?'#93c5fd':'#cbd5e1',textFill=ref?'#0b3d91':'#0b1a2a';return `<svg xmlns="http://www.w3.org/2000/svg" width="${chipW}" height="${chipH}"><rect x="0.5" y="0.5" rx="10" ry="10" width="${chipW-1}" height="${chipH-1}" fill="${fill}" stroke="${stroke}"/><text x="${padX}" y="${textY}" font-family="${f}" font-size="${fontPx}" font-weight="${w}" fill="${textFill}" stroke="#ffffff" stroke-width="${halo}" stroke-linejoin="round" paint-order="stroke fill">${escapeXml(name)}</text></svg>`;}
 
-/* ===== Helpers for smart label placement ===== */
-function calculateSmartLabelPositions(pois) {
-  const positions = [];
-  const leaderThreshold = 35;
+/* ===== Groups & types ===== */
+const TYPE_COLORS=['#dc2626','#111827','#16a34a','#d97706','#7c3aed','#0891b2'];
+const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+let _groups=[];
+/* Co-located POIs (closer than CFG.MERGE_NM) are drawn as ONE marker + one label "A / B". Matrix keeps every POI. */
+function computeGroups(){
+  const gs=[];
+  pois.forEach((p,i)=>{
+    const g=gs.find(g=>kmToNm(distKm(pois[g.idx[0]].lat,pois[g.idx[0]].lon,p.lat,p.lon))<CFG.MERGE_NM);
+    if(g) g.idx.push(i); else gs.push({idx:[i]});
+  });
+  _groups=gs.map(g=>({idx:g.idx,lat:pois[g.idx[0]].lat,lon:pois[g.idx[0]].lon,name:g.idx.map(i=>pois[i].name).join(' / '),label:shortLabel(g.idx.map(i=>pois[i].name).join(' / '))}));
+  return _groups;
+}
+function refIdxNow(){ if(_forceRef!==null) return _forceRef; return els.ref.value===''?-1:Number(els.ref.value); }
+function refGroupIdx(){ const r=refIdxNow(); return r<0?-1:_groups.findIndex(g=>g.idx.includes(r)); }
+function typeKeyOf(p,has){ return has?(String(p.type||'').trim()||'Other').toLowerCase():'poi'; }
+/* Colour classes come from the CSV "Type" column (standard). Blank Type = "Other"; no Type column at all = a single "POI" class.
+   First class (order of first appearance) = red + large; further classes use the palette at reduced size. */
+function poiTypes(){
+  const has=pois.some(p=>String(p.type||'').trim()), out=[], seen={};
+  pois.forEach(p=>{
+    const key=typeKeyOf(p,has); if(seen[key]) return; seen[key]=1;
+    out.push({key,label:has?(String(p.type||'').trim()||'Other'):'POI'});
+  });
+  return out;
+}
+function groupStyle(g,types){
+  types=types||poiTypes(); const has=pois.some(p=>String(p.type||'').trim());
+  const i=Math.max(0,types.findIndex(t=>t.key===typeKeyOf(pois[g.idx[0]],has)));
+  return {color:TYPE_COLORS[i%TYPE_COLORS.length],big:i===0};
+}
+/* One legend definition for screen + PDF */
+function legendItems(){
+  const items=[{k:'area',label:'Restricted Area'}];
+  if(refIdxNow()>=0) items.push({k:'ref',label:'Reference point'});
+  poiTypes().forEach((t,i)=>items.push({k:'dot',label:t.label,color:TYPE_COLORS[i%TYPE_COLORS.length]}));
+  if(linesOn()) items.push({k:'line',label:'Distance line'});
+  return items;
+}
+let legendEl=null;
+function updateLegend(){
+  if(!legendEl) return;
+  const sw={
+    area:'<span style="display:inline-block;width:12px;height:12px;background:#0ea5e9;opacity:.25;border:1px solid #0284c7;margin-right:6px;vertical-align:middle"></span>',
+    ref:'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1f7ae0;margin-right:6px"></span>',
+    line:'<span style="display:inline-block;width:18px;height:2px;background:#2563eb;margin-right:6px;vertical-align:middle"></span>'};
+  legendEl.innerHTML='<div style="font-weight:600;margin-bottom:4px">Legend</div>'+legendItems().map(it=>`<div>${it.k==='dot'?`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${it.color};margin-right:6px;border:2px solid #fff;box-shadow:0 0 0 1px #6b7280"></span>`:sw[it.k]}${esc(it.label)}</div>`).join('');
+}
+/* ===== Label placement (rectangle-aware, unit-agnostic: px on screen, mm in PDF) =====
+   pts: [{x,y,w,h,pri}] anchors + label size; r = marker radius; bnd = {x0,y0,x1,y1}
+   obst: extra fixed rects [{x,y,w,h}]. Returns [{cx,cy,w,h,leader,lx,ly}] aligned with pts. */
+function rectOv(a,b){ return Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)); }
+/* ===== Label engine (px on screen, mm in PDF). Deterministic: fixed-seed PRNG -> same input = same layout ===== */
+function segLenIn(s,rc){
+  if(Math.max(s[0],s[2])<rc.x||Math.min(s[0],s[2])>rc.x+rc.w||Math.max(s[1],s[3])<rc.y||Math.min(s[1],s[3])>rc.y+rc.h) return 0;
+  const c=clipSeg(s[0],s[1],s[2],s[3],{x0:rc.x,y0:rc.y,x1:rc.x+rc.w,y1:rc.y+rc.h}); return c?Math.hypot(c[2]-c[0],c[3]-c[1]):0;
+}
+function lblPRNG(seed){ let s=seed>>>0; return ()=>{ s=(Math.imul(s,1664525)+1013904223)>>>0; return s/4294967296; }; }
 
-  // Candidate offsets around the marker (pixels)
-  const offsetOptions = [
-    [0, -30], [22, -22], [30, 0], [22, 22], [0, 30], [-22, 22], [-30, 0], [-22, -22],
-    [0, -45], [35, -15], [45, 0], [35, 15], [0, 45], [-35, 15], [-45, 0], [-35, -15],
-    [15, -40], [40, -10], [40, 10], [15, 40], [-15, 40], [-40, 10], [-40, -10], [-15, -40]
-  ];
-
-  // Put the selected reference first so it gets the best slot
-  const refVal = document.getElementById('refSelect').value;
-  const poiPixels = pois.map((poi, index) => {
-    const pt = map.latLngToContainerPoint([poi.lat, poi.lon]);
-    return { poi, index, x: pt.x, y: pt.y, priority: refVal === String(index) ? 10 : 1 };
-  }).sort((a,b) => b.priority - a.priority);
-
-  poiPixels.forEach(p => {
-    let best = {score: -Infinity, off: [0,-30]};
-    for (const off of offsetOptions) {
-      const lx = p.x + off[0], ly = p.y + off[1];
-      let minDist = Infinity;
-      for (const q of positions) {
-        const dx = lx - q.labelX, dy = ly - q.labelY;
-        const d = Math.sqrt(dx*dx + dy*dy);
-        if (d < minDist) minDist = d;
-      }
-      let score = (minDist === Infinity) ? 200 : Math.min(minDist, 200);
-      // Gentle preferences: right/above; penalties near edges
-      if (off[0] > 0) score += 5;
-      if (off[1] < 0) score += 3;
-      const size = map.getSize(), margin = 60;
-      if (lx < margin || lx > size.x - margin || ly < 20 || ly > size.y - 20) score -= 100;
-      if (score > best.score) best = {score, off};
+/* pts:[{x,y,w,h,pri}] anchors + label size, r = marker radius, bnd = {x0,y0,x1,y1}, u = unit scale (1 px / 0.35 mm),
+   obst = fixed rects, segs = optional line segments [[x1,y1,x2,y2]] that labels should avoid crossing (soft).
+   Returns [{cx,cy,w,h,leader,lx,ly}] aligned with pts. */
+function layoutLabelsCore(pts,r,bnd,u,obst,segs,gapList){
+  obst=obst||[]; segs=segs||[]; const n=pts.length, EPS=0.02*u*u, HARD=15;
+  const gaps=gapList.map(v=>v*u);
+  const markers=pts.map(p=>({x:p.x-r,y:p.y-r,w:2*r,h:2*r}));
+  // candidates: rectangles that never touch the own marker (sides + corners, several slides per side, 6 distances)
+  const C=pts.map((p,i)=>{
+    const list=[], A=p.w*p.h, W2=p.w/2, H2=p.h/2;
+    const push=(cx,cy,ri,pref)=>{
+      const rc={x:cx-W2,y:cy-H2,w:p.w,h:p.h,cx,cy,ri};
+      let base=0;
+      for(const q of obst){ const o=rectOv(rc,q); if(o>EPS) base+=HARD+o/A*100; }
+      for(let j=0;j<n;j++){ const o=rectOv(rc,markers[j]); if(o>EPS) base+=HARD+1.5*o/A*100; }
+      const inside=Math.max(0,Math.min(rc.x+rc.w,bnd.x1)-Math.max(rc.x,bnd.x0))*Math.max(0,Math.min(rc.y+rc.h,bnd.y1)-Math.max(rc.y,bnd.y0));
+      if(A-inside>EPS) base+=HARD+3*(A-inside)/A*100;
+      const dOf=(q)=>{ const a=Math.max(rc.x-q.x,0,q.x-(rc.x+rc.w)), b=Math.max(rc.y-q.y,0,q.y-(rc.y+rc.h)); return a*a+b*b; }, dOwn=dOf(p);
+      for(let j=0;j<n;j++) if(j!==i&&dOf(pts[j])<dOwn-0.02*u*u) base+=5;          // label must read as belonging to its own marker
+      if(segs.length){ const diag=Math.hypot(rc.w,rc.h); let sc=0; for(const s of segs) sc+=segLenIn(s,rc); base+=Math.min(sc/diag,2.5)*8; }
+      rc.base=base+ri*1.0+pref; list.push(rc);
+    };
+    for(let ri=0;ri<gaps.length;ri++){
+      const g=r+gaps[ri];
+      for(const [oy,pf] of [[0,0],[-H2*0.9,0.3],[H2*0.9,0.3],[-p.h*1.2,0.6],[p.h*1.2,0.6]]){ push(p.x+g+W2,p.y+oy,ri,pf); push(p.x-g-W2,p.y+oy,ri,pf); }
+      for(const [ox,pf] of [[0,0.1],[-p.w*0.3,0.35],[p.w*0.3,0.35],[-p.w*0.6,0.7],[p.w*0.6,0.7]]){ push(p.x+ox,p.y-g-H2,ri,pf); push(p.x+ox,p.y+g+H2,ri,pf); }
+      push(p.x+g+W2*0.35,p.y-g-H2,ri,0.5); push(p.x-g-W2*0.35,p.y-g-H2,ri,0.5); push(p.x+g+W2*0.35,p.y+g+H2,ri,0.5); push(p.x-g-W2*0.35,p.y+g+H2,ri,0.5);
     }
-    positions.push({
-      poi: p.poi,
-      index: p.index,
-      labelX: p.x + best.off[0],
-      labelY: p.y + best.off[1],
-      needsLeader: Math.hypot(best.off[0], best.off[1]) > leaderThreshold
-    });
+    return list;
   });
+  let ops=0;                                                   // deterministic work budget (pair evaluations) instead of wall-clock
+  const pair=(a,b)=>{ ops++; const o=rectOv(a,b); return o>EPS?HARD+o*(50/(a.w*a.h)+50/(b.w*b.h)):0; };
+  const minBase=C.map(list=>list.reduce((m,c)=>Math.min(m,c.base),Infinity));   // unavoidable conflicts (marker under a control...) are not worth kicking
+  const pri=pts.map(p=>p.pri||0), cur=new Array(n).fill(0);
+  const near=pts.map((p,i)=>pts.map((q,j)=>j).filter(j=>j!==i&&Math.hypot(p.x-pts[j].x,p.y-pts[j].y)<(p.w+pts[j].w)/2+(gaps[gaps.length-1]+2*r+p.h+pts[j].h)*1.2));
+  const energyOf=(i,k)=>{ let e=C[i][k].base; for(const j of near[i]) e+=pair(C[i][k],C[j][cur[j]]); return e; };
+  const total=()=>{ let e=0; for(let i=0;i<n;i++){ e+=C[i][cur[i]].base; for(const j of near[i]) if(j>i) e+=pair(C[i][cur[i]],C[j][cur[j]]); } return e; };
+  const crowd=pts.map((p,i)=>pts.reduce((m,q,j)=>m+((j!==i&&Math.hypot(p.x-q.x,p.y-q.y)<30*u)?1:0),0));
+  const order=pts.map((_,i)=>i).sort((a,b)=>pri[b]-pri[a]||crowd[b]-crowd[a]);
+  const done=new Array(n).fill(false);
+  for(const i of order){                                       // 1) greedy, most constrained first
+    let bk=0,be=Infinity;
+    for(let k=0;k<C[i].length;k++){ let e=C[i][k].base; for(const j of near[i]) if(done[j]) e+=pair(C[i][k],C[j][cur[j]]); if(e<be){ be=e; bk=k; } }
+    cur[i]=bk; done[i]=true;
+  }
+  const icm=()=>{ for(let s=0;s<6;s++){ let ch=false; for(const i of order){ let bk=cur[i],be=energyOf(i,cur[i]); for(let k=0;k<C[i].length;k++){ const e=energyOf(i,k); if(e<be-1e-9){ be=e; bk=k; } } if(bk!==cur[i]){ cur[i]=bk; ch=true; } } if(!ch) break; } };
+  icm();                                                       // 2) iterated conditional modes
+  const rnd=lblPRNG(20261010); let best=total(), bestCur=cur.slice();
+  const bad=()=>{ const o=[]; for(let i=0;i<n;i++){ let e=0; for(const j of near[i]) e+=pair(C[i][cur[i]],C[j][cur[j]]); if(e>0||(C[i][cur[i]].base>=HARD&&minBase[i]<HARD)) o.push(i); } return o; };
+  const BUDGET=900000; for(let kick=0;kick<30&&ops<BUDGET;kick++){                              // 3) seeded kicks on conflicted labels, local repair, keep only improvements
+    const cf=bad(); if(!cf.length) break;
+    const i=cf[Math.floor(rnd()*cf.length)], top=C[i].map((c,k)=>k).sort((a,b)=>C[i][a].base-C[i][b].base).slice(0,18);
+    cur[i]=top[Math.floor(rnd()*top.length)];
+    const q=[i].concat(near[i]); let pops=0;
+    while(q.length&&pops++<40&&ops<BUDGET){ const a=q.shift(); let bk=cur[a],be=energyOf(a,cur[a]); for(let k=0;k<C[a].length;k++){ const e=energyOf(a,k); if(e<be-1e-9){ be=e; bk=k; } } if(bk!==cur[a]){ cur[a]=bk; for(const j of near[a]) if(q.indexOf(j)<0) q.push(j); } }
+    const e=total(); if(e<best-1e-9){ best=e; bestCur=cur.slice(); } else for(let z=0;z<n;z++) cur[z]=bestCur[z];
+  }
+  for(let z=0;z<n;z++) cur[z]=bestCur[z];
+  const res=pts.map((p,i)=>{
+    const rc=C[i][cur[i]], lx=Math.max(rc.x,Math.min(p.x,rc.x+rc.w)), ly=Math.max(rc.y,Math.min(p.y,rc.y+rc.h));
+    return {cx:rc.cx,cy:rc.cy,w:p.w,h:p.h,leader:rc.ri>=2,lx,ly};
+  });
+  return {res,nbad:bad().length,energy:total()};
+}
+/* Large lists (> CFG.LABEL_FULL_MAX labels): fast greedy layout. Every label gets the best free spot in the nearest ring that has one
+   (never over a marker / control / another label); labels with no free spot are NOT drawn (null). Deterministic. */
+function layoutLabelsFast(pts,r,bnd,u,obst,segs){
+  obst=obst||[]; segs=segs||[]; const n=pts.length, EPS=0.02*u*u, gaps=[2,7,14,24].map(v=>v*u);
+  const markers=pts.map(p=>({x:p.x-r,y:p.y-r,w:2*r,h:2*r}));
+  const order=pts.map((_,i)=>i).sort((a,b)=>(pts[b].pri||0)-(pts[a].pri||0)||a-b), placed=[], res=new Array(n).fill(null);
+  for(const i of order){
+    const p=pts[i], W2=p.w/2, H2=p.h/2; let best=null;
+    for(let ri=0;ri<gaps.length&&!best;ri++){
+      const g=r+gaps[ri], cs=[];
+      for(const [oy,pf] of [[0,0],[-H2*0.9,0.3],[H2*0.9,0.3]]){ cs.push([p.x+g+W2,p.y+oy,pf],[p.x-g-W2,p.y+oy,pf]); }
+      for(const [ox,pf] of [[0,0.1],[-p.w*0.3,0.35],[p.w*0.3,0.35]]){ cs.push([p.x+ox,p.y-g-H2,pf],[p.x+ox,p.y+g+H2,pf]); }
+      cs.push([p.x+g+W2*0.35,p.y-g-H2,0.5],[p.x-g-W2*0.35,p.y-g-H2,0.5],[p.x+g+W2*0.35,p.y+g+H2,0.5],[p.x-g-W2*0.35,p.y+g+H2,0.5]);
+      for(const [cx,cy,pf] of cs){
+        const rc={x:cx-W2,y:cy-H2,w:p.w,h:p.h,cx,cy};
+        if(rc.x<bnd.x0-EPS||rc.y<bnd.y0-EPS||rc.x+rc.w>bnd.x1+EPS||rc.y+rc.h>bnd.y1+EPS) continue;
+        let bad=false;
+        for(const q of obst) if(rectOv(rc,q)>EPS){ bad=true; break; }
+        if(bad) continue;
+        for(let j=0;j<n;j++) if(rectOv(rc,markers[j])>EPS){ bad=true; break; }
+        if(bad) continue;
+        for(const q of placed) if(rectOv(rc,q)>EPS){ bad=true; break; }
+        if(bad) continue;
+        let sc=pf; if(segs.length){ const diag=Math.hypot(rc.w,rc.h); let s=0; for(const sg of segs) s+=segLenIn(sg,rc); sc+=Math.min(s/diag,2.5)*8; }
+        if(!best||sc<best.sc){ rc.sc=sc; best=rc; }
+      }
+    }
+    if(best){ placed.push(best); res[i]={cx:best.cx,cy:best.cy,w:p.w,h:p.h,leader:false,lx:p.x,ly:p.y}; }
+  }
+  return res;
+}
+/* Two stages: normal reach first (fast, tidy); only if conflicts remain, retry with far rings (+ leader lines) and keep the better result. */
+function layoutLabels(pts,r,bnd,u,obst,segs){
+  if(pts.length>CFG.LABEL_FULL_MAX) return layoutLabelsFast(pts,r,bnd,u,obst,segs);
+  const a=layoutLabelsCore(pts,r,bnd,u,obst,segs,[2,7,14,24,36,52]);
+  if(!a.nbad) return a.res;
+  const b=layoutLabelsCore(pts,r,bnd,u,obst,segs,[2,7,14,24,36,52,78,110]);
+  return (b.nbad<a.nbad||(b.nbad===a.nbad&&b.energy<a.energy-1e-9))?b.res:a.res;
+}
 
-  return positions;
-}
-function addLeaderLines(positions){
-  positions.forEach(pos => {
-    if (!pos.needsLeader) return;
-    const start = [pos.poi.lat, pos.poi.lon];
-    const labelLL = map.containerPointToLatLng([pos.labelX, pos.labelY]);
-    L.polyline([start, [labelLL.lat, labelLL.lng]], {
-      color: '#9ca3af', weight: 2, opacity: 1, dashArray: '2,4', className: 'leader-line'
-    }).addTo(markersLayer);
+/* Distance chips along lines. T:[{s:[x1,y1,x2,y2] (visible part of the line),w,h}], fixed = rects that must stay clear
+   (POI labels, markers, controls, north arrow...), allSegs = every line (soft-avoid crossing others).
+   Chips are solved jointly (iterated conditional modes + seeded kicks); a chip is hidden only when every spot collides.
+   Returns array aligned with T: {rc,cx,cy} or null (hidden). */
+function placeChips(T,fixed,bnd,u,allSegs){
+  const n=T.length, EPS=0.02*u*u, HIDE=40;
+  const C=T.map((t,ti)=>{
+    const s=t.s, list=[]; if(!s) return list;
+    const len=Math.hypot(s[2]-s[0],s[3]-s[1]); if(len<1e-6) return list;
+    const nx=-(s[3]-s[1])/len, ny=(s[2]-s[0])/len, gap=t.h/2+0.5*u, off=[0,gap,-gap,2*gap+0.5*u,-(2*gap+0.5*u),3*gap+1.0*u,-(3*gap+1.0*u)];
+    for(let f=0.06;f<=0.9401;f+=0.02) for(let oi=0;oi<off.length;oi++){
+      const cx=s[0]+(s[2]-s[0])*f+nx*off[oi], cy=s[1]+(s[3]-s[1])*f+ny*off[oi], rc={x:cx-t.w/2,y:cy-t.h/2,w:t.w,h:t.h,cx,cy};
+      if(rc.x<bnd.x0||rc.y<bnd.y0||rc.x+rc.w>bnd.x1||rc.y+rc.h>bnd.y1) continue;
+      let bad=false; for(const q of fixed) if(rectOv(rc,q)>EPS){ bad=true; break; }
+      if(bad) continue;
+      let sc=0; if(allSegs){ const diag=Math.hypot(rc.w,rc.h); for(let k=0;k<allSegs.length;k++){ if(k===ti&&oi===0) continue; sc+=segLenIn(allSegs[k],rc); } sc=Math.min(sc/diag,4); }
+      rc.base=sc*12+Math.abs(f-0.5)*0.8+(oi?0.8+oi*0.2:0); list.push(rc);
+    }
+    list.sort((a,b)=>a.base-b.base); return list.length>160?list.slice(0,160):list;
   });
+  const cur=new Array(n).fill(0);                                   // index into C[i]; C[i].length = hidden
+  const rc_=(i,k)=>k<C[i].length?C[i][k]:null;
+  let ops=0;
+  const cost=(i,k)=>{ ops++; const a=rc_(i,k); if(!a) return HIDE; let e=a.base; for(let j=0;j<n;j++){ if(j===i) continue; const b=rc_(j,cur[j]); if(b&&rectOv(a,b)>EPS) e+=15; } return e; };
+  const order=T.map((_,i)=>i).sort((a,b)=>C[a].length-C[b].length);
+  for(let i=0;i<n;i++) cur[i]=C[i].length;
+  for(const i of order){ let bk=C[i].length,be=cost(i,bk); for(let k=0;k<C[i].length;k++){ const e=cost(i,k); if(e<be){ be=e; bk=k; } } cur[i]=bk; }
+  const BUDGET=400000;
+  const sweep=()=>{ for(let s=0;s<8&&ops<BUDGET*4;s++){ let ch=false; for(const i of order){ let bk=cur[i],be=cost(i,cur[i]); for(let k=0;k<=C[i].length;k++){ const e=cost(i,k); if(e<be-1e-9){ be=e; bk=k; } } if(bk!==cur[i]){ cur[i]=bk; ch=true; } } if(!ch) break; } };
+  sweep();
+  const tot=()=>{ let e=0; for(let i=0;i<n;i++) e+=cost(i,cur[i]); return e; };
+  const rnd=lblPRNG(20261011); let best=tot(), bc=cur.slice();
+  for(let kick=0;kick<25&&ops<BUDGET;kick++){
+    const hid=[]; for(let i=0;i<n;i++) if(!rc_(i,cur[i])&&C[i].length) hid.push(i); if(!hid.length) break;
+    const i=hid[Math.floor(rnd()*hid.length)], k=Math.floor(rnd()*Math.min(C[i].length,40)); cur[i]=k; sweep();
+    const e=tot(); if(e<best-1e-9){ best=e; bc=cur.slice(); } else for(let q=0;q<n;q++) cur[q]=bc[q];
+  }
+  for(let q=0;q<n;q++) cur[q]=bc[q];
+  const out=new Array(n).fill(null), placed=[];                     // final safety: residual overlap -> hide the later chip
+  for(const i of order){ const rc=rc_(i,cur[i]); if(!rc) continue; let bad=false; for(const q of placed) if(rectOv(rc,q)>EPS){ bad=true; break; } if(!bad){ placed.push(rc); out[i]={rc,cx:rc.cx,cy:rc.cy}; } }
+  return out;
 }
+
+function largeExtent(){ return pois.length>CFG.MATRIX_SINGLE_MAX&&CFG.LARGE_MAP_EXTENT==='pois'; }
 function fitMap(){
   const padding=[30,30];
-  _renderInProgress = true;
-  if(bgPolyLayer && pois.length){
+  if(largeExtent()) map.fitBounds(L.latLngBounds(pois.map(p=>[p.lat,p.lon])),{padding});
+  else if(bgPolyLayer && pois.length){
     const polyB=bgPolyLayer.getBounds(), poiB=L.latLngBounds(pois.map(p=>[p.lat,p.lon])); polyB.extend(poiB); map.fitBounds(polyB,{padding});
   }else if(bgPolyLayer){ map.fitBounds(bgPolyLayer.getBounds(),{padding}); }
   else if(pois.length){ map.fitBounds(L.latLngBounds(pois.map(p=>[p.lat,p.lon])),{padding}); }
   else { map.fitBounds([[5.0,99.0],[14.5,105.8]],{padding}); }
-  setTimeout(()=>{ _renderInProgress = false; }, 400);
+}
+var _lblRects=[], _mkRects=[], _rlTimer=0, _lblMiss='';
+function controlRects(){          // Leaflet controls (zoom, scale, legend, attribution) are obstacles too
+  const out=[]; try{ const cb=map.getContainer().getBoundingClientRect(); map.getContainer().querySelectorAll('.leaflet-control').forEach(e=>{ const b=e.getBoundingClientRect(); if(b.width>0&&b.height>0) out.push({x:b.left-cb.left-2,y:b.top-cb.top-2,w:b.width+4,h:b.height+4}); }); }catch(e){}
+  return out;
+}
+function refSegsPx(){             // lines from the reference to every other marker, in container pixels
+  if(!els.toggleLines.checked||els.ref.value==='') return [];
+  const A=pois[Number(els.ref.value)], rg=refGroupIdx(), a=map.latLngToContainerPoint([A.lat,A.lon]), out=[];
+  _groups.forEach((g,gi)=>{ if(gi===rg) return; const b=map.latLngToContainerPoint([g.lat,g.lon]); out.push([a.x,a.y,b.x,b.y]); });
+  return out;
+}
+/* Labels and distance chips are solved together: labels first (lines = soft obstacles), then chips around them. */
+function renderLabels(){
+  labelsLayer.clearLayers(); _lblRects=[]; _mkRects=[]; _lblMiss=''; updateLegend();
+  if(!_groups.length) return;
+  const rg=refGroupIdx(), sz=map.getSize(), obst=controlRects(), mr=CFG.MARKER_BASE_RADIUS*zoomScale()+1.5;
+  const vis=[], pts=[], extraMk=[];           // only visible markers get a label: not off-screen, not hidden under a map control (a label there would point at nothing)
+  const hidden=c=>c.x<0||c.y<0||c.x>sz.x||c.y>sz.y||obst.some(o=>c.x>=o.x&&c.x<=o.x+o.w&&c.y>=o.y&&c.y<=o.y+o.h);
+  _groups.forEach((g,i)=>{ const c=map.latLngToContainerPoint([g.lat,g.lon]); if(hidden(c)){ if(c.x>=-mr&&c.y>=-mr&&c.x<=sz.x+mr&&c.y<=sz.y+mr) extraMk.push({x:c.x-mr,y:c.y-mr,w:2*mr,h:2*mr}); return; } vis.push(i); pts.push({x:c.x,y:c.y,w:Math.ceil(measureTextPx(g.label,12).w+14),h:18,pri:i===rg?1:0}); });
+  const rects=layoutLabels(pts,mr,{x0:0,y0:0,x1:sz.x,y1:sz.y},1,obst,refSegsPx());
+  const ll=(x,y)=>map.containerPointToLatLng([x,y]);
+  let miss=0;
+  rects.forEach((r,k)=>{
+    const i=vis[k], g=_groups[i];
+    if(!r){ miss++; _mkRects.push({x:pts[k].x-mr,y:pts[k].y-mr,w:2*mr,h:2*mr}); return; }   // no free spot (dense): marker tooltip shows the name
+    if(r.leader){ const e=ll(r.lx,r.ly); L.polyline([[g.lat,g.lon],[e.lat,e.lng]],{color:'#9ca3af',weight:1.5,opacity:1,dashArray:'2,4',className:'leader-line',interactive:false}).addTo(labelsLayer); }
+    const c=ll(r.cx,r.cy);
+    L.marker([c.lat,c.lng],{icon:L.divIcon({className:'poi-chip-svg',html:makePoiChipSVG(g.label,{ref:i===rg,fontPx:12,padX:7,padY:3}),iconSize:[r.w,r.h],iconAnchor:[r.w/2,r.h/2]}),interactive:false}).addTo(labelsLayer);
+    _lblRects.push({x:r.cx-r.w/2,y:r.cy-r.h/2,w:r.w,h:r.h}); _mkRects.push({x:pts[k].x-mr,y:pts[k].y-mr,w:2*mr,h:2*mr});
+  });
+  _lblMiss=miss?`labels: ${pts.length-miss}/${pts.length} shown (zoom in / hover for names)`:'';
+  _mkRects=_mkRects.concat(extraMk);   // partly visible markers without a label still block chips
+  drawLines();                    // chips depend on where the labels ended up
+  raiseHi();                      // zoom-to-line highlight stays above the redrawn lines; markers stay above it
 }
 
 /* ========= Rendering ========= */
+/* Marker radius follows the zoom level so dense areas stay readable when zoomed out */
+function zoomScale(){ const z=(typeof map!=='undefined'&&map&&map.getZoom)?map.getZoom():9; return Math.max(0.55,Math.min(1,(z-6.5)/3)); }
+function applyMarkerScale(){ const zs=zoomScale(); _markerObjs.forEach(m=>{ if(m.setRadius) m.setRadius(m._r0*zs); }); }
+/* Choosing a reference from the list / map also switches the distance lines on (first time) */
+function pickRef(idx){ const had=refIdxNow()>=0; els.ref.value=String(idx); if(!had&&!els.toggleLines.checked) els.toggleLines.checked=true; persist(); renderPOIs(); }
+function applyFilter(){ const q=(els.filter&&els.filter.value||'').trim().toLowerCase(); document.querySelectorAll('#poiTable tbody tr, #distTable tbody tr').forEach(tr=>{ tr.style.display=(!q||(tr.dataset.q||'').includes(q))?'':'none'; }); }
 function renderPOIs(){
   const tb=document.querySelector('#poiTable tbody'); tb.innerHTML='';
-  const prev = els.ref.value;
+  const prev = els.ref.value!=='' ? els.ref.value : _savedRef;
+  _savedRef='';
   els.ref.innerHTML='<option value="">— None —</option>';
   markersLayer.clearLayers();
-
-  // Keep dropdown population
   pois.forEach((p,i)=>{ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=p.name; els.ref.appendChild(opt); });
   if(prev !== '' && Number(prev)>=0 && Number(prev) < pois.length) els.ref.value = prev;
-  const refIndex = els.ref.value === '' ? -1 : Number(els.ref.value);
-
-  // Build table rows (unchanged)
+  const refIndex = refIdxNow();
+  computeGroups();
   pois.forEach((p,i)=>{
     const isRef = i === refIndex;
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${esc(p.name)}${isRef?'<span class="badge-ref">Ref</span>':''}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td><td>${formatDM(p.lat,true)}</td><td>${formatDM(p.lon,false)}</td>`;
-    tr.addEventListener('click',()=>{ els.ref.value=String(i); persist(); renderPOIs(); drawLines(); });
+    tr.className=isRef?'is-ref':''; tr.dataset.q=(p.name+' '+(p.type||'')).toLowerCase();
+    tr.innerHTML=`<td class="nm" title="${esc(p.name)}">${isRef?'<span class="badge-ref" style="margin:0 6px 0 0">Ref</span>':''}${esc(p.name)}</td><td class="dm">${formatDM(p.lat,true)}</td><td class="dm">${formatDM(p.lon,false)}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td>`;
+    tr.addEventListener('click',()=>pickRef(i));
     tb.appendChild(tr);
   });
-
-  // Markers (same rules as before)
-  const base = CFG.MARKER_BASE_RADIUS;
-  pois.forEach((p,i)=>{
-    const isRef = i === refIndex;
-    let radius = base;
-    let fill = isRef ? '#1f7ae0' : '#111827';
-    if (!isRef) {
-      const nameChars = String(p.name||'').replace(/\s+/g,'');
-      const isShort = nameChars.length < CFG.SHORT_NAME_THRESHOLD;
-      if (isShort) {
-        fill = '#dc2626';
-        radius = Math.round(base * CFG.RED_SHORTNAME_SCALE * 10) / 10;
-      } else {
-        radius = Math.round(base * CFG.OTHER_POI_SCALE * 10) / 10;
-      }
-    }
-    const marker=L.circleMarker([p.lat,p.lon],{radius,weight:2.5,color:'#ffffff',opacity:1,fillColor:fill,fillOpacity:1}).addTo(markersLayer);
-    marker.on('click',()=>{ els.ref.value=String(i); persist(); renderPOIs(); drawLines(); });
+  const base=CFG.MARKER_BASE_RADIUS, types=poiTypes(), rg=refGroupIdx(), zs=zoomScale(); let refMarker=null; _markerObjs=[];
+  _groups.forEach((g,gi)=>{
+    const st=groupStyle(g,types), isRef=gi===rg;
+    const radius=(isRef||st.big)?base:Math.round(base*CFG.OTHER_POI_SCALE*10)/10;
+    const marker=L.circleMarker([g.lat,g.lon],{radius:radius*zs,weight:2.5,color:'#ffffff',opacity:1,fillColor:isRef?'#1f7ae0':st.color,fillOpacity:1}).addTo(markersLayer);
+    marker._r0=radius; _markerObjs.push(marker); if(isRef) refMarker=marker;
+    marker.on('click',()=>pickRef(g.idx[0]));
+    if(pois.length>CFG.LABEL_FULL_MAX) marker.bindTooltip(esc(g.name),{direction:'top',offset:[0,-4]});
   });
-
-  // Smart label placement + leader lines
-  if (!pois.length) { fitMap(); renderMatrix(); setStatus(`Rendered: 0 POIs`, true); return; }
-  const positions = calculateSmartLabelPositions(pois);
-  addLeaderLines(positions);
-  positions.forEach(pos=>{
-    const isRef = refIndex === pos.index;
-    // Reuse existing chip generator for consistent look
-    const svgHtml = makePoiChipSVG(pos.poi.name, {ref:isRef,fontPx:12,padX:7,padY:3});
-    const labelLL = map.containerPointToLatLng([pos.labelX, pos.labelY]);
-    L.marker([labelLL.lat,labelLL.lng],{icon:L.divIcon({className:'poi-chip-svg',html:svgHtml,iconSize:null,iconAnchor:[0,10]}),interactive:false}).addTo(markersLayer);
-  });
-
-  fitMap();
-  renderMatrix();
-  setStatus(`Rendered: ${pois.length} POIs • Matrix ${pois.length}×${pois.length}`, true);
+  if(refMarker&&refMarker.bringToFront) refMarker.bringToFront();
+  applyFilter();
+  { const has=pois.length>0; document.getElementById('poiEmpty').style.display=has?'none':'block'; document.getElementById('mapEmpty').style.display=has?'none':'block';
+    document.getElementById('dataCard').classList.toggle('loaded',has); document.getElementById('dropTitle').textContent=has?'Replace CSV (drop or click)':'Drop a CSV here or click to browse';
+    els.summary.innerHTML=has?`<b>${pois.length}</b> POIs &bull; ${_groups.length} markers${refIdxNow()>=0?` &bull; ref <b>${esc(shortLabel(pois[refIdxNow()].name,22))}</b>`:''}`:'No data loaded'; }
+  _hadRef=refIdxNow()>=0;
+  requestMatrix(); renderDistTable(); renderMultiList();
+  updateLegend();
+  setStatus(pois.length?`Rendered: ${pois.length} POIs${_groups.length<pois.length?` (${_groups.length} markers, co-located merged)`:''} • Matrix ${pois.length}×${pois.length}`:'Rendered: 0 POIs', true);
+  renderLabels();                         // also draws lines + chips and appends their status
 }
-
+/* All pairwise distances computed ONCE per POI list (km + nm + max): matrix screen, PDF pages and block pages share it. */
+let _dc=null;
+function distCache(){
+  if(_dc&&_dc.for===pois&&_dc.n===pois.length) return _dc;
+  const n=pois.length, km=[], nm=[]; let max=1;
+  for(let i=0;i<n;i++){
+    const rk=new Array(n), rn=new Array(n);
+    for(let j=0;j<n;j++){
+      if(i===j){ rk[j]=null; rn[j]=null; continue; }
+      const k=distKm(pois[i].lat,pois[i].lon,pois[j].lat,pois[j].lon), v=kmToNm(k); rk[j]=k; rn[j]=v; if(v>max) max=v;
+    }
+    km.push(rk); nm.push(rn);
+  }
+  return (_dc={for:pois,n,km,nm,max});
+}
+/* The on-screen matrix is only built while its tab is visible (200 POIs = 40 000 cells); big lists are debounced. */
+let _mxDirty=true, _mxTimer=0;
+function matrixShown(){ return document.getElementById('pane-matrix').style.display!=='none'; }
+function flushMatrix(){ if(_mxDirty){ _mxDirty=false; renderMatrix(); } }
+function requestMatrix(){ _mxDirty=true; if(!matrixShown()) return; clearTimeout(_mxTimer); if(pois.length>CFG.MATRIX_SINGLE_MAX) _mxTimer=setTimeout(flushMatrix,150); else flushMatrix(); }
 function renderMatrix(){
   const thead=document.querySelector('#matrixTable thead');
   const tbody=document.querySelector('#matrixTable tbody');
@@ -444,18 +777,18 @@ function renderMatrix(){
   trh.appendChild(firstTh);
   pois.forEach((p, idx)=>{
     const th=document.createElement('th');
-    th.innerHTML = `<div style="width:120px;line-height:1.15;text-align:center;margin:0 auto">${esc(breakNameTwoLines(p.name)).replace(/\n/g,"<br>")}</div>`;
+    th.innerHTML = `<div title="${esc(p.name)}" style="width:120px;line-height:1.15;text-align:center;margin:0 auto">${esc(breakNameTwoLines(p.name)).replace(/\n/g,"<br>")}</div>`;
     if(idx===0) th.classList.add('sticky-2'); // the first data column
     trh.appendChild(th);
   });
   thead.appendChild(trh);
 
-  const speed=parseFloat(els.speed.value||'8');
+  const speed=speedVal(), DC=distCache();
   // Build rows; put nm into data attribute for heat shading
   for(let i=0;i<pois.length;i++){
     const row=document.createElement('tr');
     const th=document.createElement('th');
-    th.innerHTML = `<div style="width:140px;line-height:1.15">${esc(breakNameTwoLines(pois[i].name)).replace(/\n/g,"<br>")}</div>`;
+    th.innerHTML = `<div title="${esc(pois[i].name)}" style="width:140px;line-height:1.15">${esc(breakNameTwoLines(pois[i].name)).replace(/\n/g,"<br>")}</div>`;
     row.appendChild(th);
 
     for(let j=0;j<pois.length;j++){
@@ -464,8 +797,8 @@ function renderMatrix(){
         td.className = 'muted empty';
         td.textContent = '—';
       } else {
-        const km = haversineKm(pois[i].lat,pois[i].lon,pois[j].lat,pois[j].lon);
-        const nm = kmToNm(km), hrs = nm/(speed>0?speed:1);
+        const km = DC.km[i][j];
+        const nm = DC.nm[i][j], hrs = nm/speed;
         td.setAttribute('data-nm', String(nm));
         td.title = `${km.toFixed(2)} km | ${nm.toFixed(1)} nm | ${hrsToHM(hrs)}`;
         td.innerHTML = `<div><div style="font-weight:700">${nm.toFixed(1)} nm</div><div class="muted">${hrsToHM(hrs)}</div></div>`;
@@ -503,6 +836,62 @@ function renderMatrix(){
   });
 }
 
+/* ===== Distances from the selected reference (nearest first). Click a row = zoom to the line ===== */
+function raiseHi(){ if(hiLayer) hiLayer.eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); }); if(markersLayer) markersLayer.eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); }); }
+function clearHi(){ if(hiLayer) hiLayer.clearLayers(); _distSel=-1; document.querySelectorAll('#distTable tbody tr.sel').forEach(r=>r.classList.remove('sel')); }
+function renderDistTable(){
+  const tb=document.querySelector('#distTable tbody'), tbl=document.getElementById('distTable'), head=document.getElementById('distHead'), emp=document.getElementById('distEmpty');
+  const r=refIdxNow(); tb.innerHTML='';
+  if(r!==_distRef){ _distRef=r; clearHi(); }
+  if(r<0||!pois[r]){ tbl.style.display='none'; head.textContent=''; emp.style.display='block'; return; }
+  tbl.style.display=''; emp.style.display='none';
+  const A=pois[r], sp=speedVal();
+  const rows=pois.map((p,i)=>({i,p,km:distKm(A.lat,A.lon,p.lat,p.lon)})).filter(x=>x.i!==r).sort((a,b)=>a.km-b.km||a.i-b.i);
+  head.innerHTML=`From <b>${esc(A.name)}</b> &bull; ${sp} kn &bull; nearest first`;
+  rows.forEach(x=>{
+    const nm=kmToNm(x.km), tr=document.createElement('tr');
+    tr.dataset.i=String(x.i); tr.dataset.q=(x.p.name+' '+(x.p.type||'')).toLowerCase(); tr.tabIndex=0; if(x.i===_distSel) tr.className='sel';
+    tr.innerHTML=`<td class="nm" title="${esc(x.p.name)}">${esc(x.p.name)}</td><td class="num">${nm.toFixed(1)}</td><td class="num">${hrsToHM(nm/sp)}</td><td class="num">${x.km.toFixed(2)}</td>`;
+    tr.addEventListener('click',()=>zoomToPair(r,x.i));
+    tr.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); zoomToPair(r,x.i); } });
+    tb.appendChild(tr);
+  });
+  applyFilter();
+}
+function zoomToPair(r,i){
+  const A=pois[r], B=pois[i]; if(!A||!B||!map) return;
+  hiLayer.clearLayers(); _distSel=i;
+  if(kmToNm(distKm(A.lat,A.lon,B.lat,B.lon))<CFG.MERGE_NM){   // co-located: no line, centre on the marker
+    L.circleMarker([B.lat,B.lon],{radius:16,color:'#f59e0b',weight:3,fill:false,interactive:false}).addTo(hiLayer);
+    map.setView([B.lat,B.lon],Math.max(map.getZoom(),13));
+  }else{
+    L.polyline([[A.lat,A.lon],[B.lat,B.lon]],{color:'#f59e0b',weight:4,opacity:.95,interactive:false}).addTo(hiLayer);
+    map.fitBounds(L.latLngBounds([[A.lat,A.lon],[B.lat,B.lon]]),{padding:[90,90],maxZoom:14});
+  }
+  raiseHi();
+  document.querySelectorAll('#distTable tbody tr').forEach(tr=>tr.classList.toggle('sel',tr.dataset.i===String(i)));
+  if(window.matchMedia&&matchMedia('(max-width:900px)').matches){ const w=document.getElementById('mapWrap'); if(w.scrollIntoView) w.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+/* ===== Multi-reference export selection (by POI name) ===== */
+function syncMulti(){ document.querySelectorAll('#mrList input').forEach((c,i)=>{ if(pois[i]) c.checked=_multiSel.has(pois[i].name); }); updateMultiCount(); }
+function updateMultiCount(){
+  const n=pois.filter(p=>_multiSel.has(p.name)).length;
+  document.getElementById('multiCount').textContent=n?`${n} map${n>1?'s':''}`:'';
+  document.getElementById('exportLbl').textContent=n>1?`Export PDF \u00b7 matrix + ${n} maps`:'Export PDF \u00b7 matrix + map';
+}
+function renderMultiList(){
+  const key=pois.map(p=>p.name).join('\u0001');
+  if(key===_mrKey){ updateMultiCount(); return; }
+  _mrKey=key; const names=new Set(pois.map(p=>p.name)); [..._multiSel].forEach(n=>{ if(!names.has(n)) _multiSel.delete(n); });
+  const box=document.getElementById('mrList'); box.innerHTML='';
+  pois.forEach(p=>{
+    const l=document.createElement('label'); l.className='mr'; l.title=p.name;
+    const c=document.createElement('input'); c.type='checkbox';
+    c.addEventListener('change',()=>{ if(c.checked) _multiSel.add(p.name); else _multiSel.delete(p.name); syncMulti(); persist(); });
+    l.appendChild(c); l.appendChild(document.createTextNode(p.name)); box.appendChild(l);
+  });
+  syncMulti();
+}
 function addMatrixHoverHighlight(){
   const table=document.getElementById('matrixTable');
   const rows=Array.from(table.querySelectorAll('tbody tr'));
@@ -510,7 +899,7 @@ function addMatrixHoverHighlight(){
     rows.forEach(r=>r.classList.remove('row-hl'));
     table.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
   };
-  table.addEventListener('mouseleave', clearHL);
+  table.onmouseleave=clearHL;
   rows.forEach(r=>{
     Array.from(r.children).forEach((cell,ci)=>{
       cell.addEventListener('mouseenter',()=>{
@@ -521,23 +910,34 @@ function addMatrixHoverHighlight(){
     });
   });
 }
-let _renderInProgress = false;
 function drawLines(){
-  linesLayer.clearLayers(); if(!pois.length) return;
-  const show=els.toggleLines.checked;
-  const refVal=els.ref.value;
-  if(!show || refVal==='') return;
-  const A=pois[Number(refVal)];
-  const speed=parseFloat(els.speed.value||'8');
-
-  pois.forEach(B=>{
-    if(A===B) return;
-    const km=haversineKm(A.lat,A.lon,B.lat,B.lon), nm=kmToNm(km), hrs=nm/(speed>0?speed:1);
-    const text=`${nm.toFixed(1)}\nnm · ${hrsToHM(hrs)}\nh`;
-    L.polyline([[A.lat,A.lon],[B.lat,B.lon]],{color:'#2563eb',weight:2,opacity:0.9}).addTo(linesLayer);
-    const mid=L.latLng((A.lat+B.lat)/2,(A.lon+B.lon)/2);
-    L.marker(mid,{icon:L.divIcon({className:'distance-chip',html:`<span class="text-halo">${text}</span>`,iconSize:[0,0]}),interactive:false}).addTo(linesLayer);
+  linesLayer.clearLayers(); updateLegend(); if(!pois.length) return;
+  if(!els.toggleLines.checked || els.ref.value===''){ statusNote(''); return; }
+  const A=pois[Number(els.ref.value)], rg=refGroupIdx(), speed=speedVal(), sz=map.getSize();
+  const a=map.latLngToContainerPoint([A.lat,A.lon]), T=[];
+  _groups.forEach((g,gi)=>{
+    if(gi===rg) return;
+    const nm=kmToNm(distKm(A.lat,A.lon,g.lat,g.lon)), text=`${nm.toFixed(1)} nm · ${hrsToHM(nm/speed)}`;
+    const line=L.polyline([[A.lat,A.lon],[g.lat,g.lon]],{color:'#2563eb',weight:2,opacity:0.9}).addTo(linesLayer);
+    const b=map.latLngToContainerPoint([g.lat,g.lon]);
+    T.push({line,text,s:clipSeg(a.x,a.y,b.x,b.y,{x0:0,y0:0,x1:sz.x,y1:sz.y}),w:Math.ceil(measureTextPx(text,11,'Inter, system-ui, sans-serif',600).w+12),h:16});
   });
+  const fixed=_lblRects.concat(_mkRects,controlRects());
+  const res=placeChips(T,fixed,{x0:0,y0:0,x1:sz.x,y1:sz.y},1,T.map(t=>t.s).filter(Boolean));
+  let hidden=0, visible=0;
+  res.forEach((p,i)=>{
+    const t=T[i]; if(t.s) visible++;
+    if(!p){ if(t.s) hidden++; t.line.bindTooltip(t.text,{sticky:true}); return; }       // no free spot at this zoom: hover the line instead
+    const c=map.containerPointToLatLng([p.cx,p.cy]);
+    L.marker(c,{icon:L.divIcon({className:'dchip',html:t.text,iconSize:[t.w,t.h],iconAnchor:[t.w/2,t.h/2]}),interactive:false}).addTo(linesLayer);
+  });
+  statusNote(hidden?`distance labels: ${visible-hidden}/${visible} shown (zoom / hover for the rest)`:'');
+}
+/* Appends the label notes (POI labels hidden, distance labels hidden) to the "Rendered:" status line. */
+function statusNote(dist){
+  const cur=els.status.textContent; if(!/^Rendered:/.test(cur)) return;
+  const base=cur.replace(/ • (labels|distance labels):.*$/,''), parts=[]; if(_lblMiss) parts.push(_lblMiss); if(dist) parts.push(dist);
+  setStatus(parts.length?`${base} • ${parts.join(' • ')}`:base,true);
 }
 
 /* ========= CSV load / template ========= */
@@ -548,11 +948,15 @@ function drawLines(){
    - Give per-row error details for malformed lines.
 */
 function parseCsvRobust(text){
-  text = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n'); // strip BOM, normalize EOL
+  text = text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'); // strip BOM, normalize EOL
   const lines = text.split(/\n/).filter(l=>l.trim().length>0);
   if(!lines.length) return {rows:[],reason:'Empty file'};
 
-  // Splitter that honors quotes; treats comma, semicolon, or TAB as delimiters
+  // delimiter = the most frequent of , ; TAB in the header line (quotes ignored). With ; or TAB a comma inside a number is a DECIMAL comma.
+  const cnt=(s,ch)=>{ let q=false,n=0; for(const c of s){ if(c==='"'||c==='\u201C'||c==='\u201D') q=!q; else if(!q&&c===ch) n++; } return n; };
+  const delim=[',',';','\t'].map(d=>[d,cnt(lines[0],d)]).sort((a,b)=>b[1]-a[1])[0][0];
+  const num=s=>{ s=String(s).replace(/[\s\u00a0"]/g,''); if(s==='') return NaN; if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s=s.replace(/,/g,''); else if(delim!==','&&/^-?\d+,\d+$/.test(s)) s=s.replace(',','.'); else s=s.replace(/,/g,''); return Number(s); };
+  // Splitter that honors quotes; only the detected delimiter splits
   const split = s => {
     const out=[]; let cur=''; let q=false;
     for(let i=0;i<s.length;i++){
@@ -562,7 +966,7 @@ function parseCsvRobust(text){
         if(q && nx === '"'){ cur+='"'; i++; } else { q=!q; }
         continue;
       }
-      if(!q && (ch===',' || ch===';' || ch==='\t')){ out.push(cur.trim()); cur=''; continue; }
+      if(!q && ch===delim){ out.push(cur.trim()); cur=''; continue; }
       cur += ch;
     }
     out.push(cur.trim());
@@ -575,513 +979,620 @@ function parseCsvRobust(text){
   const iN  = headers.findIndex(h => h === 'name');
   const iE  = headers.findIndex(h => h === 'easting');
   const iNo = headers.findIndex(h => h === 'northing');
+  const iT  = headers.findIndex(h => h === 'type' || h === 'category');
   if(iN===-1 || iE===-1 || iNo===-1) return {rows:[],reason:'CSV must have headers: Name,Easting,Northing'};
 
-  const rows=[];
+  const rows=[], skipped=[];
   for(let r=1;r<lines.length;r++){
     const cols = split(lines[r]);
     const get = (arr,idx)=> (idx>=0 && idx<arr.length ? arr[idx] : '');
-    const name = String(get(cols,iN)).replace(/^"|"$/g,'').trim();
-    const eStr = String(get(cols,iE)).replace(/[ ,"]/g,'');
-    const nStr = String(get(cols,iNo)).replace(/[ ,"]/g,'');
-    const e = Number(eStr), n = Number(nStr);
-    if(name && Number.isFinite(e) && Number.isFinite(n)) rows.push({Name:name,Easting:e,Northing:n});
+    const name = String(get(cols,iN)).trim();
+    const eStr = String(get(cols,iE)).trim(), nStr = String(get(cols,iNo)).trim();
+    const e = num(eStr), n = num(nStr);
+    const ln=r+1;                                   // 1-based line number in the file (header = line 1)
+    if(!name){ skipped.push(`line ${ln}: empty name`); continue; }
+    if(cols.slice(headers.length).some(c=>c!=='')){ skipped.push(`line ${ln} (${name}): ${cols.filter((c,k)=>k<headers.length||c!=='').length} fields but the header has ${headers.length} - decimal comma in a comma-separated file? use ; or quote the values`); continue; }
+    if(!Number.isFinite(e)||!Number.isFinite(n)||eStr===''||nStr===''){ skipped.push(`line ${ln} (${name}): E/N not numeric`); continue; }
+    if(e<0||e>2000000||n<0||n>12000000){ skipped.push(`line ${ln} (${name}): E/N out of UTM range - decimal comma or wrong units?`); continue; }
+    if(Math.abs(e)<1000&&Math.abs(n)<1000){ skipped.push(`line ${ln} (${name}): E/N look like degrees (lat/lon), expected UTM metres`); continue; }
+    rows.push({Name:name,Easting:e,Northing:n,Type:String(get(cols,iT)).trim()});
   }
-  if(!rows.length) return {rows:[],reason:'No valid rows found'};
-  return {rows,reason:null};
+  if(!rows.length) return {rows:[],reason:'No valid rows found'+(skipped.length?` (${skipped[0]})`:''),skipped};
+  return {rows,reason:null,skipped};
 }
-function loadRows(rows){
+function loadRows(rows,skipped){
   let list=rows;
-  if(list.length>40){ setStatus('More than 40 POIs; truncating to 40.', false); list=list.slice(0,40); }
+  let note=''; if(list.length>CFG.MAX_POIS){ note=` (truncated from ${list.length} to ${CFG.MAX_POIS})`; list=list.slice(0,CFG.MAX_POIS); }
   const out=[];
   for(const r of list){
     const name=String(r.Name||'').trim(); const e=Number(r.Easting), n=Number(r.Northing);
     if(!name||!Number.isFinite(e)||!Number.isFinite(n)) continue;
     const [lat,lon]=indian1975UTMToWGS84(e,n);
-    out.push({name,e,n,lat,lon});
+    out.push({name,e,n,lat,lon,type:String(r.Type||'').trim()});
   }
   if(!out.length){ setStatus('Parsed rows, but none valid for conversion.', false); return; }
-  pois=out; persist();
-  renderPOIs(); drawLines();
-  setStatus(`Loaded ${out.length} POIs.`);
+  const oldName=(refIdxNow()>=0&&pois[refIdxNow()])?pois[refIdxNow()].name:null;     // keep the reference only if the same name exists in the new list
+  pois=out; els.ref.value=''; clearHi();
+  const ni=oldName==null?-1:out.findIndex(p=>p.name===oldName); _savedRef=ni>=0?String(ni):'';
+  fitMap(); renderPOIs(); persist();
+  const dup=[...new Set(out.map(p=>p.name).filter((nm,i,a)=>a.indexOf(nm)!==i))];
+  const warn=[]; if(note) warn.push(note.trim().replace(/^\(|\)$/g,''));
+  if(skipped&&skipped.length) warn.push(`skipped ${skipped.length} row(s): ${skipped.slice(0,3).join('; ')}${skipped.length>3?'; …':''}`);
+  if(dup.length) warn.push(`duplicate names: ${dup.slice(0,4).join(', ')}${dup.length>4?', …':''}`);
+  { const far=out.filter(p=>p.lon<93||p.lon>106||p.lat<-5||p.lat>25).length; if(far) warn.push(`${far} POI(s) far outside the Gulf of Thailand area - check units / datum`); }
+  setStatus(`Loaded ${out.length} POIs${warn.length?' - '+warn.join(' | '):'.'}`, !warn.length);
 }
+
 
 /* ========= Exports ========= */
-async function captureMapToPDF(doc){
-  const canvas=await html2canvas(document.getElementById('map'),{scale:1.0,useCORS:true,backgroundColor:'#ffffff'}).catch(()=>null);
-  const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight(), margin=8;
-  if(canvas){
-    const availW=pageW-margin*2, availH=pageH-margin*2-10, ratio=canvas.width/canvas.height;
-    let imgW=availW, imgH=imgW/ratio; if(imgH>availH){ imgH=availH; imgW=imgH*ratio; }
-    const x=margin+(availW-imgW)/2, y=14;
-    const img=canvas.toDataURL('image/jpeg',0.68);
-    doc.addImage(img,'JPEG',x,y,imgW,imgH);
-  }else{
-    doc.setFontSize(10); doc.setTextColor(150); doc.text('Map snapshot unavailable',8,20);
+/* jsPDF standard fonts are WinAnsi only: anything else (e.g. Thai) is replaced by '?' instead of printing garbage */
+const WIN_OK=/[\x20-\x7E\xA0-\xFF\u2018\u2019\u201C\u201D\u2013\u2014\u2022\u2026]/;
+function pdfSafe(s){ return Array.isArray(s)?s.map(pdfSafe):(typeof s==='string'?Array.from(s.replace(/\u2026/g,'...')).map(c=>WIN_OK.test(c)?c:'?').join(''):s); }
+function newPdf(opts){
+  const d=new window.jspdf.jsPDF(opts), t=d.text;
+  d.text=function(txt,...a){ return t.call(this,pdfSafe(txt),...a); };
+  return d;
+}
+const MM_PT=0.352778;
+function stampStr(d){ return `${ydm(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function hslToRgb(h,s,l){ s/=100; l/=100; const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l), f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); return [Math.round(255*f(0)),Math.round(255*f(8)),Math.round(255*f(4))]; }
+function refInfo(){ const i=refIdxNow(); return {idx:i,name:(i>=0&&pois[i])?shortLabel(pois[i].name,60):'— None —'}; }
+function speedVal(){ const v=parseFloat(els.speed.value); return v>0?v:8; }
+function linesOn(){ return refIdxNow()>=0&&(_forceRef!==null||els.toggleLines.checked); }
+
+/* Footer + page numbers on every page (called once, after all pages exist) */
+function stampFooters(doc,exportedStr){
+  const n=doc.getNumberOfPages(), m=8;
+  for(let i=1;i<=n;i++){
+    doc.setPage(i);
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+    doc.setFontSize(8); doc.setTextColor(90);
+    doc.text(`Owner: POP Geomatics • Exported: ${exportedStr}`,m,H-7);
+    const right=`Indian 1975 / UTM 47N -> WGS84 • Speed ${speedVal()} kn • Page ${i}/${n}`;
+    doc.text(right,W-m-doc.getTextWidth(right),H-7);
+    doc.setFontSize(9); doc.setTextColor(60);
+    const credit='Develop by Rattawit W';
+    doc.text(credit,(W-doc.getTextWidth(credit))/2,H-3.5);
   }
 }
 
-els.btnExport.addEventListener('click', async ()=>{
+/* ---- Matrix page (long names are hard-wrapped / abbreviated so nothing overflows): font/column sizes are solved so the table really fits the page.
+        Unit "nm" is stated once in the header (CFG.MATRIX_UNIT_IN_CELL=false) -> narrower columns -> larger font ---- */
+/* Hard-wrap text to maxW (mm) with at most maxLines lines: breaks on spaces, splits over-long words by character, ends with "..." when cut. */
+function fitLines(doc,text,maxW,maxLines){
+  const src=String(text==null?'':text).replace(/\s+/g,' ').trim(); if(!src) return {lines:[''],cut:false};
+  const atoms=[];
+  src.split(' ').forEach(w=>{ let first=true; while(w.length){ let k=w.length; while(k>1&&doc.getTextWidth(w.slice(0,k))>maxW) k--; atoms.push({t:w.slice(0,k),sp:first&&atoms.length>0}); w=w.slice(k); first=false; } });
+  const lines=[]; let cur='';
+  atoms.forEach(a=>{ const t=cur===''?a.t:cur+(a.sp?' ':'')+a.t; if(cur===''||doc.getTextWidth(t)<=maxW) cur=t; else { lines.push(cur); cur=a.t; } });
+  lines.push(cur);
+  let cut=false; if(lines.length>maxLines){ lines.length=maxLines; cut=true; }
+  if(cut){ let l=lines[maxLines-1]; while(l.length>1&&doc.getTextWidth(l+'...')>maxW) l=l.slice(0,-1); lines[maxLines-1]=l+'...'; }
+  return {lines,cut};
+}
+function fitOneLine(doc,text,maxW){ return fitLines(doc,text,maxW,1).lines[0]; }
+function addMatrixPage(doc,title,refText,sub){
+  const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), m=8;
+  const n=pois.length, sp=speedVal(), ref=refInfo(), unit=CFG.MATRIX_UNIT_IN_CELL?' nm':'';
+  const DC=distCache(), nmM=DC.nm, maxNm=DC.max;
+  const Ri=sub?sub.R:pois.map((p,i)=>i), Ci=sub?sub.C:Ri, RP=Ri.map(i=>pois[i]), CP=Ci.map(i=>pois[i]), nr=RP.length, nc=CP.length;   // sub = row/column block of a large matrix
+  const startY=22, availW=W-2*m, availH=H-startY-m-16;
+  const nameTxt=RP.map(p=>breakNameTwoLines(p.name));
+  const cellProbe=`${maxNm.toFixed(1)}${unit}`;
+  const tryFs=(fs,force)=>{
+    const pad=Math.max(0.6,fs*0.17), hfs=Math.max(fs-0.8,4);
+    doc.setFont('helvetica','normal'); doc.setFontSize(fs);
+    const nameW=Math.max(...nameTxt.flatMap(t=>t.split('\n').map(s=>doc.getTextWidth(s))),doc.getTextWidth('From \\ To'));
+    const firstW=Math.min(36,Math.max(18,nameW+2*pad+0.6));
+    const dmW=Math.max(doc.getTextWidth('WGS84 (DM)'),...RP.flatMap(p=>[doc.getTextWidth(formatDM(p.lat,true)),doc.getTextWidth(formatDM(p.lon,false))]))+2*pad+0.8;
+    const colW=force?Math.max(6,(availW-firstW-dmW)/nc):(availW-firstW-dmW)/nc;
+    if(!force&&colW<doc.getTextWidth(cellProbe)+2*pad+0.4) return null;
+    const row=RP.map(p=>fitLines(doc,p.name,firstW-2*pad-0.5,2));
+    doc.setFont('helvetica','bold'); doc.setFontSize(hfs);
+    const hdr=CP.map(p=>fitLines(doc,p.name,colW-2*pad-0.5,3));
+    doc.setFont('helvetica','normal'); doc.setFontSize(fs);
+    const hl=Math.max(...hdr.map(h=>h.lines.length)), hdrH=hl*hfs*MM_PT*1.2+2*pad, rowH=2*fs*MM_PT*1.2+2*pad;
+    return {fs,pad,hfs,firstW,dmW,colW,rowH,hdr,row,trunc:hdr.filter(h=>h.cut).length+row.filter(r=>r.cut).length,fits:hdrH+nr*rowH<=availH};
+  };
+  let first=null, clean=null;
+  for(let fs=CFG.MATRIX_MAX_FONT;fs>=4.2;fs=Math.round((fs-0.2)*10)/10){
+    const c=tryFs(fs,false); if(!c||!c.fits) continue;
+    if(!first) first=c; if(c.trunc===0&&fs>=4.6){ clean=c; break; }
+  }
+  const S=clean||first||Object.assign(tryFs(4.2,true),{fits:false});
+  doc.setFont('helvetica','normal'); doc.setFontSize(S.fs);
+
+  doc.setFontSize(12); doc.setTextColor(0); doc.text(title,m,10);
+  doc.setFontSize(9); doc.setTextColor(100);
+  doc.text(`Speed: ${sp} kn • ${n} locations • Reference: ${refText||ref.name} • WGS84 geodesic • cell = distance (nm) / time (h:mm)${sub?` • ${sub.label}`:''}`,m,16);
+
+  const cols=['From \\ To','WGS84 (DM)',...S.hdr.map(h=>h.lines.join('\n'))];
+  const body=RP.map((from,ri)=>{
+    const row=[S.row[ri].lines.join('\n'),[formatDM(from.lat,true),formatDM(from.lon,false)]];
+    for(let cj=0;cj<nc;cj++){ const i=Ri[ri], j=Ci[cj]; row.push(i===j?'—':[`${nmM[i][j].toFixed(1)}${unit}`,hrsToHM(nmM[i][j]/sp)]); }
+    return row;
+  });
+  const columnStyles={0:{cellWidth:S.firstW},1:{cellWidth:S.dmW}};
+  for(let c=2;c<cols.length;c++) columnStyles[c]={cellWidth:S.colW};
+  const REF_HDR=[191,219,254], REF_CELL=[219,234,254];
+  doc.autoTable({
+    startY,head:[cols],body,theme:'grid',tableWidth:'auto',columnStyles,
+    styles:{fontSize:S.fs,cellPadding:S.pad,halign:'center',valign:'middle',overflow:'linebreak',lineWidth:0.1,lineColor:[210,210,210],textColor:25},
+    headStyles:{fillColor:[241,245,249],textColor:15,fontSize:S.hfs,lineColor:[190,190,190]},
+    margin:{top:m,bottom:m+14,left:m,right:m},
+    didParseCell:(ctx)=>{
+      const j=Ci[ctx.column.index-2], i=Ri[ctx.row.index];
+      if(ctx.section==='head'){ if(ctx.column.index>=2&&j===ref.idx) ctx.cell.styles.fillColor=REF_HDR; return; }
+      if(ctx.section!=='body') return;
+      if(Array.isArray(ctx.cell.raw)) ctx.cell.text=ctx.cell.raw; else if(ctx.cell.raw==='—') ctx.cell.text=['—'];
+      ctx.cell.styles.minCellHeight=Math.max(ctx.cell.styles.minCellHeight||0,S.rowH);
+      if(ctx.column.index===0){ ctx.cell.styles.fillColor=(i===ref.idx)?REF_HDR:[248,250,252]; return; }
+      if(ctx.column.index===1){ ctx.cell.styles.fillColor=(i===ref.idx)?REF_CELL:[255,255,255]; return; }
+      if(i===j){ ctx.cell.styles.fillColor=[235,235,235]; return; }
+      if(i===ref.idx||j===ref.idx){ ctx.cell.styles.fillColor=REF_CELL; return; }
+      ctx.cell.styles.fillColor=hslToRgb(220-Math.round(Math.min(1,nmM[i][j]/maxNm)*180),75,96);
+    }
+  });
+  let y=(doc.lastAutoTable&&doc.lastAutoTable.finalY)||startY;
+  doc.setFontSize(7.5); doc.setTextColor(110);
+  const notes=[`Cell shading: short (blue) -> long (warm).${ref.idx>=0?' Blue row/column = selected reference.':''} Times assume constant speed on a straight geodesic (no routing around restricted areas).`];
+  const co=_groups.filter(g=>g.idx.length>1).map(g=>g.idx.map(i=>pois[i].name).join(' = '));
+  if(co.length&&(!sub||sub.first)) notes.push(`Co-located POIs (< ${CFG.MERGE_NM} nm apart, drawn as one marker on the map): ${co.join('; ')}`);
+  if(S.trunc){ const names=[...new Set(Ri.filter((g,k)=>S.row[k].cut).concat(Ci.filter((g,k)=>S.hdr[k].cut)))].sort((a,b)=>a-b).map(g=>shortLabel(pois[g].name,40)); notes.push(`Long names are abbreviated (${names.slice(0,4).join('; ')}${names.length>4?'; ...':''}) - full names: POI list / CSV.`); }
+  notes.forEach(t=>{ doc.splitTextToSize(t,W-2*m).forEach(line=>{ if(y<H-m-14){ doc.text(line,m,y+4.5); y+=4; } }); });
+}
+
+/* <= CFG.MATRIX_SINGLE_MAX POIs: the single page above. More: row x column blocks (each page solves its own font), same cell content and shading scale. */
+function matrixBlocks(){
+  const n=pois.length; if(n<=CFG.MATRIX_SINGLE_MAX) return [null];
+  const rp=Math.ceil(n/Math.ceil(n/CFG.MATRIX_BLOCK_ROWS)), cp=Math.ceil(n/Math.ceil(n/CFG.MATRIX_BLOCK_COLS)), out=[], span=(a,b)=>Array.from({length:b-a},(_,k)=>a+k);   // balanced: 41 -> 21+20, 100 -> 34+34+32, 200 -> 5x40
+  for(let r0=0;r0<n;r0+=rp) for(let c0=0;c0<n;c0+=cp){
+    const r1=Math.min(n,r0+rp), c1=Math.min(n,c0+cp);
+    out.push({R:span(r0,r1),C:span(c0,c1),first:out.length===0,label:`rows ${r0+1}-${r1} x columns ${c0+1}-${c1} of ${n}`});
+  }
+  out.forEach((b,k)=>{ b.label=`Part ${k+1}/${out.length}: ${b.label}`; });
+  return out;
+}
+function addMatrixPages(doc,title,refText){
+  const B=matrixBlocks();
+  B.forEach((b,k)=>{ if(k>0) doc.addPage('a3','landscape'); addMatrixPage(doc,title,refText,b); });
+  return B.length;
+}
+/* Full POI list (autoTable, paginates by itself). Added only when a map page could not fit it (more than ~46 POIs). */
+function addPoiListPages(doc){
+  const m=8; doc.addPage('a3','landscape');
+  doc.setFontSize(12); doc.setTextColor(0); doc.text(`POI list - ${pois.length} locations (WGS84, deg-min)`,m,10);
+  doc.autoTable({startY:16,
+    head:[['#','Name','Type','Easting (m)','Northing (m)','Latitude (WGS84)','Longitude (WGS84)']],
+    body:pois.map((p,i)=>[String(i+1),p.name,p.type||'',fmtNum(p.e),fmtNum(p.n),formatDM(p.lat,true),formatDM(p.lon,false)]),
+    theme:'grid',tableWidth:'wrap',showHead:'everyPage',
+    styles:{fontSize:8,cellPadding:1.2,lineWidth:0.1,lineColor:[210,210,210],textColor:25},
+    headStyles:{fillColor:[241,245,249],textColor:15},
+    columnStyles:{0:{halign:'right'},3:{halign:'right'},4:{halign:'right'}},
+    margin:{top:m,bottom:m+14,left:m,right:m}});
+}
+/* ---- Map geometry helpers (mm space) ---- */
+function mercY(lat){ const p=degToRad(Math.max(-85,Math.min(85,lat))); return Math.log(Math.tan(Math.PI/4+p/2)); }
+function invMercY(y){ return radToDeg(2*Math.atan(Math.exp(y))-Math.PI/2); }
+function niceStepDeg(span,target){ const raw=span/target; return [0.01,0.02,0.05,0.1,0.2,0.25,0.5,1,2,5,10].find(s=>s>=raw)||10; }
+function fmtGrat(deg,isLat){ const tot=Math.round(Math.abs(deg)*60), d=Math.floor(tot/60), mi=tot%60; return `${d}°${mi?String(mi).padStart(2,'0')+'’':''}${isLat?(deg>=0?'N':'S'):(deg>=0?'E':'W')}`; }
+function fmtScale(d){ return d>=1e6?`${(d/1e6).toFixed(2)} M`:(d>=10000?Math.round(d/1000)*1000:Math.round(d)).toLocaleString('en-US'); }
+function clipPoly(pts,r){      // Sutherland-Hodgman vs rectangle (ring may be closed)
+  if(pts.length>1&&pts[0][0]===pts[pts.length-1][0]&&pts[0][1]===pts[pts.length-1][1]) pts=pts.slice(0,-1);
+  const ed=[
+    [p=>p[0]>=r.x0,(a,b)=>[r.x0,a[1]+(r.x0-a[0])/(b[0]-a[0])*(b[1]-a[1])]],
+    [p=>p[0]<=r.x1,(a,b)=>[r.x1,a[1]+(r.x1-a[0])/(b[0]-a[0])*(b[1]-a[1])]],
+    [p=>p[1]>=r.y0,(a,b)=>[a[0]+(r.y0-a[1])/(b[1]-a[1])*(b[0]-a[0]),r.y0]],
+    [p=>p[1]<=r.y1,(a,b)=>[a[0]+(r.y1-a[1])/(b[1]-a[1])*(b[0]-a[0]),r.y1]]];
+  let out=pts;
+  for(const [inside,inter] of ed){
+    const inp=out; out=[]; if(!inp.length) break;
+    for(let i=0;i<inp.length;i++){
+      const cur=inp[i], prev=inp[(i+inp.length-1)%inp.length], ci=inside(cur), pi=inside(prev);
+      if(ci){ if(!pi) out.push(inter(prev,cur)); out.push(cur); } else if(pi) out.push(inter(prev,cur));
+    }
+  }
+  return out.length?out.concat([out[0]]):out;
+}
+function clipSeg(x1,y1,x2,y2,r){   // Liang-Barsky
+  let t0=0,t1=1; const dx=x2-x1, dy=y2-y1, p=[-dx,dx,-dy,dy], q=[x1-r.x0,r.x1-x1,y1-r.y0,r.y1-y1];
+  for(let i=0;i<4;i++){
+    if(p[i]===0){ if(q[i]<0) return null; continue; }
+    const t=q[i]/p[i];
+    if(p[i]<0){ if(t>t1) return null; if(t>t0) t0=t; } else { if(t<t0) return null; if(t<t1) t1=t; }
+  }
+  return [x1+t0*dx,y1+t0*dy,x1+t1*dx,y1+t1*dy];
+}
+function pip(x,y,ring){ let c=false; for(let i=0,j=ring.length-1;i<ring.length;j=i++){ const a=ring[i],b=ring[j]; if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]) c=!c; } return c; }
+function edgeDist(x,y,ring){
+  let m=Infinity;
+  for(let i=0;i<ring.length-1;i++){
+    const a=ring[i], b=ring[i+1], dx=b[0]-a[0], dy=b[1]-a[1], L2=dx*dx+dy*dy||1e-9;
+    const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/L2));
+    m=Math.min(m,Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy));
+  }
+  return m;
+}
+/* Area-name placement: rectangle clear of markers/other labels, as few distance lines through it as possible, deepest point preferred. */
+function placePolyLabel(ring,w,h,avoid,segs){
+  segs=segs||[]; let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; ring.forEach(p=>{ x0=Math.min(x0,p[0]); y0=Math.min(y0,p[1]); x1=Math.max(x1,p[0]); y1=Math.max(y1,p[1]); });
+  const step=Math.max(0.8,Math.min(x1-x0,y1-y0)/60); let best=null;
+  for(let y=y0;y<=y1;y+=step) for(let x=x0;x<=x1;x+=step){
+    if(!pip(x,y,ring)) continue;
+    const rc={x:x-w/2,y:y-h/2,w,h};
+    const inside=[[rc.x,rc.y],[rc.x+w,rc.y],[rc.x,rc.y+h],[rc.x+w,rc.y+h]].every(c=>pip(c[0],c[1],ring));
+    let ov=0; for(const q of avoid) ov+=rectOv(rc,q);
+    if(ov>0) continue;
+    let cross=0; for(const s of segs) cross+=segLenIn(s,rc);
+    const score=(inside?0:-300)-cross*8+Math.min(30,edgeDist(x,y,ring));
+    if(!best||score>best.score) best={score,x,y,rc,inside,ov,cross};
+  }
+  return best;
+}
+
+/* ---- One map panel (main map AND inset). v = frame (mm) + lon/lat extent. Returns geometry + every placed rect (for QA). ---- */
+function drawPanel(doc,v,o){
+  const X=l=>degToRad(l), x0=X(v.minLon), yTop=mercY(v.maxLat), k=v.fw/(X(v.maxLon)-x0);
+  const px=lon=>v.fx+(X(lon)-x0)*k, py=lat=>v.fy+(yTop-mercY(lat))*k;
+  const R={x0:v.fx,y0:v.fy,x1:v.fx+v.fw,y1:v.fy+v.fh}, inR=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
+  const ref=refInfo(), sp=speedVal(), G=_groups, rg=refGroupIdx(), types=poiTypes();
+  const base=o.base, obst=(o.obst||[]).concat(o.polyAvoid||[]);
+  const mkr=G.map((g,gi)=>({g,gi,x:px(g.lon),y:py(g.lat)})).filter(m=>inR(m.x,m.y));
+
+  // restricted areas (clipped to frame)
+  const rings=[];
+  GOT_POLY.features.forEach(f=>f.geometry.coordinates.forEach(r=>{ const cl=clipPoly(r.map(c=>[px(c[0]),py(c[1])]),R); if(cl.length>=4) rings.push({name:f.properties.NAME,pts:cl}); }));
+  rings.forEach(rg_=>{
+    const p=rg_.pts, segsP=p.slice(1).map((q,i)=>[q[0]-p[i][0],q[1]-p[i][1]]);
+    doc.setFillColor(222,240,250);
+    if(o.polyAlpha<1){ doc.saveGraphicsState(); doc.setGState(new doc.GState({opacity:o.polyAlpha})); doc.lines(segsP,p[0][0],p[0][1],[1,1],'F',true); doc.restoreGraphicsState(); }
+    else doc.lines(segsP,p[0][0],p[0][1],[1,1],'F',true);
+    doc.setDrawColor(2,132,199); doc.setLineWidth(o.polyLw||0.3); doc.lines(segsP,p[0][0],p[0][1],[1,1],'S',true);
+  });
+
+  // graticule (light) + edge labels
+  doc.setDrawColor(205); doc.setLineWidth(0.08); doc.setFontSize(o.gratFs||7); doc.setTextColor(110);
+  const step=o.gratStep;
+  for(let lo=Math.ceil(v.minLon/step)*step;lo<=v.maxLon+1e-9;lo+=step){ const x=px(lo); if(x<R.x0||x>R.x1) continue; doc.line(x,R.y0,x,R.y1); const t=fmtGrat(lo,false); doc.text(t,x-doc.getTextWidth(t)/2,R.y1+3); if(o.gratLabels==='all') doc.text(t,x-doc.getTextWidth(t)/2,R.y0-1.2); }
+  for(let la=Math.ceil(v.minLat/step)*step;la<=v.maxLat+1e-9;la+=step){ const y=py(la); if(y<R.y0||y>R.y1) continue; doc.line(R.x0,y,R.x1,y); const t=fmtGrat(la,true); doc.text(t,R.x0-doc.getTextWidth(t)-1.2,y+1); if(o.gratLabels==='all') doc.text(t,R.x1+1.2,y+1); }
+  doc.setDrawColor(90); doc.setLineWidth(0.4); doc.rect(R.x0,R.y0,v.fw,v.fh,'S');
+
+  // distance lines: geometry first (every placer needs it), drawn right away
+  const refP=ref.idx>=0?pois[ref.idx]:null, showLines=o.lines&&linesOn(), targets=[];
+  const ax=refP?px(refP.lon):0, ay=refP?py(refP.lat):0;
+  if(showLines){
+    doc.setDrawColor(37,99,235); doc.setLineWidth(0.25);
+    G.forEach((g,gi)=>{
+      if(gi===rg) return; const bx=px(g.lon), by=py(g.lat); if(o.onlyInside&&!inR(bx,by)) return;
+      const s=clipSeg(ax,ay,bx,by,R); if(!s) return; doc.line(s[0],s[1],s[2],s[3]); targets.push({g,gi,s});
+    });
+  }
+  const segs=targets.map(t=>t.s);
+  const mRects=mkr.map(m=>({x:m.x-base,y:m.y-base,w:2*base,h:2*base}));
+
+  // area names: inside polygon, clear of markers / furniture / each other, away from distance lines
+  const nameRects=[];
+  if(o.polyLabels){
+    const avoid=mkr.map(m=>({x:m.x-base-1.6,y:m.y-base-1.6,w:2*(base+1.6),h:2*(base+1.6)})).concat(obst);
+    doc.setFontSize(o.polyFs||7); doc.setFont('helvetica','italic');
+    rings.forEach(rg_=>{
+      const w=doc.getTextWidth(rg_.name)+2, h=3.6, b=placePolyLabel(rg_.pts,w,h,avoid,segs);
+      if(!b) return;
+      doc.setFillColor(222,240,250); doc.rect(b.rc.x,b.rc.y,w,h,'F');
+      doc.setTextColor(2,110,160); doc.text(rg_.name,b.x,b.y,{align:'center',baseline:'middle'});
+      avoid.push(b.rc); obst.push(b.rc); nameRects.push(b.rc);
+    });
+    doc.setFont('helvetica','normal');
+  }
+
+  // markers (co-located merged)
+  mkr.forEach(m=>{
+    const st=groupStyle(m.g,types), isRef=m.gi===rg;
+    doc.setFillColor(...hexRgb(isRef?'#1f7ae0':st.color)); doc.setDrawColor(255); doc.setLineWidth(0.5);
+    doc.circle(m.x,m.y,(isRef||st.big)?base:base*0.75,'FD');
+  });
+  // POI labels: solved jointly, lines are soft obstacles
+  doc.setFontSize(o.lblFs||7.5); doc.setFont('helvetica','bold');
+  const pts=mkr.map(m=>({x:m.x,y:m.y,w:doc.getTextWidth(m.g.label)+2.6,h:o.lblH||3.9,pri:m.gi===rg?1:0}));
+  doc.setFont('helvetica','normal');
+  const rects=layoutLabels(pts,base+0.4,R,0.35,obst,segs), placed=rects.filter(Boolean).map(r=>({x:r.cx-r.w/2,y:r.cy-r.h/2,w:r.w,h:r.h})), lblOmitted=rects.filter(r=>!r).length;
+  rects.forEach((r,i)=>{ if(r&&r.leader){ doc.setDrawColor(150); doc.setLineWidth(0.15); doc.setLineDashPattern([0.6,0.6],0); doc.line(pts[i].x,pts[i].y,r.lx,r.ly); doc.setLineDashPattern([],0); } });
+  rects.forEach((r,i)=>{
+    if(!r) return;
+    const isRef=mkr[i].gi===rg;
+    doc.setFillColor(255,255,255); doc.setDrawColor(...(isRef?[147,197,253]:[203,213,225])); doc.setLineWidth(0.2);
+    doc.roundedRect(r.cx-r.w/2,r.cy-r.h/2,r.w,r.h,1.2,1.2,'FD');
+    doc.setTextColor(...(isRef?[11,61,145]:[11,26,42])); doc.setFont('helvetica','bold');
+    doc.text(mkr[i].g.label,r.cx-r.w/2+1.3,r.cy,{baseline:'middle'});
+  });
+  doc.setFont('helvetica','normal');
+  // distance labels: joint placement along / beside each line, never over a label, marker or furniture
+  let omitted=0; const chipRects=[];
+  if(showLines&&o.distLabels){
+    doc.setFontSize(6.5);
+    const T=targets.map(t=>{
+      const nm=kmToNm(distKm(refP.lat,refP.lon,t.g.lat,t.g.lon)), txt=`${nm.toFixed(1)} nm · ${hrsToHM(nm/sp)}`;
+      return {s:t.s,txt,w:doc.getTextWidth(txt)+1.6,h:3.2};
+    });
+    const res=placeChips(T,placed.concat(mRects,obst),{x0:R.x0,y0:R.y0,x1:R.x1,y1:R.y1},0.35,segs);
+    res.forEach((p,i)=>{
+      if(!p){ omitted++; return; }
+      const rc=p.rc; chipRects.push(rc);
+      doc.setFillColor(255,255,255); doc.rect(rc.x,rc.y,rc.w,rc.h,'F');
+      doc.setTextColor(30,64,175); doc.text(T[i].txt,p.cx,p.cy,{align:'center',baseline:'middle'});
+    });
+  }
+  return {px,py,k,R,omitted,lblOmitted,labelRects:placed,chipRects,markerRects:mRects,nameRects,segs,obst};
+}
+
+/* ---- Inset around the reference (or the densest cluster). aspect = frame w/h ---- */
+function computeInset(aspect){
+  const G=_groups, rg=refGroupIdx(), RADIUS=12;
+  const nmG=(a,b)=>kmToNm(distKm(a.lat,a.lon,b.lat,b.lon));
+  const near=gi=>G.map((_,j)=>j).filter(j=>j!==gi&&nmG(G[gi],G[j])<=RADIUS);
+  let c=rg;
+  if(c<0||!near(c).length){ let bn=0; c=-1; G.forEach((_,gi)=>{ const nn=near(gi).length; if(nn>bn){ bn=nn; c=gi; } }); }
+  if(c<0) return null;
+  const set=[c].concat(near(c)), xs=set.map(j=>degToRad(G[j].lon)), ys=set.map(j=>mercY(G[j].lat));
+  const cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
+  const minHalf=degToRad(5/60)/Math.cos(degToRad(G[c].lat));
+  let hw=Math.max((Math.max(...xs)-Math.min(...xs))/2*1.5,minHalf), hh=Math.max((Math.max(...ys)-Math.min(...ys))/2*1.5,minHalf/aspect);
+  if(hw/hh>aspect) hh=hw/aspect; else hw=hh*aspect;
+  return {minLon:radToDeg(cx-hw),maxLon:radToDeg(cx+hw),minLat:invMercY(cy-hh),maxLat:invMercY(cy+hh),center:shortLabel(G[c].name,40),count:set.length,radius:RADIUS};
+}
+function drawPoiTable(doc,x,y,w,h){
+  const n=pois.length, ref=refIdxNow(); let rowH=3.3, fs=6.5;
+  let rows=Math.floor((h-4.5)/rowH), blocks=Math.ceil(n/rows);
+  if(blocks>2){ rowH=2.8; fs=5.8; rows=Math.floor((h-4.5)/rowH); blocks=Math.ceil(n/rows); }
+  if(blocks>2) return false;
+  const gap=4, bw=(w-(blocks-1)*gap)/blocks, c1=bw*0.42, c2=bw*0.27;
+  doc.setFontSize(8); doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.text('POI list (WGS84, deg-min)',x,y); doc.setFont('helvetica','normal');
+  const cut=(t,mw)=>{ t=String(t); if(doc.getTextWidth(t)<=mw) return t; while(t.length>1&&doc.getTextWidth(t+'…')>mw) t=t.slice(0,-1); return t+'…'; };
+  for(let b=0;b<blocks;b++){
+    const bx=x+b*(bw+gap), top=y+2;
+    doc.setFillColor(241,245,249); doc.rect(bx,top,bw,rowH+0.4,'F');
+    doc.setFontSize(fs); doc.setTextColor(15); doc.setFont('helvetica','bold');
+    doc.text('Name',bx+1,top+rowH*0.72); doc.text('Latitude',bx+c1+1,top+rowH*0.72); doc.text('Longitude',bx+c1+c2+1,top+rowH*0.72); doc.setFont('helvetica','normal');
+    for(let r=0;r<rows;r++){
+      const i=b*rows+r; if(i>=n) break; const p=pois[i], yy=top+rowH+0.4+r*rowH;
+      if(i===ref){ doc.setFillColor(219,234,254); doc.rect(bx,yy,bw,rowH,'F'); } else if(r%2){ doc.setFillColor(248,250,252); doc.rect(bx,yy,bw,rowH,'F'); }
+      doc.setTextColor(25); doc.text(cut(p.name,c1-1.5),bx+1,yy+rowH*0.72); doc.text(formatDM(p.lat,true),bx+c1+1,yy+rowH*0.72); doc.text(formatDM(p.lon,false),bx+c1+c2+1,yy+rowH*0.72);
+    }
+  }
+  return true;
+}
+function dataExtent(){
+  if(largeExtent()){
+    const lo=pois.map(p=>p.lon), la=pois.map(p=>p.lat), a=Math.min(...lo), b=Math.max(...lo), c=Math.min(...la), d=Math.max(...la), pL=Math.max((b-a)*0.08,0.05), pA=Math.max((d-c)*0.08,0.05);
+    return {minLon:a-pL,maxLon:b+pL,minLat:c-pA,maxLat:d+pA};
+  }
+  const ring=[]; GOT_POLY.features.forEach(f=>f.geometry.coordinates.forEach(r=>r.forEach(c=>ring.push(c))));
+  const lons=ring.map(c=>c[0]).concat(pois.map(p=>p.lon)), lats=ring.map(c=>c[1]).concat(pois.map(p=>p.lat));
+  let minLon=Math.min(...lons),maxLon=Math.max(...lons),minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const pL=(maxLon-minLon)*0.05||0.1, pA=(maxLat-minLat)*0.05||0.1;
+  return {minLon:minLon-pL,maxLon:maxLon+pL,minLat:minLat-pA,maxLat:maxLat+pA};
+}
+function mapTitle(){
+  const r=refInfo();
+  if(r.idx<0) return {t:'Distance Map — POI overview',s:'No reference point selected (no distance lines)'};
+  return linesOn()?{t:`Distance Map — lines from ${r.name}`,s:`Reference: ${r.name}`}:{t:'Distance Map — POI overview',s:`Reference: ${r.name} (distance lines hidden)`};
+}
+/* o = {img?:dataURL, bounds?:{minLon,maxLon,minLat,maxLat}, attr?:string}. Without img = pure vector (no tiles). */
+function addMapPage(doc,o){
+  o=o||{}; const m=8, titleH=16, footH=14, strip=17, sp=speedVal(), ref=refInfo();
+  const ext=o.bounds||dataExtent();
+  const X=l=>degToRad(l), dxr=X(ext.maxLon)-X(ext.minLon), dyr=mercY(ext.maxLat)-mercY(ext.minLat);
+  doc.addPage('a3',dxr>=dyr?'landscape':'portrait');
+  const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight();
+  const lab=11, boxW=W-2*m-2*lab, boxH=H-titleH-5-footH-strip-4, k0=Math.min(boxW/dxr,boxH/dyr);
+  // reserve room for inset + POI list when that costs < 20% of the map scale
+  const k1=Math.min(boxW/dxr,(boxH-75)/dyr), k=(_groups.length>1&&k1>=0.8*k0)?k1:k0;
+  const fw=dxr*k, fh=dyr*k, fx=m+lab+(boxW-fw)/2, fy=titleH+5;
+  const ti=mapTitle();
+  doc.setFontSize(12); doc.setTextColor(0); doc.text(ti.t,m,10);
+  doc.setFontSize(9); doc.setTextColor(100);
+  doc.text(`${ti.s} • Speed ${sp} kn • Mercator, WGS84 • distances = WGS84 geodesic`,m,14.5);
+  if(o.img) doc.addImage(o.img,'JPEG',fx,fy,fw,fh,'basemap');
+
+  // bottom block (inset + POI list) only when the page has room
+  const blockY=fy+fh+strip+6, blockH=H-footH-2-blockY, haveBlock=blockH>=55&&_groups.length>1;
+  let inset=null, ib=null;
+  if(haveBlock){
+    ib={x:m+11,y:blockY+6,w:Math.min(115,(W-2*m)*0.42),h:blockH-6-8};
+    inset=computeInset(ib.w/ib.h);
+  }
+  const mpm=(6378137*Math.cos(degToRad((ext.minLat+ext.maxLat)/2)))/k;            // metres per mm
+  const nmPerMm=mpm/1852, nice=[1,2,5,10,20,25,50,100,200,500].filter(v=>v/nmPerMm<=70).pop()||1, sbLen=nice/nmPerMm, sy=fy+fh+6;
+  const nR={x:fx+fw-14,y:fy+3,w:11,h:16};
+  let polyAvoid=[];
+  if(inset){   // footprint box edges + its label are off-limits for area names
+    const ax=fx+(X(inset.minLon)-X(ext.minLon))*k, bx=fx+(X(inset.maxLon)-X(ext.minLon))*k, ay=fy+(mercY(ext.maxLat)-mercY(inset.maxLat))*k, by=fy+(mercY(ext.maxLat)-mercY(inset.minLat))*k;
+    polyAvoid=[{x:ax-1,y:ay-1,w:bx-ax+2,h:2},{x:ax-1,y:by-1,w:bx-ax+2,h:2},{x:ax-1,y:ay-1,w:2,h:by-ay+2},{x:bx-1,y:ay-1,w:2,h:by-ay+2},{x:ax,y:ay-5,w:12,h:5}];
+  }
+  const pan=drawPanel(doc,{fx,fy,fw,fh,minLon:ext.minLon,maxLon:ext.maxLon,minLat:ext.minLat,maxLat:ext.maxLat},
+    {base:1.7,gratStep:niceStepDeg(Math.max(ext.maxLon-ext.minLon,ext.maxLat-ext.minLat),7),gratLabels:'all',polyLabels:true,lines:true,distLabels:true,polyAlpha:o.img?0.35:1,obst:[nR],polyAvoid});
+  if(inset){   // show inset footprint on main map
+    const a=pan.px(inset.minLon), b=pan.px(inset.maxLon), c=pan.py(inset.maxLat), d=pan.py(inset.minLat);
+    doc.setDrawColor(220,38,38); doc.setLineWidth(0.35); doc.setLineDashPattern([1.2,0.8],0); doc.rect(a,c,b-a,d-c,'S'); doc.setLineDashPattern([],0);
+    doc.setFontSize(7); doc.setTextColor(220,38,38); doc.text('Inset',a+1,c-1);
+  }
+  // scale bar + legend + notes (strip under frame)
+  const bx0=fx+2, by0=sy+4;
+  doc.setDrawColor(20); doc.setLineWidth(0.25);
+  doc.setFillColor(20); doc.rect(bx0,by0,sbLen/2,1.4,'FD'); doc.setFillColor(255); doc.rect(bx0+sbLen/2,by0,sbLen/2,1.4,'FD');
+  doc.setFontSize(7); doc.setTextColor(30);
+  [[0,'0'],[sbLen/2,String(nice/2)],[sbLen,`${nice} nm`]].forEach(([off,t])=>doc.text(t,bx0+off-doc.getTextWidth(t)/2,by0-1));
+  doc.setFontSize(6.5); doc.setTextColor(100); doc.text(`scale approx. 1:${fmtScale(mpm*1000)} at 100% print on A3`,bx0,by0+5);
+  doc.setFillColor(255,255,255); doc.setDrawColor(203,213,225); doc.rect(nR.x,nR.y,nR.w,nR.h,'FD');
+  const nx=nR.x+nR.w/2; doc.setFillColor(20); doc.triangle(nx,nR.y+3.2,nx-2.2,nR.y+11,nx+2.2,nR.y+11,'F');
+  doc.setFontSize(8); doc.setTextColor(20); doc.text('N',nx-doc.getTextWidth('N')/2,nR.y+14.5);
+  doc.setFontSize(7.5);
+  const items=legendItems().map(it=>Object.assign({},it,{label:shortLabel(it.label,30)})), iw=items.map(it=>doc.getTextWidth(it.label)+9);
+  let lx=fx+fw-iw.reduce((s,v)=>s+v,0)-2; const ly=sy+4;
+  items.forEach((it,i)=>{
+    if(it.k==='area'){ doc.setFillColor(222,240,250); doc.setDrawColor(2,132,199); doc.setLineWidth(0.25); doc.rect(lx,ly-2.4,4,3,'FD'); }
+    if(it.k==='ref'){ doc.setFillColor(31,122,224); doc.setDrawColor(255); doc.circle(lx+2,ly-0.9,1.3,'FD'); }
+    if(it.k==='dot'){ doc.setFillColor(...hexRgb(it.color)); doc.setDrawColor(255); doc.circle(lx+2,ly-0.9,1.2,'FD'); }
+    if(it.k==='line'){ doc.setDrawColor(37,99,235); doc.setLineWidth(0.4); doc.line(lx,ly-0.9,lx+4,ly-0.9); }
+    doc.setTextColor(40); doc.text(it.label,lx+6,ly); lx+=iw[i];
+  });
+  doc.setFontSize(7); doc.setTextColor(110);
+  if(pan.omitted){ const t=`${pan.omitted} distance label(s) omitted (no free space) - see matrix / inset`; doc.text(t,fx+fw-doc.getTextWidth(t)-2,fy+fh+15.5); }
+  if(o.attr){ doc.setFontSize(6); const t=`Basemap: ${o.attr}`; doc.text(t,fx+fw-doc.getTextWidth(t)-2,fy+fh+19.5); }
+
+  // inset + POI list
+  let listDrawn=false;
+  if(haveBlock){
+    if(inset){
+      doc.setFontSize(8); doc.setTextColor(20); doc.setFont('helvetica','bold');
+      doc.text(`Inset — around ${inset.center} (${inset.count} POIs within ${inset.radius} nm)`,m,blockY+3); doc.setFont('helvetica','normal');
+      const ip=drawPanel(doc,{fx:ib.x,fy:ib.y,fw:ib.w,fh:ib.h,...inset},
+        {base:1.6,gratStep:niceStepDeg(inset.maxLon-inset.minLon,4),gratLabels:'bl',gratFs:6,polyLabels:false,lines:true,onlyInside:true,distLabels:true,polyAlpha:o.img?0.35:1,polyLw:0.25,lblFs:7,lblH:3.6});
+      void ip;
+    }
+    const tx=(ib?ib.x+ib.w+14:m), tw=W-m-tx;
+    listDrawn=drawPoiTable(doc,tx,blockY+3,tw,blockH-3);
+  }
+  const listOmitted=pois.length>CFG.MATRIX_SINGLE_MAX&&!listDrawn;   // too many POIs for the page: full list is appended as separate pages
+  { const nt=[]; if(pan.lblOmitted) nt.push(`${pan.lblOmitted} POI label(s) not shown (too dense) - see inset / POI list`); if(listOmitted) nt.push('Full POI list: last page(s) of this PDF');
+    doc.setFontSize(6.5); doc.setTextColor(110); nt.forEach((s,q)=>doc.text(s,bx0,by0+9+q*3.4)); }
+  return {mode:o.img?'shot':'vector',listOmitted};
+}
+
+/* ---- Basemap for PDF: own Web-Mercator tile mosaic over the DATA extent (no html2canvas, no dependency on the on-screen view).
+        Pixel maths is identical to the PDF map projection, so overlays line up exactly. ---- */
+const mercPx=(lat,lon,z)=>{ const s=256*2**z; return [(lon+180)/360*s,(1-Math.log(Math.tan(Math.PI/4+degToRad(lat)/2))/Math.PI)/2*s]; };
+function tileUrl(id,z,x,y){
+  const b=BASEMAPS[id], key=id==='carto'?(localStorage.getItem('got_carto_key')||''):'';
+  return b.url.replace('{s}','a').replace('{z}',z).replace('{x}',x).replace('{y}',y).replace('{r}','').replace('{key}',encodeURIComponent(key));
+}
+function loadTileImg(url,ms){
+  return new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous'; const t=setTimeout(()=>res(null),ms);
+    im.onload=()=>{ clearTimeout(t); res(im); }; im.onerror=()=>{ clearTimeout(t); res(null); }; im.src=url; });
+}
+function mosaicPlan(ext,id,widthMm){
+  const b=BASEMAPS[id], maxZ=Math.min((b.opt&&b.opt.maxNativeZoom)||18,18), target=widthMm*CFG.PDF_TILE_PX_PER_MM;
+  const span=k=>mercPx(ext.minLat,ext.maxLon,k)[0]-mercPx(ext.minLat,ext.minLon,k)[0];
+  const rng=k=>{ const a=mercPx(ext.maxLat,ext.minLon,k), c=mercPx(ext.minLat,ext.maxLon,k), n=2**k;
+    return {x0:Math.max(0,Math.floor(a[0]/256)),x1:Math.min(n-1,Math.floor((c[0]-1e-6)/256)),y0:Math.max(0,Math.floor(a[1]/256)),y1:Math.min(n-1,Math.floor((c[1]-1e-6)/256))}; };
+  const cnt=k=>{ const r=rng(k); return (r.x1-r.x0+1)*(r.y1-r.y0+1); };
+  let z=maxZ; for(let k=0;k<=maxZ;k++){ if(span(k)>=target){ z=k; break; } }
+  while(z>0&&cnt(z)>CFG.PDF_TILE_MAX) z--;
+  const tl=mercPx(ext.maxLat,ext.minLon,z), br=mercPx(ext.minLat,ext.maxLon,z);
+  return {z,tl,br,W:Math.max(1,Math.round(br[0]-tl[0])),H:Math.max(1,Math.round(br[1]-tl[1])),range:rng(z),count:cnt(z)};
+}
+async function buildBasemapImage(ext,id,widthMm){
+  if(!BASEMAPS[id]) return null;
+  const P=mosaicPlan(ext,id,widthMm), gx0=P.range.x0, gy0=P.range.y0, nx=P.range.x1-gx0+1, ny=P.range.y1-gy0+1;
+  const grid=document.createElement('canvas'); grid.width=nx*256; grid.height=ny*256;      // tiles on an INTEGER grid: no seams between tiles
+  const g=grid.getContext('2d'); g.fillStyle='#f1f5f9'; g.fillRect(0,0,grid.width,grid.height);
+  const jobs=[]; for(let ty=P.range.y0;ty<=P.range.y1;ty++) for(let tx=P.range.x0;tx<=P.range.x1;tx++) jobs.push([tx,ty]);
+  let ok=0, next=0;
+  const worker=async()=>{ while(next<jobs.length){ const [tx,ty]=jobs[next++], im=await loadTileImg(tileUrl(id,P.z,tx,ty),12000); if(im){ g.drawImage(im,(tx-gx0)*256,(ty-gy0)*256,256,256); ok++; } } };
+  await Promise.all(Array.from({length:8},worker));
+  if(!ok) return {img:null,ok,total:jobs.length,z:P.z};
+  const cv=document.createElement('canvas'); cv.width=P.W; cv.height=P.H; const c=cv.getContext('2d');
+  c.drawImage(grid,P.tl[0]-gx0*256,P.tl[1]-gy0*256,P.W,P.H,0,0,P.W,P.H);                    // one crop/resample to the exact data extent
+  if(CFG.PDF_BASEMAP_LIGHTEN>0){ c.fillStyle=`rgba(255,255,255,${CFG.PDF_BASEMAP_LIGHTEN})`; c.fillRect(0,0,P.W,P.H); }
+  try{ return {img:cv.toDataURL('image/jpeg',0.9),ok,total:jobs.length,z:P.z}; }
+  catch(e){ console.error(e); return {img:null,ok,total:jobs.length,z:P.z,tainted:true}; }     // CORS-tainted canvas
+}
+function attrText(id){ const b=BASEMAPS[id]; return b?b.attr.replace(/<[^>]+>/g,'').replace(/&copy;/g,'©').replace(/&mdash;/g,'-').replace(/&amp;/g,'&'):''; }
+/* Basemap mosaic is built ONCE per export and reused on every map page. */
+async function prepMapBase(){
+  if(els.pdfMode.value==='shot' && baseLayer){
+    const ext=dataExtent(), land=(degToRad(ext.maxLon)-degToRad(ext.minLon))>=(mercY(ext.maxLat)-mercY(ext.minLat));
+    setStatus('Loading basemap tiles for PDF…');
+    const r=await buildBasemapImage(ext,els.base.value,land?380:259);
+    if(r&&r.img){
+      const ok=r.ok===r.total, text=ok?`PDF basemap OK (${r.total} tiles, zoom ${r.z}).`:`PDF basemap incomplete: ${r.total-r.ok} of ${r.total} tiles missing (grey).`;
+      setStatus(text,ok);
+      return {o:{img:r.img,bounds:ext,attr:attrText(els.base.value)},mode:'shot',msg:{text,ok}};
+    }
+    const text=r&&r.tainted?'Basemap blocked by browser (CORS) - exported vector map instead.':'No basemap tiles could be loaded - exported vector map instead.';
+    setStatus(text,false);
+    return {o:{},mode:'vector',msg:{text,ok:false}};
+  }
+  return {o:{},mode:'vector',msg:null};
+}
+/* The reference override is active only inside this synchronous call (never across an await). */
+function withRef(idx,fn){ const prev=_forceRef; _forceRef=idx; try{ return fn(); } finally{ _forceRef=prev; } }
+/* refs: [null] = current UI state; [i,j,...] = POI indices, one A3 map page each, distance lines forced on. */
+async function addMapPages(doc,refs,base){
+  let needList=false;
+  for(let k=0;k<refs.length;k++){
+    if(refs.length>1){ setStatus(`Building map page ${k+1}/${refs.length}…`); await new Promise(r=>setTimeout(r,0)); }
+    const res=(refs[k]===null)?addMapPage(doc,base.o):withRef(refs[k],()=>addMapPage(doc,base.o));
+    if(res&&res.listOmitted) needList=true;
+  }
+  return needList;     // true = the POI list did not fit on the map pages -> caller appends addPoiListPages()
+}
+function exportRefs(){
+  const sel=pois.map((p,i)=>i).filter(i=>_multiSel.has(pois[i].name));
+  return sel.length?{multi:true,list:sel}:{multi:false,list:[null]};
+}
+function confirmExport(multi,count){
+  const bad=pois.filter(p=>/[^\x20-\x7E\xA0-\xFF\u2018\u2019\u201C\u201D\u2013\u2014\u2022\u2026]/.test(p.name)).map(p=>p.name);
+  if(bad.length && !confirm(`PDF font cannot render non-Latin characters in: ${bad.slice(0,5).join(', ')}${bad.length>5?'…':''}. They will print as '?' in the PDF (names stay correct in the CSV export). Export anyway?`)) return false;
+  if(multi){ const est=count*0.5*Math.pow(Math.max(pois.length,20)/60,2.2); if(count<=CFG.MULTI_CONFIRM_MAPS&&est<=30) return true;
+    return confirm(`This builds ${count} A3 map pages. Rough time estimate: ${est<90?'about '+Math.max(1,Math.round(est))+' s':'about '+Math.round(est/60)+' min'} (cannot be cancelled; large PDF). Continue?`); }
+  if(refIdxNow()<0) return confirm('No reference point selected: the map will have no distance lines and the matrix no highlighted row/column. Export anyway?');
+  if(!els.toggleLines.checked) return confirm('"Show lines from reference point" is OFF: the map will have no distance lines. Export anyway?');
+  return true;
+}
+function needPdf(){ if(!(window.jspdf&&window.jspdf.jsPDF)){ alert('The PDF library (jsPDF) did not load. Check access to cdn.jsdelivr.net and reload the page.'); return false; } return true; }
+function guarded(btn,fn){ return async(...a)=>{ if(btn.disabled) return; btn.disabled=true; try{ await fn(...a); }catch(e){ console.error(e); setStatus('Operation failed: '+(e&&e.message||e),false); alert('Operation failed: '+(e&&e.message||e)); } finally{ btn.disabled=false; } }; }
+els.btnExport.addEventListener('click', guarded(els.btnExport, async ()=>{
   if(!pois.length){alert('Load POIs first');return;}
-  const exportedAt=new Date(), exportedStr=exportedAt.toLocaleString();
-  const { jsPDF }=window.jspdf;
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
-  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),margin=8;
-
-  function footer(){
-  doc.setFontSize(8); doc.setTextColor(90);
-  const left=`Owner: PPD/P Geomatics • Exported: ${exportedStr}`;
-  const right=`Indian 1975 -> WGS84 • Speed ${(els.speed.value||'8')} kn`;
-  // Left & right on line 1
-  doc.text(left, margin, pageH-7);
-  const w=doc.getTextWidth(right);
-  doc.text(right, pageW - margin - w, pageH - 7);
-  // Centered credit on line 2
-  doc.setFontSize(9); doc.setTextColor(60);
-  const credit='Develop by Rattawit W';
-  const cw=doc.getTextWidth(credit);
-  doc.text(credit, (pageW - cw)/2, pageH - 3.5);
-}
-
-  // PAGE 1: OPTIMIZED MATRIX
-  const cols=['From \\ To','WGS84 (DM)', ...pois.map(p=>p.name)];
-  const speedVal=parseFloat(els.speed.value||'8');
-  const numCols = cols.length;
-  
-  const body=pois.map((from,i)=>{
-    const row=[breakNameTwoLines(from.name), [formatDM(from.lat,true),formatDM(from.lon,false)]];
-    for(let j=0;j<pois.length;j++){
-      if(i===j){row.push('—');continue;}
-      const km=haversineKm(from.lat,from.lon,pois[j].lat,pois[j].lon); 
-      const nm=kmToNm(km), hrs=nm/(speedVal>0?speedVal:1);
-      row.push([`${nm.toFixed(1)} nm`, `${hrsToHM(hrs)}`]);
-    }
-    return row;
-  });
-
-  // DYNAMIC SIZING CALCULATION
-  function calculateMatrixSizing(numCols) {
-    // Measure the widest DM string across all POIs using the target table font size
-    const availableWidth = pageW - (margin * 2);
-    // Start with a reasonable guess for font size based on number of columns
-    let fontSize, padding;
-    if (numCols <= 12) { fontSize = 9.0; padding = 1.5; }
-    else if (numCols <= 16) { fontSize = 8.2; padding = 1.3; }
-    else if (numCols <= 22) { fontSize = 7.6; padding = 1.1; }
-    else if (numCols <= 28) { fontSize = 7.0; padding = 1.0; }
-    else if (numCols <= 34) { fontSize = 6.6; padding = 0.9; }
-    else { fontSize = 6.2; padding = 0.8; }
-
-    // First column fixed for row names
-    const firstColWidth = 28;
-
-    // Compute max width of either Lat or Lon DM text at this font size
-    doc.setFontSize(fontSize);
-    let maxDmWidth = doc.getTextWidth('WGS84 (DM)'); // include header as baseline
-    for (const p of pois) {
-      const dmLat = formatDM(p.lat, true);
-      const dmLon = formatDM(p.lon, false);
-      maxDmWidth = Math.max(maxDmWidth, doc.getTextWidth(dmLat), doc.getTextWidth(dmLon));
-    }
-    // Add some breathing room for padding & linebreak iconics
-    let secondColWidth = Math.ceil(maxDmWidth + padding*2 + 2);
-
-    // Keep within sensible bounds
-    const minW = 24;    // minimum mm to avoid crowding
-    const maxW = 40;    // cap so it won't starve data columns
-    secondColWidth = Math.min(Math.max(secondColWidth, minW), maxW);
-
-    // Remaining width for data columns
-    const remainingWidth = availableWidth - firstColWidth - secondColWidth;
-    const dataColumns = Math.max(1, numCols - 2);
-    const maxColWidth = Math.min(22, remainingWidth / dataColumns);
-
-    return {
-      fontSize,
-      padding,
-      firstColWidth,
-      secondColWidth,
-      dataColWidth: Math.max(12, maxColWidth) // minimum 12mm
-    };
-  }
-
-  const sizing = calculateMatrixSizing(numCols);
-  
-  // Column styles
-  const columnStyles = {
-    0: { cellWidth: sizing.firstColWidth },
-    1: { cellWidth: sizing.secondColWidth }
-  };
-  for(let i = 2; i < numCols; i++) {
-    columnStyles[i] = { cellWidth: sizing.dataColWidth };
-  }
-
-  // HEADER
-  doc.setFontSize(12);doc.setTextColor(0);doc.text('GOT Distance Matrix and Map',margin,10);
-  doc.setFontSize(9);doc.setTextColor(100);doc.text(`Speed: ${speedVal} kn • ${numCols-2} locations`,margin,16);
-
-  // MATRIX TABLE
-  doc.autoTable({
-    startY:20, 
-    head:[cols], 
-    body:body, 
-    theme:'grid',
-    styles:{ 
-      fontSize: sizing.fontSize, 
-      cellPadding: sizing.padding, 
-      halign:'center', 
-      valign:'middle', 
-      overflow:'linebreak', 
-      lineWidth:0.1, 
-      lineColor:[220,220,220], 
-      textColor:25, 
-      lineHeight:0.9 
-    },
-    headStyles:{ 
-      fillColor:[248,248,248], 
-      textColor:15, 
-      lineColor:[200,200,200], 
-      lineWidth:0.1,
-      fontSize: Math.max(sizing.fontSize - 0.8, 4.0)
-    },
-    bodyStyles:{ 
-      fillColor:[255,255,255], 
-      textColor:25, 
-      lineColor:[230,230,230], 
-      lineWidth:0.1 
-    },
-    alternateRowStyles:{ 
-      fillColor:[250,250,250] 
-    },
-    columnStyles: columnStyles,
-    tableWidth:'auto',
-    margin: { top: margin, bottom: margin + 12, left: margin, right: margin },
-    didParseCell:(ctx)=>{ 
-      if(ctx.section!=='body')return; 
-      if(Array.isArray(ctx.cell.raw)) ctx.cell.text=ctx.cell.raw; 
-      else if(ctx.cell.raw==='—') ctx.cell.text=['—']; 
-      
-      // Optimized cell height
-      const mmPerPt=0.352778;
-      const minH = Math.max(sizing.fontSize * mmPerPt * 2.6, 5.5); 
-      ctx.cell.styles.minCellHeight=Math.max(ctx.cell.styles.minCellHeight||0, minH); 
-    }
-  });
-  footer();
-
-  // Page 2: Map
-  doc.addPage('a3','landscape');
-  doc.setFontSize(12);doc.setTextColor(0);doc.text('Distance Map (lines from selected reference point only)',8,10);
-  await captureMapToPDF(doc);
-  footer();
-
-  const stamp=ydm(exportedAt);
-  doc.save(`Distance_Matrix-Map_${stamp}.pdf`);
-});
-
-
-// Replace your existing btnExportMatrixOnly event listener with this improved version
-
-els.btnExportMatrixOnly.addEventListener('click', ()=>{
-  if(!pois.length){ alert('Load POIs first.'); return; }
+  if(!needPdf()) return;
+  const R=exportRefs();
+  if(!confirmExport(R.multi,R.list.length)) return;
+  setStatus('Exporting PDF…');
   const exportedAt=new Date();
-  const { jsPDF } = window.jspdf;
-
-  // Create doc first so calculateOptimalSizing can call doc.setFontSize
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});
-  const pageW=doc.internal.pageSize.getWidth();
-  const pageH=doc.internal.pageSize.getHeight();
-  const margin=8;
-
-  const cols=['From \\ To','WGS84 (DM)', ...pois.map(p=>p.name)];
-  const speedVal=parseFloat(els.speed.value||'8');
-  const numCols = cols.length;
-
-  // Prepare data with 2-line names for better fit
-  const body=pois.map((from)=>{
-    const row=[ breakNameTwoLines(from.name), [formatDM(from.lat,true), formatDM(from.lon,false)] ];
-    for(const to of pois){
-      if(from===to){row.push('—'); continue;}
-      const km=haversineKm(from.lat,from.lon,to.lat,to.lon);
-      const nm=kmToNm(km), hrs=nm/(speedVal>0?speedVal:1);
-      row.push([`${nm.toFixed(1)} nm`, `${hrsToHM(hrs)}`]);
-    }
-    return row;
-  });
-
-  // Calculate optimal sizing based on number of columns
-  function calculateOptimalSizing(numCols) {
-    const availableWidth = pageW - (margin * 2);
-
-    // Base font size and padding by column count
-    let fontSize, padding;
-    if (numCols <= 12) { fontSize = 9.0; padding = 1.6; }
-    else if (numCols <= 16) { fontSize = 8.2; padding = 1.4; }
-    else if (numCols <= 22) { fontSize = 7.6; padding = 1.2; }
-    else if (numCols <= 28) { fontSize = 7.0; padding = 1.0; }
-    else if (numCols <= 34) { fontSize = 6.6; padding = 0.9; }
-    else { fontSize = 6.2; padding = 0.8; }
-
-    // Fixed first column for From \ To
-    const firstColWidth = 28;
-
-    // Measure dynamic width for WGS84 (DM) column
-    doc.setFontSize(fontSize);
-    let maxDmWidth = doc.getTextWidth('WGS84 (DM)');
-    for (const p of pois) {
-      const dmLat = formatDM(p.lat, true);
-      const dmLon = formatDM(p.lon, false);
-      maxDmWidth = Math.max(maxDmWidth, doc.getTextWidth(dmLat), doc.getTextWidth(dmLon));
-    }
-    let secondColWidth = Math.ceil(maxDmWidth + padding*2 + 2);
-    const minW = 24, maxW = 40;
-    secondColWidth = Math.min(Math.max(secondColWidth, minW), maxW);
-
-    // Space for data columns
-    const remainingWidth = availableWidth - firstColWidth - secondColWidth;
-    const dataColumns = Math.max(1, numCols - 2);
-    let dataColWidth = remainingWidth / dataColumns;
-
-    // Respect an upper cap to keep balance, and lower bound for legibility
-    dataColWidth = Math.max(12, Math.min(22, dataColWidth));
-
-    return {
-      fontSize,
-      padding,
-      firstColWidth,
-      secondColWidth,
-      dataColWidth
-    };
-  }
-
-  const sizing = calculateOptimalSizing(numCols);
-
-  // Header
-  doc.setFontSize(12); 
-  doc.text('GOT Distance Matrix — Optimized Single Page', margin, 10);
-  doc.setFontSize(9); 
-  doc.text(`Speed: ${speedVal} kn • ${numCols-2} locations • Optimized layout`, margin, 16);
-
-  // Column styles with calculated widths
-  const columnStyles = {
-    0: { cellWidth: sizing.firstColWidth },
-    1: { cellWidth: sizing.secondColWidth }
-  };
-  
-  // Set uniform width for all data columns
-  for(let i = 2; i < numCols; i++) {
-    columnStyles[i] = { cellWidth: sizing.dataColWidth };
-  }
-
-  doc.autoTable({
-    startY: 20,
-    head: [cols],
-    body: body,
-    theme: 'grid',
-    styles: { 
-      fontSize: sizing.fontSize,
-      cellPadding: sizing.padding,
-      halign: 'center', 
-      valign: 'middle', 
-      overflow: 'linebreak',
-      lineWidth: 0.12,
-      lineColor: [225,225,225],
-      textColor: 30,
-      lineHeight: 0.92
-    },
-    headStyles: { 
-      fillColor: [245,245,245], 
-      textColor: 20, 
-      lineColor: [220,220,220], 
-      lineWidth: 0.12,
-      fontSize: Math.max(sizing.fontSize - 0.5, 4.5) // Slightly smaller header
-    },
-    bodyStyles: { 
-      fillColor: [255,255,255], 
-      textColor: 30, 
-      lineColor: [230,230,230], 
-      lineWidth: 0.12 
-    },
-    alternateRowStyles: { 
-      fillColor: [248,248,248] 
-    },
-    columnStyles: columnStyles,
-    tableWidth: 'auto',
-    margin: { 
-      top: margin, 
-      bottom: margin + 10, // Extra bottom margin for footer
-      left: margin, 
-      right: margin 
-    },
-    didParseCell: (ctx) => {
-      if(ctx.section !== 'body') return;
-      
-      // Handle array data (distance + time)
-      if(Array.isArray(ctx.cell.raw)) {
-        ctx.cell.text = ctx.cell.raw;
-      } else if(ctx.cell.raw === '—') {
-        ctx.cell.text = ['—'];
-      }
-      
-      // Set minimum cell height for readability
-      const mmPerPt = 0.352778;
-      const minHeight = Math.max(sizing.fontSize * mmPerPt * 2.8, 6.5);
-      ctx.cell.styles.minCellHeight = Math.max(ctx.cell.styles.minCellHeight || 0, minHeight);
-    }
-  });
-
-  // Check if table fits on page
-  const finalY = doc.lastAutoTable && doc.lastAutoTable.finalY || 0;
-  const fits = finalY <= (pageH - margin - 10);
-  
-  // Footer
-  doc.setFontSize(8); 
-  doc.setTextColor(90);
-  const footerY = pageH - 4;
-  const left = `Owner: PPD/P Geomatics • Exported: ${exportedAt.toLocaleString()}`;
-  const right = `Indian 1975 -> WGS84 • Speed ${speedVal} kn`;
-  doc.text(left, margin, footerY);
-  const rightWidth = doc.getTextWidth(right);
-  doc.text(right, pageW - margin - rightWidth, footerY);
-  // Centered credit
-  doc.setFontSize(9); doc.setTextColor(60);
-  const credit = 'Develop by Rattawit W';
-  const cw = doc.getTextWidth(credit);
-  doc.text(credit, (pageW - cw)/2, pageH - 3.5);
-
-
-  // Add warning if still doesn't fit
-  if (!fits) {
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text('Note: Large matrix compressed to fit single page. Consider reducing POI count for better readability.', 
-             margin, footerY - 6);
-  }
-
-  const stamp = ydm(exportedAt);
-  doc.save(`Distance_Matrix_SinglePage_${stamp}.pdf`);
-});
-
+  const doc=newPdf({orientation:'landscape',unit:'mm',format:'a3',compress:true});
+  const base=await prepMapBase();
+  if(R.multi) withRef(-1,()=>addMatrixPages(doc,'GOT Distance Matrix and Map',`${R.list.length} reference map${R.list.length>1?'s':''} follow`));
+  else addMatrixPages(doc,'GOT Distance Matrix and Map');
+  if(await addMapPages(doc,R.list,base)) addPoiListPages(doc);
+  stampFooters(doc,stampStr(exportedAt));
+  const fn=`Distance_Matrix-Map_${ydm(exportedAt)}${R.multi?`_${R.list.length}refs`:''}.pdf`;
+  doc.save(fn);
+  if(base.msg&&!base.msg.ok) setStatus(base.msg.text+' | saved '+fn,false); else setStatus('PDF saved: '+fn+(R.multi?` (${R.list.length} map pages)`:'')+(pois.length>CFG.MATRIX_SINGLE_MAX?` - ${doc.getNumberOfPages()} pages`:''));
+}));
+els.btnExportMatrixOnly.addEventListener('click', guarded(els.btnExportMatrixOnly, async ()=>{
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  if(!needPdf()) return;
+  const exportedAt=new Date();
+  const doc=newPdf({orientation:'landscape',unit:'mm',format:'a3',compress:true});
+  const nb=addMatrixPages(doc,'GOT Distance Matrix');
+  stampFooters(doc,stampStr(exportedAt));
+  doc.save(nb>1?`Distance_Matrix_${ydm(exportedAt)}_${nb}pages.pdf`:`Distance_Matrix_SinglePage_${ydm(exportedAt)}.pdf`);
+}));
 /* ========= Previews ========= */
 function makeMetaBarHTML(nowStr, speed){
   return `<div class="metabar" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 0 0;color:#475569;font-size:12px">
-    <span>Owner: <b>PPD/P Geomatics</b></span> •
+    <span>Owner: <b>POP Geomatics</b></span> •
     <span>Now: <b>${nowStr}</b></span> •
     <span>Speed: <b>${speed}</b> kn</span>
   </div>`;
 }
-/* Preview Map (A3 Portrait) */
+/* Preview Map (A3): builds the real PDF page and opens it */
 els.btnPreviewMapA3.addEventListener('click', async ()=>{
-  const w = window.open('about:blank','_blank','width=1000,height=1400');
+  if(!pois.length){ alert('Load POIs first'); return; }
+  if(!needPdf()) return;
+  const w=window.open('about:blank','_blank');
   if(!w){ alert('Please allow pop-ups for this site.'); return; }
-
   setStatus('Rendering map preview…');
-  try {
-    // Give tiles/labels a moment just in case
-    await new Promise(r => setTimeout(r, 150));
-
-    const mapEl = document.getElementById('map');
-    const canvas = await html2canvas(mapEl, {
-      scale: 2,                 // high-res for print
-      useCORS: true,
-      backgroundColor: '#ffffff'
-    });
-
-    const img = canvas.toDataURL('image/jpeg', 0.92);
-    const nowStr = new Date().toLocaleString();
-    const speedStr = els.speed.value || '8';
-    const refIdx = (els.ref.value === '' ? -1 : Number(els.ref.value));
-    const refName = (refIdx >= 0 && pois[refIdx]) ? pois[refIdx].name : '— None —';
-
-    const html = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Map — A3 Portrait Preview</title>
-<style>
-  :root { --line:#e5e7eb; --muted:#64748b; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#0f172a;background:#fff}
-  header{padding:12px 16px;border-bottom:1px solid var(--line)}
-  h1{margin:0 0 4px 0;font-size:16px}
-  .meta{color:var(--muted);font-size:12px}
-  .wrap{padding:10mm 10mm 12mm}
-  /* A3 portrait printable page */
-  @media print{
-    @page { size: A3 portrait; margin: 10mm; }
-    body{background:#fff}
-    header{break-after:avoid}
-    .wrap{padding:0}
-  }
-  /* Keep aspect fit inside A3 content area (roughly 277x387mm after margins) */
-  .imgBox{
-    width:100%;
-    max-width: 1900px;              /* large enough for most screens */
-    margin:12px auto 0;
-  }
-  .imgBox img{ width:100%; height:auto; display:block; border:1px solid var(--line) }
-  .toolbar{display:flex; gap:8px; padding:8px 16px; border-bottom:1px solid var(--line); background:#fff; position:sticky; top:0}
-  .btn{border:1px solid var(--line); background:#fff; padding:6px 10px; border-radius:10px; cursor:pointer; font-weight:600}
-  .btn:hover{background:#f3f4f6}
-
-  .credit{position:fixed;bottom:8px;right:12px;font-size:12px;color:#64748b}
-  @media print{ .credit{position:static;text-align:right;margin-top:6px} }
-</style>
-</head>
-<body>
-  <header>
-    <h1>Distance Map — A3 Portrait Preview</h1>
-    <div class="meta">
-      Owner: <b>PPD/P Geomatics</b> • Now: <b>${nowStr}</b> • Speed: <b>${speedStr}</b> kn • Reference: <b>${refName}</b>
-    </div>
-  </header>
-
-  <div class="toolbar">
-    <button id="btnPrint" class="btn">🖨 Print (A3 Portrait)</button>
-    <button id="btnSave" class="btn">⬇ Save PNG</button>
-  </div>
-
-  <div class="wrap">
-    <div class="imgBox"><img id="mapImg" alt="Map snapshot"></div>
-  </div>
-
-  <script>
-    // Inject image and wire actions
-    const dataUrl = ${JSON.stringify(img)};
-    const imgEl = document.getElementById('mapImg');
-    imgEl.src = dataUrl;
-
-    document.getElementById('btnPrint').addEventListener('click', ()=>window.print());
-    document.getElementById('btnSave').addEventListener('click', ()=>{
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'Map_A3_Preview.png';
-      document.body.appendChild(a); a.click(); a.remove();
-    });
-  <\/script>
-
-<div id="app-credit">Develop by Rattawit W</div>
-
-<div class="credit">Develop by Rattawit W</div>
-</body>
-</html>`;
-
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    setStatus('Map preview ready.', true);
-  } catch (e) {
-    console.error(e);
-    setStatus('Failed to render map preview.', false);
-    alert('Failed to render map preview: ' + (e.message || e));
-  }
+  try{
+    const d=newPdf({unit:'mm',format:'a3',compress:true});
+    if(await addMapPages(d,exportRefs().list,await prepMapBase())) addPoiListPages(d); d.deletePage(1); stampFooters(d,stampStr(new Date()));
+    w.location.href=d.output('bloburl'); setStatus('Map preview ready.',true);
+  }catch(e){ console.error(e); w.close(); setStatus('Failed to render map preview.',false); alert('Failed to render map preview: '+(e.message||e)); }
 });
-
-
 /* Preview POI List */
 els.btnPreviewPOIs.addEventListener('click', ()=>{
   const w=window.open('about:blank','_blank','width=1200,height=800'); if(!w){alert('Allow pop-ups in Edge.');return;}
-  const nowStr=new Date().toLocaleString(); const speedStr=els.speed.value||'8';
+  const nowStr=new Date().toLocaleString(); const speedStr=speedVal();
 
   const rows=(pois||[]).map(p=>`<tr>
       <td class="text name">${esc(p.name)}</td>
@@ -1151,7 +1662,7 @@ els.btnPreviewPOIs.addEventListener('click', ()=>{
 els.btnPreviewMatrix.addEventListener('click', ()=>{
   if(!pois.length){alert('Load POIs first');return;}
   const w=window.open('about:blank','_blank','width=1200,height=800'); if(!w){alert('Allow pop-ups in Edge.');return;}
-  const speed=parseFloat(els.speed.value||'8');
+  const speed=speedVal();
   const nowStr=new Date().toLocaleString();
 
   const head=`<tr>
@@ -1165,8 +1676,8 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
     const wgsCell = `<div>${formatDM(from.lat,true)}</div><div>${formatDM(from.lon,false)}</div>`;
     const tds = pois.map((to,j)=>{
       if(i===j) return `<td class="muted empty">—</td>`;
-      const km=haversineKm(from.lat,from.lon,to.lat,to.lon);
-      const nm=kmToNm(km), hrs=nm/(speed>0?speed:1);
+      const km=distKm(from.lat,from.lon,to.lat,to.lon);
+      const nm=kmToNm(km), hrs=nm/speed;
       return `<td><div class="cell"><div class="nm">${nm.toFixed(1)} nm</div><div class="tm">${hrsToHM(hrs)}</div></div></td>`;
     }).join('');
     return `<tr><th class="sticky-left"><div class="name2l">${nameHtml}</div></th><td class="sticky-left-2 wgs">${wgsCell}</td>${tds}</tr>`;
@@ -1213,7 +1724,7 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
   <header>
     <h1>Distance Matrix</h1>
     <div class="metabar">
-      <span>Owner: <b>PPD/P Geomatics</b></span> •
+      <span>Owner: <b>POP Geomatics</b></span> •
       <span>Now: <b>${nowStr}</b></span> •
       <span>Speed: <b>${speed}</b> kn</span>
     </div>
@@ -1293,16 +1804,17 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
 
 /* ========= Template / Clear ========= */
 els.btnTemplate.addEventListener('click', ()=>{
-  const csv="Name,Easting,Northing\nBQP,865817,888640\nFSO2,868003,892995\n";
+  const csv="Name,Easting,Northing,Type\nBQP,865817,888640,Facility\nFSO2,868003,892995,Facility\n";
   const blob=new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='poi_template.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 els.btnClear.addEventListener('click', ()=>{
-  pois=[]; els.ref.innerHTML='<option value="">— None —</option>';
+  _mxDirty=true; pois=[]; _groups=[]; _lblRects=[]; _mkRects=[]; _lblMiss=''; els.ref.innerHTML='<option value="">— None —</option>';
   document.querySelector('#poiTable tbody').innerHTML='';
   document.querySelector('#matrixTable thead').innerHTML='';
   document.querySelector('#matrixTable tbody').innerHTML='';
-  markersLayer.clearLayers(); linesLayer.clearLayers();
+  markersLayer.clearLayers(); labelsLayer.clearLayers(); linesLayer.clearLayers(); clearHi();
+  _multiSel.clear(); _mrKey=null; renderMultiList(); _distRef=-2; renderDistTable();
   setStatus('Cleared.');
   persist(); fitMap();
 });
@@ -1310,6 +1822,7 @@ els.btnClear.addEventListener('click', ()=>{
 /* ========= File + Drag/Drop ========= */
 els.file.addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
+  if(/\.json$/i.test(f.name)){ try{ await loadSessionFile(f); } finally{ e.target.value=''; } return; }
   if(!/\.csv$/i.test(f.name)){ alert('Please upload a CSV with headers Name,Easting,Northing'); e.target.value=''; return; }
   try{
     
@@ -1342,10 +1855,10 @@ try{
   alert('Failed to read file: '+(e.message||e));
   return;
 }
-const {rows,reason}=parseCsvRobust(text);
+const {rows,reason,skipped}=parseCsvRobust(text);
 
     if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    loadRows(rows);
+    loadRows(rows,skipped);
   }catch(err){ console.error(err); setStatus('Failed to read the CSV: '+(err.message||err), false); alert('Failed to read the CSV: '+(err.message||err)); }
   finally{ e.target.value=''; }
 });
@@ -1355,6 +1868,7 @@ window.addEventListener('drop',     e => { e.preventDefault(); });
 ['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev, e=>{e.preventDefault(); els.drop.classList.remove('drag');}));
 els.drop.addEventListener('drop', async e=>{
   const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return;
+  if(/\.json$/i.test(f.name)){ await loadSessionFile(f); return; }
   if(!/\.csv$/i.test(f.name)){ alert('Please drop a CSV with headers Name,Easting,Northing'); return; }
   try{
     
@@ -1387,10 +1901,10 @@ try{
   alert('Failed to read file: '+(e.message||e));
   return;
 }
-const {rows,reason}=parseCsvRobust(text);
+const {rows,reason,skipped}=parseCsvRobust(text);
 
     if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    loadRows(rows);
+    loadRows(rows,skipped);
   }catch(err){ console.error(err); setStatus(err.message||err, false); alert('Failed to read the CSV: '+(err.message||err)); }
 });
 
@@ -1398,68 +1912,150 @@ const {rows,reason}=parseCsvRobust(text);
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
-    document.getElementById('pane-poi').style.display = t.dataset.tab==='poi'?'block':'none';
-    document.getElementById('pane-matrix').style.display = t.dataset.tab==='matrix'?'block':'none';
+    ['poi','matrix','dist'].forEach(k=>{ document.getElementById('pane-'+k).style.display=t.dataset.tab===k?'block':'none'; });
+    els.filter.style.visibility = t.dataset.tab==='matrix'?'hidden':'visible';
+    if(t.dataset.tab==='matrix') flushMatrix();
   });
 });
-function persist(){ const data={speed:els.speed.value, ref:els.ref.value, show:els.toggleLines.checked, zoom:els.zoom.value, pois}; localStorage.setItem('got_app_v2', JSON.stringify(data)); }
+function persist(){ const data={speed:els.speed.value, ref:els.ref.value, show:els.toggleLines.checked, zoom:els.zoom.value, base:els.base.value, pdfMode:els.pdfMode.value, multi:[..._multiSel], pois}; localStorage.setItem('got_app_v2', JSON.stringify(data)); }
 function restore(){
   try{
     const data=JSON.parse(localStorage.getItem('got_app_v2')||'{}');
     if(data.speed) els.speed.value=data.speed;
     if(data.show!=null) els.toggleLines.checked=data.show;
     if(data.zoom){ els.zoom.value=data.zoom; document.documentElement.style.setProperty('--table-scale', data.zoom); }
-    if(Array.isArray(data.pois)) pois=data.pois;
-    if(typeof data.ref!=='undefined') els.ref.value=String(data.ref);
+    if(Array.isArray(data.pois)) pois=data.pois.filter(p=>p&&typeof p.name==='string'&&p.name&&[p.e,p.n,p.lat,p.lon].every(v=>typeof v==='number'&&isFinite(v))).slice(0,CFG.MAX_POIS).map(p=>({name:p.name,e:p.e,n:p.n,lat:p.lat,lon:p.lon,type:typeof p.type==='string'?p.type:''}));
+    if(data.base) els.base.value=data.base;
+    if(data.pdfMode) els.pdfMode.value=data.pdfMode;
+    if(Array.isArray(data.multi)) _multiSel=new Set(data.multi);
+    if(typeof data.ref!=='undefined' && data.ref!==null) _savedRef=String(data.ref);
   }catch{}
 }
-const onSpeedChange = ()=>{ els.speedHeader.textContent=els.speed.value||'8'; renderMatrix(); drawLines(); persist(); };
+const onSpeedChange = ()=>{ els.speedHeader.textContent=speedVal(); requestMatrix(); renderDistTable(); drawLines(); persist(); };
+els.speed.addEventListener('blur',()=>{ if(!(parseFloat(els.speed.value)>0)){ els.speed.value='8'; onSpeedChange(); setStatus('Speed must be greater than 0 - reset to 8 kn.',false); } });
 els.speed.addEventListener('input', onSpeedChange);
 els.speed.addEventListener('change', onSpeedChange);
 els.speed.addEventListener('keyup', onSpeedChange);
-els.ref.addEventListener('change', ()=>{ renderPOIs(); drawLines(); persist(); });
-els.toggleLines.addEventListener('change', ()=>{ drawLines(); persist(); });
+els.ref.addEventListener('change', ()=>{ if(els.ref.value!==''&&!_hadRef&&!els.toggleLines.checked) els.toggleLines.checked=true; renderPOIs(); persist(); });
+els.filter.addEventListener('input', applyFilter);
+document.getElementById('mrAll').addEventListener('click',()=>{ pois.forEach(p=>_multiSel.add(p.name)); syncMulti(); persist(); });
+document.getElementById('mrNone').addEventListener('click',()=>{ _multiSel.clear(); syncMulti(); persist(); });
+document.getElementById('mrCur').addEventListener('click',()=>{ _multiSel.clear(); const r=refIdxNow(); if(r>=0&&pois[r]) _multiSel.add(pois[r].name); syncMulti(); persist(); });
+els.btnPanel.addEventListener('click',()=>{ document.getElementById('wrap').classList.toggle('collapsed'); setTimeout(()=>{ if(map) map.invalidateSize(); },230); });
+els.toggleLines.addEventListener('change', ()=>{ renderLabels(); persist(); });
+els.base.addEventListener('change', ()=>{ setBasemap(els.base.value); persist(); });
+els.pdfMode.addEventListener('change', persist);
 els.zoom.addEventListener('input', ()=>{ document.documentElement.style.setProperty('--table-scale', els.zoom.value); persist(); });
-setInterval(()=>{ els.dateHeader.textContent=new Date().toLocaleString(); },1000);
+setInterval(()=>{ els.dateHeader.textContent=fmtNow(); },15000);
 
-/* ========= Excel export for Matrix (2-line, BOM, CRLF + tip row) ========= */
+/* ========= Matrix export (CSV for Excel): numeric blocks, no merged "nm, h:mm" cells ========= */
 els.btnExportMatrixExcel.addEventListener('click', ()=>{
   if(!pois.length){ alert('Load POIs first.'); return; }
-  const speedVal=parseFloat(els.speed.value||'8');
-
-  const header = ['From \\\\ To', 'WGS84 (DM)', ...pois.map(p => breakNameTwoLines(p.name))];
-  const tips   = ['(nm, hh:mm)', '', ...pois.map(_ => '(nm, hh:mm)')];
-
-  const rows = pois.map(from => {
-    const r = [breakNameTwoLines(from.name), `${formatDM(from.lat,true)} / ${formatDM(from.lon,false)}`];
-    for (const to of pois) {
-      if (from === to) { r.push('—'); continue; }
-      const km = haversineKm(from.lat,from.lon,to.lat,to.lon);
-      const nm = kmToNm(km), hrs = nm/(speedVal>0?speedVal:1);
-      r.push(`${nm.toFixed(1)}, ${hrsToHM(hrs)}`);
-    }
-    return r;
-  });
-
-  // Build CSV with BOM + CRLF
-  const toCSV = (arr) => arr.map(row => row.map(x => {
-    const s=String(x??'').replace(/"/g,'""');
-    return /[",\r\n]/.test(s) ? `"${s}"` : s;
-  }).join(',')).join('\r\n');
-
-  const csv = '\ufeff' + toCSV([header, tips, ...rows]);
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'Distance_Matrix.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  const sp=speedVal();
+  const nm=(a,b)=>kmToNm(distKm(a.lat,a.lon,b.lat,b.lon));
+  const names=pois.map(p=>p.name);
+  const poi=[['POI list'],['Name','Type','Easting (m)','Northing (m)','Lat (WGS84 DM)','Lon (WGS84 DM)','Lat (deg)','Lon (deg)'],
+    ...pois.map(p=>[p.name,p.type||'',p.e,p.n,formatDM(p.lat,true),formatDM(p.lon,false),p.lat.toFixed(6),p.lon.toFixed(6)])];
+  const dist=[['Distance (nm), WGS84 geodesic'],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':nm(a,b).toFixed(2))])];
+  const time=[[`Time (h:mm) at ${sp} kn, straight line`],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':{raw:'="'+hrsToHM(nm(a,b)/sp)+'"'})])];
+  const rows=[['GOT Distance Matrix'],['Speed (kn)',sp],['Reference',refInfo().name],[],...poi,[],...dist,[],...time];
+  const toCSV=arr=>arr.map(row=>row.map(x=>{ if(x&&x.raw!==undefined) return x.raw; let s=String(x??''); if(typeof x!=='number'&&/^[=+\-@\t\r]/.test(s)) s="'"+s; return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
+  const blob=new Blob(['\ufeff'+toCSV(rows)],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=`Distance_Matrix_${ydm(new Date())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-
+/* ========= Session save / load (.json) =========
+   Saves the POI list (name, type, UTM E/N), reference, speed, line toggle, basemap, PDF mode, multi-reference ticks and map view.
+   lat/lon are stored for traceability only: on load they are RE-COMPUTED from E/N with this app's datum code (Indian 1975 -> WGS84). */
+const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261010.6b';
+function sessionFileName(d){ const p=n=>String(n).padStart(2,'0'); return `DistanceMap_session_${ydm(d)}_${p(d.getHours())}${p(d.getMinutes())}.json`; }
+function buildSession(){
+  const r=refIdxNow(), c=map.getCenter();
+  return {
+    app:SESSION_APP, schema:SESSION_SCHEMA, appVersion:APP_VERSION, savedAt:new Date().toISOString(),
+    datum:{from:'Indian 1975 / UTM 47N',to:'WGS84',method:'3-parameter geocentric shift',dx,dy,dz,a:a_ind,invF:Number((1/f_ind).toFixed(4))},
+    settings:{speed:speedVal(),showLines:els.toggleLines.checked,basemap:els.base.value,pdfMap:els.pdfMode.value,tableScale:Number(els.zoom.value)},
+    reference:(r>=0&&pois[r])?{index:r,name:pois[r].name}:null,
+    multiRef:pois.filter(p=>_multiSel.has(p.name)).map(p=>p.name),
+    view:{lat:+c.lat.toFixed(6),lon:+c.lng.toFixed(6),zoom:map.getZoom()},
+    pois:pois.map(p=>({name:p.name,type:p.type||'',e:p.e,n:p.n,lat:+p.lat.toFixed(8),lon:+p.lon.toFixed(8)}))
+  };
+}
+function saveSession(){
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  const fn=sessionFileName(new Date()), blob=new Blob([JSON.stringify(buildSession(),null,1)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=fn;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  setStatus(`Session saved: ${fn} (${pois.length} POIs)`);
+}
+/* Pure + atomic: validates everything, returns {error} or the cleaned session. Nothing is changed in the app here. */
+function parseSession(o){
+  if(!o||typeof o!=='object'||o.app!==SESSION_APP||!Array.isArray(o.pois)) return {error:'Not a GOT Distance Map session file.'};
+  if(!(o.schema>=1)||o.schema>SESSION_SCHEMA) return {error:`Unsupported session version (${o.schema}) - update the app.`};
+  const out=[], orig=[], skipped=[]; let nDatum=0;
+  o.pois.forEach((q,i)=>{
+    const name=(q&&typeof q.name==='string')?q.name.trim():'', e=Number(q&&q.e), n=Number(q&&q.n);
+    if(!name){ skipped.push(`#${i+1}: empty name`); return; }
+    if(!Number.isFinite(e)||!Number.isFinite(n)||e<0||e>2000000||n<0||n>12000000||(Math.abs(e)<1000&&Math.abs(n)<1000)){ skipped.push(`#${i+1} (${name}): bad E/N`); return; }
+    const [lat,lon]=indian1975UTMToWGS84(e,n);
+    if(typeof q.lat==='number'&&typeof q.lon==='number'&&(Math.abs(q.lat-lat)>1e-6||Math.abs(q.lon-lon)>1e-6)) nDatum++;
+    out.push({name,e,n,lat,lon,type:typeof q.type==='string'?q.type.trim():''}); orig.push(i);
+  });
+  if(!out.length) return {error:'Session has no valid POIs'+(skipped.length?` (${skipped[0]})`:'')+'.'};
+  let note=''; if(out.length>CFG.MAX_POIS){ note=`truncated from ${out.length} to ${CFG.MAX_POIS}`; out.length=CFG.MAX_POIS; orig.length=CFG.MAX_POIS; }
+  const s=(o.settings&&typeof o.settings==='object')?o.settings:{}, st={}, has=(k)=>Object.prototype.hasOwnProperty.call(BASEMAPS,k);
+  if(Number(s.speed)>0&&Number(s.speed)<=60) st.speed=Number(s.speed);
+  if(typeof s.showLines==='boolean') st.showLines=s.showLines;
+  if(typeof s.basemap==='string'&&(s.basemap==='none'||has(s.basemap))) st.basemap=s.basemap;
+  if(s.pdfMap==='vector'||s.pdfMap==='shot') st.pdfMap=s.pdfMap;
+  if(Number(s.tableScale)>=0.8&&Number(s.tableScale)<=1.2) st.tableScale=Number(s.tableScale);
+  let ref=-1; const rr=o.reference;
+  if(rr&&typeof rr==='object'&&typeof rr.name==='string'){
+    const k=orig.indexOf(Number(rr.index)); ref=(k>=0&&out[k].name===rr.name.trim())?k:out.findIndex(p=>p.name===rr.name.trim());
+  }
+  const names=new Set(out.map(p=>p.name)), multi=Array.isArray(o.multiRef)?[...new Set(o.multiRef.filter(x=>typeof x==='string'&&names.has(x)))]:[];
+  const v=o.view; let view=null;
+  if(v&&Number.isFinite(v.lat)&&Number.isFinite(v.lon)&&Number.isFinite(v.zoom)&&Math.abs(v.lat)<=85&&Math.abs(v.lon)<=180&&v.zoom>=0&&v.zoom<=22) view={lat:v.lat,lon:v.lon,zoom:v.zoom};
+  return {pois:out,settings:st,ref,multi,view,skipped,note,nDatum};
+}
+function applySession(P){
+  const S=P.settings;
+  if(S.speed!=null){ els.speed.value=String(S.speed); els.speedHeader.textContent=speedVal(); }
+  if(S.showLines!=null) els.toggleLines.checked=S.showLines;
+  if(S.pdfMap) els.pdfMode.value=S.pdfMap;
+  if(S.tableScale!=null){ els.zoom.value=String(S.tableScale); document.documentElement.style.setProperty('--table-scale',String(S.tableScale)); }
+  if(S.basemap){ let b=S.basemap; if(b==='carto'&&!localStorage.getItem('got_carto_key')) b='esri-gray'; els.base.value=b; setBasemap(b); }
+  pois=P.pois; els.ref.value=''; _savedRef=P.ref>=0?String(P.ref):'';
+  _multiSel=new Set(P.multi); _mrKey=null; _distRef=-2; clearHi();
+  if(P.view) map.setView([P.view.lat,P.view.lon],P.view.zoom,{animate:false}); else fitMap();
+  renderPOIs(); persist();
+  const w=[]; if(P.note) w.push(P.note);
+  if(P.skipped.length) w.push(`skipped ${P.skipped.length} POI(s): ${P.skipped.slice(0,3).join('; ')}${P.skipped.length>3?'; …':''}`);
+  if(P.nDatum) w.push(`${P.nDatum} POI(s) had different saved lat/lon - recomputed from E/N with this app's datum shift`);
+  setStatus(`Session loaded: ${P.pois.length} POIs${P.ref>=0?`, ref ${shortLabel(P.pois[P.ref].name,22)}`:''}${P.multi.length?`, ${P.multi.length} map(s) ticked`:''}${w.length?' - '+w.join(' | '):'.'}`,!w.length);
+}
+async function loadSessionFile(f){
+  try{
+    if(f.size>20*1024*1024){ setStatus('Session file is too large (> 20 MB).',false); alert('Session file is too large (> 20 MB).'); return; }
+    let o; try{ o=JSON.parse((await f.text()).replace(/^\uFEFF/,'')); }catch(e){ setStatus('Session file is not valid JSON. Nothing changed.',false); alert('Session file is not valid JSON. Nothing changed.'); return; }
+    const P=parseSession(o); if(P.error){ setStatus(P.error+' Nothing changed.',false); alert(P.error+' Nothing changed.'); return; }
+    applySession(P);
+  }catch(err){ console.error(err); setStatus('Failed to load session: '+(err.message||err),false); alert('Failed to load session: '+(err.message||err)); }
+}
+document.getElementById('btnSaveSession').addEventListener('click',saveSession);
+document.getElementById('btnLoadSession').addEventListener('click',()=>document.getElementById('sessionFile').click());
+document.getElementById('sessionFile').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ await loadSessionFile(f); } finally{ e.target.value=''; } });
 /* ========= Init ========= */
-initMap(); restore(); renderPOIs(); drawLines();
-els.dateHeader.textContent=new Date().toLocaleString();
-els.speedHeader.textContent=els.speed.value||'8';
+if(typeof L==='undefined'){
+  const f=document.getElementById('fatal'); f.hidden=false; f.textContent='The map library (Leaflet) did not load - check access to unpkg.com and reload the page.';
+  document.querySelectorAll('button').forEach(b=>{ b.disabled=true; });
+}else{
+  initMap(); restore(); setBasemap(els.base.value); fitMap(); renderPOIs();
+  if(!(window.jspdf&&window.jspdf.jsPDF)) setStatus('PDF library did not load - the map works, exports need a reload.',false);
+}
+els.dateHeader.textContent=fmtNow();
+els.speedHeader.textContent=speedVal();
 </script>
 	<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
