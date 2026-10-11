@@ -54,6 +54,23 @@
   .summary b{color:var(--ink)}
   button.link{border:0;background:none;color:var(--brand-d);cursor:pointer;padding:2px 4px;border-radius:6px;font-weight:600;font-size:12px}
   button.link:hover{background:var(--brand-l)} button.link.danger{color:#b91c1c} button.link.danger:hover{background:#fef2f2}
+  button.link:disabled{opacity:.4;cursor:default;background:none} button.link.on{background:var(--brand-l)}
+  /* POI editor */
+  .edadd{display:grid;grid-template-columns:30% 13% 1fr 1fr auto auto;gap:4px;align-items:center;padding:5px 6px;background:#f0fdf4;border-bottom:1px solid #bbf7d0}
+  #poiTable tbody tr.ed-new td{background:#f0fdf4}
+  #edInfo{cursor:pointer} #edInfo:hover{color:var(--brand-d);text-decoration:underline}
+  .edbar{display:none;align-items:center;gap:4px;flex-wrap:nowrap;box-sizing:border-box;height:30px;padding:0 8px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:11.5px;white-space:nowrap}
+  .edhint{flex:1;min-width:0;margin-left:6px;color:#92400e;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  #pane-poi.editing .edbar{position:sticky;top:0;z-index:4} #pane-poi.editing thead th{top:30px}
+  .edlog{max-height:120px;overflow:auto;padding:4px 10px;border-bottom:1px solid var(--line);background:#fafafa;font-size:11px;line-height:1.55}
+  .ed-l .t{color:var(--muted);font-variant-numeric:tabular-nums}
+  #poiTable.edit{table-layout:fixed} #poiTable.edit th:nth-child(1){width:31%} #poiTable.edit th:nth-child(2){width:13%} #poiTable.edit th:nth-child(3){width:24%} #poiTable.edit th:nth-child(4){width:25%} #poiTable.edit th:nth-child(5){width:7%}
+  #poiTable.edit td{padding:4px 5px;white-space:normal;vertical-align:top} #panel.editing>.card:not(#dataCard):not(.listcard){display:none} #poiTable.edit td.nm{max-width:none;overflow:visible} #poiTable.edit tbody tr{cursor:default} #poiTable.edit th{padding:6px 5px}
+  input.ed{width:100%;min-width:0;height:26px;padding:0 6px;border:1px solid var(--line2);border-radius:6px;background:#fff;color:var(--ink);font:inherit;font-weight:500}
+  input.ed.num{text-align:right;font-variant-numeric:tabular-nums} input.ed:focus{outline:2px solid #93c5fd;border-color:#3b82f6} input.ed.bad{border-color:#dc2626;background:#fef2f2;outline:0}
+  .ed-dm{font-size:10.5px;color:var(--muted);margin-top:2px;font-weight:400;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #poiTable tbody tr.ed-mod td{background:#fffbeb} #poiTable td.ed-x{padding:0;text-align:center}
+  .ed-del{width:24px;height:24px;border:0;border-radius:6px;background:none;color:#b91c1c;font-size:17px;line-height:1;cursor:pointer} .ed-del:hover{background:#fef2f2}
   /* switch */
   .switch{display:flex;align-items:center;gap:10px;margin-top:8px;cursor:pointer;color:var(--text);font-size:12.5px;user-select:none}
   .switch input{position:absolute;opacity:0;width:0;height:0}
@@ -138,7 +155,7 @@
   </div>
   <div id="metaBar" class="metabar">
     <span class="chip">Owner <b id="ownerName">POP Geomatics</b></span>
-    <span class="chip">V261010.9</span>
+    <span class="chip">V261010.11</span>
     <span class="chip">Speed <b id="speedHeader">8</b> kn</span>
     <span class="chip"><b id="dateHeader"></b></span>
   </div>
@@ -162,6 +179,11 @@
         <button id="btnSaveSession" class="link" type="button" title="Save POIs, reference, speed, map selection and view to a .json file">Save</button>
         <button id="btnLoadSession" class="link" type="button" title="Load a saved session (.json)">Load</button>
         <input id="sessionFile" class="sr-only" type="file" accept=".json,application/json" aria-label="Load session file">
+      </div>
+      <div class="rowbar" style="margin-top:2px">
+        <div id="edInfo" class="summary" role="button" tabindex="0">POI list edits</div>
+        <button id="btnEdit" class="link" type="button" title="Edit name / type / E / N, delete POIs. Changes are kept in this browser.">Edit</button>
+        <button id="btnExportCsv" class="link" type="button" title="Download the current list as CSV (Name,Easting,Northing,Type) - same format as the import, date-stamped file name">Export CSV</button>
       </div>
     </section>
 
@@ -212,6 +234,9 @@
       </div>
       <div class="tabpanes">
         <div id="pane-poi">
+          <div id="edBar" class="edbar"><button id="btnEdUndo" class="link" type="button" disabled>Undo</button><button id="btnEdReset" class="link danger" type="button" title="Back to the list exactly as loaded">Reset to original</button><button id="btnEdLog" class="link" type="button">Log (0)</button><button id="btnEdAdd" class="link" type="button" title="Add a POI (Name, Easting, Northing in Indian 1975 / UTM 47N)">+ Add POI</button><span class="edhint">Enter / Tab saves &bull; Esc cancels &bull; Ctrl+Z undo</span></div>
+          <div id="edLog" class="edlog" style="display:none"></div>
+          <div id="edAdd" class="edadd" style="display:none"><input id="addName" class="ed" placeholder="Name" autocomplete="off" aria-label="New POI name"><input id="addType" class="ed" placeholder="Type" autocomplete="off" aria-label="New POI type"><input id="addE" class="ed num" placeholder="Easting" inputmode="decimal" autocomplete="off" aria-label="New POI easting"><input id="addN" class="ed num" placeholder="Northing" inputmode="decimal" autocomplete="off" aria-label="New POI northing"><button id="btnAddOk" class="link" type="button">Add</button><button id="btnAddX" class="link" type="button" aria-label="Cancel add">&times;</button></div>
           <table id="poiTable">
             <thead><tr><th>Name</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th><th>Easting (m)</th><th>Northing (m)</th></tr></thead>
             <tbody></tbody>
@@ -417,7 +442,7 @@ function distKm(lat1,lon1,lat2,lon2){
   return b*A*(sig-dS)/1000;
 }
 function fmtNum(x){return(x==null||!isFinite(x))?'':x.toLocaleString(undefined,{maximumFractionDigits:2});}
-function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg);let d=Math.floor(a),m=Math.round((a-d)*60000)/1000;if(m>=60){d+=1;m=0;}const dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m.toFixed(3)}’${dir}`;}
+function formatDM(deg,isLat){const s=deg>=0?1:-1,a=Math.abs(deg);let d=Math.floor(a),m=Math.round((a-d)*60000)/1000;if(m>=60){d+=1;m=0;}const dir=isLat?(s>=0?'N':'S'):(s>=0?'E':'W');return `${d<10?'0'+d:d}°${m<10?'0':''}${m.toFixed(3)}’${dir}`;}
 function esc(s){return String(s).replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function hrsToHM(hrs){ if(!isFinite(hrs)) return '—'; let h=Math.floor(hrs); let m=Math.round((hrs-h)*60); if(m===60){h+=1;m=0;} return `${h}:${String(m).padStart(2,'0')}`; }
 function ydm(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
@@ -818,8 +843,8 @@ function applyMarkerScale(){ const zs=zoomScale(); _markerObjs.forEach(m=>{ if(m
 /* Choosing a reference from the list / map also switches the distance lines on (first time) */
 function pickRef(idx){ const had=refIdxNow()>=0; els.ref.value=String(idx); if(!had&&!els.toggleLines.checked) els.toggleLines.checked=true; persist(); renderPOIs(); }
 function applyFilter(){ const q=(els.filter&&els.filter.value||'').trim().toLowerCase(); document.querySelectorAll('#poiTable tbody tr, #distTable tbody tr').forEach(tr=>{ tr.style.display=(!q||(tr.dataset.q||'').includes(q))?'':'none'; }); }
-function renderPOIs(){
-  const tb=document.querySelector('#poiTable tbody'); tb.innerHTML='';
+function renderPOIs(keep){
+  const tb=document.querySelector('#poiTable tbody'); if(!keep) tb.innerHTML='';
   const prev = els.ref.value!=='' ? els.ref.value : _savedRef;
   _savedRef='';
   els.ref.innerHTML='<option value="">— None —</option>';
@@ -829,11 +854,12 @@ function renderPOIs(){
   const refIndex = refIdxNow();
   computeGroups();
   pois.forEach((p,i)=>{
+    if(keep) return;
     const isRef = i === refIndex;
     const tr=document.createElement('tr');
-    tr.className=isRef?'is-ref':''; tr.dataset.q=(p.name+' '+(p.type||'')).toLowerCase();
-    tr.innerHTML=`<td class="nm" title="${esc(p.name)}">${isRef?'<span class="badge-ref" style="margin:0 6px 0 0">Ref</span>':''}${esc(p.name)}</td><td class="dm">${formatDM(p.lat,true)}</td><td class="dm">${formatDM(p.lon,false)}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td>`;
-    tr.addEventListener('click',()=>pickRef(i));
+    tr.className=(isRef?'is-ref':'')+(edModified(p)?' ed-mod':'')+(_ed.base.length&&!_ed.orig.has(p)?' ed-new':''); tr.dataset.q=(p.name+' '+(p.type||'')).toLowerCase();
+    tr.innerHTML=_ed.on?edRowHtml(p):`<td class="nm" title="${esc(p.name)}">${isRef?'<span class="badge-ref" style="margin:0 6px 0 0">Ref</span>':''}${esc(p.name)}</td><td class="dm">${formatDM(p.lat,true)}</td><td class="dm">${formatDM(p.lon,false)}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td>`;
+    if(_ed.on) edWireRow(tr,p); else tr.addEventListener('click',()=>pickRef(i));
     tb.appendChild(tr);
   });
   const base=CFG.MARKER_BASE_RADIUS, types=poiTypes(), rg=refGroupIdx(), zs=zoomScale(); let refMarker=null; _markerObjs=[];
@@ -1126,7 +1152,7 @@ function loadRows(rows,skipped){
   const oldName=(refIdxNow()>=0&&pois[refIdxNow()])?pois[refIdxNow()].name:null;     // keep the reference only if the same name exists in the new list
   pois=out; els.ref.value=''; clearHi();
   const ni=oldName==null?-1:out.findIndex(p=>p.name===oldName); _savedRef=ni>=0?String(ni):'';
-  fitMap(); renderPOIs(); persist();
+  fitMap(); edBase(_srcName); renderPOIs(); persist();
   const dup=[...new Set(out.map(p=>p.name).filter((nm,i,a)=>a.indexOf(nm)!==i))];
   const warn=[]; if(note) warn.push(note.trim().replace(/^\(|\)$/g,''));
   if(skipped&&skipped.length) warn.push(`skipped ${skipped.length} row(s): ${skipped.slice(0,3).join('; ')}${skipped.length>3?'; …':''}`);
@@ -1163,7 +1189,7 @@ function stampFooters(doc,exportedStr){
     const right=`Indian 1975 / UTM 47N -> WGS84 • Speed ${speedVal()} kn • Page ${i}/${n}`;
     doc.text(right,W-m-doc.getTextWidth(right),H-7);
     doc.setFontSize(9); doc.setTextColor(60);
-    const credit='Develop by Rattawit W';
+    const credit='Developed by Rattawit W';
     doc.text(credit,(W-doc.getTextWidth(credit))/2,H-3.5);
   }
 }
@@ -1892,7 +1918,7 @@ els.btnClear.addEventListener('click', ()=>{
   document.querySelector('#matrixTable thead').innerHTML='';
   document.querySelector('#matrixTable tbody').innerHTML='';
   markersLayer.clearLayers(); labelsLayer.clearLayers(); linesLayer.clearLayers(); clearHi();
-  _multiSel.clear(); _mrKey=null; _savedRef=''; _distRef=-2; renderPOIs();
+  _multiSel.clear(); _mrKey=null; _savedRef=''; _distRef=-2; _srcName=''; edBase(''); renderPOIs();
   setStatus('Cleared.');
   persist(); fitMap();
 });
@@ -1936,7 +1962,7 @@ try{
 const {rows,reason,skipped}=parseCsvRobust(text);
 
     if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    loadRows(rows,skipped);
+    _srcName=f.name; loadRows(rows,skipped);
   }catch(err){ console.error(err); setStatus('Failed to read the CSV: '+(err.message||err), false); alert('Failed to read the CSV: '+(err.message||err)); }
   finally{ e.target.value=''; }
 });
@@ -1982,7 +2008,7 @@ try{
 const {rows,reason,skipped}=parseCsvRobust(text);
 
     if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    loadRows(rows,skipped);
+    _srcName=f.name; loadRows(rows,skipped);
   }catch(err){ console.error(err); setStatus(err.message||err, false); alert('Failed to read the CSV: '+(err.message||err)); }
 });
 
@@ -2002,7 +2028,7 @@ function restore(){
     if(data.speed) els.speed.value=data.speed;
     if(data.show!=null) els.toggleLines.checked=data.show;
     if(data.zoom){ els.zoom.value=data.zoom; document.documentElement.style.setProperty('--table-scale', data.zoom); }
-    if(Array.isArray(data.pois)) pois=data.pois.filter(p=>p&&typeof p.name==='string'&&p.name&&[p.e,p.n,p.lat,p.lon].every(v=>typeof v==='number'&&isFinite(v))).slice(0,CFG.MAX_POIS).map(p=>({name:p.name,e:p.e,n:p.n,lat:p.lat,lon:p.lon,type:typeof p.type==='string'?p.type:''}));
+    if(Array.isArray(data.pois)) pois=data.pois.filter(p=>p&&typeof p.name==='string'&&p.name&&[p.e,p.n].every(v=>typeof v==='number'&&isFinite(v))).slice(0,CFG.MAX_POIS).map(p=>{ const [lat,lon]=indian1975UTMToWGS84(p.e,p.n); return {name:p.name,e:p.e,n:p.n,lat,lon,type:typeof p.type==='string'?p.type:''}; });
     if(data.base) els.base.value=data.base;
     if(data.pdfMode) els.pdfMode.value=data.pdfMode;
     if(typeof data.shore==='boolean') els.shore.checked=data.shore;
@@ -2011,10 +2037,9 @@ function restore(){
   }catch{}
 }
 const onSpeedChange = ()=>{ els.speedHeader.textContent=speedVal(); requestMatrix(); renderDistTable(); drawLines(); persist(); };
-els.speed.addEventListener('blur',()=>{ if(!(parseFloat(els.speed.value)>0)){ els.speed.value='8'; onSpeedChange(); setStatus('Speed must be greater than 0 - reset to 8 kn.',false); } });
+els.speed.addEventListener('blur',()=>{ if(parseFloat(els.speed.value)>60){ els.speed.value='60'; onSpeedChange(); setStatus('Speed limited to 60 kn.',false); } if(!(parseFloat(els.speed.value)>0)){ els.speed.value='8'; onSpeedChange(); setStatus('Speed must be greater than 0 - reset to 8 kn.',false); } });
 els.speed.addEventListener('input', onSpeedChange);
 els.speed.addEventListener('change', onSpeedChange);
-els.speed.addEventListener('keyup', onSpeedChange);
 els.ref.addEventListener('change', ()=>{ if(els.ref.value!==''&&!_hadRef&&!els.toggleLines.checked) els.toggleLines.checked=true; renderPOIs(); persist(); });
 els.filter.addEventListener('input', applyFilter);
 document.getElementById('mrAll').addEventListener('click',()=>{ pois.forEach(p=>_multiSel.add(p.name)); syncMulti(); persist(); });
@@ -2045,10 +2070,214 @@ els.btnExportMatrixExcel.addEventListener('click', ()=>{
   a.href=url; a.download=`Distance_Matrix_${ydm(new Date())}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
+/* ========= POI editor =========
+   Edit name / type / E / N, delete rows, Undo, Reset to original. Everything is kept in this browser (localStorage: POIs via persist(),
+   edit state + dated change log via ED_KEY) and the current list can be exported as the SAME csv (Name,Easting,Northing,Type) with a dated file name. */
+let _srcName='';
+const ED_KEY='got_edit_v1', ED_LOG_MAX=1000, ED_UNDO_MAX=50;
+let _ed={on:false,src:'',loadedAt:'',lastEdit:'',lastExport:'',base:[],objs:[],orig:new Map(),log:[],undo:[],head:null};
+const edE=id=>document.getElementById(id);
+const edStamp=(d=new Date())=>`${ydm(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+const edSnap=p=>({name:p.name,type:p.type||'',e:p.e,n:p.n});
+const edGeo=p=>{ const [la,lo]=indian1975UTMToWGS84(p.e,p.n); p.lat=la; p.lon=lo; };
+const edMk=b=>{ const p={name:b.name,e:b.e,n:b.n,lat:0,lon:0,type:b.type||''}; edGeo(p); return p; };
+const edSame=(p,b)=>!!b&&p.name===b.name&&(p.type||'')===(b.type||'')&&p.e===b.e&&p.n===b.n;
+const edModified=p=>{ const b=_ed.orig.get(p); return !!b&&!edSame(p,b); };
+const edCsvQ=s=>{ s=String(s==null?'':s); return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
+function edLog(action,poi,field,oldV,newV){
+  _ed.log.push({t:edStamp(),action,poi:poi||'',field:field||'',old:oldV==null?'':String(oldV),new:newV==null?'':String(newV)});
+  if(_ed.log.length>ED_LOG_MAX) _ed.log.splice(1,_ed.log.length-ED_LOG_MAX);      // keep the first ("load") entry
+}
+/* New baseline = what was just loaded (CSV / session) or cleared. */
+function edBase(src){
+  _ed={on:false,src:src||'',loadedAt:edStamp(),lastEdit:'',lastExport:'',base:pois.map(edSnap),objs:pois.slice(),orig:new Map(),log:[],undo:[],head:null};
+  pois.forEach((p,i)=>_ed.orig.set(p,_ed.base[i]));
+  if(pois.length) edLog('load','','','',`${pois.length} POIs from ${src||'(unnamed)'}`);
+  edSave(); edSyncUi();
+}
+function edSave(){
+  try{
+    if(!_ed.base.length){ localStorage.removeItem(ED_KEY); return; }
+    const idx=new Map(_ed.objs.map((o,i)=>[o,i]));
+    localStorage.setItem(ED_KEY,JSON.stringify({v:1,src:_ed.src,loadedAt:_ed.loadedAt,lastEdit:_ed.lastEdit,lastExport:_ed.lastExport,base:_ed.base,
+      origIdx:pois.map(p=>(_ed.orig.has(p)&&idx.has(p))?idx.get(p):-1),log:_ed.log}));
+  }catch(e){}
+}
+function edRestore(){
+  let m=null; try{ m=JSON.parse(localStorage.getItem(ED_KEY)||'null'); }catch(e){}
+  const ok=m&&m.v===1&&Array.isArray(m.base)&&Array.isArray(m.origIdx)&&m.origIdx.length===pois.length
+    &&m.base.every(b=>b&&typeof b.name==='string'&&Number.isFinite(b.e)&&Number.isFinite(b.n))
+    &&m.origIdx.every(k=>Number.isInteger(k)&&k>=-1&&k<m.base.length);
+  if(!ok){ edBase(pois.length?'data restored from this browser':''); return; }
+  const base=m.base.map(edSnap), objs=base.map(edMk), orig=new Map();
+  m.origIdx.forEach((k,i)=>{ if(k>=0){ objs[k]=pois[i]; orig.set(pois[i],base[k]); } });
+  const s=v=>typeof v==='string'?v:'';
+  _ed={on:false,src:s(m.src),loadedAt:s(m.loadedAt),lastEdit:s(m.lastEdit),lastExport:s(m.lastExport),base,objs,orig,undo:[],head:null,
+    log:(Array.isArray(m.log)?m.log:[]).filter(x=>x&&typeof x.t==='string').slice(-ED_LOG_MAX).map(x=>({t:x.t,action:s(x.action),poi:s(x.poi),field:s(x.field),old:s(x.old),new:s(x.new)}))};
+  edSyncUi();
+}
+/* ---- undo ---- */
+function edPush(label){ const st=edState(); _ed.undo.push({label,refObj:st.refObj,sel:st.sel,snap:pois.map(p=>({p,name:p.name,type:p.type||'',e:p.e,n:p.n}))}); if(_ed.undo.length>ED_UNDO_MAX) _ed.undo.shift(); }
+function edState(){ return {refObj:pois[refIdxNow()]||null,sel:pois.filter(p=>_multiSel.has(p.name))}; }
+function edTail(s){   // keep reference + multi-reference ticks attached to the same POI objects (indices / names may have changed)
+  _multiSel=new Set(s.sel.filter(p=>pois.includes(p)).map(p=>p.name));
+  const k=s.refObj?pois.indexOf(s.refObj):-1; els.ref.value=''; _savedRef=k>=0?String(k):'';
+  _dc=null; _distRef=-2; clearHi();
+}
+function edAfter(keepP){ renderPOIs(!!keepP); if(keepP) edRefreshRow(keepP); persist(); edSave(); edSyncUi(); }
+function edMutate(label,fn,entries,keepP){
+  edPush(label); const s=edState(); fn(); edTail(s);
+  entries.forEach(e=>edLog(...e)); _ed.lastEdit=edStamp(); edAfter(keepP);
+}
+function edUndo(){
+  const u=_ed.undo.pop(); if(!u) return;
+  const s=edState();
+  pois=u.snap.map(x=>{ x.p.name=x.name; x.p.type=x.type; x.p.e=x.e; x.p.n=x.n; edGeo(x.p); return x.p; });
+  const back=o=>o&&pois.includes(o)?o:null;   // a POI that was deleted comes back as reference / ticked map only if nothing else took its place
+  edTail({refObj:back(s.refObj)||back(u.refObj),sel:[...new Set([...s.sel,...u.sel.filter(back)])]});
+  edLog('undo','','',u.label,''); _ed.lastEdit=edStamp(); edAfter();
+  setStatus(`Undone: ${u.label}.`);
+}
+function edReset(){
+  if(!_ed.base.length) return;
+  if(!confirm(`Restore all ${_ed.base.length} POIs exactly as loaded from ${_ed.src||'the source'} (${_ed.loadedAt})?\nUndo can bring the edits back.`)) return;
+  edPush('reset to original'); const s=edState();
+  pois=_ed.objs.map((p,i)=>{ const b=_ed.base[i]; p.name=b.name; p.type=b.type; p.e=b.e; p.n=b.n; edGeo(p); _ed.orig.set(p,b); return p; });
+  edTail(s); edLog('reset','','','',`${pois.length} POIs restored`); _ed.lastEdit=edStamp(); edAfter();
+  setStatus(`Restored the original ${pois.length} POIs.`);
+}
+/* ---- cell edit / delete ---- */
+function edCoordErr(e,n){
+  if(e<0||e>2000000||n<0||n>12000000) return 'E/N out of UTM range (E 0-2,000,000 m, N 0-12,000,000 m) - decimal comma or wrong units?';
+  if(Math.abs(e)<1000&&Math.abs(n)<1000) return 'E/N look like degrees - UTM metres expected.';
+  return '';
+}
+function edFill(inp,p,f){ inp.value=f==='name'?p.name:f==='type'?(p.type||''):String(p[f]); }
+function edFlash(inp,msg,p,f){ edFill(inp,p,f); inp.classList.add('bad'); setStatus(msg+' Value not changed.',false); setTimeout(()=>inp.classList.remove('bad'),1600); }
+function edCommit(p,f,raw,inp){
+  if(!pois.includes(p)) return;
+  const lab={name:'Name',type:'Type',e:'Easting',n:'Northing'}[f]; let v=String(raw).trim(), err='';
+  if(f==='name'){ if(!v) err='Name cannot be empty.'; else if(pois.some(q=>q!==p&&q.name===v)) err=`Name "${v}" is already used by another POI.`; }
+  else if(f==='e'||f==='n'){
+    const t=v.replace(/[\s\u00a0]/g,''), x=/,/.test(t)&&!/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)?NaN:Number(t.replace(/,/g,'')); if(v===''||!Number.isFinite(x)) err=/,/.test(t)?`${lab}: use a dot for decimals (comma only as thousands separator, e.g. 888,640.35).`:`${lab} must be a number.`; else{ v=x; err=edCoordErr(f==='e'?x:p.e,f==='n'?x:p.n); }
+  }
+  if(err){ edFlash(inp,err,p,f); return; }
+  const oldV=f==='type'?(p.type||''):p[f];
+  if(v===oldV){ edFill(inp,p,f); return; }
+  const who=p.name;
+  edMutate(`${lab} of ${who}`,()=>{ p[f]=v; if(f==='e'||f==='n') edGeo(p); },[['edit',who,lab,oldV,v]],p);
+  const far=(f==='e'||f==='n')&&(p.lon<93||p.lon>106||p.lat<-5||p.lat>25);
+  setStatus(`Saved ${lab} of ${p.name}: ${oldV===''?'(empty)':oldV} \u2192 ${v===''?'(empty)':v}${far?' - WARNING: far outside the Gulf of Thailand area, check units / datum':''}`,!far);
+}
+function edDelete(p){
+  const i=pois.indexOf(p); if(i<0) return;
+  edMutate(`delete ${p.name}`,()=>{ pois.splice(i,1); },[['delete',p.name,'POI',[p.name,p.type||'',p.e,p.n].join(' | '),'']]);
+  setStatus(`Deleted ${p.name} - ${pois.length} POIs left. Undo is in the edit bar.`);
+}
+function edRowHtml(p){
+  const a=(f,v,c)=>`<input class="ed${c||''}" data-f="${f}" value="${esc(v)}" spellcheck="false" autocomplete="off" aria-label="${f==='name'?'Name':f==='type'?'Type':f==='e'?'Easting':'Northing'} of ${esc(p.name)}">`;
+  return `<td class="nm">${a('name',p.name)}<div class="ed-dm">${formatDM(p.lat,true)} ${formatDM(p.lon,false)}</div></td><td>${a('type',p.type||'')}</td><td>${a('e',String(p.e),' num')}</td><td>${a('n',String(p.n),' num')}</td><td class="ed-x"><button type="button" class="ed-del" title="Delete this POI" aria-label="Delete ${esc(p.name)}">\u00d7</button></td>`;
+}
+function edWireRow(tr,p){
+  tr.querySelectorAll('input.ed').forEach(inp=>{
+    inp.addEventListener('change',()=>edCommit(p,inp.dataset.f,inp.value,inp));
+    inp.addEventListener('keydown',e=>{ if(e.key==='Escape'){ edFill(inp,p,inp.dataset.f); inp.blur(); } });
+  });
+  tr.querySelector('.ed-del').addEventListener('click',()=>edDelete(p));
+}
+function edRefreshRow(p){   // after a cell commit the table is NOT rebuilt (keeps focus for Tab): update this row in place
+  const tr=document.querySelector('#poiTable tbody').children[pois.indexOf(p)]; if(!tr) return;
+  tr.classList.toggle('ed-mod',edModified(p)); tr.dataset.q=(p.name+' '+(p.type||'')).toLowerCase();
+  const dm=tr.querySelector('.ed-dm'); if(dm) dm.textContent=`${formatDM(p.lat,true)} ${formatDM(p.lon,false)}`;
+  tr.querySelectorAll('input.ed').forEach(i=>edFill(i,p,i.dataset.f));
+}
+/* ---- UI state ---- */
+function edSyncUi(){
+  const mod=pois.filter(p=>edModified(p)).length, del=_ed.base.length-pois.filter(p=>_ed.orig.has(p)).length;
+  const add=pois.filter(p=>!_ed.orig.has(p)).length;
+  const parts=[]; if(mod) parts.push(`${mod} modified`); if(add) parts.push(`${add} added`); if(del) parts.push(`${del} deleted`);
+  const info=edE('edInfo');
+  info.textContent=parts.length?`${parts.join(' \u2022 ')} \u2022 ${_ed.lastEdit.slice(0,16)}`:(pois.length?'No edits':'POI list edits');
+  info.title=_ed.base.length?`Source: ${_ed.src||'-'} (loaded ${_ed.loadedAt}) | Last edit: ${_ed.lastEdit||'-'} | Last CSV export: ${_ed.lastExport||'-'} | Click to open the dated log`:'';
+  const b=edE('btnEdit'); b.textContent=_ed.on?'Done':'Edit'; b.classList.toggle('on',_ed.on);
+  edE('edBar').style.display=_ed.on?'flex':'none'; edE('pane-poi').classList.toggle('editing',_ed.on); edE('panel').classList.toggle('editing',_ed.on); edE('poiTable').classList.toggle('edit',_ed.on);
+  if(_ed.head!==_ed.on){ _ed.head=_ed.on; document.querySelector('#poiTable thead tr').innerHTML=_ed.on?'<th>Name</th><th>Type</th><th title="Easting (m)">Easting</th><th title="Northing (m)">Northing</th><th></th>':'<th>Name</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th><th>Easting (m)</th><th>Northing (m)</th>'; }
+  edE('btnEdUndo').disabled=!_ed.undo.length; edE('btnEdLog').textContent=`Log (${_ed.log.length})`;
+  if(edE('edLog').style.display!=='none') edRenderLog();
+}
+function edToggle(){
+  if(!_ed.on){ if(!pois.length&&!_ed.base.length){ alert('Load POIs first.'); return; } _ed.on=true; document.querySelector('.tab[data-tab="poi"]').click(); }
+  else { _ed.on=false; edAddOpen(false); }
+  edSyncUi(); renderPOIs();
+}
+/* ---- log ---- */
+function edLogText(r){
+  if(r.action==='edit') return `${r.poi} \u00b7 ${r.field}: ${r.old===''?'(empty)':r.old} \u2192 ${r.new===''?'(empty)':r.new}`;
+  if(r.action==='delete') return `${r.poi} (${r.old})`;
+  if(r.action==='add') return `${r.poi} (${r.new})`;
+  if(r.action==='undo') return `reverted: ${r.old}`;
+  return r.new;
+}
+function edRenderLog(){
+  const rows=_ed.log.slice().reverse().slice(0,300);
+  edE('edLog').innerHTML=`<div class="ed-l"><button type="button" class="link" id="btnEdLogCsv">Download log (CSV)</button><span class="t"> ${_ed.log.length} entries, newest first</span></div>`
+    +rows.map(r=>`<div class="ed-l"><span class="t">${esc(r.t)}</span> <b>${esc(r.action)}</b> ${esc(edLogText(r))}</div>`).join('');
+  edE('btnEdLogCsv').addEventListener('click',edExportLog);
+}
+/* ---- downloads (file names carry the date + time) ---- */
+function edBaseName(){ return (String(_ed.src||'POI').replace(/\.[A-Za-z0-9]+$/,'').replace(/[\\/:*?"<>|\s]+/g,'_').replace(/_(edited|export|changelog)_\d{4}-\d{2}-\d{2}_\d{4}$/,''))||'POI'; }
+function edFileStamp(d){ return `${ydm(d)}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`; }
+function edDownload(name,text){
+  const url=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'})), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function edExportCsv(){
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  const d=new Date(), changed=pois.some(p=>edModified(p)||!_ed.orig.has(p))||pois.length!==_ed.base.length;
+  const fn=`${edBaseName()}_${changed?'edited':'export'}_${edFileStamp(d)}.csv`;
+  edDownload(fn,['Name,Easting,Northing,Type',...pois.map(p=>[edCsvQ(p.name),p.e,p.n,edCsvQ(p.type||'')].join(','))].join('\r\n')+'\r\n');
+  _ed.lastExport=edStamp(d); edLog('export','','','',`${fn} (${pois.length} POIs)`); edSave(); edSyncUi();
+  setStatus(`CSV exported: ${fn} (${pois.length} POIs) \u2022 ${_ed.lastExport}`);
+}
+function edExportLog(){
+  if(!_ed.log.length){ alert('No log yet.'); return; }
+  const d=new Date(), fn=`${edBaseName()}_changelog_${edFileStamp(d)}.csv`;
+  edDownload(fn,['Date-time (local),Action,POI,Field,Old,New',..._ed.log.map(r=>[r.t,r.action,r.poi,r.field,r.old,r.new].map(edCsvQ).join(','))].join('\r\n')+'\r\n');
+  setStatus(`Change log exported: ${fn} (${_ed.log.length} entries)`);
+}
+edE('btnEdit').addEventListener('click',edToggle);
+edE('btnExportCsv').addEventListener('click',edExportCsv);
+edE('btnEdUndo').addEventListener('click',edUndo);
+edE('btnEdReset').addEventListener('click',edReset);
+/* ---- add POI ---- */
+function edAddOpen(show){ const a=edE('edAdd'); a.style.display=show?'grid':'none'; if(show){ ['addName','addType','addE','addN'].forEach(i=>edE(i).value=''); edE('addName').focus(); } }
+function edNum(lab,v){ const t=String(v).replace(/[\s\u00a0]/g,''); if(t==='') return {err:`${lab} is required.`};
+  if(/,/.test(t)&&!/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) return {err:`${lab}: use a dot for decimals (comma only as thousands separator).`};
+  const x=Number(t.replace(/,/g,'')); return Number.isFinite(x)?{x}:{err:`${lab} must be a number.`}; }
+function edAddCommit(){
+  const name=edE('addName').value.trim(), type=edE('addType').value.trim(), E=edNum('Easting',edE('addE').value), N=edNum('Northing',edE('addN').value);
+  let err=!name?'Name is required.':pois.some(q=>q.name===name)?`Name "${name}" is already used.`:pois.length>=CFG.MAX_POIS?`Maximum ${CFG.MAX_POIS} POIs.`:(E.err||N.err||edCoordErr(E.x,N.x));
+  if(err){ setStatus(err+' POI not added.',false); return; }
+  const p={name,type,e:E.x,n:N.x,lat:0,lon:0}; edGeo(p);
+  edMutate(`add ${name}`,()=>{ pois.push(p); },[['add',name,'POI','',[name,type,E.x,N.x].join(' | ')]]);
+  edAddOpen(false);
+  const tr=document.querySelector('#poiTable tbody').lastElementChild; if(tr&&tr.scrollIntoView) tr.scrollIntoView({block:'nearest'});
+  const far=p.lon<93||p.lon>106||p.lat<-5||p.lat>25;
+  setStatus(`Added ${name} (${formatDM(p.lat,true)} ${formatDM(p.lon,false)}) - ${pois.length} POIs${far?' - WARNING: far outside the Gulf of Thailand area, check units / datum':''}.`,!far);
+}
+edE('btnEdAdd').addEventListener('click',()=>edAddOpen(edE('edAdd').style.display==='none'));
+edE('btnAddOk').addEventListener('click',edAddCommit);
+edE('btnAddX').addEventListener('click',()=>edAddOpen(false));
+edE('edAdd').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); edAddCommit(); } else if(e.key==='Escape') edAddOpen(false); });
+document.addEventListener('keydown',e=>{ if(_ed.on&&(e.ctrlKey||e.metaKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')&&!(e.target&&e.target.tagName==='INPUT')&&_ed.undo.length){ e.preventDefault(); edUndo(); } });
+function edToggleLog(){ const l=edE('edLog'); l.style.display=l.style.display==='none'?'block':'none'; if(l.style.display!=='none') edRenderLog(); }
+edE('btnEdLog').addEventListener('click',edToggleLog);
+edE('edInfo').addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); edE('edInfo').click(); } });
+edE('edInfo').addEventListener('click',()=>{ if(!_ed.log.length) return; document.querySelector('.tab[data-tab="poi"]').click(); edToggleLog(); });   // the info line opens the dated log, also outside edit mode
 /* ========= Session save / load (.json) =========
    Saves the POI list (name, type, UTM E/N), reference, speed, line toggle, basemap, PDF mode, multi-reference ticks and map view.
    lat/lon are stored for traceability only: on load they are RE-COMPUTED from E/N with this app's datum code (Indian 1975 -> WGS84). */
-const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261010.9';
+const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261010.11';
 function sessionFileName(d){ const p=n=>String(n).padStart(2,'0'); return `DistanceMap_session_${ydm(d)}_${p(d.getHours())}${p(d.getMinutes())}.json`; }
 function buildSession(){
   const r=refIdxNow(), c=map.getCenter();
@@ -2112,7 +2341,7 @@ function applySession(P){
   pois=P.pois; els.ref.value=''; _savedRef=P.ref>=0?String(P.ref):'';
   _multiSel=new Set(P.multi); _mrKey=null; _distRef=-2; clearHi();
   if(P.view) map.setView([P.view.lat,P.view.lon],P.view.zoom,{animate:false}); else fitMap();
-  renderPOIs(); persist();
+  edBase(_srcName); renderPOIs(); persist();
   const w=[]; if(P.note) w.push(P.note);
   if(P.skipped.length) w.push(`skipped ${P.skipped.length} POI(s): ${P.skipped.slice(0,3).join('; ')}${P.skipped.length>3?'; …':''}`);
   if(P.nDatum) w.push(`${P.nDatum} POI(s) had different saved lat/lon - recomputed from E/N with this app's datum shift`);
@@ -2123,7 +2352,7 @@ async function loadSessionFile(f){
     if(f.size>20*1024*1024){ setStatus('Session file is too large (> 20 MB).',false); alert('Session file is too large (> 20 MB).'); return; }
     let o; try{ o=JSON.parse((await f.text()).replace(/^\uFEFF/,'')); }catch(e){ setStatus('Session file is not valid JSON. Nothing changed.',false); alert('Session file is not valid JSON. Nothing changed.'); return; }
     const P=parseSession(o); if(P.error){ setStatus(P.error+' Nothing changed.',false); alert(P.error+' Nothing changed.'); return; }
-    applySession(P);
+    _srcName=f.name; applySession(P);
   }catch(err){ console.error(err); setStatus('Failed to load session: '+(err.message||err),false); alert('Failed to load session: '+(err.message||err)); }
 }
 document.getElementById('btnSaveSession').addEventListener('click',saveSession);
@@ -2134,7 +2363,7 @@ if(typeof L==='undefined'){
   const f=document.getElementById('fatal'); f.hidden=false; f.textContent='The map library (Leaflet) did not load - check access to unpkg.com and reload the page.';
   document.querySelectorAll('button').forEach(b=>{ b.disabled=true; });
 }else{
-  initMap(); restore(); setBasemap(els.base.value); fitMap(); renderPOIs();
+  initMap(); restore(); edRestore(); setBasemap(els.base.value); fitMap(); renderPOIs();
   if(!(window.jspdf&&window.jspdf.jsPDF)) setStatus('PDF library did not load - the map works, exports need a reload.',false);
 }
 els.dateHeader.textContent=fmtNow();
