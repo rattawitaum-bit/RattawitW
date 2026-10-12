@@ -3,11 +3,117 @@
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Coordinate Converter v6.7.3</title>
+<title>Coordinate Converter v6.9.5</title>
 <!-- 
-  Coordinate Converter v6.7.3
-  Standalone Offline Geodetic Coordinate Conversion & Route Analytics Workbench (Stable Non-AI Edition)
+  Coordinate Converter v6.8.5
+  Standalone Offline Geodetic Coordinate Conversion & Route Analytics Workbench
   Developed by Rattawit W.
+  ---
+  v6.8.1 AI-OCR hardening patch:
+   * MODELS fallback -> gemini-2.5-flash-lite (free-tier, was paid 3.5-lite)
+   * API key moved from URL query to x-goog-api-key header
+   * 429 quota handling with RetryInfo-aware exponential backoff (no fallback burn)
+   * 40s AbortController timeout per request
+   * thinkingLevel:'low' + camelCase responseMimeType/responseSchema
+   * HEIC/HEIF guard with clear message; surfaced real image-decode errors
+   * Free-tier privacy/data-training warning in key notice
+   * Stricter AIza key regex; UTM<->Lat/Lon column-pairing guard
+   * Enabled Myanmar/Malaysia/Brunei datum options (were dead code)
+  ---
+  v6.8.2 datum-correctness patch (G2 follow-up):
+   * Datum registry (DATUMS): per-datum ellipsoid + PRJ/WKT metadata
+   * Indian-side ellipsoid now datum-correct (Kertau a=6377304.063, Timbalai/Brunei a=6377298.556; Indian family unchanged 6377276.345)
+   * GeoMath wgs84ToInd1975/ind1975ToWgs84/indGeodeticToWgs84 take optional ellipsoid (defaults = legacy => Thailand path bit-identical)
+   * SHP .prj built dynamically via buildPrj() for all 8 datums (was hardcoded Indian 1975)
+  ---
+  v6.8.3 consolidated full build — merges the 4 patch-sets:
+   [1] AI-OCR hardening   : model fallback, header-auth, 429 backoff, 40s timeout,
+                            thinkingLevel:low, camelCase schema, HEIC guard,
+                            AIza regex, UTM<->Lat/Lon pairing guard, privacy notice.
+   [2] Datum correctness  : DATUMS registry + per-datum Indian ellipsoid
+                            (Thailand path remains bit-identical to legacy).
+   [3] Dynamic PRJ/WKT    : buildPrj() emits datum-correct .prj for all 8 datums.
+   [4] Performance (C1)   : AppMethods.scheduleCalc() debounces table recompute and
+                            defers the heavy map/SVG/route redraw to one idle repaint,
+                            removing per-keystroke lag on large (500-1000 row) tables.
+  Note: foreign datum (MM/MY/BN) dx/dy/dz remain provisional — verify vs field
+        control before production use. Offline architecture unchanged (CDN + _lib fallback).
+  ---
+  v6.8.5 EPSG datum-parameter correction:
+   * Replaced provisional foreign dx/dy/dz with EPSG-authoritative geocentric translations.
+   * BUGFIX (critical): dx sign was un-negated for Kertau/Timbalai/Brunei in v6.8.2-6.8.3
+     (author negated dy/dz but not dx) -> ~1350 m error on those datums. Now correct.
+     - Kertau 1968  d=(11,-851,-5)      [Kertau1968->WGS84 -11,851,5; EPSG:4245]
+     - Timbalai1948 d=(679,-669,48)     [EPSG:1228 -679,669,-48]
+     - Brunei       d=(678,-670,48)     [EPSG:1592 -678,670,-48]
+   * Indian 1960 relabeled Myanmar->Vietnam (datum's true extent); d=(-198,-881,-317) [EPSG:1542].
+   * Indian 1954 (-217,-823,-299) confirmed correct, unchanged.
+   * Thailand RTSD values (legacy/dol/survey) intentionally unchanged (local best-fit).
+   * Registry gains epsg + acc_m (accuracy metres) metadata per datum.
+  ---
+  v6.9.5 compact workspace (less dead space, more data on screen):
+   * Header 175 px -> ~84 px: brand | Zone + Datum | Auto-save, EN/TH, Clear on one row; tabs + datum chips on the second row.
+   * Redundant section headings and table captions removed from the layout (kept for screen readers and print).
+   * Toolbar merged: format selectors + result status on one row; Calculate / Clear / +10 rows / Paste / GPS / OCR / Import / Send / Export / Copy on the second row (bottom action row removed, no scrolling to reach Calculate).
+   * Table rows 40 -> 32 px; table fills the viewport height (scrolls inside with sticky headers); card padding and gaps halved.
+   * Route tab controls and Map panel header tightened; map height follows the viewport.
+   * Shorter labels where the tab already gives the context: Calculate / Clear (was Calculate Section 1 / Clear Section 1), Input / Output (was Input Format / Output Format); full wording stays in tooltips.
+   * Phone layout: header 336 px -> compact; toolbar and status stack tighter.
+  ---
+  v6.9.4 visual refresh + default basemap:
+   * Default basemap = Esri Ocean / Bathymetry (fallback chain Ocean -> Street -> OSM -> offline grid). Preference key renamed (cc_basemap_v2) so the new default applies once; a manual choice is remembered again afterwards.
+   * Header: logo mark, version only in the badge, datum chips, labelled Zone / Datum fields, Auto-save as a switch, controls grouped in two tidy rows.
+   * Tabs: underline style with accent. Cards: soft border + radius + shadow.
+   * Format + action buttons grouped in one toolbar panel; "Import from file" is now a dashed button in the action row.
+   * Table: column headers colour-coded (black = type here, navy = WGS84 result, bronze = Indian 1975 result); empty result cells no longer tinted; monospace tabular numbers; focus ring on the active row/cell.
+   * Idle status line shows a keyboard hint instead of blank space; OK / error banners get a coloured edge.
+   * Buttons: consistent radius/borders; AI OCR gets an accent style; Map / SVG switch is a segmented control.
+  ---
+  v6.9.3 map controls & legends:
+   * Map toolbar: zoom to all points, Gulf of Thailand view, point-label toggle (auto-off above 50 points), full screen (Esc exits).
+   * Coordinate readout: WGS84 (DM + decimal) and Indian 1975 UTM under the cursor; click/tap pins it; Copy button. Replaces "Hover for coordinates".
+   * Legend (collapsible, remembered): Section 1 / Section 2 / route centreline (WP count, length in NM) / route buffer, with live counts.
+   * Nautical-mile scale bar added next to the metric/imperial scale.
+   * Point popups now show DM, decimal and Indian 1975 E/N with a Copy button.
+   * FIX offline graticule: every label was repeated in each 256 px tile (clutter, only visible with real Leaflet); now one label per line at the viewport edge.
+   * NEW header switch "Auto-save" (on by default): off = nothing is written to localStorage and any saved draft is deleted (use on shared PCs / confidential coordinates).
+   * Legacy SVG: structured legend with counts and axis system, north arrow; FIX route points were always drawn rose on the Route tab even when the source was Section 1.
+  ---
+  v6.9.2 UX release:
+   * Workbench tables fit 1440 px in every input/output format (table min-width:max-content removed, headers wrap, tighter padding).
+   * Map / SVG empty state (what to do), plus a "map library not loaded" state with a one-click switch to Legacy SVG.
+   * Import file / sample templates collapsed into one panel (state remembered); Paste, GPS and AI OCR stay on the main row.
+   * Error lines in the status banner and in Route Analytics are clickable (Enter/Space too): jump to the row, focus the bad cell, flash the row.
+   * Library-missing toast can be dismissed by click.
+  ---
+  v6.9.1 UX/UI release:
+   * Toasts moved bottom-right (they covered the header controls), click to dismiss, pause on hover, 4-toast cap.
+   * Clear Section now offers Undo (9 s). Session auto-save: datum, zone, formats, language and typed points are restored on reopen (localStorage, this browser only; Clear All wipes it).
+   * "+ 10 rows" button; Enter / Shift+Enter move down / up; ArrowDown on the last used row appends rows.
+   * Tab-focus selects the whole field. Touch devices get a numeric keypad on UTM columns.
+   * Click any result cell to copy its value.
+   * Input columns compacted so Indian E/N are visible without sideways scrolling at 1440 px.
+   * Header datum strip (dx/dy/dz + zone) always visible on one line; small labels 11 -> 12 px.
+   * Mobile: the three tabs fit on one screen.
+  ---
+  v6.9.0 QA/QC release:
+   * FIX basemap: CARTO raster tiles now need an API key (watermark). Replaced by key-free Esri Street
+     (default), OpenStreetMap, Esri Ocean, Esri Satellite, offline graticule, OpenSeaMap overlay.
+     Auto-fallback Esri -> OSM -> offline grid after 4 consecutive tile failures; choice persisted.
+   * FIX (critical) routePatch685 script was never closed (<\/script>), so the whole 6.8.5 route patch
+     (route source, buffer, KML buffer polygons, strict leg validation) never executed.
+   * FIX (critical) UI-V2 layer aborted at load (variable t shadowed i18n t() on the OCR table):
+     language toggle skipped half the labels, library-missing guard and a11y sync never ran.
+   * FIX map crash (L is not defined) when Leaflet CDN/_lib fails.
+   * FIX DM split produced minutes = 60 (e.g. 8 deg 60.00000 min) after UTM/D -> DM format switch and OCR import.
+   * FIX CSV export: BOM no longer creates a blank first line; empty tables now blocked.
+   * FIX route exports (CSV/XLSX/SHP/GeoJSON/DXF) now blocked when a route row is invalid, like KML.
+   * FIX AI-OCR: Indian-datum data can no longer be silently sent to the WGS84 section (and vice versa);
+     thinkingConfig chosen per model family; transparent PNG gets white background; per-model status.
+   * FIX CSV/TSV copy exported blank rows that only had a Point ID; S1<->S2 transfers now keep 4 dp (no 1 cm rounding).
+   * FIX label: Indian 1954 (217,823,299) Thailand onshore is EPSG:1153 (was shown as 1149 / Myanmar). Parameters unchanged.
+   * IMPROVE status warning when a point is >6 deg from the zone central meridian (TM series error > 1 cm).
+   * IMPROVE Route Source auto-mode now follows the last section the user worked in.
 -->
 <!-- Offline & System Font Support -->
 <!-- Leaflet Map -->
@@ -168,13 +274,383 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 .ocr-btn:disabled{opacity:.45;cursor:not-allowed}
 .ocr-btn-offline{opacity:.4;cursor:not-allowed}
 
+
+/* ===== v6.9.1 UX layer ===== */
+/* Toasts: bottom-right (never cover header controls), click to dismiss, optional action button */
+.toast-container{top:auto;bottom:16px;right:16px;flex-direction:column-reverse;align-items:flex-end}
+.toast{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:12px;transform:translateY(8px)}
+.toast.show{transform:none}
+.toast-action{flex:none;min-height:30px;padding:3px 12px;border:0;border-radius:3px;background:var(--ink);color:#fff;font-weight:700}
+.toast-action:hover{background:#333}
+@media (max-width:560px){.toast-container{left:10px;right:10px;bottom:10px;align-items:stretch}.toast{max-width:none}}
+/* Header: datum strip always visible in one compact line */
+@media (min-width:900px){.nav-top-row>div:first-child{flex:1 1 600px;min-width:520px}.nav-title{white-space:nowrap}.nav-controls{flex:0 1 760px}#datumSelect{max-width:340px}.banner-details{flex-wrap:nowrap;white-space:nowrap}}
+.datum-details{margin:8px 0 0;border-top:0}
+.datum-details>summary{display:none}
+.banner-details{padding:0;gap:5px;font-size:12px}
+.nav-controls label,.inline-field label,.hint-text{font-size:12px}
+/* Workbench: compact input columns so result columns (E/N) stay on screen */
+#table1 .input-cell,#table2 .input-cell{width:112px}
+#table1.dms-mode .input-cell,#table2.dms-mode .input-cell{width:160px}
+.input-cell input,.input-cell input[type=text]{min-width:84px}
+/* Click-to-copy result cells */
+#table1 tbody td:not(.input-cell):not(:first-child),#table2 tbody td:not(.input-cell):not(:first-child){cursor:copy}
+#table1 tbody td:not(.input-cell):not(:first-child):hover,#table2 tbody td:not(.input-cell):not(:first-child):hover{outline:1px dashed var(--field);outline-offset:-3px}
+td.cc-copied{animation:ccflash .7s ease-out}
+@keyframes ccflash{0%{background-color:#b7ebc6;box-shadow:inset 0 0 0 2px #0a7d33}100%{box-shadow:inset 0 0 0 0 transparent}}
+/* Mobile: all three tabs visible without sideways scrolling */
+@media (max-width:560px){.tab-nav{padding:0}.tab-btn{flex:1 1 0;min-width:0;padding:8px 6px;font-size:12px;line-height:1.25;white-space:normal;text-align:center}}
+@media print{.toast-container,#btnAddRows1,#btnAddRows2{display:none !important}}
+
+/* ===== v6.9.2 ===== */
+/* 1. Workbench tables fit the viewport: headers may wrap, tighter cell padding */
+#table1,#table2{min-width:0}
+#table1 thead th,#table2 thead th{white-space:normal;padding:6px 7px;line-height:1.25}
+#table1 td,#table2 td{padding:5px 7px}
+#table1 .input-cell,#table2 .input-cell{padding:3px}
+/* 2. Map empty state */
+.map-stage{position:relative}
+.map-empty{position:absolute;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;pointer-events:none}
+.map-empty.hidden{display:none}
+.map-empty-card{max-width:380px;padding:14px 18px;border:1px solid var(--ink);background:rgba(255,255,255,.96);box-shadow:4px 4px 0 #0003;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
+.map-empty-card strong{font-size:14px}.map-empty-card span{color:var(--muted);font-size:13px}
+/* 3. Collapsible import panel */
+.import-box{margin:2px 0 8px;border-top:1px solid var(--line)}
+.import-box>summary{cursor:pointer;padding:8px 0;font:700 12px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;list-style:none}
+.import-box>summary::-webkit-details-marker{display:none}
+.import-box>summary::before{content:"▸";display:inline-block;width:1.2em;transition:transform .12s}
+.import-box[open]>summary::before{transform:rotate(90deg)}
+.import-box>summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.import-box .hint-text{margin:2px 0 6px}
+/* 4. Clickable error lines */
+[data-jump-row]{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;padding:1px 0}
+[data-jump-row]::after{content:attr(data-go);margin-left:8px;font-weight:700;font-size:12px;white-space:nowrap;text-decoration:none;display:inline-block}
+[data-jump-row]:hover,[data-jump-row]:focus-visible{background:rgba(0,0,0,.07);outline:none}
+[data-jump-row]:focus-visible{box-shadow:0 0 0 2px var(--focus)}
+tr.row-flash>td{animation:rowflash 1.4s ease-out}
+@keyframes rowflash{0%,40%{box-shadow:inset 0 0 0 9999px rgba(255,200,0,.45)}100%{box-shadow:inset 0 0 0 9999px rgba(255,200,0,0)}}
+@media print{.import-box,.map-empty{display:none !important}}
+
+/* ===== v6.9.3 map controls & legends ===== */
+.leaflet-container .leaflet-bar.cc-tools a{display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;color:#101010;cursor:pointer}
+.leaflet-container .leaflet-bar.cc-tools a svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.leaflet-container .leaflet-bar.cc-tools a[aria-pressed=true]{background:#101010;color:#fff}
+.leaflet-container .leaflet-bar.cc-tools a:focus-visible{outline:3px solid #0047ff;outline-offset:-3px}
+.cc-legend{background:rgba(255,255,255,.96);border:1px solid #101010;border-radius:0;font:12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#101010;min-width:170px;max-width:260px;box-shadow:3px 3px 0 #0003}
+.cc-legend>button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:30px;padding:4px 9px;border:0;background:transparent;font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.cc-legend>button:hover{background:#ecebe7}
+.cc-legend>button::after{content:"▾";font-size:11px}
+.cc-legend.cc-closed>button::after{content:"▸"}
+.cc-legend.cc-closed .cc-lg-body{display:none}
+.cc-lg-body{padding:4px 9px 8px;border-top:1px solid #c8ccd0;display:grid;gap:5px}
+.cc-lg-row{display:flex;align-items:center;gap:8px}
+.cc-lg-row b{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.cc-lg-sym{flex:none;width:22px;height:14px;display:inline-flex;align-items:center;justify-content:center}
+.cc-lg-dot{width:12px;height:12px;border-radius:50%;border:2px solid}
+.cc-lg-dash{width:22px;height:0;border-top:3px dashed #f59e0b}
+.cc-lg-area{width:20px;height:12px;border:1px solid #f59e0b;background:rgba(245,158,11,.25)}
+.cc-lg-note{color:#5b6169;font-size:11px;border-top:1px dotted #c8ccd0;padding-top:4px}
+.cc-lg-empty{color:#5b6169}
+.cc-readout{background:rgba(255,255,255,.96);border:1px solid #101010;font:11.5px/1.4 ui-monospace,Consolas,monospace;padding:4px 7px;min-width:250px;box-shadow:3px 3px 0 #0003}
+.cc-readout .cc-rd-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font:700 10px/1.3 ui-monospace,Consolas,monospace;letter-spacing:.05em;text-transform:uppercase;color:#5b6169}
+.cc-readout .cc-rd-h button{min-height:22px;padding:0 7px;border:1px solid #101010;background:#fff;font:700 10px/1 ui-monospace,Consolas,monospace;cursor:pointer}
+.cc-readout .cc-rd-h button:hover{background:#ecebe7}
+.cc-readout.cc-pinned{border-color:#0047ff;box-shadow:3px 3px 0 #0047ff55}
+.cc-readout div.cc-rd-l{white-space:nowrap}
+.cc-nm{background:rgba(255,255,255,.9);border:2px solid #333;border-top:0;padding:0 5px;font:10px/1.4 system-ui,sans-serif;white-space:nowrap;box-sizing:border-box;margin-top:-2px}
+.leaflet-tooltip.cc-lbl{background:rgba(255,255,255,.92);border:1px solid #101010;border-radius:2px;padding:1px 5px;font:600 11px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#101010;box-shadow:none}
+.leaflet-tooltip.cc-lbl::before{display:none}
+.cc-pop{font:12px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;min-width:200px}
+.cc-pop h4{margin:0 0 4px;font-size:13px}
+.cc-pop .cc-pop-r{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.cc-pop .cc-pop-r span:first-child{color:#5b6169}
+.cc-pop button{margin-top:6px;min-height:26px;padding:2px 9px;border:1px solid #101010;background:#fff;font-weight:700;cursor:pointer}
+.cc-pop button:hover{background:#ecebe7}
+.map-stage.cc-full{position:fixed;inset:0;z-index:9000;background:#fff;padding:0}
+.map-stage.cc-full #leafletMap,.map-stage.cc-full #svgContainer{height:100vh !important;min-height:0;border:0}
+body.cc-nofull-scroll{overflow:hidden}
+#ccSvgLegend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:center;margin-top:8px;padding:6px 10px;border:1px solid #c8ccd0;background:#fafafa;font:12px/1.4 system-ui,sans-serif;color:#101010}
+#ccSvgLegend .cc-lg-row b{margin-left:4px}
+#svgContainer>.legend{display:none}
+@media (max-width:560px){.leaflet-container .leaflet-bar.cc-tools a{width:38px;height:38px}.cc-readout{min-width:0;font-size:10.5px}.cc-legend{max-width:200px}}
+@media (max-width:560px){.leaflet-bottom.leaflet-left .cc-readout{margin-bottom:38px}.leaflet-container .leaflet-control-attribution{font-size:9px;line-height:1.3}}
+
+.cc-autosave{display:inline-flex;align-items:center;gap:4px;font:700 11px/1.3 ui-monospace,Consolas,monospace;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.cc-autosave input{margin:0}
+.cc-legend{max-width:330px}.cc-lg-row b{white-space:nowrap}
+@media print{.cc-autosave{display:none !important}}
+
+/* ===== v6.9.4 visual refresh (UI v2.8) ===== */
+:root{--accent:#0b5cab;--accent-soft:#e8f1fb;--line2:#d9dde2;--panel:#f7f8fa;--r:8px;--shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.05)}
+body{background:#f3f4f1;-webkit-font-smoothing:antialiased}
+/* --- Header --- */
+#globalNav{background:#fff;border-bottom:1px solid var(--line2);box-shadow:0 1px 0 rgba(16,24,40,.03)}
+.nav-top-row{align-items:center;padding:14px clamp(12px,3vw,36px) 8px;gap:24px}
+.nav-title{display:inline-flex;align-items:center;gap:10px;font-size:clamp(20px,2.2vw,26px);font-weight:750;letter-spacing:-.025em;line-height:1.15;white-space:nowrap}
+.nav-title::before{content:"";flex:none;width:30px;height:30px;border-radius:8px;background:#101010 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30' fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='15' cy='15' r='6.5'/%3E%3Cpath d='M15 4v5M15 21v5M4 15h5M21 15h5'/%3E%3Ccircle cx='15' cy='15' r='1.4' fill='%23fff' stroke='none'/%3E%3C/svg%3E") center/100% no-repeat}
+.version-badge{position:relative;top:-5px;margin-left:2px;padding:2px 9px;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font:600 11px/1.5 var(--mono);vertical-align:middle}
+.nav-top-row>div:first-child>span:nth-child(3){margin:2px 0 0 40px;font-size:11.5px}
+.datum-details{margin:8px 0 0 40px;border:0}
+.banner-details{gap:6px;font-size:12px;color:var(--muted)}
+.banner-details b{font-weight:600}
+.banner-details code{padding:1px 9px;border:1px solid var(--line2);border-radius:99px;background:var(--panel);font:500 11.5px/1.7 var(--mono);color:#1f2933}
+.nav-controls{flex-direction:column;align-items:flex-end;gap:8px}
+.cc-hdr-sel,.cc-hdr-act{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.cc-hdr-act{align-items:center;gap:12px}
+.cc-field{display:flex;flex-direction:column;gap:3px}
+.cc-field>label{font:600 11.5px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:var(--muted)}
+.cc-field select{min-height:36px}
+#datumSelect{max-width:380px}
+.lang-btn{min-width:64px}
+button.clear-all{border-color:#e4b4af;color:var(--danger);background:#fff}
+button.clear-all:hover{background:var(--dangerbg);border-color:var(--danger)}
+/* Auto-save as switch */
+.nav-controls .cc-autosave{display:inline-flex;gap:8px;font:600 12px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:#1f2933}
+.cc-autosave input[type=checkbox]{appearance:none;-webkit-appearance:none;width:34px;height:20px;margin:0;border-radius:99px;background:#b8bec6;position:relative;cursor:pointer;transition:background .15s;flex:none;vertical-align:middle}
+.cc-autosave input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.cc-autosave input[type=checkbox]:checked{background:var(--accent)}
+.cc-autosave input[type=checkbox]:checked::after{transform:translateX(14px)}
+.cc-autosave input[type=checkbox]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* --- Tabs --- */
+.tab-nav{border-top:0;padding:0 clamp(12px,3vw,36px);gap:2px}
+.tab-btn,.tab-btn:first-child{border:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);font-weight:600;min-height:44px;padding:10px 18px;box-shadow:inset 0 -3px 0 transparent;transition:background .12s,color .12s}
+.tab-btn:hover{background:rgba(16,24,40,.045);color:var(--ink)}
+.tab-btn.active{background:transparent;color:var(--ink);font-weight:700;box-shadow:inset 0 -3px 0 var(--accent)}
+.tab-btn.active:hover{background:var(--accent-soft)}
+/* --- Cards --- */
+.container{border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);margin-top:16px}
+h2{border-bottom:1px solid var(--line2);font-size:clamp(17px,1.8vw,21px);font-weight:700;letter-spacing:-.015em;padding-bottom:12px;margin-bottom:14px}
+/* --- Buttons --- */
+button,button.btn-secondary{border-color:#bfc5cc;border-radius:6px;font-weight:600;transition:background .12s,border-color .12s,box-shadow .12s}
+button:hover{border-color:#8f979f}
+button.action,#btnCalcS1,#btnCalcS2,select.btn-route{border-color:var(--ink)}
+button.action:hover,#btnCalcS1:hover,#btnCalcS2:hover{background:#2b3138;border-color:#2b3138}
+button.btn-excel,button.btn-shp,[id*=Exp],[id*=TowRoute]{border-color:#bfc5cc}
+select.btn-secondary,select.btn-route{border-radius:6px}
+.ocr-btn{color:var(--accent);border:1px solid #b9d0ea;background:var(--accent-soft);font-weight:600;border-radius:6px}
+.ocr-btn:hover{background:#d8e8f8;color:#08457f;border-color:var(--accent)}
+.btn-geo{border-color:#bfc5cc}
+select,input[type=text],input[type=number],input[type=file]{border-color:#b8bec6;border-radius:6px}
+select:hover,input[type=text]:hover{border-color:#8f979f}
+input[type=checkbox]:not(.cc-autosave input){accent-color:var(--accent);width:18px;height:18px}
+/* --- Format toolbar --- */
+.cc-toolbar{display:flex;flex-direction:column;gap:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel);border:1px solid #e3e6ea;border-radius:10px}
+.cc-toolbar>.controls-row{margin:0 !important;align-items:flex-end;gap:10px 14px}
+.cc-toolbar>.controls-row+.controls-row{padding-top:12px;border-top:1px dashed #d5d9de;align-items:center}
+.cc-toolbar .inline-field:has(>label[for]){flex-direction:column;align-items:flex-start;gap:3px}
+.cc-toolbar .inline-field>label,.cc-toolbar .hint-text{font:600 11.5px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:var(--muted)}
+.cc-toolbar .inline-field label[style*="cursor"]{font:500 13px/1.3 var(--sans);color:#1f2933;gap:7px !important}
+.cc-toolbar .inline-field label[style*="cursor"] span{font:500 13px/1.3 var(--sans) !important}
+.cc-toolbar .inline-field[style*="gap: 14px"]{margin-left:0 !important;align-self:flex-end;min-height:36px;align-items:center;gap:18px !important}
+/* import toggle lives in the action row */
+.controls-row>.import-box{flex:0 0 auto;margin:0;border:0}
+.controls-row>.import-box[open]{flex:1 1 100%;margin-top:4px;padding:10px 12px;background:#fff;border:1px solid #e3e6ea;border-radius:8px}
+.controls-row>.import-box>summary{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px dashed #aab1b9;border-radius:6px;background:#fff;color:#3d4650;font:600 12.5px/1 var(--sans);letter-spacing:0;text-transform:none}
+.controls-row>.import-box>summary:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.controls-row>.import-box[open]>summary{margin-bottom:10px}
+/* status banner doubles as helper line when idle */
+.status{border-radius:6px;margin:8px 0}
+.status:empty{display:flex;align-items:center;min-height:30px;margin:6px 0;padding:0 2px}
+.status:empty::before{content:attr(data-hint);color:#5f6770;font-size:12.5px}
+.status.ok{background:#eefaf2;border-color:#b5e3c5;border-left:4px solid #1f9d55;color:#0b5132}
+.status.err{background:#fff4f2;border-color:#f3c3be;border-left:4px solid #d92d20;color:#8f1f17}
+/* --- Table --- */
+.table-responsive{border:1px solid var(--line2);border-radius:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+table{font-size:13px}
+caption{background:#fff;border-bottom:1px solid var(--line2);font:600 11.5px/1.3 var(--sans);letter-spacing:.01em;text-transform:none;color:var(--muted);padding:9px 12px}
+thead th{background:#14181d;border-right:1px solid #2a3038;font-weight:600;font-size:12.5px;padding:8px 8px}
+thead th.cc-h-wgs{background:#0f3557;border-right-color:#1d4a74}
+thead th.cc-h-ind{background:#6a5219;border-right-color:#7d6322}
+tbody tr:nth-child(even)>td{background:#fbfbfa}
+td{height:40px;border-right:1px solid #e7e9ec;border-bottom:1px solid #e7e9ec}
+#table1 .input-cell input,#table2 .input-cell input{border:1px solid #b8bec6;border-radius:5px;background:#fff;font:500 13px/1.2 var(--mono);font-variant-numeric:tabular-nums;height:32px}
+#table1 .input-cell input:hover,#table2 .input-cell input:hover{border-color:#8f979f}
+#table1 .input-cell input:focus,#table2 .input-cell input:focus{border-color:var(--accent);outline:2px solid rgba(11,92,171,.35);outline-offset:0;box-shadow:0 0 0 3px rgba(11,92,171,.12)}
+#table1 .input-cell.has-error input,#table2 .input-cell.has-error input{border:1.5px solid var(--danger);background:#fff;color:var(--danger)}
+#table1 tbody td.out-wgs,#table2 tbody td.out-wgs,#table1 tbody td.out-ind,#table2 tbody td.out-ind,#table1 tbody td.output-cell,#table2 tbody td.output-cell{font:500 12.5px/1.2 var(--mono);font-variant-numeric:tabular-nums;cursor:copy}
+/* empty result cells stay quiet; only calculated rows are tinted */
+#table1 tbody td.out-wgs:empty,#table2 tbody td.out-wgs:empty,#table1 tbody td.out-ind:empty,#table2 tbody td.out-ind:empty,#table1 tbody td.output-cell:empty,#table2 tbody td.output-cell:empty{background:transparent !important}
+#table1 tbody tr:hover td.out-wgs:empty,#table2 tbody tr:hover td.out-wgs:empty,#table1 tbody tr:hover td.out-ind:empty,#table2 tbody tr:hover td.out-ind:empty{background:transparent !important}
+.cross-link{min-height:0;height:22px;line-height:18px;padding:0 6px;border-radius:5px;margin-left:8px;border-color:#bfc5cc}
+#table1 tbody td:first-child,#table2 tbody td:first-child{font-weight:600;color:#1f2933}
+#table1 tbody tr:focus-within td:first-child,#table2 tbody tr:focus-within td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+tbody tr:focus-within>td{background:#f2f7fd}
+/* --- Map block --- */
+#btnViewLeaflet,#btnViewSvg{min-width:150px}
+#btnViewLeaflet{border-radius:6px 0 0 6px}
+#btnViewSvg{border-radius:0 6px 6px 0;margin-left:-9px}
+#leafletMap,#svgContainer{border-radius:10px;border-color:var(--line2)}
+.map-empty-card{border-radius:10px;border-color:var(--line2)}
+/* --- Responsive --- */
+@media (max-width:1100px){.nav-top-row{flex-wrap:wrap}.nav-controls{flex:1 1 100%;align-items:flex-start}.cc-hdr-sel,.cc-hdr-act{justify-content:flex-start}}
+@media (max-width:767px){
+  .banner-details>span[style*="margin"]{display:none}
+  .nav-title{white-space:normal;font-size:20px}.nav-top-row>div:first-child>span:nth-child(3),.datum-details{margin-left:0}
+  .cc-hdr-sel{display:grid;grid-template-columns:auto 1fr;width:100%}.cc-hdr-sel #datumSelect{max-width:none;width:100%}
+  .cc-hdr-act{width:100%;justify-content:space-between}
+  .tab-btn,.tab-btn:first-child{padding:8px 6px;border-radius:6px 6px 0 0}
+  .cc-toolbar{padding:10px}.controls-row>.import-box,.controls-row>.import-box>summary{width:100%}
+  #btnViewLeaflet,#btnViewSvg{min-width:0;flex:1}
+}
+@media print{#globalNav{box-shadow:none}.cc-toolbar{background:none;border:0;padding:0}.nav-title::before{display:none}}
+
+#table1 .input-cell,#table2 .input-cell{width:112px}
+#table1.dms-mode .input-cell,#table2.dms-mode .input-cell{width:160px}
+
+/* map overlays share the refreshed look */
+.cc-legend,.cc-readout,.cc-nm{border-radius:8px}
+.cc-legend,.cc-readout{border:1px solid #b9c0c8;box-shadow:0 2px 10px rgba(16,24,40,.16)}
+.leaflet-touch .leaflet-bar,.leaflet-bar{border-radius:8px;border:1px solid #b9c0c8;box-shadow:0 2px 10px rgba(16,24,40,.16)}
+.leaflet-container .leaflet-bar.cc-tools a:first-child{border-radius:7px 7px 0 0}.leaflet-container .leaflet-bar.cc-tools a:last-child{border-radius:0 0 7px 7px}
+.cc-legend>button{border-radius:8px}
+.cc-pop{font-family:var(--sans)}
+@media (max-width:1200px){
+  #table1 .input-cell,#table2 .input-cell{width:92px}#table1.dms-mode .input-cell,#table2.dms-mode .input-cell{width:150px}
+  #table1 tbody td.out-wgs,#table2 tbody td.out-wgs,#table1 tbody td.out-ind,#table2 tbody td.out-ind,#table1 tbody td.output-cell,#table2 tbody td.output-cell{font-size:12px}
+  td{padding:5px 5px}thead th{padding:8px 4px;font-size:12px}
+  .input-cell input,.input-cell input[type=text]{min-width:78px}
+}
+
+/* ===== v6.9.5 compact workspace (UI v2.9) ===== */
+:root{--hdr-pad:clamp(10px,1.6vw,22px)}
+.page{width:min(100%,2000px)}
+/* a11y-preserving removal of redundant headings / captions (still read by screen readers, shown in print) */
+.container>h2,table>caption{position:absolute !important;width:1px !important;height:1px !important;margin:-1px !important;padding:0 !important;border:0 !important;overflow:hidden !important;clip:rect(0 0 0 0) !important;white-space:nowrap !important}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media print{.container>h2,table>caption{position:static !important;width:auto !important;height:auto !important;margin:0 0 6pt !important;clip:auto !important;overflow:visible !important;white-space:normal !important}}
+/* --- Header: 2 slim rows --- */
+#globalNav{box-shadow:none}
+.nav-top-row{padding:8px var(--hdr-pad) 4px;gap:6px 18px;flex-wrap:wrap;align-items:center}
+.nav-top-row>div:first-child{flex:0 0 auto;min-width:0 !important}
+.nav-title{font-size:19px;gap:8px;line-height:1.1}
+.nav-title::before{width:26px;height:26px;border-radius:7px}
+.version-badge{top:0;margin-left:8px;padding:1px 8px;font-size:10.5px;vertical-align:middle}
+.nav-controls{flex:1 1 auto !important;flex-direction:row !important;align-items:center !important;justify-content:flex-end;flex-wrap:wrap;gap:6px 14px}
+.cc-hdr-sel,.cc-hdr-act{align-items:center !important;flex-wrap:wrap;gap:6px 12px}
+.cc-field{flex-direction:row;align-items:center;gap:6px}
+.cc-field>label{white-space:nowrap}
+.cc-field.cc-datum>label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.nav-controls select,.nav-controls button{min-height:32px;padding-top:3px;padding-bottom:3px}
+.nav-controls button.clear-all{padding-left:10px;padding-right:10px}
+#datumSelect{max-width:360px}
+.datum-preview:not(.show){margin-bottom:0}
+.datum-preview.show{margin:0 var(--hdr-pad) 4px}
+.cc-bar2{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:0 16px;padding:0 var(--hdr-pad)}
+.cc-bar2 .tab-nav{padding:0;flex:0 1 auto;min-width:0}
+.tab-btn,.tab-btn:first-child{min-height:34px;padding:6px 16px}
+.cc-bar2 .datum-details{margin:0 0 5px;flex:0 1 auto}
+.cc-bar2 .banner-details{flex-wrap:nowrap;white-space:nowrap;gap:5px;font-size:11.5px}
+.cc-bar2 .banner-details code{padding:0 8px;font-size:11px;line-height:1.6}
+.cc-credit{margin-left:6px;font-size:11px;color:var(--muted);white-space:nowrap}
+/* --- Cards & gaps --- */
+.container{margin:8px clamp(8px,1.2vw,16px);padding:8px 10px;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+#visualizationPanel{margin-top:8px !important}
+/* --- Toolbar: one dense panel (formats + status | actions) --- */
+.cc-toolbar{gap:6px;padding:6px 8px;margin-bottom:6px;border-radius:8px}
+.cc-toolbar>.controls-row{margin:0 !important;gap:6px 10px;align-items:center}
+.cc-toolbar>.controls-row+.controls-row{padding-top:6px;border-top:1px dashed #d5d9de}
+.cc-toolbar .inline-field:has(>label[for]){flex-direction:row;align-items:center;gap:6px}
+.cc-toolbar .inline-field[style*="gap: 14px"]{align-self:center;min-height:32px;gap:14px !important}
+.cc-toolbar select,.cc-toolbar button,.cc-toolbar summary{min-height:32px}
+.cc-toolbar button{padding:3px 11px}
+.cc-toolbar .cc-vsep{width:1px;align-self:stretch;margin:3px 2px;background:#d5d9de}
+.cc-toolbar .status,.cc-toolbar .status:empty{margin:0 0 0 auto;min-height:30px;flex:1 1 240px;min-width:0;display:flex;align-items:center;justify-content:flex-end;text-align:right;padding:0 4px;font-size:12.5px}
+.cc-toolbar .status.ok{padding:4px 10px;justify-content:flex-start;text-align:left;margin-bottom:0}
+.cc-toolbar .status.err{flex:1 1 100%;order:50;margin:2px 0 0;padding:6px 10px;justify-content:flex-start;text-align:left;display:block;max-height:140px}
+.cc-toolbar .status:empty::before{color:#5f6770}
+.controls-row>.import-box[open]{order:40}
+/* --- Table: denser rows --- */
+.table-responsive{margin:0;max-height:max(340px,calc(100vh - 200px));border-radius:8px}
+#table1 td,#table2 td{height:32px;padding:2px 6px}
+#table1 .input-cell,#table2 .input-cell{padding:2px 3px}
+#table1 .input-cell input,#table2 .input-cell input{height:26px;min-height:26px;padding:1px 6px}
+#table1 thead th,#table2 thead th{padding:5px 6px}
+.cross-link{height:20px;line-height:16px;margin-left:6px}
+td.cc-copied{animation-duration:.6s}
+/* --- Route tab --- */
+#tabContent3 .controls-row{margin:0 0 6px !important;padding:5px 10px !important;gap:6px 14px !important;background:var(--panel) !important;border:1px solid #e3e6ea !important;border-radius:8px !important}
+#tabContent3 .controls-row select,#tabContent3 .controls-row input[type=number],#tabContent3 .controls-row button{min-height:30px}
+#tabContent3 .inline-field{gap:6px 8px}
+.route-table-wrapper{margin:0;border-radius:8px;border-color:var(--line2)}
+#routeAnalyticsTable td{height:30px;padding:3px 8px}
+#routeAnalyticsTable thead th{padding:5px 8px}
+/* --- Map panel --- */
+#visualizationPanel .controls-row{margin:0 0 6px !important;gap:6px 10px}
+#visualizationPanel .controls-row button,#visualizationPanel .controls-row select{min-height:32px}
+@media (min-width:768px){#leafletMap,#svgContainer{height:clamp(400px,calc(100vh - 96px),860px);min-height:400px}}
+#ccSvgLegend{margin-top:6px;padding:4px 10px}
+/* --- Tablet / phone --- */
+@media (max-width:1000px){.nav-controls{flex:1 1 100% !important;justify-content:flex-start}.cc-hdr-sel,.cc-hdr-act{justify-content:flex-start}}
+@media (max-width:767px){
+  .nav-top-row{padding:6px 10px 2px}.nav-title{font-size:17px}
+  .nav-controls{gap:4px 10px}.cc-hdr-sel{display:flex !important;width:auto}.cc-hdr-sel #datumSelect{max-width:none;width:100%}
+  .cc-hdr-sel .cc-datum{flex:1 1 100%}.cc-hdr-sel .cc-datum select{width:100%}
+  .cc-hdr-act{width:auto;gap:8px}
+  .cc-bar2{padding:0 6px}.cc-bar2 .datum-details{margin:2px 0 4px}.cc-credit{display:none}
+  .tab-btn,.tab-btn:first-child{padding:6px 4px}
+  .container{margin:6px;padding:6px}
+  .cc-toolbar{padding:6px}.cc-toolbar select,.cc-toolbar button,.cc-toolbar summary{min-height:38px}
+  .cc-toolbar .status,.cc-toolbar .status:empty{flex:1 1 100%;justify-content:flex-start;text-align:left;margin:0;order:30}
+  .cc-toolbar .inline-field:has(>label[for]){width:100%}.cc-toolbar .inline-field select{flex:1}
+  .cc-toolbar .cc-vsep{display:none}
+  .table-responsive{max-height:70vh}
+}
+@media print{.cc-bar2 .datum-details,.cc-credit{display:none}}
+
+.cc-toolbar select.btn-secondary{padding:3px 10px;margin-left:0 !important;min-height:32px}
+@media (min-width:1101px){
+  .nav-controls{flex:1 1 0 !important;flex-wrap:nowrap !important;min-width:560px}
+  .cc-hdr-sel{flex:1 1 auto;flex-wrap:nowrap;min-width:0;justify-content:flex-end}
+  .cc-field.cc-datum{flex:1 1 auto;min-width:0;max-width:360px}
+  #datumSelect{width:100%;max-width:none;min-width:170px}
+  .cc-hdr-act{flex:0 0 auto;flex-wrap:nowrap}
+}
+
+@media (max-width:1499px){.cc-credit{display:none}}
+.cc-toolbar>.controls-row{gap:6px 8px}
+.cc-toolbar button{padding:3px 9px}
+.cc-toolbar .status.ok,.cc-toolbar .status:empty{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 120px}
+.cc-toolbar .status.cc-wide{flex:1 1 100%;order:50;white-space:normal;justify-content:flex-start;text-align:left;margin-top:2px}
+
+.cc-field:not(.cc-datum){flex:0 0 auto}
+#zoneSelect{min-width:72px}
+#exportS1,#exportS2{width:112px;flex:0 0 auto}
+#tabContent3 .controls-row label,#tabContent3 .inline-field>label{font:600 12px/1.3 var(--sans);letter-spacing:0;text-transform:none;color:#3d4650}
+#tabContent3 select.btn-route{min-height:32px;width:150px;padding:3px 10px}
+@media (max-width:767px){
+  .version-badge{display:inline-block !important;width:auto !important;margin:0 0 0 6px !important}
+  .nav-top-row>div:first-child{flex:1 1 100%}
+  .nav-controls{display:flex !important;flex-wrap:wrap;gap:6px 8px;width:100%}
+  .cc-hdr-sel,.cc-hdr-act{display:contents !important}
+  .cc-field:not(.cc-datum){order:1}.cc-field:not(.cc-datum)>label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .cc-autosave{order:2}#ccAutosaveTxt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  #langBtn{order:3}.nav-controls .clear-all{order:4;margin-left:auto}
+  .cc-field.cc-datum{order:5;flex:1 1 100% !important;max-width:none}
+  .cc-bar2 .banner-details{flex-wrap:wrap;white-space:normal;row-gap:2px}
+  .cc-bar2 .datum-details{flex:1 1 100%}
+  .cc-toolbar select,.cc-toolbar button,.cc-toolbar summary{min-height:36px}
+  .cc-toolbar>.controls-row>button{flex:1 1 calc(50% - 8px)}
+  .cc-toolbar .inline-field:has(>label[for]){flex-wrap:nowrap}
+  #exportS1,#exportS2{flex:1 1 calc(50% - 8px);width:auto}
+}
+@media (min-width:1001px) and (max-width:1200px){
+  #ccAutosaveTxt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .version-badge{display:none}
+  .nav-controls{flex:1 1 0 !important;flex-wrap:nowrap !important;min-width:520px}
+  .cc-hdr-sel{flex:1 1 auto;flex-wrap:nowrap;min-width:0;justify-content:flex-end}
+  .cc-field.cc-datum{flex:1 1 auto;min-width:0;max-width:360px}
+  #datumSelect{width:100%;max-width:none;min-width:150px}
+  .cc-hdr-act{flex:0 0 auto;flex-wrap:nowrap}
+}
+@media (max-width:767px){.nav-controls select,.nav-controls button{min-height:36px}.cc-autosave input[type=checkbox]{height:24px;width:42px}.cc-autosave input[type=checkbox]::after{width:20px;height:20px}.cc-autosave input[type=checkbox]:checked::after{transform:translateX(18px)}}
+@media (max-width:767px){#exportS1,#exportS2,.cc-toolbar select.btn-secondary{min-height:36px}}
 </style>
 </head>
 <body><a class="skip-link" href="#tabContent1" id="skipToActive">Skip to active workbench</a><div class="page"><header class="masthead" id="globalNav">
 <div class="nav-top-row">
 <div>
-<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter v6.7.3</span><span class="version-badge">v6.7.3 · UI v2.3</span>
-<span style="font-size: 11px; color: #a5b4fc; font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
+<span class="v nav-title" data-ui-i18n="app_title">Coordinate Converter</span><span class="version-badge">v6.9.5 · UI v2.9</span>
+<span style="font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.5px; vertical-align: text-bottom;">Developed by Rattawit W.</span>
 <details class="datum-details" id="datumDetails" open=""><summary data-i18n-aria-label="lbl_datum" data-ui-i18n="datum_summary" aria-label="Datum:">Datum · Zone metadata</summary><div class="banner-details">
 <b data-i18n="lbl_datum">Datum:</b>
 <span id="displayParams"><code>dx= -204.64</code> <code>dy= -834.74</code> <code>dz= -293.8</code></span>
@@ -199,9 +675,9 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 <option data-i18n="opt_th_dol" value="dol">Thailand - Indian 1975 (DOL / กรมที่ดิน)</option>
 <option data-i18n="opt_th_survey" value="survey">Thailand - Indian 1975 (High-Prec Survey)</option>
 </optgroup>
-<optgroup data-i18n-label="opt_group_mm" label="🌏 Indian 1954 / 1960 (Myanmar · Vietnam)">
+<optgroup data-i18n-label="opt_group_mm" label="🌏 Indian 1954 / 1960 (Thailand · Vietnam)">
 <option data-i18n="opt_mm_1960" value="mm_1960">Vietnam - Indian 1960 (EPSG:1542)</option>
-<option data-i18n="opt_mm_1954" value="mm_1954">Myanmar/Thailand - Indian 1954 (EPSG:1149)</option>
+<option data-i18n="opt_mm_1954" value="mm_1954">Thailand - Indian 1954 (EPSG:1153)</option>
 </optgroup>
 <optgroup data-i18n-label="opt_group_my" label="🇲🇾 Malaysia &amp; Borneo (Kertau / Timbalai)">
 <option data-i18n="opt_my_kertau" value="my_kertau">Malaysia (Peninsular) - Kertau 1968 (EPSG:4245)</option>
@@ -210,6 +686,7 @@ tbody tr:nth-child(even) td.out-ind{background:#f5eee0}
 </optgroup>
 </select>
 <button aria-label="Switch interface language" class="lang-btn" data-i18n-aria-label="tt_lang" data-i18n-title="tt_lang" id="langBtn" title="Switch interface language">EN/TH</button>
+<label class="cc-autosave" title="Keep settings and typed points in this browser (localStorage). Turn off on shared PCs or for confidential coordinates."><input type="checkbox" id="chkAutosave" checked><span id="ccAutosaveTxt">Auto-save</span></label>
 <button class="clear-all" data-i18n="btn_clear_all" data-i18n-title="tt_clear_all" title="Erase all tables and map overlays">Clear All Inputs</button>
 </div>
 </div>
@@ -276,6 +753,7 @@ Accepts: Comma-separated or Tab/Space-separated" id="s1_tooltip" onclick="this.t
 <button class="btn-secondary" data-i18n="btn_samp_txt" data-i18n-title="tt_samp_txt" id="btnSampS1Txt" title="Download sample TXT template">Sample (TXT)</button>
 <button class="btn-secondary" data-i18n="btn_paste" data-i18n-title="tt_paste" id="btnPasteS1" title="Paste tabular data from clipboard (Excel/Sheets)">📋 Paste from Excel</button>
 <button class="btn-geo" data-i18n-title="tt_gps" data-ui-i18n="gps_button" id="btnGetGPS" title="Fetch current device location to Row 1">📍 Get GPS to Row 1</button>
+<button class="ocr-btn" id="btnOcrS1" data-i18n="ocr_btn" data-i18n-title="ocr_btn_title" title="Extract coordinates from image using AI">📸 AI OCR</button>
 </div>
 <div aria-atomic="true" aria-live="polite" class="status" id="section1Status" role="status"></div>
 <div class="table-responsive">
@@ -363,6 +841,7 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
 <button class="btn-secondary" data-i18n="btn_samp_csv" data-i18n-title="tt_samp_csv" id="btnSampS2Csv" title="Download sample CSV template">Sample (CSV)</button>
 <button class="btn-secondary" data-i18n="btn_samp_txt" data-i18n-title="tt_samp_txt" id="btnSampS2Txt" title="Download sample TXT template">Sample (TXT)</button>
 <button class="btn-secondary" data-i18n="btn_paste" data-i18n-title="tt_paste" id="btnPasteS2" title="Paste tabular data from clipboard (Excel/Sheets)">📋 Paste from Excel</button>
+<button class="ocr-btn" id="btnOcrS2" data-i18n="ocr_btn" data-i18n-title="ocr_btn_title" title="Extract coordinates from image using AI">📸 AI OCR</button>
 </div>
 <div aria-atomic="true" aria-live="polite" class="status" id="section2Status" role="status"></div>
 <div class="table-responsive">
@@ -477,7 +956,141 @@ Accepts: Comma or Space/Tab-separated" id="s2_tooltip" onclick="this.toggleAttri
 </div></div>
 
 <!-- AI OCR Modal Overlay -->
+<div id="ocrModal" class="ocr-modal-overlay hidden" role="dialog"
+     aria-modal="true" aria-labelledby="ocrModalTitle">
+  <div class="ocr-modal-box">
 
+    <!-- Header -->
+    <div class="ocr-modal-header">
+      <h3 id="ocrModalTitle" data-i18n="ocr_title">📸 AI Photo OCR — Extract Coordinates</h3>
+      <button class="ocr-close-btn" id="btnOcrClose" aria-label="Close modal">✕</button>
+    </div>
+
+    <!-- Phase 1: Setup -->
+    <div class="ocr-section">
+      <label for="ocrApiKey">
+        <strong data-i18n="ocr_api_key_label">Google AI Studio API Key</strong>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"
+           data-i18n="ocr_get_key">Get free key ↗</a>
+      </label>
+      <div class="ocr-key-row">
+        <input type="password" id="ocrApiKey" placeholder="AIzaSy..."
+               autocomplete="off" spellcheck="false" data-i18n-placeholder="ocr_key_ph">
+        <button class="btn-secondary" id="btnOcrSaveKey" data-i18n="ocr_save_key">Save Key</button>
+        <button class="btn-secondary" id="btnOcrClearKey" data-i18n="ocr_clear_key">Clear</button>
+      </div>
+      <div class="ocr-key-status" id="ocrKeyStatus" aria-live="polite"></div>
+      <div class="ocr-key-notice" data-i18n="ocr_key_notice">
+        🔒 Key stays in this browser's localStorage. ⚠️ On the free tier, images &amp; prompts you send may be used by Google to improve their models — do NOT upload confidential survey data (rig/well/anchor/tow coordinates). Use a paid tier or Vertex AI for real work.
+      </div>
+    </div>
+
+    <div class="ocr-section-row">
+      <div class="ocr-section ocr-section--half">
+        <label for="ocrFormatHint" data-i18n="ocr_format_hint_label">Coordinate Format in Image</label>
+        <select id="ocrFormatHint">
+          <option value="utm_indian"  data-i18n="ocr_fmt_utm_ind">Indian UTM — Easting/Northing (m)</option>
+          <option value="utm_wgs84"   data-i18n="ocr_fmt_utm_wgs">WGS84 UTM — Easting/Northing (m)</option>
+          <option value="crosscheck"  data-i18n="ocr_fmt_cross">Crosscheck Table (UTM + Lat/Lon)</option>
+          <option value="dd"          data-i18n="ocr_fmt_dd">WGS84 Decimal Degrees (DD)</option>
+          <option value="dm"          data-i18n="ocr_fmt_dm">WGS84 Deg & Dec Minutes (DM)</option>
+          <option value="dms"         data-i18n="ocr_fmt_dms">WGS84 Deg Min Sec (DMS)</option>
+          <option value="ind_latlon"  data-i18n="ocr_fmt_ind_ll">Indian 1975 Lat/Lon (any)</option>
+          <option value="auto"        data-i18n="ocr_fmt_auto">Auto-detect</option>
+        </select>
+      </div>
+      <div class="ocr-section ocr-section--half">
+        <label for="ocrTargetSection" data-i18n="ocr_target_label">Send results to</label>
+        <select id="ocrTargetSection">
+          <option value="auto" data-i18n="ocr_target_auto">Auto (based on format)</option>
+          <option value="s1"   data-i18n="ocr_target_s1">Section 1: WGS84 → Indian 1975</option>
+          <option value="s2"   data-i18n="ocr_target_s2">Section 2: Indian 1975 → WGS84</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Phase 2: Image Input -->
+    <div class="ocr-section">
+      <label data-i18n="ocr_image_label">Image Input</label>
+      <div class="ocr-dropzone" id="ocrDropzone" tabindex="0" role="button"
+           aria-label="Paste or drop coordinate image here">
+        <div class="ocr-dropzone-hint" id="ocrDropzoneHint">
+          <span data-i18n="ocr_paste_hint">📋 Press <kbd>Ctrl+V</kbd> to paste screenshot, or <strong>drag &amp; drop</strong> an image file here</span>
+        </div>
+        <img id="ocrPreviewImg" class="ocr-preview-img hidden" alt="Coordinate image preview">
+      </div>
+      <div class="ocr-img-tools">
+        <input type="file" id="ocrFileInput" accept="image/*" style="display:none">
+        <button class="btn-secondary" id="btnOcrPickFile" data-i18n="ocr_browse">📁 Browse File</button>
+        <button class="btn-secondary" id="btnOcrClearImg" data-i18n="ocr_clear_img">✕ Clear Image</button>
+        <span class="ocr-img-info" id="ocrImgInfo"></span>
+      </div>
+    </div>
+
+    <!-- Extract Action -->
+    <div class="ocr-action-bar">
+      <button class="action ocr-btn-extract" id="btnOcrExtract" disabled
+              data-i18n="ocr_extract">🔍 Extract Coordinates</button>
+      <button class="btn-secondary" id="btnOcrCancelSetup" data-i18n="ocr_close">✕ Close</button>
+      <span class="ocr-extract-status" id="ocrExtractStatus" aria-live="assertive"></span>
+    </div>
+
+    <!-- Phase 3: Review & Select (hidden until OCR complete) -->
+    <div class="ocr-review-panel hidden" id="ocrReviewPanel">
+
+      <div class="ocr-review-header">
+        <span class="ocr-review-count" id="ocrReviewCount"></span>
+        <div class="ocr-review-actions-top">
+          <button class="btn-secondary" id="btnOcrSwapCols" data-i18n="ocr_swap">🔀 Swap V1 ↔ V2</button>
+          <button class="btn-secondary" id="btnOcrSelAll"   data-i18n="ocr_sel_all">☑ Select All</button>
+          <button class="btn-secondary" id="btnOcrDeselAll" data-i18n="ocr_desel_all">☐ Deselect All</button>
+        </div>
+      </div>
+
+      <!-- Column Mapping -->
+      <div class="ocr-colmap-bar" id="ocrColmapBar">
+        <label>
+          <strong data-i18n="ocr_v1_is">V1 column is:</strong>
+          <select id="ocrColMapV1"></select>
+        </label>
+        <label>
+          <strong data-i18n="ocr_v2_is">V2 column is:</strong>
+          <select id="ocrColMapV2"></select>
+        </label>
+      </div>
+
+      <!-- Review Table -->
+      <div class="ocr-review-table-wrap">
+        <table class="ocr-review-table" id="ocrReviewTable">
+          <thead>
+            <tr>
+              <th style="width:30px">
+                <input type="checkbox" id="ocrCheckAll" title="Toggle all">
+              </th>
+              <th data-i18n="ocr_th_id">Point ID</th>
+              <th data-i18n="ocr_th_v1">V1</th>
+              <th data-i18n="ocr_th_v2">V2</th>
+              <th data-i18n="ocr_th_note">Note / Extra</th>
+            </tr>
+          </thead>
+          <tbody id="ocrReviewTbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Selection bar + Apply -->
+      <div class="ocr-selection-bar">
+        <span id="ocrSelectionCount" data-i18n="ocr_sel_count">Selected: 0 / 0 rows</span>
+        <div style="display:flex; gap:8px;">
+          <button class="action" id="btnOcrApply" disabled data-i18n="ocr_apply">✅ Apply to Table</button>
+          <button class="btn-secondary" id="btnOcrDiscard" data-i18n="ocr_discard">✕ Discard</button>
+        </div>
+      </div>
+
+    </div><!-- end review panel -->
+  </div><!-- end modal box -->
+</div><!-- end overlay -->
+
+<div aria-atomic="true" aria-live="polite" class="toast-container" id="toastContainer" role="status"></div>
 <script>
 /**
  * Application State & Config
@@ -498,14 +1111,29 @@ var AppState = {
     map: { instance: null, markerLayer: null, street: null, sat: null, renderTimer: null }
 };
 
+/**
+ * Datum Registry — carries 3-parameter shift (local−WGS in ECEF), the correct
+ * local ellipsoid, and PRJ/WKT metadata. All supported datums share the Everest
+ * family inverse-flattening 300.8017, so ONLY the semi-major axis (a) varies.
+ * legacy/dol/survey/mm_1960/mm_1954 => a=6377276.345 (unchanged vs prior builds).
+ * Kertau/Timbalai/Brunei carry their proper a, fixing the G2 datum caveat.
+ */
 const DATUMS = {
     legacy:      { dx: -204.64,   dy: -834.74,  dz: -293.80,  a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975',  datum: 'D_Indian_1975',  spheroid: 'Everest_Adjustment_1937', utm_dp: 2 },
     dol:         { dx: -204.5,    dy: -837.9,   dz: -294.8,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975',  datum: 'D_Indian_1975',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3 },
     survey:      { dx: -204.4798, dy: -837.8940, dz: -294.7765, a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1975', datum: 'D_Indian_1975', spheroid: 'Everest_Adjustment_1937', utm_dp: 4 },
-    mm_1954:     { dx: -217.0,    dy: -823.0,   dz: -299.0,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1954',  datum: 'D_Indian_1954',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3, epsg: '1149', acc_m: 25 },
+    // v6.8.5: dx/dy/dz below use EPSG-authoritative geocentric translations.
+    // Code convention is datum_ECEF = WGS_ECEF + (dx,dy,dz), i.e. d = -T(datum->WGS84).
+    // mm_1954: Indian 1954 -> WGS84 (217,823,299) => d=(-217,-823,-299) [DMA, unchanged, already correct].
+    mm_1954:     { dx: -217.0,    dy: -823.0,   dz: -299.0,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1954',  datum: 'D_Indian_1954',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3, epsg: '1153', acc_m: 25 },
+    // Indian 1960 datum applies to Vietnam/Cambodia (NOT Myanmar). EPSG:1542 Vietnam onshore
+    // 14-18N (198,881,317) => d=(-198,-881,-317). Relabeled from the old (wrong) Myanmar entry.
     mm_1960:     { dx: -198.0,    dy: -881.0,   dz: -317.0,   a: 6377276.345, invf: 300.8017, gcs: 'GCS_Indian_1960',  datum: 'D_Indian_1960',  spheroid: 'Everest_Adjustment_1937', utm_dp: 3, epsg: '1542', acc_m: 44 },
+    // Kertau 1968 -> WGS84 (-11,851,5) => d=(11,-851,-5). FIX: prior build had dx sign wrong (-11).
     my_kertau:   { dx: 11.0,      dy: -851.0,   dz: -5.0,     a: 6377304.063, invf: 300.8017, gcs: 'GCS_Kertau_1968',   datum: 'D_Kertau_1968',   spheroid: 'Everest_1830_Modified',   utm_dp: 3, epsg: '4245', acc_m: 8 },
+    // Timbalai 1948 -> WGS84 EPSG:1228 (-679,669,-48) => d=(679,-669,48). FIX: dx sign was wrong (-679).
     my_timbalai: { dx: 679.0,     dy: -669.0,   dz: 48.0,     a: 6377298.556, invf: 300.8017, gcs: 'GCS_Timbalai_1948', datum: 'D_Timbalai_1948', spheroid: 'Everest_1830_1967_Definition', utm_dp: 3, epsg: '1228', acc_m: 19 },
+    // Timbalai 1948 (Brunei) -> WGS84 EPSG:1592 (-678,670,-48) => d=(678,-670,48). FIX: was (-689,-652,40).
     my_brunei:   { dx: 678.0,     dy: -670.0,   dz: 48.0,     a: 6377298.556, invf: 300.8017, gcs: 'GCS_Timbalai_1948', datum: 'D_Timbalai_1948', spheroid: 'Everest_1830_1967_Definition', utm_dp: 3, epsg: '1592', acc_m: 5 }
 };
 
@@ -513,23 +1141,23 @@ const DATUMS = {
  * i18n Dictionary
  */
 const I18nDict = {
-    app_title: { en: "Coordinate Converter v6.7.3", th: "โปรแกรมแปลงค่าพิกัด v6.7.3" },
+    app_title: { en: "Coordinate Converter", th: "โปรแกรมแปลงค่าพิกัด" },
     lbl_datum: { en: "Datum:", th: "พารามิเตอร์:" },
     lbl_zone: { en: "Zone:", th: "โซน:" },
     sel_zone: { en: "UTM Zone:", th: "พิกัด UTM:" },
     sel_datum: { en: "Transformation Params:", th: "พารามิเตอร์:" },
     lbl_hemisphere: { en: "Hemisphere:", th: "ซีกโลก:" },
     opt_group_th: { en: "🇹🇭 Thailand (Indian 1975)", th: "🇹🇭 ประเทศไทย (Indian 1975)" },
-    opt_group_mm: { en: "🇲🇲 Myanmar (Indian 1960 / 1954)", th: "🇲🇲 ประเทศพม่า (Indian 1960 / 1954)" },
+    opt_group_mm: { en: "🌏 Indian 1954 / 1960 (Thailand · Vietnam)", th: "🌏 Indian 1954 / 1960 (ไทย · เวียดนาม)" },
     opt_group_my: { en: "🇲🇾 Malaysia & Borneo (Kertau / Timbalai)", th: "🇲🇾 ประเทศมาเลเซีย & บอร์เนียว (Kertau / Timbalai)" },
     opt_th_legacy: { en: "Thailand - Indian 1975 (Legacy DMR)", th: "ไทย - Indian 1975 (กรมทรัพยากรธรณี ดั้งเดิม)" },
     opt_th_dol: { en: "Thailand - Indian 1975 (DOL / กรมที่ดิน)", th: "ไทย - Indian 1975 (กรมที่ดิน)" },
     opt_th_survey: { en: "Thailand - Indian 1975 (High-Prec Survey)", th: "ไทย - Indian 1975 (รังวัดชั้นสูง)" },
-    opt_mm_1960: { en: "Myanmar - Indian 1960 (EPSG:1307)", th: "พม่า - Indian 1960 (EPSG:1307)" },
-    opt_mm_1954: { en: "Myanmar - Indian 1954 (EPSG:1304)", th: "พม่า - Indian 1954 (EPSG:1304)" },
-    opt_my_kertau: { en: "Malaysia (Peninsular) - Kertau 1948 (EPSG:1310)", th: "มาเลเซียตะวันตก - Kertau 1948 (EPSG:1310)" },
-    opt_my_timbalai: { en: "Malaysia (Sabah/Sarawak) - Timbalai 1948 (EPSG:1312)", th: "มาเลเซียตะวันออก - Timbalai 1948 (EPSG:1312)" },
-    opt_my_brunei: { en: "Brunei & Sarawak - Timbalai 1948 (EPSG:1313)", th: "บรูไน & ซาราวัก - Timbalai 1948 (EPSG:1313)" },
+    opt_mm_1960: { en: "Vietnam - Indian 1960 (EPSG:1542)", th: "เวียดนาม - Indian 1960 (EPSG:1542)" },
+    opt_mm_1954: { en: "Thailand - Indian 1954 (EPSG:1153)", th: "ไทย - Indian 1954 (EPSG:1153)" },
+    opt_my_kertau: { en: "Malaysia (Peninsular) - Kertau 1968 (EPSG:4245)", th: "มาเลเซียตะวันตก - Kertau 1968 (EPSG:4245)" },
+    opt_my_timbalai: { en: "Malaysia (Sabah/Sarawak) - Timbalai 1948 (EPSG:1228)", th: "มาเลเซียตะวันออก - Timbalai 1948 (EPSG:1228)" },
+    opt_my_brunei: { en: "Brunei - Timbalai 1948 (EPSG:1592)", th: "บรูไน - Timbalai 1948 (EPSG:1592)" },
     startup_reminder: { 
         en: "⚙️ Active Settings: Datum [{0}] | 2D Transformation (Height=0m)",
         th: "⚙️ การตั้งค่าที่ใช้งานอยู่: พารามิเตอร์ [{0}] | การแปลงแบบ 2D (ความสูง=0 ม.)"
@@ -543,9 +1171,9 @@ const I18nDict = {
     tab_1: { en: "1: WGS84 ➔ Indian 1975", th: "1: WGS84 ➔ Indian 1975" },
     tab_2: { en: "2: Indian 1975 ➔ WGS84", th: "2: Indian 1975 ➔ WGS84" },
     tab_3: { en: "3: Route Analytics", th: "3: วิเคราะห์เส้นทาง" },
-    lbl_format: { en: "Input Format:", th: "รูปแบบการกรอก:" },
-    lbl_s2_format: { en: "Input Format:", th: "รูปแบบการกรอก:" },
-    lbl_out_format: { en: "Output Format:", th: "รูปแบบผลลัพธ์:" },
+    lbl_format: { en: "Input:", th: "กรอกเป็น:" },
+    lbl_s2_format: { en: "Input:", th: "กรอกเป็น:" },
+    lbl_out_format: { en: "Output:", th: "ผลลัพธ์:" },
     opt_fmt_dm: { en: "Degrees & Decimal Minutes (DM)", th: "องศา และ ลิปดาทศนิยม (DM)" },
     opt_fmt_d: { en: "Decimal Degrees (D)", th: "ทศนิยมองศา (D)" },
     opt_fmt_dms: { en: "Degrees, Minutes, Seconds (DMS)", th: "องศา ลิปดา พิลิปดา (DMS)" },
@@ -585,16 +1213,16 @@ const I18nDict = {
     tt_send_all_s1: { en: "Send calculated rows to Section 1", th: "ส่งข้อมูลพิกัดที่คำนวณแล้วทั้งหมดไปยัง Section 1" },
     btn_export_menu: { en: "Export ▼", th: "ส่งออก ▼" },
     btn_export_route_menu: { en: "Export Route ▼", th: "ส่งออกเส้นทาง ▼" },
-    btn_calc_s1: { en: "Calculate Section 1", th: "ประมวลผลส่วนที่ 1" },
-    btn_clear_s1: { en: "Clear Section 1", th: "ล้างข้อมูล" },
+    btn_calc_s1: { en: "Calculate", th: "ประมวลผล" },
+    btn_clear_s1: { en: "Clear", th: "ล้างข้อมูล" },
     btn_exp_csv_s1: { en: "Export CSV", th: "ส่งออก CSV" },
     btn_exp_xlsx_s1: { en: "Export XLSX", th: "ส่งออก XLSX" },
     btn_exp_shp: { en: "Export SHP (ZIP)", th: "ส่งออก SHP (ZIP)" },
     btn_exp_kml_s1: { en: "Export KML", th: "ส่งออก KML" },
     btn_exp_geojson: { en: "Export GeoJSON", th: "ส่งออก GeoJSON" },
     btn_copy_tsv_s1: { en: "Copy (TSV)", th: "คัดลอกตาราง" },
-    btn_calc_s2: { en: "Calculate Section 2", th: "ประมวลผลส่วนที่ 2" },
-    btn_clear_s2: { en: "Clear Section 2", th: "ล้างข้อมูล" },
+    btn_calc_s2: { en: "Calculate", th: "ประมวลผล" },
+    btn_clear_s2: { en: "Clear", th: "ล้างข้อมูล" },
     btn_exp_csv_s2: { en: "Export CSV", th: "ส่งออก CSV" },
     btn_exp_xlsx_s2: { en: "Export XLSX", th: "ส่งออก XLSX" },
     btn_exp_kml_s2: { en: "Export KML", th: "ส่งออก KML" },
@@ -654,7 +1282,8 @@ const I18nDict = {
     err_lon_range: { en: "Row {0}: Longitude must be between -180° and 180°.", th: "แถว {0}: ลองจิจูดอยู่นอกช่วง -180 ถึง 180" },
     err_out_th: { en: "Row {0}: Coordinates outside valid UTM bounds for region.", th: "แถว {0}: พิกัดหลุดอาณาบริเวณ" },
     err_out_zone: { en: "Row {0}: Longitude exceeds UTM Zone Central Meridian limits.", th: "แถว {0}: ค่าลองจิจูดผิดโซน CM ที่ตั้งไว้" },
-    msg_calc_ok: { en: "✓ {0} row(s) calculated successfully.", th: "✓ คำนวณสำเร็จ {0} แถว" },
+    msg_far_cm: { en: "⚠ {0} point(s) lie more than 6° from the zone central meridian (grid error > 1 cm). Use the adjacent UTM zone.", th: "⚠ {0} จุดอยู่ห่าง CM ของโซนเกิน 6° (คลาดเคลื่อนกริด > 1 ซม.) ควรใช้โซน UTM ข้างเคียง" },
+    msg_calc_ok: { en: "✓ {0} row(s) calculated", th: "✓ คำนวณสำเร็จ {0} แถว" },
     err_math: { en: "Row {0}: Math error.", th: "แถว {0}: ข้อผิดพลาดทางคณิตศาสตร์" },
     route_empty: { en: "No route data. Enter points in Tab 2 to generate analytics.", th: "ไม่มีข้อมูลเส้นทาง กรุณากรอกจุดพิกัดในแท็บที่ 2 เพื่อคำนวณ" },
     route_need_pts: { en: "Need at least 2 valid points in Section 2 to generate route analytics.", th: "ต้องการจุดพิกัดที่ถูกต้องอย่างน้อย 2 จุดในส่วนที่ 2 เพื่อวิเคราะห์เส้นทาง" },
@@ -708,6 +1337,47 @@ const I18nDict = {
     caption_route: { en: "Route analytics results", th: "ผลการวิเคราะห์เส้นทาง" },
 
     // AI OCR keys
+    ocr_title:          { en: "📸 AI Photo OCR — Extract Coordinates",      th: "📸 AI Photo OCR — ดึงค่าพิกัดจากภาพ" },
+    ocr_btn:            { en: "📸 AI OCR",                                   th: "📸 AI OCR" },
+    ocr_btn_title:      { en: "Extract coordinates from image using AI",     th: "ดึงค่าพิกัดจากภาพโดย AI" },
+    ocr_api_key_label:  { en: "Google AI Studio API Key",                    th: "คีย์ API Google AI Studio" },
+    ocr_key_ph:         { en: "AIzaSy...",                                   th: "AIzaSy..." },
+    ocr_get_key:        { en: "Get free key ↗",                              th: "รับคีย์ฟรี ↗" },
+    ocr_save_key:       { en: "Save Key",                                    th: "บันทึกคีย์" },
+    ocr_clear_key:      { en: "Clear",                                       th: "ลบ" },
+    ocr_key_notice:     { en: "🔒 Key stays in this browser's localStorage. ⚠️ On the free tier, images & prompts you send may be used by Google to improve their models — do NOT upload confidential survey data (rig/well/anchor/tow coordinates). Use a paid tier or Vertex AI for real work.", th: "🔒 คีย์เก็บใน localStorage ของเบราว์เซอร์นี้เท่านั้น ⚠️ บนแพ็กเกจฟรี รูปและพรอมป์ที่ส่งอาจถูก Google นำไปปรับปรุงโมเดล — ห้ามอัปโหลดข้อมูลลับ (พิกัดแท่น/หลุม/สมอ/เส้นทางลาก) สำหรับงานจริงให้ใช้แบบเสียเงินหรือ Vertex AI" },
+    ocr_format_hint_label:{ en: "Coordinate Format in Image",               th: "รูปแบบพิกัดในภาพ" },
+    ocr_fmt_utm_ind:    { en: "Indian UTM — Easting/Northing (m)",           th: "Indian UTM — Easting/Northing (ม.)" },
+    ocr_fmt_utm_wgs:    { en: "WGS84 UTM — Easting/Northing (m)",           th: "WGS84 UTM — Easting/Northing (ม.)" },
+    ocr_fmt_cross:      { en: "Crosscheck Table (UTM + Lat/Lon)",            th: "ตารางตรวจสอบ (UTM + Lat/Lon)" },
+    ocr_fmt_dd:         { en: "WGS84 Decimal Degrees (DD)",                  th: "WGS84 ทศนิยมองศา (DD)" },
+    ocr_fmt_dm:         { en: "WGS84 Deg & Dec Minutes (DM)",               th: "WGS84 องศา-ลิปดา (DM)" },
+    ocr_fmt_dms:        { en: "WGS84 Deg Min Sec (DMS)",                    th: "WGS84 องศา-ลิปดา-พิลิปดา (DMS)" },
+    ocr_fmt_ind_ll:     { en: "Indian 1975 Lat/Lon (any)",                  th: "Indian 1975 Lat/Lon (ทุกรูปแบบ)" },
+    ocr_fmt_auto:       { en: "Auto-detect",                                 th: "ตรวจจับอัตโนมัติ" },
+    ocr_target_label:   { en: "Send results to",                             th: "ส่งผลลัพธ์ไปที่" },
+    ocr_target_auto:    { en: "Auto (based on format)",                      th: "อัตโนมัติ (ตามรูปแบบ)" },
+    ocr_target_s1:      { en: "Section 1: WGS84 → Indian",                  th: "ส่วนที่ 1: WGS84 → Indian" },
+    ocr_target_s2:      { en: "Section 2: Indian → WGS84",                  th: "ส่วนที่ 2: Indian → WGS84" },
+    ocr_image_label:    { en: "Image Input",                                 th: "รูปภาพที่นำเข้า" },
+    ocr_paste_hint:     { en: "📋 Press Ctrl+V to paste, or drag & drop",   th: "📋 กด Ctrl+V วางภาพ หรือลากไฟล์" },
+    ocr_browse:         { en: "📁 Browse File",                              th: "📁 เลือกไฟล์" },
+    ocr_clear_img:      { en: "✕ Clear Image",                               th: "✕ ลบภาพ" },
+    ocr_extract:        { en: "🔍 Extract Coordinates",                      th: "🔍 ดึงค่าพิกัด" },
+    ocr_v1_is:          { en: "V1 column is:",                               th: "คอลัมน์ V1 คือ:" },
+    ocr_v2_is:          { en: "V2 column is:",                               th: "คอลัมน์ V2 คือ:" },
+    ocr_swap:           { en: "🔀 Swap V1 ↔ V2",                            th: "🔀 สลับ V1 ↔ V2" },
+    ocr_sel_all:        { en: "☑ Select All",                                th: "☑ เลือกทั้งหมด" },
+    ocr_desel_all:      { en: "☐ Deselect All",                              th: "☐ ยกเลิกทั้งหมด" },
+    ocr_th_id:          { en: "Point ID",                                    th: "ชื่อจุด" },
+    ocr_th_v1:          { en: "V1",                                          th: "V1" },
+    ocr_th_v2:          { en: "V2",                                          th: "V2" },
+    ocr_th_note:        { en: "Note / Extra",                                th: "หมายเหตุ / ข้อมูลอื่น" },
+    ocr_sel_count:      { en: "Selected: 0 / 0 rows",                        th: "เลือกแล้ว: 0 / 0 แถว" },
+    ocr_apply:          { en: "✅ Apply to Table",                           th: "✅ นำเข้าตาราง" },
+    ocr_discard:        { en: "✕ Discard",                                   th: "✕ ยกเลิก" },
+    ocr_close:          { en: "✕ Close",                                     th: "✕ ปิดหน้าต่าง" },
+    ocr_need_internet:  { en: "AI Photo OCR requires internet connection.",  th: "AI Photo OCR ต้องเชื่อมต่ออินเทอร์เน็ต" },
 };
 
 function t(key, param) { 
@@ -861,7 +1531,7 @@ const GeoMath = {
         const wgsGeod = GeoMath.ecefToGeodetic(ecef[0] - dx, ecef[1] - dy, ecef[2] - dz, GeoMath.a_wgs, GeoMath.f_wgs);
         return { lat: wgsGeod[0], lon: wgsGeod[1], ind_lat: indGeod[0], ind_lon: indGeod[1] };
     },
-
+    
     indGeodeticToWgs84: (indLat, indLon, dx, dy, dz, aInd = GeoMath.a_ind, fInd = GeoMath.f_ind) => {
         const ecef = GeoMath.geodeticToECEF(indLat, indLon, 0, aInd, fInd);
         const wgsGeod = GeoMath.ecefToGeodetic(ecef[0] - dx, ecef[1] - dy, ecef[2] - dz, GeoMath.a_wgs, GeoMath.f_wgs);
@@ -1356,6 +2026,12 @@ var AppMethods = {
         return str;
     },
 
+    // Degrees + decimal minutes with carry (never returns minutes >= 60); sign carried on degrees, or on minutes when degrees = 0
+    toDM: (v) => {
+        const neg = v < 0, tot = Math.round(Math.abs(v) * 60 * 1e5) / 1e5;
+        const d = Math.floor(tot / 60), m = Number((tot - d * 60).toFixed(5));
+        return { d: neg ? -d : d, m: (neg && d === 0) ? -m : m };
+    },
     getTimestamp: () => {
         const d = new Date();
         const pad = n => n.toString().padStart(2, '0');
@@ -1468,6 +2144,24 @@ var AppMethods = {
             setTimeout(() => toast.remove(), 300);
         }, 3500);
     },
+    // v6.8.3 Patch 4 (C1 performance): debounce the calc AND detach the heavy
+    // map/SVG/route redraw so live typing recomputes only the table (cheap),
+    // then repaints the visualization once after the user pauses (~350ms idle).
+    scheduleCalc: (tableId) => {
+        const isT1 = tableId === 'table1';
+        const key = isT1 ? 'ts1' : 'ts2';
+        clearTimeout(AppState.timers[key]);
+        AppState.timers[key] = setTimeout(() => {
+            if (isT1) AppMethods.calcS1({ suppressRender: true });
+            else AppMethods.calcS2({ suppressRender: true });
+            clearTimeout(AppState.timers.tsRender);
+            AppState.timers.tsRender = setTimeout(() => {
+                if (AppState.activeTab === 3) AppMethods.renderRouteTable();
+                if (!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
+                else if (!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
+            }, 350);
+        }, 450);
+    },
 
     syncSettings: () => {
         // Capture previous datum params & label for delta preview
@@ -1481,9 +2175,9 @@ var AppMethods = {
         const dat = dSel.value;
         const def = DATUMS[dat] || DATUMS.legacy;
         AppState.params = { dx: def.dx, dy: def.dy, dz: def.dz };
-        AppState.precCfg.utm_dp = def.utm_dp || 2;
         AppState.indEllip = { a: def.a, f: 1 / def.invf }; // datum-correct Indian ellipsoid
         AppState.datumMeta = def;                          // PRJ/WKT metadata for SHP export
+        AppState.precCfg.utm_dp = def.utm_dp;
 
         document.getElementById('displayParams').innerHTML = `<code>dx= ${AppState.params.dx}</code> <code>dy= ${AppState.params.dy}</code> <code>dz= ${AppState.params.dz}</code>`;
         document.getElementById('displayZone').innerHTML = `<code>${AppState.zoneInfo.zone}N (CM=${AppState.zoneInfo.cm}°E)</code>`;
@@ -1536,11 +2230,11 @@ var AppMethods = {
             const cm = AppState.zoneInfo.cm;
             // Transform anchor WGS→Indian using OLD params
             const [x1,y1,z1] = GeoMath.geodeticToECEF(anchor.lat, anchor.lon, 0, GeoMath.a_wgs, GeoMath.f_wgs);
-            const [la1,lo1] = GeoMath.ecefToGeodetic(x1 + oldParams.dx, y1 + oldParams.dy, z1 + oldParams.dz, GeoMath.a_ind, GeoMath.f_ind);
-            const [e1,n1] = GeoMath.latLonToUTM(la1, lo1, GeoMath.a_ind, GeoMath.f_ind, cm);
+            const [la1,lo1] = GeoMath.ecefToGeodetic(x1 + oldParams.dx, y1 + oldParams.dy, z1 + oldParams.dz, AppState.indEllip.a, AppState.indEllip.f);
+            const [e1,n1] = GeoMath.latLonToUTM(la1, lo1, AppState.indEllip.a, AppState.indEllip.f, cm);
             // Transform anchor WGS→Indian using NEW params
-            const [la2,lo2] = GeoMath.ecefToGeodetic(x1 + newParams.dx, y1 + newParams.dy, z1 + newParams.dz, GeoMath.a_ind, GeoMath.f_ind);
-            const [e2,n2] = GeoMath.latLonToUTM(la2, lo2, GeoMath.a_ind, GeoMath.f_ind, cm);
+            const [la2,lo2] = GeoMath.ecefToGeodetic(x1 + newParams.dx, y1 + newParams.dy, z1 + newParams.dz, AppState.indEllip.a, AppState.indEllip.f);
+            const [e2,n2] = GeoMath.latLonToUTM(la2, lo2, AppState.indEllip.a, AppState.indEllip.f, cm);
             const dE = e2 - e1, dN = n2 - n1;
             const dist = Math.sqrt(dE * dE + dN * dN);
             const msg = t('f2_datum_delta', '')
@@ -1654,8 +2348,8 @@ var AppMethods = {
                 targetRow.cells[s2Cols.pt].innerText = pointId;
                 const inpE = targetRow.cells[s2Cols.indE]?.querySelector('input');
                 const inpN = targetRow.cells[s2Cols.indN]?.querySelector('input');
-                if (inpE) inpE.value = Formatter.toFixedSafe(rawE, AppState.precCfg.utm_dp);
-                if (inpN) inpN.value = Formatter.toFixedSafe(rawN, AppState.precCfg.utm_dp);
+                if (inpE) inpE.value = Formatter.toFixedSafe(rawE, 4);
+                if (inpN) inpN.value = Formatter.toFixedSafe(rawN, 4);
                 [s2Cols.indE, s2Cols.indN].forEach(x => {
                     if (targetRow.cells[x]) {
                         targetRow.cells[x].classList.remove('has-error');
@@ -2024,12 +2718,9 @@ var AppMethods = {
                 c[2].querySelector('input').value = Formatter.toFixedSafe(utm[1], AppState.precCfg.utm_dp);
                 [1,2].forEach(x => AppMethods.updateInputDisplay(c[x]));
             } else if(nf==='dm'){
-                let al=Math.abs(sd.lat), floorAl=Math.floor(al);
-                let dl = floorAl*(sd.lat<0?-1:1), ml = (sd.lat<0 && floorAl===0)? -(al-floorAl)*60 : (al-floorAl)*60;
-                let ao=Math.abs(sd.lon), floorAo=Math.floor(ao);
-                let doL = floorAo*(sd.lon<0?-1:1), mo = (sd.lon<0 && floorAo===0)? -(ao-floorAo)*60 : (ao-floorAo)*60;
-                c[1].querySelector('input').value=dl; c[2].querySelector('input').value=Number(ml.toFixed(5));
-                c[3].querySelector('input').value=doL; c[4].querySelector('input').value=Number(mo.toFixed(5));
+                const dmLat = AppMethods.toDM(sd.lat), dmLon = AppMethods.toDM(sd.lon);
+                c[1].querySelector('input').value=dmLat.d; c[2].querySelector('input').value=dmLat.m;
+                c[3].querySelector('input').value=dmLon.d; c[4].querySelector('input').value=dmLon.m;
                 [1,2,3,4].forEach(x => AppMethods.updateInputDisplay(c[x]));
             } else if(nf==='dms') {
                 c[1].querySelector('input').value = Formatter.formatStr(sd.lat, 'dms', true);
@@ -2075,7 +2766,7 @@ var AppMethods = {
             if (nf === 'utm') {
                 if(isNaN(e) || isNaN(n)) {
                     if(!isNaN(lat) && !isNaN(lon)) {
-                        let res = GeoMath.latLonToUTM(lat, lon, GeoMath.a_ind, GeoMath.f_ind, zi.cm);
+                        let res = GeoMath.latLonToUTM(lat, lon, AppState.indEllip.a, AppState.indEllip.f, zi.cm);
                         e = res[0]; n = res[1];
                     }
                 }
@@ -2087,18 +2778,15 @@ var AppMethods = {
             } else {
                 if(isNaN(lat) || isNaN(lon)) {
                     if(!isNaN(e) && !isNaN(n)) {
-                        let res = GeoMath.utmToLatLon(e, n, GeoMath.a_ind, GeoMath.f_ind, zi.cm, isSouthern);
+                        let res = GeoMath.utmToLatLon(e, n, AppState.indEllip.a, AppState.indEllip.f, zi.cm, isSouthern);
                         lat = res[0]; lon = res[1];
                     }
                 }
                 if (!isNaN(lat) && !isNaN(lon)) {
                     if(nf==='dm'){
-                        let al=Math.abs(lat), floorAl=Math.floor(al);
-                        let dl = floorAl*(lat<0?-1:1), ml = (lat<0 && floorAl===0)? -(al-floorAl)*60 : (al-floorAl)*60;
-                        let ao=Math.abs(lon), floorAo=Math.floor(ao);
-                        let doL = floorAo*(lon<0?-1:1), mo = (lon<0 && floorAo===0)? -(ao-floorAo)*60 : (ao-floorAo)*60;
-                        c[newCols.latD].querySelector('input').value=dl; c[newCols.latM].querySelector('input').value=Number(ml.toFixed(5));
-                        c[newCols.lonD].querySelector('input').value=doL; c[newCols.lonM].querySelector('input').value=Number(mo.toFixed(5));
+                        const dmLat = AppMethods.toDM(lat), dmLon = AppMethods.toDM(lon);
+                        c[newCols.latD].querySelector('input').value=dmLat.d; c[newCols.latM].querySelector('input').value=dmLat.m;
+                        c[newCols.lonD].querySelector('input').value=dmLon.d; c[newCols.lonM].querySelector('input').value=dmLon.m;
                         [newCols.latD, newCols.latM, newCols.lonD, newCols.lonM].forEach(x => AppMethods.updateInputDisplay(c[x]));
                     } else if(nf==='dms') {
                         c[newCols.latStr].querySelector('input').value = Formatter.formatStr(lat, 'dms', true);
@@ -2129,7 +2817,7 @@ var AppMethods = {
 
     calcS1: (options = {}) => {
         const suppressRender = options?.suppressRender === true;
-        AppMethods.clearErr('table1'); let msgs = [], rowsCalc = 0;
+        AppMethods.clearErr('table1'); let msgs = [], rowsCalc = 0, farCount = 0;
         const fmt=AppState.s1Format, outF=document.getElementById('section1OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         Array.from(document.querySelector('#table1 tbody').children).forEach((r, i) => {
             let c=r.cells, rE=false, idx=i+1;
@@ -2172,9 +2860,7 @@ var AppMethods = {
             }
             rowsCalc++;
             try {
-                const indA = AppState.indEllip?.a ?? GeoMath.a_ind;
-                const indF = AppState.indEllip?.f ?? GeoMath.f_ind;
-                let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm, indA, indF);
+                let res = GeoMath.wgs84ToInd1975(lD, oD, p.dx, p.dy, p.dz, zi.cm, AppState.indEllip.a, AppState.indEllip.f);
                 let wgsUtm = GeoMath.latLonToUTM(lD, oD, GeoMath.a_wgs, GeoMath.f_wgs, zi.cm);
                 let gamma = GeoMath.calculateConvergence(res.lat, res.lon, zi.cm);
                 c[cols.e].innerText = Formatter.formatUTM(res.east); c[cols.n].innerText = Formatter.formatUTM(res.north);
@@ -2188,6 +2874,7 @@ var AppMethods = {
                 }
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
                 // Stash raw decimals in dataset for cross-link & preview transfers
+                if (Math.abs(oD - zi.cm) > 6) farCount++;
                 r.dataset.wgsLat = String(lD);
                 r.dataset.wgsLon = String(oD);
                 r.dataset.indE = String(res.east);
@@ -2207,7 +2894,7 @@ var AppMethods = {
             uniq.forEach(m => { const div = document.createElement('div'); div.textContent = m; st.appendChild(div); });
             st.className = 'status err';
         }
-        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc) + (farCount ? ' ' + t('msg_far_cm', farCount) : ''); st.className = 'status ok'; }
         else { st.className = 'status'; }
         AppMethods.injectCrossLinks('table1'); // v6.5.1 F1
         if (!suppressRender) {
@@ -2217,7 +2904,7 @@ var AppMethods = {
     },
     calcS2: (options = {}) => {
         const suppressRender = options?.suppressRender === true;
-        AppMethods.clearErr('table2'); let msgs = [], rowsCalc = 0;
+        AppMethods.clearErr('table2'); let msgs = [], rowsCalc = 0, farCount = 0;
         const fmt=AppState.s2Format, outF=document.getElementById('section2OutputFormat').value, p=AppState.params, zi=AppState.zoneInfo;
         const isSouthern = document.getElementById('s2Hemisphere').value === 'S';
         const cols = AppMethods.getS2Cols();
@@ -2240,7 +2927,7 @@ var AppMethods = {
                 n=Formatter.toNumber(c[cols.indN].querySelector('input').value);
                 if(isNaN(e)&&isNaN(n)) return;
                 if(isNaN(e)||isNaN(n)){ msgs.push(t('err_s2_both',idx)); rE=true; }
-                else { if(e<0||e>2000000) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<0||n>10000000){msgs.push(t('err_out_th',idx)); rE=true;} }
+                else { if(e < 0 || e > 2000000) {msgs.push(t('err_s2_utm',idx)); rE=true;} if(n<0||n>10000000){msgs.push(t('err_out_th',idx)); rE=true;} }
                 if(rE){ [cols.indE, cols.indN].forEach(x=>c[x].classList.add('has-error')); return; }
             } else {
                 let coords = AppMethods.getS2IndLatLon(r);
@@ -2272,16 +2959,14 @@ var AppMethods = {
             try {
                 let wgsRes;
                 if (fmt === 'utm') {
-                    const indA = AppState.indEllip?.a ?? GeoMath.a_ind;
-                    const indF = AppState.indEllip?.f ?? GeoMath.f_ind;
-                    wgsRes = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern, indA, indF);
+                    wgsRes = GeoMath.ind1975ToWgs84(e, n, p.dx, p.dy, p.dz, zi.cm, isSouthern, AppState.indEllip.a, AppState.indEllip.f);
                     c[cols.indLat].innerText=Formatter.formatStr(wgsRes.ind_lat, outF, true); 
                     c[cols.indLon].innerText=Formatter.formatStr(wgsRes.ind_lon, outF, false);
                 } else {
-                    let utmRes = GeoMath.latLonToUTM(indLat, indLon, GeoMath.a_ind, GeoMath.f_ind, zi.cm);
+                    let utmRes = GeoMath.latLonToUTM(indLat, indLon, AppState.indEllip.a, AppState.indEllip.f, zi.cm);
                     e = utmRes[0]; n = utmRes[1];
                     // CRITICAL: Do NOT add false northing here. GeoMath.latLonToUTM() already applies +10,000,000 when latitude < 0.
-                    wgsRes = GeoMath.indGeodeticToWgs84(indLat, indLon, p.dx, p.dy, p.dz);
+                    wgsRes = GeoMath.indGeodeticToWgs84(indLat, indLon, p.dx, p.dy, p.dz, AppState.indEllip.a, AppState.indEllip.f);
                     
                     c[cols.indE].innerText = Formatter.formatUTM(e);
                     c[cols.indN].innerText = Formatter.formatUTM(n);
@@ -2297,6 +2982,7 @@ var AppMethods = {
                 if(c[cols.w_n]) c[cols.w_n].textContent = Formatter.formatUTM(wgsUtm[1]);
                 if(c[cols.conv]) c[cols.conv].innerText = gamma.toFixed(4) + '°';
                 // Stash raw decimals in dataset for cross-link & preview transfers
+                if (Math.abs((fmt === 'utm' ? wgsRes.ind_lon : indLon) - zi.cm) > 6) farCount++;
                 r.dataset.wgsLat = String(wgsRes.lat);
                 r.dataset.wgsLon = String(wgsRes.lon);
                 r.dataset.indE = String(e);
@@ -2316,7 +3002,7 @@ var AppMethods = {
             uniq.forEach(m => { const div = document.createElement('div'); div.textContent = m; st.appendChild(div); });
             st.className = 'status err'; 
         }
-        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc); st.className = 'status ok'; }
+        else if(rowsCalc > 0) { st.textContent = t('msg_calc_ok', rowsCalc) + (farCount ? ' ' + t('msg_far_cm', farCount) : ''); st.className = 'status ok'; }
         else { st.className = 'status'; }
 
         AppMethods.injectCrossLinks('table2'); // v6.5.1 F1
@@ -2387,8 +3073,8 @@ var AppMethods = {
             // Fill inputs (Indian UTM E, N)
             const inpE = c[s2Cols.indE].querySelector('input');
             const inpN = c[s2Cols.indN].querySelector('input');
-            if (inpE) inpE.value = Formatter.toFixedSafe(d.e, AppState.precCfg.utm_dp);
-            if (inpN) inpN.value = Formatter.toFixedSafe(d.n, AppState.precCfg.utm_dp);
+            if (inpE) inpE.value = Formatter.toFixedSafe(d.e, 4);
+            if (inpN) inpN.value = Formatter.toFixedSafe(d.n, 4);
             [s2Cols.indE, s2Cols.indN].forEach(x => {
                 c[x].classList.remove('has-error');
                 AppMethods.updateInputDisplay(c[x]);
@@ -2497,7 +3183,7 @@ var AppMethods = {
                     const inp = c.querySelector('input');
                     return Formatter.safeSpreadsheetText(String(inp && inp.value !== '' ? inp.value : c.textContent).replace(/\t|\n/g,' ').trim());
                 });
-            if(cells.some(x=>x!=='')) lines.push(cells.join('\t'));
+            if(cells.slice(1).some(x=>x!=='')) lines.push(cells.join('\t'));
         }
         
         const txt = lines.join('\n');
@@ -2525,7 +3211,7 @@ var AppMethods = {
 
     exportCsv: (tid, fn) => {
         AppMethods.ensureFreshForTable(tid);
-        const tb=document.getElementById(tid), lines=['\uFEFF'];
+        const tb=document.getElementById(tid), lines=[];
         const zoneLabel = document.getElementById('zoneSelect').options[document.getElementById('zoneSelect').selectedIndex].text;
         const datumLabel = document.getElementById('datumSelect').options[document.getElementById('datumSelect').selectedIndex].text;
         
@@ -2548,10 +3234,10 @@ var AppMethods = {
                     const safe = Formatter.safeSpreadsheetText(raw);
                     return AppMethods.csvEscape(safe);
                 });
-            if(!cl.slice(1).every(c=>c==='""')) lines.push(cl.join(','));
+            if(!cl.slice(1).every(c=>c===''||c==='""')) lines.push(cl.join(','));
         }
         if(lines.length <= 3) { AppMethods.showToast(t('msg_no_pts'), 'err'); return; }
-        AppMethods.download(fn, lines.join('\n'), 'text/csv;charset=utf-8');
+        AppMethods.download(fn, '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
         const pts = lines.length - 3; // roughly (minus headers)
         AppMethods.showToast(AppState.lang === 'th' ? `✅ ส่งออก CSVสำเร็จ` : `✅ Exported CSV successfully`, 'ok');
     },
@@ -2757,23 +3443,6 @@ var AppMethods = {
         const projcsName = `${d.gcs.replace(/^GCS_/, '')}_UTM_Zone_${zi.zone}${hemi}`;
         return `PROJCS["${projcsName}",GEOGCS["${d.gcs}",DATUM["${d.datum}",SPHEROID["${d.spheroid}",${d.a},${d.invf}]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
     },
-
-    scheduleCalc: (tableId) => {
-        const isT1 = tableId === 'table1';
-        const key = isT1 ? 'ts1' : 'ts2';
-        clearTimeout(AppState.timers[key]);
-        AppState.timers[key] = setTimeout(() => {
-            if (isT1) AppMethods.calcS1({ suppressRender: true });
-            else AppMethods.calcS2({ suppressRender: true });
-            clearTimeout(AppState.timers.tsRender);
-            AppState.timers.tsRender = setTimeout(() => {
-                if (AppState.activeTab === 3) AppMethods.renderRouteTable();
-                if (!document.getElementById('leafletMap').classList.contains('hidden')) AppMethods.drawLeaflet(false);
-                else if (!document.getElementById('svgContainer').classList.contains('hidden')) AppMethods.drawSvg();
-            }, 100);
-        }, 300);
-    },
-
     exportShpS1: () => {
         AppMethods.calcS1();
         if(typeof JSZip === 'undefined') return;
@@ -2827,7 +3496,7 @@ var AppMethods = {
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
-        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
+        const prjStr = AppMethods.buildPrj(zi, shpHemisphere, falseNorthing);
         
         let data;
         try {
@@ -2915,7 +3584,7 @@ var AppMethods = {
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
-        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
+        const prjStr = AppMethods.buildPrj(zi, shpHemisphere, falseNorthing);
         
         let data;
         try {
@@ -3191,7 +3860,7 @@ var AppMethods = {
         
         const shpHemisphere = hemispheres.has('S') ? 'S' : 'N';
         const falseNorthing = shpHemisphere === 'S' ? 10000000 : 0;
-        const prjStr = `PROJCS["Indian_1975_UTM_Zone_${zi.zone}${shpHemisphere}",GEOGCS["GCS_Indian_1975",DATUM["D_Indian_1975",SPHEROID["Everest_1830_Modified",6377276.345,300.8017]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${zi.cm}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",${falseNorthing}],UNIT["metre",1]]`;
+        const prjStr = AppMethods.buildPrj(zi, shpHemisphere, falseNorthing);
         
         let data;
         try {
@@ -3438,8 +4107,8 @@ var AppMethods = {
             } else {
                 inp.innerText = txt.trim();
             }
-            if(tableId==='table1'){ clearTimeout(AppState.timers.ts1); AppState.timers.ts1=setTimeout(AppMethods.calcS1,300); }
-            if(tableId==='table2'){ clearTimeout(AppState.timers.ts2); AppState.timers.ts2=setTimeout(AppMethods.calcS2,300); }
+            if(tableId==='table1') AppMethods.scheduleCalc('table1');
+            if(tableId==='table2') AppMethods.scheduleCalc('table2');
             return;
         }
         e.preventDefault(); let rows=lines;
@@ -3647,10 +4316,11 @@ var AppMethods = {
             let cx = oX + (p.x - gridMinX) * scaleX;
             let cy = oY + effH - (p.y - gridMinY) * scaleY;
             let cTxt=md==='wgs84'?`${p.y.toFixed(5)}\u00b0N, ${p.x.toFixed(5)}\u00b0E`:`E: ${p.x.toFixed(2)}m, N: ${p.y.toFixed(2)}m`;
-            let fillCol = AppState.activeTab === 1 ? '#4f46e5' : '#e11d48';
+            let fillCol = p.s === 's1' ? '#4f46e5' : '#e11d48';
             out+=`<g><circle cx="${cx}" cy="${cy}" r="6" fill="${fillCol}"><title>Point ${Formatter.escapeXml(p.id)} (${cTxt})</title></circle></g>`;
             out+=`<text x="${cx+8}" y="${cy-8}" font-size="12" font-weight="600" fill="#1e293b">${Formatter.escapeXml(p.id)}</text>`;
         });
+        out += `<g transform="translate(${svgW - 38},24)"><path d="M0,-14 L6,6 L0,2 L-6,6 Z" fill="#334155"/><text y="20" font-size="10" font-weight="700" text-anchor="middle" fill="#334155">${md === 'utm' ? 'Grid N' : 'N'}</text></g>`;
         svg.innerHTML = out;
     },
 
@@ -3681,20 +4351,100 @@ var AppMethods = {
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     },
 
+    // v6.9.0: key-free basemaps. CARTO raster tiles now require an API key (watermark "API KEY REQUIRED").
+    makeGraticule: () => {
+        const STEPS_ = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+        const Grid = L.GridLayer.extend({
+            onAdd: function (map) { L.GridLayer.prototype.onAdd.call(this, map); this._ccLabels(map); },
+            onRemove: function (map) { if (this._labOff) this._labOff(); L.GridLayer.prototype.onRemove.call(this, map); },
+            // Labels live on ONE viewport-sized canvas (lon along the top edge, lat along the left edge)
+            _ccLabels: function (map) {
+                const cv = document.createElement('canvas'); cv.className = 'cc-grat-lab';
+                cv.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;z-index:450';
+                map.getContainer().appendChild(cv);
+                const draw = () => {
+                    const sz = map.getSize(), dpr = window.devicePixelRatio || 1;
+                    cv.width = Math.round(sz.x * dpr); cv.height = Math.round(sz.y * dpr); cv.style.width = sz.x + 'px'; cv.style.height = sz.y + 'px';
+                    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+                    const b = map.getBounds(), c = map.getCenter(), lonPerPx = 360 / (256 * Math.pow(2, Math.round(map.getZoom())));
+                    const step = STEPS_.find(s => s / lonPerPx >= 90) || 20, dp = step >= 1 ? 0 : Math.ceil(-Math.log10(step));
+                    ctx.font = '11px system-ui,sans-serif'; ctx.textBaseline = 'middle';
+                    const tag = (txt, x, y) => { const w = ctx.measureText(txt).width + 8; ctx.fillStyle = 'rgba(255,255,255,.82)'; ctx.fillRect(x, y - 8, w, 16); ctx.fillStyle = '#44566c'; ctx.fillText(txt, x + 4, y); };
+                    for (let k = Math.ceil(b.getWest() / step); k * step <= b.getEast(); k++) { const lon = k * step, x = map.latLngToContainerPoint([c.lat, lon]).x; tag(Math.abs(lon).toFixed(dp) + (lon < 0 ? '°W' : '°E'), x + 2, 10); }
+                    for (let k = Math.ceil(b.getSouth() / step); k * step <= b.getNorth(); k++) { const lat = k * step, y = map.latLngToContainerPoint([lat, c.lng]).y; tag(Math.abs(lat).toFixed(dp) + (lat < 0 ? '°S' : '°N'), sz.x < 560 ? 56 : 50, y - 10); }
+                };
+                map.on('move zoom resize', draw); draw();
+                this._labOff = () => { map.off('move zoom resize', draw); cv.remove(); this._labOff = null; };
+            },
+            createTile: function (coords) {
+                const size = this.getTileSize(), tile = L.DomUtil.create('canvas', 'leaflet-tile'), ctx = tile.getContext('2d');
+                tile.width = size.x; tile.height = size.y;
+                ctx.fillStyle = '#eaf1f7'; ctx.fillRect(0, 0, size.x, size.y);
+                const map = this._map, z = coords.z, org = coords.multiplyBy(size.x);
+                const nw = map.unproject(org, z), se = map.unproject(org.add(size), z);
+                const lonPerPx = 360 / (256 * Math.pow(2, z));
+                const STEPS = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20];
+                const step = STEPS.find(s => s / lonPerPx >= 90) || 20;
+                const dp = step >= 1 ? 0 : Math.ceil(-Math.log10(step));
+                ctx.strokeStyle = '#9fb3c8'; ctx.fillStyle = '#44566c'; ctx.font = '10px sans-serif'; ctx.lineWidth = 1;
+                for (let k = Math.ceil(nw.lng / step); k * step <= se.lng; k++) {
+                    const lon = k * step, x = Math.round(map.project(L.latLng(0, lon), z).x - org.x) + 0.5;
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size.y); ctx.stroke();
+                }
+                for (let k = Math.ceil(se.lat / step); k * step <= nw.lat; k++) {
+                    const lat = k * step, y = Math.round(map.project(L.latLng(lat, 0), z).y - org.y) + 0.5;
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size.x, y); ctx.stroke();
+                }
+                return tile;
+            }
+        });
+        return new Grid({ maxZoom: 22, attribution: 'Offline graticule' });
+    },
+    initBasemaps: (map) => {
+        const esri = (svc, o) => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/' + svc + '/MapServer/tile/{z}/{y}/{x}', Object.assign({ maxZoom: 19, attribution: 'Tiles &copy; Esri' }, o));
+        const oceanBase = esri('Ocean/World_Ocean_Base', { maxNativeZoom: 13, attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, National Geographic, DeLorme, HERE, Geonames.org, and other contributors' });
+        const B = {
+            street: esri('World_Street_Map', { maxNativeZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, DeLorme, USGS, NRCan' }),
+            osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }),
+            ocean: L.layerGroup([oceanBase, esri('Ocean/World_Ocean_Reference', { maxNativeZoom: 13, attribution: '' })]),
+            sat: esri('World_Imagery', { maxNativeZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics' }),
+            grid: AppMethods.makeGraticule()
+        };
+        const LABEL = { street: '🗺️ Street (Esri)', osm: '🗺️ OpenStreetMap', ocean: '🌊 Ocean / Bathymetry (Esri)', sat: '🛰️ Satellite (Esri)', grid: '📐 Offline grid (no tiles)' };
+        const NEXT = { ocean: 'street', street: 'osm', osm: 'grid', sat: 'grid' };
+        const HOOK = { ocean: oceanBase, street: B.street, osm: B.osm, sat: B.sat };   // layer whose tile events decide the fallback
+        const baseLayers = {}; Object.keys(B).forEach(k => { baseLayers[LABEL[k]] = B[k]; });
+        const seamark = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxNativeZoom: 18, maxZoom: 19, attribution: 'Seamarks &copy; <a href="https://www.openseamap.org">OpenSeaMap</a> contributors' });
+        let saved = null; try { saved = localStorage.getItem('cc_basemap_v2'); } catch (e) {}
+        const start = (saved && B[saved]) ? saved : 'ocean';
+        let auto = false;
+        Object.keys(NEXT).forEach(k => {
+            let ok = 0, err = 0;
+            HOOK[k].on('add', () => { ok = 0; err = 0; });
+            HOOK[k].on('tileload', () => { ok++; });
+            HOOK[k].on('tileerror', () => {
+                err++;
+                if (ok || err !== 4 || !map.hasLayer(B[k])) return;   // only fall back if NOTHING loaded
+                auto = true; map.removeLayer(B[k]); B[NEXT[k]].addTo(map); auto = false;
+                AppMethods.showToast(AppState.lang === 'th' ? 'โหลดแผนที่ฐานไม่ได้ สลับเป็น ' + LABEL[NEXT[k]] : 'Basemap tiles unavailable. Switched to ' + LABEL[NEXT[k]], 'warn');
+            });
+        });
+        map.on('baselayerchange', e => {
+            if (auto) return;
+            const k = Object.keys(LABEL).find(x => LABEL[x] === e.name);
+            if (k) { try { localStorage.setItem('cc_basemap_v2', k); } catch (err) {} }
+        });
+        B[start].addTo(map);
+        L.control.layers(baseLayers, { '⚓ OpenSeaMap seamarks': seamark }).addTo(map);
+    },
     drawLeaflet: (recenter = false) => {
+        if (typeof L === 'undefined') return;
         const mapDiv = document.getElementById('leafletMap');
         if(mapDiv.classList.contains('hidden')) return;
         
         if (!AppState.map.instance) {
             AppState.map.instance = L.map('leafletMap', { preferCanvas: true }).setView([13.75, 100.5], 6);
-            AppState.map.street = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                subdomains: 'abcd', maxZoom: 19
-            });
-            AppState.map.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri', maxZoom: 19 });
-            
-            AppState.map.street.addTo(AppState.map.instance); 
-            L.control.layers({'🗺️ Street (OSM)': AppState.map.street, '🛰️ Satellite (Esri)': AppState.map.sat}).addTo(AppState.map.instance);
+            AppMethods.initBasemaps(AppState.map.instance);
             
             L.control.scale({ imperial: true, metric: true, position: 'bottomright' }).addTo(AppState.map.instance);
             const coordsControl = L.control({position: 'bottomleft'});
@@ -3777,6 +4527,733 @@ var AppMethods = {
 /**
  * AI OCR — Coordinate Extraction via Google Gemini Vision API
  */
+const AiOcr = {
+    // Model fallback chain (Primary -> Fallback based on user quota tier)
+    MODELS: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'],
+    REQUEST_TIMEOUT_MS: 40000,
+    STORAGE_KEY: 'cc_gemini_api_key',
+    _extracting: false,
+    _currentRows: [],
+    _pendingDataUrl: null,
+
+    // Helpers
+    escHtml: (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                      .replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
+
+    _memKey: '',
+    loadKey: () => { try { return localStorage.getItem(AiOcr.STORAGE_KEY) || AiOcr._memKey || ''; } catch(e) { return AiOcr._memKey || ''; } },
+    saveKey: (k) => { const v = String(k || '').trim(); AiOcr._memKey = v; try { localStorage.setItem(AiOcr.STORAGE_KEY, v); } catch(e) {} },
+    clearKey: () => { AiOcr._memKey = ''; try { localStorage.removeItem(AiOcr.STORAGE_KEY); } catch(e) {} },
+    maskKey: (k) => k.length > 8 ? k.slice(0,6) + '••••' + k.slice(-2) : '••••••',
+
+    // Prompt Builder
+    buildPrompt: (formatHint) => {
+        if (formatHint === 'crosscheck') {
+            return `You are a geodetic survey OCR assistant analyzing a CROSSCHECK TABLE.
+This table has MULTIPLE coordinate columns: UTM Easting, UTM Northing, Latitude, AND Longitude.
+
+Extract EVERY data row as a JSON array. Each element must include:
+- "id"  : point label/name as string (A1, A2, ... or row number if no label)
+- "v1"  : Indian UTM Easting value string. Copy EXACTLY, preserve ALL decimal places.
+- "v2"  : Indian UTM Northing value string. Copy EXACTLY, preserve ALL decimal places.
+- "note": Concatenate all other columns into this field: "Lat: <value>, Lon: <value>, Remarks: <value>" — copy the Latitude and Longitude from the table here for cross-verification.
+- "confidence": "high" | "medium" | "low"
+- "fmt" : always "utm"
+
+Rules:
+1. Extract EVERY data row. Skip header rows (set confidence: "low" if extracted).
+2. Copy ALL numbers character-by-character. Do NOT round, reformat, or convert.
+3. If a cell is unclear, use empty string "".
+4. The "note" field MUST contain the lat/lon values from the table for the user to verify.`;
+        }
+        const hints = {
+            utm_indian: 'Indian 1975 UTM: Easting (X) and Northing (Y) in meters',
+            utm_wgs84:  'WGS84 UTM: Easting and Northing in meters',
+            dd:         'WGS84 Decimal Degrees e.g. 13.75123 N / 100.50234 E',
+            dm:         'WGS84 Degrees & Decimal Minutes e.g. 13°45.074\' N',
+            dms:        'WGS84 Degrees Minutes Seconds e.g. 13°45\'04.4" N',
+            ind_latlon: 'Indian 1975 Latitude/Longitude in any angular format',
+            auto:       'unknown format — please auto-detect'
+        };
+        return `You are a geodetic survey OCR assistant. Analyze the image and extract EVERY data row.
+Coordinate hint: ${hints[formatHint] || hints['auto']}
+
+Return a JSON array. Each element represents ONE row and must include:
+- "id"  : point label/name as string (use sequential number string if none found)
+- "v1"  : PRIMARY coordinate value string (Easting if UTM, Latitude if lat/lon). Copy EXACTLY — preserve ALL decimal places.
+- "v2"  : SECONDARY coordinate value string (Northing if UTM, Longitude if lat/lon). Copy EXACTLY.
+- "note": any OTHER text in that row (remarks, elevation, Thai text, extra columns) — empty string if none
+- "confidence": "high" | "medium" | "low" — how confident you are that v1/v2 are valid coordinates
+- "fmt" : detected format: "utm" | "dd" | "dm" | "dms" | "unknown"
+
+Rules:
+1. Extract EVERY row (including headers/labels) — the user will filter.
+2. Copy numbers character-by-character. Do NOT round, convert, or reformat.
+3. Headers or non-data rows -> confidence "low".
+4. Ambiguous or unclear values -> use empty string "" for v1/v2.`;
+    },
+
+    // Image Resizer
+    resizeToBase64: (file, maxDim = 2048) => new Promise((resolve, reject) => {
+        // A7: browsers cannot decode HEIC/HEIF via <img>; fail with a clear hint.
+        if (/heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || '')) {
+            reject(new Error(AppState.lang === 'th'
+                ? 'ไฟล์ HEIC/HEIF ไม่รองรับ กรุณาแปลงเป็น JPG หรือ PNG ก่อน'
+                : 'HEIC/HEIF is not supported by the browser. Convert to JPG or PNG first.'));
+            return;
+        }
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width: w, height: h } = img;
+            if (w > maxDim || h > maxDim) {
+                const scale = maxDim / Math.max(w, h);
+                w = Math.round(w * scale); h = Math.round(h * scale);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const cx = canvas.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); // JPEG has no alpha: avoid black background on transparent PNG
+            cx.drawImage(img, 0, 0, w, h);
+            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.92), w, h });
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(AppState.lang==='th' ? 'ไม่สามารถอ่านรูปได้ (ไฟล์เสียหรือรูปแบบไม่รองรับ)' : 'Could not decode image (corrupt or unsupported format).')); };
+        img.src = url;
+    }),
+
+    dataUrlToBase64: (dataUrl) => ({
+        b64: dataUrl.split(',')[1],
+        mime: dataUrl.split(';')[0].split(':')[1] || 'image/jpeg'
+    }),
+
+    // API Caller (with model fallback)
+    extract: async (dataUrl, formatHint, apiKey, onModel) => {
+        const { b64, mime } = AiOcr.dataUrlToBase64(dataUrl);
+        const prompt = AiOcr.buildPrompt(formatHint);
+        const body = {
+            contents: [{ parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mime, data: b64 } }
+            ]}],
+            generationConfig: {
+                // camelCase per v1beta docs (snake_case also tolerated, but be explicit)
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+                // OCR is deterministic transcription — minimise reasoning to cut
+                // latency and token spend (Gemini 3.x flash-lite has thinking ON by default).
+                thinkingConfig: { thinkingLevel: 'low' },
+                responseSchema: {
+                    type: 'ARRAY',
+                    items: {
+                        type: 'OBJECT',
+                        properties: {
+                            id:         { type: 'STRING' },
+                            v1:         { type: 'STRING' },
+                            v2:         { type: 'STRING' },
+                            note:       { type: 'STRING' },
+                            confidence: { type: 'STRING' },
+                            fmt:        { type: 'STRING' }
+                        },
+                        required: ['id', 'v1', 'v2']
+                    }
+                }
+            }
+        };
+
+        // Parse Google's RetryInfo (e.g. "30s") into milliseconds.
+        const parseRetryDelay = (data) => {
+            const det = data?.error?.details?.find(d => String(d['@type'] || '').includes('RetryInfo'));
+            const m = det && /(\d+(?:\.\d+)?)s/.exec(det.retryDelay || '');
+            return m ? Math.min(Math.ceil(parseFloat(m[1])) , 60) : null;
+        };
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        let lastErr;
+        for (const model of AiOcr.MODELS) {
+            if (onModel) onModel(model);
+            // thinkingLevel is a Gemini 3 control; 2.x models use thinkingBudget (0 = off)
+            const reqBody = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: /^gemini-2\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'low' } } };
+            // Per-model exponential backoff on 429 (quota / RPM), max 2 retries.
+            for (let attempt = 0; attempt <= 2; attempt++) {
+                const ac = new AbortController();
+                const timer = setTimeout(() => ac.abort(), AiOcr.REQUEST_TIMEOUT_MS);
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // A3: send key via header, never in the URL query string.
+                            'x-goog-api-key': apiKey
+                        },
+                        body: JSON.stringify(reqBody),
+                        signal: ac.signal
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        const msg = data?.error?.message || `HTTP ${res.status}`;
+                        // Auth error → fail fast (do not try other models/attempts).
+                        if (res.status === 401 || res.status === 403 || msg.includes('API_KEY_INVALID')) {
+                            throw new Error(msg);
+                        }
+                        // A2: 429 = rate/quota limit. Back off on the SAME model
+                        // instead of burning the daily quota on the fallback model.
+                        if (res.status === 429) {
+                            const wait = parseRetryDelay(data) ?? Math.min(2 ** attempt * 5, 30);
+                            lastErr = new Error(`[${model}] Rate limit (429). Retry in ~${wait}s. ${msg}`);
+                            if (attempt < 2) { await sleep(wait * 1000); continue; }
+                            break; // give up this model after retries exhausted
+                        }
+                        lastErr = new Error(`[${model}] ${msg}`);
+                        break; // other HTTP errors → try next model
+                    }
+                    const candidates = data?.candidates;
+                    if (!candidates?.length) {
+                        const block = data?.promptFeedback?.blockReason;
+                        lastErr = new Error(block ? `Content blocked: ${block}` : `[${model}] Empty response`);
+                        break;
+                    }
+                    const text = candidates[0]?.content?.parts?.[0]?.text;
+                    if (!text) { lastErr = new Error(`[${model}] No text in response`); break; }
+                    try { return JSON.parse(text); }
+                    catch { lastErr = new Error(`[${model}] Invalid JSON: ${text.substring(0, 100)}`); break; }
+                } catch (e) {
+                    if (e.name === 'AbortError') {
+                        lastErr = new Error(`[${model}] Request timed out after ${AiOcr.REQUEST_TIMEOUT_MS/1000}s`);
+                        break; // timeout → try next model
+                    }
+                    lastErr = e;
+                    if (e.message.includes('API_KEY_INVALID') || e.message.includes('401') || e.message.includes('403')) {
+                        throw e;
+                    }
+                    break; // network error → try next model
+                } finally {
+                    clearTimeout(timer);
+                }
+            }
+        }
+        throw lastErr;
+    },
+
+    // Column Map Options (synced to format hint)
+    getColMapOptions: (hint) => {
+        const latlon = [
+            { value: 'lat', label: 'Latitude (WGS84)' },
+            { value: 'lon', label: 'Longitude (WGS84)' },
+        ];
+        const utm_ind = [
+            { value: 'easting_ind',  label: 'Easting — Indian UTM (X)' },
+            { value: 'northing_ind', label: 'Northing — Indian UTM (Y)' },
+        ];
+        const utm_wgs = [
+            { value: 'easting_wgs',  label: 'Easting — WGS84 UTM (X)' },
+            { value: 'northing_wgs', label: 'Northing — WGS84 UTM (Y)' },
+        ];
+        const ind_ll = [
+            { value: 'lat_ind', label: 'Latitude — Indian 1975' },
+            { value: 'lon_ind', label: 'Longitude — Indian 1975' },
+        ];
+        const all = [...latlon, ...utm_ind, ...utm_wgs, ...ind_ll];
+        const defaults = {
+            utm_indian: { v1: 'easting_ind',  v2: 'northing_ind' },
+            utm_wgs84:  { v1: 'easting_wgs',  v2: 'northing_wgs' },
+            crosscheck: { v1: 'easting_ind',  v2: 'northing_ind' },
+            dd:         { v1: 'lat',           v2: 'lon' },
+            dm:         { v1: 'lat',           v2: 'lon' },
+            dms:        { v1: 'lat',           v2: 'lon' },
+            ind_latlon: { v1: 'lat_ind',       v2: 'lon_ind' },
+            auto:       { v1: 'easting_ind',   v2: 'northing_ind' },
+        };
+        return { options: all, defaults: defaults[hint] || defaults['auto'] };
+    },
+
+    syncColMap: (hint) => {
+        const { options, defaults } = AiOcr.getColMapOptions(hint);
+        ['ocrColMapV1', 'ocrColMapV2'].forEach((id, i) => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            sel.innerHTML = options.map(o =>
+                `<option value="${o.value}">${o.label}</option>`
+            ).join('');
+            sel.value = i === 0 ? defaults.v1 : defaults.v2;
+        });
+    },
+
+    // Review Table Renderer
+    renderReviewTable: (rows) => {
+        AiOcr._currentRows = rows.map(r => ({ ...r }));
+        const tbody = document.getElementById('ocrReviewTbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        rows.forEach((row, i) => {
+            const low = (row.confidence || 'high') === 'low';
+            const tr = document.createElement('tr');
+            tr.className = low ? 'ocr-row-uncertain' : '';
+            tr.innerHTML =
+                `<td><input type="checkbox" class="ocr-row-check" ${low ? '' : 'checked'}
+                     data-idx="${i}" aria-label="Select row ${i+1}"></td>` +
+                `<td contenteditable="true" class="ocr-cell" data-field="id" data-idx="${i}"
+                    spellcheck="false">${AiOcr.escHtml(row.id || String(i+1))}</td>` +
+                `<td contenteditable="true" class="ocr-cell" data-field="v1" data-idx="${i}"
+                    spellcheck="false">${AiOcr.escHtml(row.v1 || '')}</td>` +
+                `<td contenteditable="true" class="ocr-cell" data-field="v2" data-idx="${i}"
+                    spellcheck="false">${AiOcr.escHtml(row.v2 || '')}</td>` +
+                `<td class="ocr-note-cell" title="${AiOcr.escHtml(row.note || '')}">${
+                    AiOcr.escHtml(row.note || '')}${low
+                    ? '<span class="ocr-warn-badge" title="Low confidence — verify before import">⚠️</span>' : ''
+                }</td>`;
+            tbody.appendChild(tr);
+        });
+
+        AiOcr.updateCount();
+        document.getElementById('ocrReviewPanel').classList.remove('hidden');
+        document.getElementById('ocrReviewCount').textContent =
+            `AI extracted ${rows.length} row(s) from image. Verify and select rows to import.`;
+    },
+
+    updateCount: () => {
+        const checked = document.querySelectorAll('.ocr-row-check:checked').length;
+        const total   = document.querySelectorAll('.ocr-row-check').length;
+        const countEl = document.getElementById('ocrSelectionCount');
+        if (countEl) {
+            countEl.textContent = AppState.lang === 'th' 
+                ? `เลือกแล้ว: ${checked} / ${total} แถว` 
+                : `Selected: ${checked} / ${total} rows`;
+        }
+        const btn = document.getElementById('btnOcrApply');
+        if (btn) {
+            btn.textContent = AppState.lang === 'th'
+                ? `✅ นำเข้าตาราง ${checked} แถว`
+                : `✅ Apply ${checked} Row${checked !== 1 ? 's' : ''} to Table`;
+            btn.disabled = checked === 0;
+        }
+        const chkAll = document.getElementById('ocrCheckAll');
+        if (chkAll) {
+            chkAll.indeterminate = checked > 0 && checked < total;
+            chkAll.checked = (total > 0 && checked === total);
+        }
+    },
+
+    // Apply selected rows -> Conversion table
+    applyToTable: () => {
+        const hint    = document.getElementById('ocrFormatHint').value;
+        const target  = document.getElementById('ocrTargetSection').value;
+        const colMapV1 = document.getElementById('ocrColMapV1').value;
+        const colMapV2 = document.getElementById('ocrColMapV2').value;
+
+        // Validation Gate for Column Pairings
+        const v1Type = colMapV1.split('_')[0]; // easting, northing, lat, lon
+        const v1Sys = colMapV1.split('_')[1] || 'wgs'; // ind, wgs
+        const v2Type = colMapV2.split('_')[0];
+        const v2Sys = colMapV2.split('_')[1] || 'wgs';
+        // Classify each mapping as planar (UTM E/N) or angular (lat/lon).
+        const isPlanar = (ty) => ty === 'easting' || ty === 'northing';
+        const v1Planar = isPlanar(v1Type), v2Planar = isPlanar(v2Type);
+
+        if (v1Type === v2Type || v1Sys !== v2Sys || v1Planar !== v2Planar) {
+            AppMethods.showToast(
+                AppState.lang === 'th'
+                ? "❌ การจับคู่คอลัมน์ไม่ถูกต้อง (เช่น X คู่กับ X, WGS84 คู่กับ Indian หรือ UTM คู่กับ Lat/Lon)"
+                : "❌ Invalid column pairing (e.g., Easting+Easting, WGS84+Indian, or UTM mixed with Lat/Lon)",
+                'err'
+            );
+            return;
+        }
+
+        // Determine target table and input format
+        let tableId, inFmt;
+        const isCrosscheck = (hint === 'crosscheck');
+        const isIndianUTM = isCrosscheck || (colMapV1 === 'easting_ind' || colMapV1 === 'northing_ind');
+        const isWgsUTM    = (colMapV1 === 'easting_wgs' || colMapV1 === 'northing_wgs');
+        const isIndLatLon = (colMapV1 === 'lat_ind'     || colMapV1 === 'lon_ind');
+        const isUTM       = isIndianUTM || isWgsUTM;
+
+        if (target === 's2' || (target === 'auto' && (isIndianUTM || isIndLatLon))) {
+            tableId = 'table2';
+            inFmt = isUTM ? 'utm' : (hint === 'dms' ? 'dms' : hint === 'dm' ? 'dm' : 'd');
+        } else {
+            tableId = 'table1';
+            inFmt = isUTM ? 'utm' : (hint === 'dms' ? 'dms' : hint === 'dm' ? 'dm' : 'd');
+        }
+
+        // Datum guard: Section 1 takes WGS84 data, Section 2 takes Indian 1975 data
+        if ((tableId === 'table2') !== (isIndianUTM || isIndLatLon)) {
+            AppMethods.showToast(AppState.lang === 'th'
+                ? '❌ ระบบพิกัดไม่ตรงกับตารางปลายทาง: Section 1 รับ WGS84, Section 2 รับ Indian 1975 (ตรวจสอบ "ส่งผลลัพธ์ไปที่" หรือชนิดคอลัมน์ V1/V2)'
+                : '❌ Datum mismatch: Section 1 accepts WGS84 data, Section 2 accepts Indian 1975 data. Check "Send results to" or the V1/V2 column types.', 'err');
+            return;
+        }
+        // Collect checked rows
+        const checked = Array.from(document.querySelectorAll('.ocr-row-check:checked'));
+        if (!checked.length) return;
+        const selectedRows = checked.map(cb => AiOcr._currentRows[+cb.dataset.idx]);
+
+        if (!isUTM && (hint === 'auto' || hint === 'ind_latlon') && selectedRows.some(r => /[°'"′″]/.test((r.v1 || '') + (r.v2 || '')))) inFmt = 'dms';
+        // Determine v1/v2 order based on column mapping
+        const v1IsNorthing = (colMapV1 === 'northing_ind' || colMapV1 === 'northing_wgs');
+        const v1IsLon      = (colMapV1 === 'lon' || colMapV1 === 'lon_ind');
+        const finalRows = selectedRows.map(r => ({
+            id: r.id,
+            primary:   v1IsNorthing || v1IsLon ? r.v2 : r.v1,
+            secondary: v1IsNorthing || v1IsLon ? r.v1 : r.v2,
+        }));
+
+        // Switch format if needed
+        const doSwitchFormat = (selId, stateKey, fmt, buildFn, resetKey) => {
+            const sel = document.getElementById(selId);
+            if (sel && sel.value !== fmt) {
+                sel.value = fmt; AppState[stateKey] = fmt;
+                AppState[resetKey] = true; buildFn();
+            } else if (sel) { AppState[stateKey] = fmt; }
+        };
+        if (tableId === 'table1') doSwitchFormat('section1InputFormat','s1Format',inFmt,AppMethods.buildS1Table,'forceTableReset1');
+        else                      doSwitchFormat('section2InputFormat','s2Format',inFmt,AppMethods.buildS2Table,'forceTableReset2');
+
+        setTimeout(() => {
+            const tb = document.getElementById(tableId);
+            if (!tb) return;
+
+            // Find first empty row to append after
+            const bodyRows = Array.from(tb.querySelectorAll('tbody tr'));
+            let startIdx = 0;
+            for (let i = 0; i < bodyRows.length; i++) {
+                const inputs = bodyRows[i].querySelectorAll('input');
+                const hasData = Array.from(inputs).some(inp => inp.value.trim() !== '');
+                if (hasData) startIdx = i + 1;
+            }
+
+            AppMethods.ensureRows(tb, startIdx + finalRows.length);
+            const allRows = tb.querySelectorAll('tbody tr');
+
+            const parseDegMin = (str) => {
+                const dmsVal = Formatter.parseDMS(str);
+                if (isNaN(dmsVal)) return { d: '', m: '' };
+                return AppMethods.toDM(dmsVal);
+            };
+
+            finalRows.forEach((r, i) => {
+                const tr = allRows[startIdx + i]; if (!tr) return;
+                tr.cells[0].innerText = r.id || String(startIdx + i + 1);
+
+                if (tableId === 'table1') {
+                    const c = AppMethods.getS1Cols();
+                    if (inFmt === 'utm') {
+                        if (tr.cells[c.wgsE]?.querySelector('input')) tr.cells[c.wgsE].querySelector('input').value = r.primary;
+                        if (tr.cells[c.wgsN]?.querySelector('input')) tr.cells[c.wgsN].querySelector('input').value = r.secondary;
+                    } else if (inFmt === 'dms') {
+                        if (tr.cells[c.latStr]?.querySelector('input')) tr.cells[c.latStr].querySelector('input').value = r.primary;
+                        if (tr.cells[c.lonStr]?.querySelector('input')) tr.cells[c.lonStr].querySelector('input').value = r.secondary;
+                    } else if (inFmt === 'dm') {
+                        const pm1 = parseDegMin(r.primary);
+                        const pm2 = parseDegMin(r.secondary);
+                        if (tr.cells[c.latD]?.querySelector('input')) tr.cells[c.latD].querySelector('input').value = pm1.d;
+                        if (tr.cells[c.latM]?.querySelector('input')) tr.cells[c.latM].querySelector('input').value = pm1.m;
+                        if (tr.cells[c.lonD]?.querySelector('input')) tr.cells[c.lonD].querySelector('input').value = pm2.d;
+                        if (tr.cells[c.lonM]?.querySelector('input')) tr.cells[c.lonM].querySelector('input').value = pm2.m;
+                    } else { // 'd'
+                        if (tr.cells[c.latD]?.querySelector('input')) tr.cells[c.latD].querySelector('input').value = r.primary;
+                        if (tr.cells[c.lonD]?.querySelector('input')) tr.cells[c.lonD].querySelector('input').value = r.secondary;
+                    }
+                } else {
+                    const c = AppMethods.getS2Cols();
+                    if (inFmt === 'utm') {
+                        if (tr.cells[c.indE]?.querySelector('input')) tr.cells[c.indE].querySelector('input').value = r.primary;
+                        if (tr.cells[c.indN]?.querySelector('input')) tr.cells[c.indN].querySelector('input').value = r.secondary;
+                    } else if (inFmt === 'dms') {
+                        if (tr.cells[c.latStr]?.querySelector('input')) tr.cells[c.latStr].querySelector('input').value = r.primary;
+                        if (tr.cells[c.lonStr]?.querySelector('input')) tr.cells[c.lonStr].querySelector('input').value = r.secondary;
+                    } else if (inFmt === 'dm') {
+                        const pm1 = parseDegMin(r.primary);
+                        const pm2 = parseDegMin(r.secondary);
+                        if (tr.cells[c.latD]?.querySelector('input')) tr.cells[c.latD].querySelector('input').value = pm1.d;
+                        if (tr.cells[c.latM]?.querySelector('input')) tr.cells[c.latM].querySelector('input').value = pm1.m;
+                        if (tr.cells[c.lonD]?.querySelector('input')) tr.cells[c.lonD].querySelector('input').value = pm2.d;
+                        if (tr.cells[c.lonM]?.querySelector('input')) tr.cells[c.lonM].querySelector('input').value = pm2.m;
+                    } else { // 'd'
+                        if (tr.cells[c.latD]?.querySelector('input')) tr.cells[c.latD].querySelector('input').value = r.primary;
+                        if (tr.cells[c.lonD]?.querySelector('input')) tr.cells[c.lonD].querySelector('input').value = r.secondary;
+                    }
+                }
+                tr.querySelectorAll('.input-cell').forEach(td => td.classList.remove('has-error'));
+            });
+
+            AppMethods.syncSettings();
+            if (tableId === 'table1') AppMethods.calcS1(); else AppMethods.calcS2();
+
+            AiOcr.closeModal();
+            setTimeout(() => AppMethods.switchTab(tableId === 'table1' ? 1 : 2), 80);
+            const n = finalRows.length;
+            AppMethods.showToast(
+                (AppState.lang === 'th'
+                    ? `📸 นำเข้า ${n} แถวจาก AI OCR แล้ว`
+                    : `📸 ${n} row${n!==1?'s':''} imported from AI OCR`), 'ok');
+        }, 100);
+    },
+
+    // Modal Control
+    openModal: (defaultTarget) => {
+        if (!navigator.onLine) {
+            AppMethods.showToast(
+                AppState.lang === 'th'
+                    ? 'AI Photo OCR ต้องเชื่อมต่ออินเทอร์เน็ต'
+                    : 'AI Photo OCR requires an internet connection.', 'warn');
+            return;
+        }
+        const modal = document.getElementById('ocrModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        const saved = AiOcr.loadKey();
+        const keyInput = document.getElementById('ocrApiKey');
+        if (saved) { keyInput.value = saved; AiOcr.updateKeyStatus(true); }
+        if (defaultTarget) document.getElementById('ocrTargetSection').value = defaultTarget;
+        AiOcr.syncColMap(document.getElementById('ocrFormatHint').value);
+        document.getElementById('ocrReviewPanel').classList.add('hidden');
+        document.getElementById('ocrExtractStatus').textContent = '';
+        if (!saved) keyInput.focus();
+    },
+
+    closeModal: () => {
+        const modal = document.getElementById('ocrModal');
+        if (modal) modal.classList.add('hidden');
+        AiOcr._extracting = false;
+        AiOcr._pendingDataUrl = null;
+    },
+
+    updateKeyStatus: (hasSaved) => {
+        const el = document.getElementById('ocrKeyStatus');
+        if (!el) return;
+        const key = AiOcr.loadKey();
+        if (hasSaved && key) {
+            el.style.color = '#065f46';
+            el.textContent = `✅ Saved: ${AiOcr.maskKey(key)}`;
+        } else {
+            el.style.color = '';
+            el.textContent = '';
+        }
+    },
+
+    setImage: (dataUrl, label) => {
+        AiOcr._pendingDataUrl = dataUrl;
+        const img = document.getElementById('ocrPreviewImg');
+        const hint = document.getElementById('ocrDropzoneHint');
+        if (img) { img.src = dataUrl; img.classList.remove('hidden'); }
+        if (hint) hint.style.display = 'none';
+        const info = document.getElementById('ocrImgInfo');
+        if (info) info.textContent = label || '';
+        const btn = document.getElementById('btnOcrExtract');
+        if (btn) btn.disabled = false;
+    },
+
+    clearImage: () => {
+        AiOcr._pendingDataUrl = null;
+        const img = document.getElementById('ocrPreviewImg');
+        if (img) { img.src = ''; img.classList.add('hidden'); }
+        const hint = document.getElementById('ocrDropzoneHint');
+        if (hint) hint.style.display = '';
+        const info = document.getElementById('ocrImgInfo');
+        if (info) info.textContent = '';
+        const btn = document.getElementById('btnOcrExtract');
+        if (btn) btn.disabled = true;
+        const panel = document.getElementById('ocrReviewPanel');
+        if (panel) panel.classList.add('hidden');
+    },
+
+    init: () => {
+        const modal = document.getElementById('ocrModal');
+        if (!modal) return;
+        
+        const tbody = document.getElementById('ocrReviewTbody');
+        if (tbody) {
+            tbody.addEventListener('input', e => {
+                const cell = e.target.closest('[data-field]'); if (!cell) return;
+                AiOcr._currentRows[+cell.dataset.idx][cell.dataset.field] = cell.textContent.trim();
+            });
+            tbody.addEventListener('paste', e => {
+                if (!e.target.closest('[contenteditable]')) return;
+                e.preventDefault();
+                const txt = (e.clipboardData || window.clipboardData).getData('text/plain');
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                selection.deleteFromDocument();
+                selection.getRangeAt(0).insertNode(document.createTextNode(txt));
+                selection.collapseToEnd();
+                e.target.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            tbody.addEventListener('change', (e) => {
+                if (e.target.classList.contains('ocr-row-check')) AiOcr.updateCount();
+            });
+        }
+
+        if (AiOcr.loadKey()) AiOcr.updateKeyStatus(true);
+
+        document.getElementById('btnOcrClose')?.addEventListener('click', AiOcr.closeModal);
+        document.getElementById('btnOcrCancelSetup')?.addEventListener('click', AiOcr.closeModal);
+        modal.addEventListener('click', e => { if (e.target === modal) AiOcr.closeModal(); });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) AiOcr.closeModal();
+        });
+
+        document.getElementById('btnOcrSaveKey')?.addEventListener('click', () => {
+            const k = document.getElementById('ocrApiKey').value.trim();
+            // AIza + 35 url-safe chars is the canonical Google API key shape.
+            if (!/^AIza[0-9A-Za-z\-_]{35}$/.test(k)) {
+                AppMethods.showToast(
+                    AppState.lang === 'th' ? 'รูปแบบคีย์ API ไม่ถูกต้อง (ต้องขึ้นต้น AIza และยาว 39 ตัว)' : 'Invalid API key format (expected AIza… , 39 chars).',
+                    'err');
+                return;
+            }
+            AiOcr.saveKey(k);
+            AiOcr.updateKeyStatus(true);
+            AppMethods.showToast(AppState.lang === 'th' ? 'บันทึกคีย์ API แล้ว' : 'API key saved.', 'ok');
+        });
+
+        document.getElementById('btnOcrClearKey')?.addEventListener('click', () => {
+            AiOcr.clearKey();
+            document.getElementById('ocrApiKey').value = '';
+            document.getElementById('ocrKeyStatus').textContent = '';
+            AppMethods.showToast(AppState.lang === 'th' ? 'ลบคีย์แล้ว' : 'API key cleared.', 'warn');
+        });
+
+        document.getElementById('ocrFormatHint')?.addEventListener('change', e => {
+            AiOcr.syncColMap(e.target.value);
+        });
+
+        document.getElementById('btnOcrPickFile')?.addEventListener('click', () => {
+            document.getElementById('ocrFileInput')?.click();
+        });
+
+        document.getElementById('ocrFileInput')?.addEventListener('change', async e => {
+            try {
+                const file = e.target.files[0]; if (!file) return;
+                const { dataUrl, w, h } = await AiOcr.resizeToBase64(file);
+                AiOcr.setImage(dataUrl, `${file.name} (${w}×${h})`);
+            } catch (err) { AppMethods.showToast(err.message || 'Failed to load image', 'err'); }
+        });
+
+        document.getElementById('btnOcrClearImg')?.addEventListener('click', AiOcr.clearImage);
+
+        modal.addEventListener('paste', async e => {
+            try {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                for (const item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        const { dataUrl, w, h } = await AiOcr.resizeToBase64(file);
+                        AiOcr.setImage(dataUrl, `Pasted image (${w}×${h})`);
+                        break;
+                    }
+                }
+            } catch (err) { AppMethods.showToast(err.message || 'Failed to paste image', 'err'); }
+        });
+
+        const dropzone = document.getElementById('ocrDropzone');
+        if (dropzone) {
+            dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+            dropzone.addEventListener('dragenter', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+            dropzone.addEventListener('drop', async e => {
+                e.preventDefault(); dropzone.classList.remove('drag-over');
+                try {
+                    const file = e.dataTransfer.files[0];
+                    if (!file || !file.type.startsWith('image/')) return;
+                    const { dataUrl, w, h } = await AiOcr.resizeToBase64(file);
+                    AiOcr.setImage(dataUrl, `${file.name} (${w}×${h})`);
+                } catch (err) { AppMethods.showToast(err.message || 'Failed to drop image', 'err'); }
+            });
+            dropzone.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') document.getElementById('btnOcrPickFile')?.click();
+            });
+        }
+
+        document.getElementById('btnOcrExtract')?.addEventListener('click', async () => {
+            if (AiOcr._extracting) return;
+            const key = AiOcr.loadKey() || document.getElementById('ocrApiKey').value.trim();
+            if (!key) {
+                AppMethods.showToast(AppState.lang === 'th' ? 'กรุณากรอกและบันทึก API Key ก่อน' : 'Please enter and save an API key first.', 'warn');
+                return;
+            }
+            if (!AiOcr._pendingDataUrl) {
+                AppMethods.showToast(AppState.lang === 'th' ? 'กรุณาวางหรือเลือกรูปภาพก่อน' : 'Please paste or select an image first.', 'warn');
+                return;
+            }
+            if (!navigator.onLine) {
+                AppMethods.showToast(AppState.lang === 'th' ? 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต' : 'No internet connection.', 'warn');
+                return;
+            }
+
+            AiOcr._extracting = true;
+            const btn = document.getElementById('btnOcrExtract');
+            const status = document.getElementById('ocrExtractStatus');
+            btn.disabled = true;
+            btn.textContent = AppState.lang === 'th' ? '⏳ กำลังวิเคราะห์ภาพ...' : '⏳ Analyzing...';
+            status.textContent = `Trying ${AiOcr.MODELS[0]}...`;
+
+            try {
+                const hint = document.getElementById('ocrFormatHint').value;
+                const rows = await AiOcr.extract(AiOcr._pendingDataUrl, hint, key, m => { status.textContent = `Trying ${m}...`; });
+                if (!rows || rows.length === 0) {
+                    AppMethods.showToast(AppState.lang === 'th' ? 'ไม่พบข้อมูลพิกัดในภาพ' : 'No coordinate data found in image.', 'warn');
+                    return;
+                }
+                AiOcr.syncColMap(hint);
+                AiOcr.renderReviewTable(rows);
+                status.textContent = `✓ ${rows.length} row(s) found`;
+            } catch (err) {
+                AppMethods.showToast('OCR Error: ' + err.message, 'err');
+                status.textContent = '';
+            } finally {
+                AiOcr._extracting = false;
+                btn.disabled = false;
+                btn.textContent = AppState.lang === 'th' ? '🔍 ดึงค่าพิกัด' : '🔍 Extract Coordinates';
+            }
+        });
+
+        document.getElementById('ocrCheckAll')?.addEventListener('change', e => {
+            document.querySelectorAll('.ocr-row-check').forEach(cb => { cb.checked = e.target.checked; });
+            AiOcr.updateCount();
+        });
+
+        document.getElementById('ocrReviewTbody')?.addEventListener('change', e => {
+            if (e.target.classList.contains('ocr-row-check')) AiOcr.updateCount();
+        });
+
+        document.getElementById('btnOcrSelAll')?.addEventListener('click', () => {
+            document.querySelectorAll('.ocr-row-check').forEach(cb => cb.checked = true);
+            AiOcr.updateCount();
+        });
+
+        document.getElementById('btnOcrDeselAll')?.addEventListener('click', () => {
+            document.querySelectorAll('.ocr-row-check').forEach(cb => cb.checked = false);
+            AiOcr.updateCount();
+        });
+
+        document.getElementById('btnOcrSwapCols')?.addEventListener('click', () => {
+            AiOcr._currentRows.forEach((r, i) => {
+                const tmp = r.v1; r.v1 = r.v2; r.v2 = tmp;
+                const tr = document.getElementById('ocrReviewTbody')?.rows[i];
+                if (!tr) return;
+                const v1Cell = tr.querySelector('[data-field=v1]');
+                const v2Cell = tr.querySelector('[data-field=v2]');
+                if (v1Cell) v1Cell.textContent = r.v1 || '';
+                if (v2Cell) v2Cell.textContent = r.v2 || '';
+            });
+        });
+
+        document.getElementById('btnOcrApply')?.addEventListener('click', AiOcr.applyToTable);
+
+        document.getElementById('btnOcrDiscard')?.addEventListener('click', () => {
+            document.getElementById('ocrReviewPanel').classList.add('hidden');
+            document.getElementById('ocrExtractStatus').textContent = '';
+        });
+
+        document.getElementById('btnOcrS1')?.addEventListener('click', () => AiOcr.openModal('s1'));
+        document.getElementById('btnOcrS2')?.addEventListener('click', () => AiOcr.openModal('s2'));
+    }
+};
+
 /**
  * Event Binding & Init
  */
@@ -3792,7 +5269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     // Initialize AI OCR
-    
+    AiOcr.init();
     
     // Initialize tables and settings
     AppMethods.buildS1Table();
@@ -3820,13 +5297,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = AppState.activeTab;
             const tabName = tab === 1 ? 'Section 1: WGS84 \u2192 Indian 1975' : tab === 2 ? 'Section 2: Indian 1975 \u2192 WGS84' : 'Route Analytics';
             const now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-            ph.textContent = 'Coordinate Converter v6.7.3 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
+            ph.textContent = 'Coordinate Converter v6.9.5 | ' + tabName + ' | Datum: ' + datum + ' | Zone: ' + zone + ' | Printed: ' + now;
         }
     });
     // OFFLINE FALLBACK FOR SHEETJS, JSZIP & AI OCR
     setTimeout(() => {
         if (!navigator.onLine) {
-            }
+            ['btnOcrS1', 'btnOcrS2'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('ocr-btn-offline');
+                    btn.title = AppState.lang === 'th' ? "AI OCR (จำเป็นต้องเชื่อมต่ออินเทอร์เน็ต)" : "AI OCR (Requires Internet Connection)";
+                    btn.innerText += " ⚠️";
+                }
+            });
+        }
         if (typeof XLSX === 'undefined') {
             ['btnExpXlsxS1', 'btnExpXlsxS2', 'btnTowRouteXlsx'].forEach(id => {
                 const btn = document.getElementById(id);
@@ -3882,8 +5368,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.target.tagName !== 'INPUT') return;
         const c = e.target.closest('.input-cell'); if(!c) return;
         AppMethods.updateInputDisplay(c);
-        if(e.target.closest('#table1')) { clearTimeout(AppState.timers.ts1); AppState.timers.ts1 = setTimeout(AppMethods.calcS1, 300); }
-        if(e.target.closest('#table2')) { clearTimeout(AppState.timers.ts2); AppState.timers.ts2 = setTimeout(AppMethods.calcS2, 300); }
+        if(e.target.closest('#table1')) AppMethods.scheduleCalc('table1');
+        if(e.target.closest('#table2')) AppMethods.scheduleCalc('table2');
     });
 
     document.getElementById('btnCalcS1').addEventListener('click', AppMethods.calcS1); document.getElementById('btnClearS1').addEventListener('click', AppMethods.clearS1);
@@ -3991,7 +5477,7 @@ document.addEventListener('keydown',e=>{const input=e.target.closest('.input-cel
 ['btnCalcS1','btnCalcS2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setTimeout(syncInvalid)));
 document.querySelectorAll('.help-tip').forEach(tip=>{tip.setAttribute('role','button');tip.setAttribute('aria-expanded','false');const sync=()=>{tip.classList.toggle('tooltip-flip',tip.getBoundingClientRect().top<180);tip.setAttribute('aria-expanded',String(tip.hasAttribute('data-open')))};tip.addEventListener('click',()=>setTimeout(sync));tip.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tip.toggleAttribute('data-open');sync()}if(e.key==='Escape'){tip.removeAttribute('data-open');sync();tip.focus()}})});
 document.addEventListener('click',e=>document.querySelectorAll('.help-tip[data-open]').forEach(t=>{if(!t.contains(e.target)){t.removeAttribute('data-open');t.setAttribute('aria-expanded','false')}}));document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.help-tip[data-open]').forEach(t=>{t.removeAttribute('data-open');t.setAttribute('aria-expanded','false')})});
-document.querySelectorAll('table').forEach(t=>{if(!t.querySelector('caption')){const c=document.createElement('caption');c.setAttribute('data-ui-caption',t.id==='table1'?'caption_s1':t.id==='table2'?'caption_s2':'caption_route');c.textContent=t(c.getAttribute('data-ui-caption'));t.prepend(c)}t.querySelectorAll('thead th').forEach(th=>th.setAttribute('scope','col'))});
+document.querySelectorAll('table:not(.ocr-review-table)').forEach(tbl=>{if(!tbl.querySelector('caption')){const c=document.createElement('caption');c.setAttribute('data-ui-caption',tbl.id==='table1'?'caption_s1':tbl.id==='table2'?'caption_s2':'caption_route');c.textContent=t(c.getAttribute('data-ui-caption'));tbl.prepend(c)}tbl.querySelectorAll('thead th').forEach(th=>th.setAttribute('scope','col'))});
 const syncTableSemantics=()=>document.querySelectorAll('table').forEach(table=>{table.querySelectorAll('thead th').forEach(th=>th.setAttribute('scope','col'))});
 const tableObserver='MutationObserver'in window?new MutationObserver(()=>syncTableSemantics()):null;['table1','table2','routeAnalyticsTable'].forEach(id=>{const table=document.getElementById(id);if(tableObserver&&table)tableObserver.observe(table.querySelector('thead')||table,{childList:true,subtree:true})});
 const invalidObserver='MutationObserver'in window?new MutationObserver(()=>syncInvalid()):null;['table1','table2'].forEach(id=>{const table=document.getElementById(id);if(invalidObserver&&table)invalidObserver.observe(table,{attributes:true,subtree:true,attributeFilter:['class']})});
@@ -3999,6 +5485,450 @@ const d=document.getElementById('datumDetails');if(d){const mq=matchMedia('(max-
 const available={Leaflet:'L'in window,SheetJS:'XLSX'in window,JSZip:'JSZip'in window};if(!available.Leaflet){['btnViewLeaflet','btnRefreshLeaflet'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.title='Interactive map unavailable: Leaflet did not load'}});document.getElementById('leafletMap')?.classList.add('hidden');document.getElementById('leafletTools')?.classList.add('hidden')}
 const missing=Object.entries(available).filter(([,ok])=>!ok).map(([name])=>name);if(missing.length&&AppMethods.showToast)AppMethods.showToast(`Unavailable library: ${missing.join(', ')}`,'warn');document.getElementById('langBtn')?.addEventListener('click',()=>setTimeout(syncUiV2Text,0));syncTableSemantics();syncInvalid();syncUiV2Text();syncUI(1)})();
 </script>
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'>
-</script><!-- End Cloudflare Web Analytics -->
+<script id="routePatch685">
+(()=>{'use strict';
+const V='6.9.5';
+const esc=s=>String(s??'').replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+const cdata=s=>String(s??'').replace(/]]>/g,']]]]><![CDATA[>');
+const sourceName=t=>t==='table1'?'Section 1':'Section 2';
+const finitePoint=p=>[p.e,p.n,p.lat,p.lon,p.indLat,p.indLon].every(Number.isFinite);
+AppState.routeSource=AppState.routeSource||'auto'; AppState.lastCalculatedTable=AppState.lastCalculatedTable||null; AppState.routeSnapshot=null; AppState.routeBufferLayer=null;
+function insertRouteControls(){const host=document.querySelector('#tabContent3 .controls-row');if(!host||document.getElementById('routeSourceSelect'))return;const box=document.createElement('div');box.className='inline-field';box.style.margin='0';box.innerHTML='<label for="routeSourceSelect">Route Source:</label><select id="routeSourceSelect"><option value="auto">Auto (last section used)</option><option value="table1">Section 1</option><option value="table2">Section 2</option></select><label for="routeBufferM">Buffer:</label><input id="routeBufferM" type="number" min="0" step="10" value="500" style="width:100px" aria-label="Route buffer metres"><span>m</span><label><input id="routeBufferMap" type="checkbox" checked> Show buffer</label><span id="routeSourceStatus" style="font:600 11px var(--mono);color:var(--muted)"></span>';host.prepend(box);document.getElementById('routeSourceSelect').addEventListener('change',e=>{AppState.routeSource=e.target.value;AppState.routeSnapshot=null;AppMethods.renderRouteTable();AppMethods.drawLeaflet(true)});document.getElementById('routeBufferM').addEventListener('change',()=>AppMethods.drawLeaflet(false));document.getElementById('routeBufferMap').addEventListener('change',()=>AppMethods.drawLeaflet(false));}
+function rowHasInput(row){return [...row.querySelectorAll('.input-cell input')].some(i=>i.value.trim())||Object.keys(row.dataset).some(k=>['wgsLat','wgsLon','indE','indN'].includes(k));}
+AppMethods.collectRoutePoints=(tableId)=>{if(!['table1','table2'].includes(tableId))return{points:[],errors:['Invalid route source.']};const table=document.getElementById(tableId);if(!table)return{points:[],errors:['Route source not found.']};const s1=tableId==='table1',cols=s1?AppMethods.getS1Cols():AppMethods.getS2Cols(),points=[],errors=[];[...table.rows].slice(1).forEach((row,i)=>{if(!rowHasInput(row))return;const id=AppMethods.getCleanIdText(row.cells[s1?0:cols.pt]).trim()||String(i+1);if(row.querySelector('.has-error')){errors.push('Row '+(i+1)+' ('+id+'): invalid input.');return}const p={id,rowNumber:i+1,e:parseFloat(row.dataset.indE),n:parseFloat(row.dataset.indN),lat:parseFloat(row.dataset.wgsLat),lon:parseFloat(row.dataset.wgsLon),indLat:parseFloat(row.dataset.indLatRaw),indLon:parseFloat(row.dataset.indLonRaw),isSouthern:s1?AppMethods.getS1RowHemisphere(row):AppMethods.getS2RowHemisphere(row)};if(!finitePoint(p)){errors.push('Row '+(i+1)+' ('+id+'): incomplete calculated coordinates.');return}if(Math.abs(p.lat)>90||Math.abs(p.lon)>180){errors.push('Row '+(i+1)+' ('+id+'): WGS84 coordinate out of range.');return}points.push(p)});return{points,errors}};
+AppMethods.resolveRouteSource=requested=>{if(['table1','table2'].includes(requested))return requested;if(['table1','table2'].includes(AppState.routeSource))return AppState.routeSource;if(['table1','table2'].includes(AppState.lastCalculatedTable))return AppState.lastCalculatedTable;if(AppState.activeTab===1)return'table1';if(AppState.activeTab===2)return'table2';return null};
+AppMethods.getValidRouteData=requested=>{const pref=AppMethods.resolveRouteSource(requested),list=pref?[pref,pref==='table1'?'table2':'table1']:['table1','table2'];for(const tid of list){tid==='table1'?AppMethods.calcS1({suppressRender:true}):AppMethods.calcS2({suppressRender:true});const r=AppMethods.collectRoutePoints(tid);if(r.errors.length&&(tid===pref||AppState.routeSource!=='auto'))return{activeTid:tid,pts:r.points,errors:r.errors};if(!r.errors.length&&r.points.length>=2){const snap={activeTid:tid,pts:r.points.map(p=>({...p})),errors:[],datumLabel:document.getElementById('datumSelect').selectedOptions[0].text,zone:AppState.zoneInfo.zone,cm:AppState.zoneInfo.cm,createdAt:new Date().toISOString()};AppState.routeSnapshot=snap;const s=document.getElementById('routeSourceStatus');if(s)s.textContent=sourceName(tid)+' | '+snap.pts.length+' points';return snap}}const s=document.getElementById('routeSourceStatus');if(s)s.textContent='No valid route';return{activeTid:null,pts:[],errors:[]}};
+const oldSwitch=AppMethods.switchTab;AppMethods.switchTab=function(n){if(n===1||n===2)AppState.lastCalculatedTable='table'+n;return oldSwitch.apply(AppMethods,arguments)};
+AppMethods.validateRouteLegsForExport=(legs,errors=[])=>{const issues=[...errors];if(!Array.isArray(legs)||!legs.length)issues.push('Route requires at least two valid consecutive points.');(legs||[]).forEach(l=>{const tag='Leg '+l.leg+' '+l.from.id+' -> '+l.to.id;if(!l.converged)issues.push(tag+': geodesic solution failed.');if(![l.planarM,l.distanceM,l.gridBearing,l.trueBearing,l.convergence].every(Number.isFinite))issues.push(tag+': non-finite result.');if(l.planarM<0.001||l.distanceM<0.001)issues.push(tag+': duplicate consecutive waypoint.')});if(issues.length){AppMethods.showToast(issues.join(' | '),'err');return false}return true};
+function circleEN(p,r,n=32){const a=[];for(let i=0;i<=n;i++){const q=2*Math.PI*i/n;a.push([p.e+r*Math.cos(q),p.n+r*Math.sin(q)])}return a}
+function rectEN(a,b,r){const dx=b.e-a.e,dy=b.n-a.n,L=Math.hypot(dx,dy),ox=-dy/L*r,oy=dx/L*r;return[[a.e+ox,a.n+oy],[b.e+ox,b.n+oy],[b.e-ox,b.n-oy],[a.e-ox,a.n-oy],[a.e+ox,a.n+oy]]}
+function toWgs(en,south){const d=GeoMath.ind1975ToWgs84(en[0],en[1],AppState.params.dx,AppState.params.dy,AppState.params.dz,AppState.zoneInfo.cm,south,AppState.indEllip.a,AppState.indEllip.f);return[d.lon,d.lat]}
+AppMethods.buildRouteBufferPolygons=(pts,widthM)=>{const r=Number(widthM);if(!(r>0))return[];const out=[];for(let i=0;i<pts.length-1;i++)if(Math.hypot(pts[i+1].e-pts[i].e,pts[i+1].n-pts[i].n)>0.001)out.push(rectEN(pts[i],pts[i+1],r).map(q=>toWgs(q,pts[i].isSouthern)));pts.forEach(p=>out.push(circleEN(p,r).map(q=>toWgs(q,p.isSouthern))));return out};
+AppMethods.exportTowRoute=()=>{const d=AppMethods.getValidRouteData(),{activeTid,pts,errors=[]}=d;if(errors.length){AppMethods.showToast(errors.join(' | '),'err');return}if(!activeTid||pts.length<2){AppMethods.showToast(t('route_need_pts'),'err');return}const legs=AppMethods.buildRouteLegs(pts);if(!AppMethods.validateRouteLegsForExport(legs,errors))return;const width=Math.max(0,Number(document.getElementById('routeBufferM')?.value)||0),polys=AppMethods.buildRouteBufferPolygons(pts,width),total=legs.reduce((s,l)=>s+l.distanceM,0),src=sourceName(activeTid),datum=document.getElementById('datumSelect').selectedOptions[0].text,meta=['Source: '+src,'Datum: '+datum,'UTM Zone: '+AppState.zoneInfo.zone+(pts[0].isSouthern?'S':'N'),'Waypoints: '+pts.length,'Total: '+(total/1000).toFixed(3)+' km / '+(total/1852).toFixed(3)+' NM','Buffer: '+width.toFixed(1)+' m each side','Buffer geometry: composite segment rectangles + waypoint circles'].join('\n');let k='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Tow Route</name><description><![CDATA['+cdata(meta)+']]></description><Style id="line"><LineStyle><color>ff0099ff</color><width>4</width></LineStyle></Style><Style id="buf"><LineStyle><color>aa00aaff</color><width>1</width></LineStyle><PolyStyle><color>4400aaff</color></PolyStyle></Style><Style id="wp"><IconStyle><scale>0.8</scale></IconStyle><LabelStyle><scale>0.85</scale></LabelStyle></Style><Folder><name>Route Centreline</name><Placemark><name>Route Path</name><styleUrl>#line</styleUrl><LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>'+pts.map(p=>p.lon.toFixed(7)+','+p.lat.toFixed(7)+',0').join(' ')+'</coordinates></LineString></Placemark></Folder>';if(polys.length){k+='<Folder><name>Route Buffer '+width.toFixed(1)+' m</name>';polys.forEach((poly,i)=>{k+='<Placemark><name>Buffer '+(i+1)+'</name><styleUrl>#buf</styleUrl><Polygon><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>'+poly.map(q=>q[0].toFixed(7)+','+q[1].toFixed(7)+',0').join(' ')+'</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>'});k+='</Folder>'}k+='<Folder><name>Waypoints</name>';pts.forEach((p,i)=>{const l=legs[i],desc=['Sequence: '+(i+1),'Point ID: '+p.id,'E: '+p.e.toFixed(AppState.precCfg.utm_dp)+' m','N: '+p.n.toFixed(AppState.precCfg.utm_dp)+' m','Lat: '+p.lat.toFixed(7),'Lon: '+p.lon.toFixed(7),l?'Next: '+l.to.id:'End of route',l?'True Brg: '+l.trueBearing.toFixed(2)+' deg':'',l?'Grid Brg: '+l.gridBearing.toFixed(2)+' deg':'',l?'Conv: '+l.convergence.toFixed(4)+' deg':'',l?'Dist: '+(l.distanceM/1852).toFixed(3)+' NM':''].filter(Boolean).join('\n');k+='<Placemark><name>'+esc(p.id)+'</name><styleUrl>#wp</styleUrl><description><![CDATA['+cdata(desc)+']]></description><Point><altitudeMode>clampToGround</altitudeMode><coordinates>'+p.lon.toFixed(7)+','+p.lat.toFixed(7)+',0</coordinates></Point></Placemark>'});k+='</Folder></Document></kml>';AppMethods.download('TowRoute_'+AppMethods.getTimestamp()+'.kml',k,'application/vnd.google-earth.kml+xml;charset=utf-8');AppMethods.showToast('KML exported: '+pts.length+' points, '+(total/1852).toFixed(3)+' NM, '+width.toFixed(1)+' m buffer','ok')};
+const oldDraw=AppMethods.drawLeaflet;AppMethods.drawLeaflet=function(recenter=false){oldDraw.call(AppMethods,recenter);if(AppState.activeTab!==3||!document.getElementById('routeBufferMap')?.checked)return;const d=AppMethods.getValidRouteData();if(!d.activeTid||d.errors?.length)return;const w=Number(document.getElementById('routeBufferM')?.value)||0;if(!(w>0)||!AppState.map.markerLayer)return;AppMethods.buildRouteBufferPolygons(d.pts,w).forEach(poly=>L.polygon(poly.map(q=>[q[1],q[0]]),{color:'#f59e0b',weight:1,fillColor:'#f59e0b',fillOpacity:.12,interactive:false}).addTo(AppState.map.markerLayer))};
+const blockOnRouteErrors=()=>{const d=AppMethods.getValidRouteData();if(d.errors&&d.errors.length){AppMethods.showToast('Route export blocked: '+d.errors.join(' | '),'err');return true}return false};
+['exportTowRouteCsv','exportTowRouteXlsx','exportTowRouteShp','exportGeoJsonRoute'].forEach(n=>{const f=AppMethods[n];AppMethods[n]=function(){if(blockOnRouteErrors())return;return f.apply(AppMethods,arguments)}});
+const oldDxf=AppMethods.exportDxf;AppMethods.exportDxf=function(){if(AppState.activeTab===3&&blockOnRouteErrors())return;return oldDxf.apply(AppMethods,arguments)};
+const oldRender=AppMethods.renderRouteTable;AppMethods.renderRouteTable=function(){oldRender.apply(AppMethods,arguments);const d=AppMethods.getValidRouteData(),tb=document.querySelector('#routeAnalyticsTable tbody');if(tb&&d.errors&&d.errors.length){const td=tb.insertRow(0).insertCell();td.colSpan=9;td.style.cssText='padding:10px;color:var(--danger);font-weight:600;background:var(--dangerbg);white-space:normal';td.appendChild(document.createTextNode('⚠ '));d.errors.forEach((m,i)=>{const sp=document.createElement('span');sp.textContent=m;const mm=/Row\s+(\d+)/.exec(m);if(mm&&d.activeTid){sp.dataset.jumpRow=mm[1];sp.dataset.jumpTable=d.activeTid;sp.dataset.go=AppState.lang==='th'?'ไปที่แถว ›':'Go to row ›';sp.tabIndex=0;sp.setAttribute('role','button')}td.appendChild(sp);if(i<d.errors.length-1)td.appendChild(document.createTextNode(' | '))})}};
+function boot(){insertRouteControls();if(I18nDict.route_empty){I18nDict.route_empty.en='No route data. Calculate at least 2 consecutive points in Section 1 or Section 2.';I18nDict.route_empty.th='ไม่มีข้อมูลเส้นทาง กรุณาคำนวณพิกัดต่อเนื่องอย่างน้อย 2 จุดใน Section 1 หรือ Section 2'}if(I18nDict.route_need_pts){I18nDict.route_need_pts.en='Route requires at least 2 valid consecutive points from the selected source.';I18nDict.route_need_pts.th='เส้นทางต้องมีจุดพิกัดต่อเนื่องที่ถูกต้องอย่างน้อย 2 จุดจากแหล่งข้อมูลที่เลือก'}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+</script>
+<script id="uxLayer691">
+(function(){'use strict';
+const $=id=>document.getElementById(id),AM=AppMethods,AS=AppState,TH=()=>AS.lang==='th';
+const S={add:['+ 10 rows','+ 10 แถว'],addT:['Add 10 empty rows','เพิ่มแถวว่าง 10 แถว'],undo:['Undo','ย้อนกลับ'],discard:['Discard','ล้างทิ้ง'],
+ cleared:['Section cleared.','ล้างข้อมูลแล้ว'],restored:['Restored {0} point(s) from your last session.','กู้คืน {0} จุดจากการใช้งานครั้งก่อน'],
+ copied:['Copied: ','คัดลอกแล้ว: '],copyT:['Click to copy','คลิกเพื่อคัดลอก'],max:['Row limit (1000) reached.','ถึงจำนวนแถวสูงสุด (1000)']};
+const tr=(k,a)=>S[k][TH()?1:0].replace('{0}',a);
+const T={table1:{calc:()=>AM.calcS1(),fmt:()=>AS.s1Format},table2:{calc:()=>AM.calcS2(),fmt:()=>AS.s2Format}};
+
+/* ---- Toast: stack cap, de-dupe, click/hover behaviour, optional action ---- */
+AM.showToast=function(msg,type,opts){
+  const c=$('toastContainer');if(!c)return;opts=opts||{};
+  if(!opts.action&&[...c.children].some(t=>t.dataset.msg===msg))return;
+  const el=document.createElement('div');el.className='toast '+(type||'info');el.dataset.msg=msg;
+  el.setAttribute('role',type==='err'?'alert':'status');
+  const sp=document.createElement('span');sp.textContent=msg;el.appendChild(sp);
+  let timer;const close=()=>{clearTimeout(timer);el.classList.remove('show');setTimeout(()=>el.remove(),250)};
+  if(opts.action){const b=document.createElement('button');b.type='button';b.className='toast-action';b.textContent=opts.label;
+    b.addEventListener('click',ev=>{ev.stopPropagation();close();opts.action()});el.appendChild(b)}
+  el.addEventListener('click',close);
+  el.addEventListener('mouseenter',()=>clearTimeout(timer));
+  el.addEventListener('mouseleave',()=>{timer=setTimeout(close,2000)});
+  c.appendChild(el);setTimeout(()=>el.classList.add('show'),10);
+  timer=setTimeout(close,opts.ms||(type==='err'?7000:type==='warn'?5000:3500));
+  while(c.children.length>4)c.firstElementChild.remove();
+};
+
+/* ---- Snapshot / restore of table inputs (undo, session restore) ---- */
+function snap(tid){const rows=[];document.querySelectorAll('#'+tid+' tbody tr').forEach((r,i)=>{
+  const v=[...r.querySelectorAll('.input-cell input')].map(x=>x.value);
+  if(v.some(x=>x.trim()!==''))rows.push({i,id:AM.getCleanIdText(r.cells[0]),v})});return{fmt:T[tid].fmt(),rows}}
+function restore(tid,s){
+  if(!s||!s.rows||!s.rows.length||s.fmt!==T[tid].fmt())return 0;
+  const tb=$(tid);AM.ensureRows(tb,Math.max(10,s.rows[s.rows.length-1].i+1));
+  const trs=tb.querySelectorAll('tbody tr');let n=0;
+  s.rows.forEach(o=>{const r=trs[o.i];if(!r)return;const ins=r.querySelectorAll('.input-cell input');if(ins.length!==o.v.length)return;
+    ins.forEach((x,k)=>{x.value=o.v[k]});if(o.id!=='')r.cells[0].innerText=o.id;n++});
+  T[tid].calc();return n}
+
+/* ---- Add rows button + spreadsheet-style Enter / ArrowDown ---- */
+function addRows(tid,n){const tb=$(tid),cur=tb.querySelector('tbody').children.length;
+  if(cur>=1000){AM.showToast(tr('max'),'warn');return null}
+  AM.ensureRows(tb,Math.min(1000,cur+n));return tb.querySelectorAll('tbody tr')[cur]||null}
+[['btnClearS1','table1','1'],['btnClearS2','table2','2']].forEach(([bid,tid,k])=>{const a=$(bid);if(!a)return;
+  const b=document.createElement('button');b.type='button';b.className='btn-secondary';b.id='btnAddRows'+k;
+  a.insertAdjacentElement('afterend',b);
+  b.addEventListener('click',()=>{const r=addRows(tid,10);if(r){r.scrollIntoView({block:'nearest'});const i=r.querySelector('.input-cell input');if(i)i.focus()}})});
+function relabel(){['1','2'].forEach(k=>{const b=$('btnAddRows'+k);if(b){b.textContent=tr('add');b.title=tr('addT')}})}
+relabel();$('langBtn').addEventListener('click',()=>setTimeout(relabel,0));
+document.addEventListener('keydown',e=>{
+  const input=e.target.closest&&e.target.closest('.input-cell input');if(!input)return;
+  if(e.key!=='Enter'&&e.key!=='ArrowDown')return;
+  const cell=input.closest('td'),row=cell.parentElement,tbl=input.closest('table');
+  let next=e.key==='Enter'&&e.shiftKey?row.previousElementSibling:row.nextElementSibling;
+  if(!next&&!(e.key==='Enter'&&e.shiftKey)){
+    if(![...row.querySelectorAll('input')].some(x=>x.value.trim()!==''))return;   // only grow when the last row is in use
+    next=addRows(tbl.id,10)}
+  const ni=next&&next.cells[cell.cellIndex]&&next.cells[cell.cellIndex].querySelector('input');
+  if(ni){ni.focus();ni.select()}});
+
+/* ---- Select-all on keyboard focus; numeric keypad for UTM columns on touch devices ---- */
+let lastPtr=0;
+document.addEventListener('pointerdown',e=>{lastPtr=Date.now();const i=e.target.closest&&e.target.closest('.input-cell input');
+  if(i){const tid=i.closest('table').id;i.inputMode=T[tid].fmt()==='utm'?'decimal':'text';i.enterKeyHint='next'}},true);
+document.addEventListener('focusin',e=>{const i=e.target;if(i.matches&&i.matches('.input-cell input')&&Date.now()-lastPtr>400)i.select()});
+
+/* ---- Click-to-copy result cells ---- */
+function copyText(txt){
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(txt);
+  return new Promise((ok,no)=>{const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy')?ok():no()}catch(err){no(err)}ta.remove()})}
+document.addEventListener('click',e=>{
+  const td=e.target.closest&&e.target.closest('#table1 tbody td:not(.input-cell):not(:first-child),#table2 tbody td:not(.input-cell):not(:first-child)');
+  if(!td||td.querySelector('input'))return;
+  const txt=td.innerText.trim();if(!txt||String(window.getSelection())!=='')return;
+  copyText(txt).then(()=>{td.classList.remove('cc-copied');void td.offsetWidth;td.classList.add('cc-copied');AM.showToast(tr('copied')+txt,'info',{ms:1300})}).catch(()=>{})});
+new MutationObserver(()=>{document.querySelectorAll('#table1 tbody td.out-ind,#table1 tbody td.output-cell,#table2 tbody td.output-cell,#table2 tbody td.out-ind,#table1 tbody td.out-wgs,#table2 tbody td.out-wgs').forEach(td=>{if(!td.title)td.title=tr('copyT')})})
+  .observe(document.querySelector('main')||document.body,{childList:true,subtree:true});
+
+/* ---- Undo for Clear Section (capture phase: runs before the original handler) ---- */
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#btnClearS1,#btnClearS2');if(!b)return;
+  const tid=b.id==='btnClearS1'?'table1':'table2',s=snap(tid);if(!s.rows.length)return;
+  setTimeout(()=>AM.showToast(tr('cleared'),'info',{label:tr('undo'),ms:9000,action:()=>restore(tid,s)}),0)},true);
+
+/* ---- Persist settings + draft inputs (localStorage); restore on load ---- */
+const KEY='cc_state_v691';let restoring=true,saveT;
+const val=id=>{const e=$(id);return e?e.value:null},chk=id=>{const e=$(id);return e?e.checked:null};
+function collect(){return{v:1,lang:AS.lang,zone:val('zoneSelect'),datum:val('datumSelect'),
+  s1in:val('section1InputFormat'),s1out:val('section1OutputFormat'),s2in:val('section2InputFormat'),s2out:val('section2OutputFormat'),
+  h1:val('s1Hemisphere'),h2:val('s2Hemisphere'),cv1:chk('chkShowConvS1'),wu1:chk('chkShowWgsUtmS1'),cv2:chk('chkShowConvS2'),wu2:chk('chkShowWgsUtmS2'),
+  t1:snap('table1'),t2:snap('table2')}}
+const AUTOSAVE_OFF=()=>{try{return localStorage.getItem('cc_autosave')==='0'}catch(e){return false}};
+function save(){if(restoring||AUTOSAVE_OFF())return;try{localStorage.setItem(KEY,JSON.stringify(collect()))}catch(e){}}
+function schedule(){clearTimeout(saveT);saveT=setTimeout(save,600)}
+['input','change','click'].forEach(ev=>document.addEventListener(ev,schedule,true));
+window.addEventListener('pagehide',save);
+function setSel(id,v){const e=$(id);if(e&&v!=null&&[...e.options].some(o=>o.value===v))e.value=v}
+function load(){
+  if(AUTOSAVE_OFF()){restoring=false;return}
+  let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  if(!s||s.v!==1){restoring=false;return}
+  try{
+    if(s.lang&&s.lang!==AS.lang){AS.lang=s.lang;updateTranslations()}
+    setSel('zoneSelect',s.zone);setSel('datumSelect',s.datum);AM.syncSettings();
+    const dp=$('datumPreview');if(dp)dp.textContent='';
+    setSel('section1InputFormat',s.s1in);AM.fmtSwitcherS1();
+    setSel('section2InputFormat',s.s2in);AM.fmtSwitcherS2();
+    setSel('section1OutputFormat',s.s1out);setSel('section2OutputFormat',s.s2out);setSel('s1Hemisphere',s.h1);setSel('s2Hemisphere',s.h2);
+    [['chkShowConvS1','table1','show-conv',s.cv1],['chkShowWgsUtmS1','table1','show-wgs-utm',s.wu1],['chkShowConvS2','table2','show-conv',s.cv2],['chkShowWgsUtmS2','table2','show-wgs-utm',s.wu2]]
+      .forEach(([id,t,c,v])=>{const e=$(id);if(e&&v!=null&&!e.disabled){e.checked=!!v;$(t).classList.toggle(c,!!v)}});
+    AM.updateS1UtmModeUI();
+    const n=restore('table1',s.t1)+restore('table2',s.t2);
+    if(n>0)AM.showToast(tr('restored',n),'info',{label:tr('discard'),ms:8000,action:()=>{AM.clearS1();AM.clearS2();save()}});
+  }catch(err){console.warn('Session restore skipped:',err)}
+  restoring=false}
+const dd=$('datumDetails');if(dd)dd.open=true;
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
+})();
+</script>
+<script id="uxLayer692">
+(function(){'use strict';
+const $=id=>document.getElementById(id),AM=AppMethods,AS=AppState,TH=()=>AS.lang==='th';
+const S={imp:['Import file / samples','นำเข้าไฟล์ / ตัวอย่าง'],go:['Go to row ›','ไปที่แถว ›'],
+ et:['No points to plot yet','ยังไม่มีจุดให้แสดง'],eb:['Enter coordinates in Section 1 or 2 — valid points appear here automatically.','กรอกพิกัดใน Section 1 หรือ 2 — จุดที่ถูกต้องจะแสดงที่นี่อัตโนมัติ']
+};
+const tr=k=>S[k][TH()?1:0];
+
+/* ---- Toasts created before this layer loaded (e.g. "Unavailable library") become click-dismissable ---- */
+document.querySelectorAll('#toastContainer .toast').forEach(t=>{if(t.dataset.msg)return;t.dataset.msg=t.textContent;
+  t.addEventListener('click',()=>{t.classList.remove('show');setTimeout(()=>t.remove(),250)})});
+
+/* ---- 3. Collapsible import panel (moves existing nodes: all IDs / handlers stay intact) ---- */
+const KEY='cc_ui_v692';let ui={};try{ui=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){}
+const saveUi=()=>{try{localStorage.setItem(KEY,JSON.stringify(ui))}catch(e){}};
+[['1','btnLoadS1','btnSampS1Csv','btnSampS1Txt','fileInputSection1'],['2','btnLoadS2','btnSampS2Csv','btnSampS2Txt','fileInputSection2']].forEach(([k,load,sc,st,file])=>{
+  const bl=$(load),fi=$(file);if(!bl||!fi)return;
+  const btnRow=bl.parentElement,tab=btnRow.closest('[role=tabpanel]');
+  const hint=tab.querySelector('.hint-text'),fileRow=fi.parentElement;
+  const d=document.createElement('details');d.className='import-box';d.id='importBox'+k;if(ui['imp'+k])d.open=true;
+  const sm=document.createElement('summary');sm.dataset.k='imp';d.appendChild(sm);
+  if(hint)d.appendChild(hint);d.appendChild(fileRow);
+  const row=document.createElement('div');row.className='controls-row';row.style.marginBottom='6px';
+  [load,sc,st].forEach(id=>row.appendChild($(id)));d.appendChild(row);
+  btnRow.insertAdjacentElement('afterend',d);
+  d.addEventListener('toggle',()=>{ui['imp'+k]=d.open;saveUi()})});
+
+/* ---- 4. Jump from an error line to the offending row ---- */
+function flash(row){row.classList.remove('row-flash');void row.offsetWidth;row.classList.add('row-flash');setTimeout(()=>row.classList.remove('row-flash'),1500)}
+function jump(tid,n){
+  const want=tid==='table1'?1:2;if(AS.activeTab!==want)AM.switchTab(want);
+  const row=document.querySelectorAll('#'+tid+' tbody tr')[n-1];if(!row)return;
+  row.scrollIntoView({block:'center',behavior:'auto'});
+  const inp=row.querySelector('.input-cell.has-error input')||row.querySelector('.input-cell input');
+  if(inp){inp.focus({preventScroll:true});inp.select()}flash(row)}
+function mark(host,tid){host.querySelectorAll(':scope>div,:scope>span.err-line').forEach(el=>{
+  const m=/^\s*(?:Row|แถว)\s+(\d+)/.exec(el.textContent);if(!m)return;
+  el.dataset.jumpRow=m[1];el.dataset.jumpTable=tid;el.dataset.go=tr('go');el.tabIndex=0;el.setAttribute('role','button')})}
+[['section1Status','table1'],['section2Status','table2']].forEach(([id,tid])=>{const st=$(id);if(!st)return;
+  new MutationObserver(()=>mark(st,tid)).observe(st,{childList:true});mark(st,tid)});
+document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('[data-jump-row]');if(el)jump(el.dataset.jumpTable,+el.dataset.jumpRow)});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const el=e.target.closest&&e.target.closest('[data-jump-row]');
+  if(el&&el===e.target){e.preventDefault();jump(el.dataset.jumpTable,+el.dataset.jumpRow)}});
+
+/* ---- 2. Map empty state ---- */
+const lm=$('leafletMap'),sv=$('svgContainer');
+if(lm&&sv){
+  const stage=document.createElement('div');stage.className='map-stage';lm.parentNode.insertBefore(stage,lm);stage.appendChild(lm);stage.appendChild(sv);
+  const ov=document.createElement('div');ov.className='map-empty hidden';ov.id='mapEmpty';ov.setAttribute('role','status');
+  ov.innerHTML='<div class="map-empty-card"><strong></strong><span></span></div>';
+  stage.appendChild(ov);
+  const [ti,tx]=[ov.querySelector('strong'),ov.querySelector('span')];
+  const hasPts=()=>[...document.querySelectorAll('#table1 tbody tr,#table2 tbody tr')].some(r=>r.dataset.wgsLat!==undefined&&r.dataset.wgsLat!==''&&!isNaN(+r.dataset.wgsLat));
+  let raf=0;
+  function upd(){raf=0;
+    if(hasPts()){ov.classList.add('hidden');return}
+    ti.textContent=tr('et');tx.textContent=tr('eb');ov.classList.remove('hidden')}
+  const sched=()=>{if(!raf)raf=requestAnimationFrame(upd)};
+  ['drawLeaflet','drawSvg','clearS1','clearS2','switchTab','calcS1','calcS2'].forEach(n=>{const f=AM[n];if(typeof f!=='function')return;
+    AM[n]=function(){const r=f.apply(this,arguments);sched();return r}});
+  let t2;document.addEventListener('input',()=>{clearTimeout(t2);t2=setTimeout(sched,500)});
+  document.addEventListener('click',()=>setTimeout(sched,0),true);
+  /* Leaflet failed to load (offline / CDN blocked): the interactive map is disabled, so open the Legacy SVG view instead of leaving a blank area */
+  const fallback=()=>{if(typeof L==='undefined'&&$('btnViewSvg'))$('btnViewSvg').click();setTimeout(upd,450)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(fallback,0));else setTimeout(fallback,0);
+}
+
+/* ---- Language relabel ---- */
+function relabel(){document.querySelectorAll('.import-box>summary').forEach(s=>{s.textContent=tr('imp')});
+  document.querySelectorAll('[data-jump-row]').forEach(e=>{e.dataset.go=tr('go')});
+  const o=$('mapEmpty');if(o&&!o.classList.contains('hidden')){o.querySelector('strong').textContent=tr('et');o.querySelector('span').textContent=tr('eb')}}
+relabel();$('langBtn').addEventListener('click',()=>setTimeout(relabel,0));
+})();
+</script>
+<script id="mapLayer693">
+(function(){'use strict';
+const $=id=>document.getElementById(id),AM=AppMethods,AS=AppState,TH=()=>AS.lang==='th';
+const S={
+ fit:['Zoom to all points','ซูมไปยังทุกจุด'],home:['Gulf of Thailand view','มุมมองอ่าวไทย'],lbl:['Show / hide point labels','แสดง / ซ่อนชื่อจุด'],full:['Full screen (Esc to exit)','เต็มจอ (กด Esc เพื่อออก)'],
+ legend:['Legend','คำอธิบายสัญลักษณ์'],s1:['Section 1 points','จุด Section 1'],s2:['Section 2 points','จุด Section 2'],route:['Route centreline','เส้นทางหลัก'],buf:['Route buffer','บัฟเฟอร์เส้นทาง'],
+ none:['No points plotted','ยังไม่มีจุดที่แสดง'],note:['Plotted in WGS84 (lat/lon)','แสดงผลใน WGS84 (lat/lon)'],
+ rd:['Cursor','ตำแหน่งเมาส์'],rdPin:['Pinned','ปักหมุด'],rdHint:['Hover / tap the map','เลื่อนเมาส์ / แตะที่แผนที่'],copy:['Copy','คัดลอก'],copied:['Coordinates copied','คัดลอกพิกัดแล้ว'],
+ wgs:['WGS84','WGS84'],ind:['Indian 1975','Indian 1975'],outz:['outside zone','นอกโซน'],nofit:['No plotted points to zoom to.','ไม่มีจุดให้ซูม'],
+ pid:['Point','จุด'],sec:['Section','ส่วน'],axw:['Axes: WGS84 lon / lat','แกน: WGS84 lon / lat'],axu:['Axes: Indian 1975 UTM grid (m)','แกน: Indian 1975 UTM กริด (ม.)'],
+ pts:['pts','จุด'],wp:['WP','จุดผ่าน']};
+const tr=k=>S[k][TH()?1:0];
+const COL={s1:{fill:'#4f46e5',line:'#4338ca'},s2:{fill:'#e11d48',line:'#be123c'},route:'#f59e0b'};
+/* ---- prefs (localStorage, optional) ---- */
+const PK='cc_map_prefs';let prefs={};try{prefs=JSON.parse(localStorage.getItem(PK)||'{}')||{}}catch(e){}
+const savePrefs=()=>{try{localStorage.setItem(PK,JSON.stringify(prefs))}catch(e){}};
+const mobile=()=>window.matchMedia&&matchMedia('(max-width:560px)').matches;
+const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+/* ---- helpers on the app engine ---- */
+function indUtm(lat,lon){try{const p=AS.params,zi=AS.zoneInfo,el=AS.indEllip;
+  const r=GeoMath.wgs84ToInd1975(lat,lon,p.dx,p.dy,p.dz,zi.cm,el.a,el.f);
+  return{e:r.east,n:r.north,out:Math.abs(r.lon-zi.cm)>12,hemi:lat<0?'S':'N'}}catch(e){return null}}
+function lines(ll){const lat=ll.lat,lon=ll.lng,u=indUtm(lat,lon);
+  const l1=tr('wgs')+'  '+Formatter.formatStr(lat,'dm',true)+' '+Formatter.formatStr(lon,'dm',false);
+  const l2=lat.toFixed(6)+', '+lon.toFixed(6);
+  const l3=u?(tr('ind')+' '+AS.zoneInfo.zone+u.hemi+'  E '+Formatter.formatUTM(u.e)+'  N '+Formatter.formatUTM(u.n)+(u.out?'  ('+tr('outz')+')':'')):'';
+  return{l1,l2,l3,text:l1+'\n'+l2+(l3?'\n'+l3:'')}}
+function copyText(t){if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(t);
+  return new Promise((ok,no)=>{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')?ok():no()}catch(e){no(e)}ta.remove()})}
+const ICON={
+ fit:'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.2"/></svg>',
+ home:'<svg viewBox="0 0 24 24"><path d="M3.5 11.5 12 4l8.5 7.5M6 10v9.5h4.5V14h3v5.5H18V10"/></svg>',
+ lbl:'<svg viewBox="0 0 24 24"><path d="M3.5 12.5V5h7.5l9.5 9.5-7.5 7.5z"/><circle cx="8" cy="9.5" r="1.3"/></svg>',
+ full:'<svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>'};
+let map=null,tools=null,legend=null,readout=null,nm=null,pinned=null,full=false;
+const state={labels:prefs.labels,legendOpen:prefs.legend==null?!mobile():prefs.legend==='open'};
+
+/* ---- controls ---- */
+function makeTools(){
+  const C=L.Control.extend({options:{position:'topleft'},onAdd:function(){
+    const d=L.DomUtil.create('div','leaflet-bar leaflet-control cc-tools');
+    const add=(id,icon,key,fn,toggle)=>{const a=L.DomUtil.create('a','',d);a.href='#';a.id='ccBtn_'+id;a.setAttribute('role','button');a.innerHTML=icon;a._k=key;if(toggle)a.setAttribute('aria-pressed','false');
+      L.DomEvent.on(a,'click',e=>{L.DomEvent.stop(e);fn(a)});
+      L.DomEvent.on(a,'keydown',e=>{if(e.key===' '){L.DomEvent.stop(e);fn(a)}});return a};
+    add('fit',ICON.fit,'fit',fitAll);add('home',ICON.home,'home',goHome);add('lbl',ICON.lbl,'lbl',toggleLabels,true);add('full',ICON.full,'full',toggleFull,true);
+    L.DomEvent.disableClickPropagation(d);return d}});
+  return new C()}
+function relabelTools(){if(!tools)return;tools.getContainer().querySelectorAll('a').forEach(a=>{const t=tr(a._k);a.title=t;a.setAttribute('aria-label',t)})}
+function makeLegend(){
+  const C=L.Control.extend({options:{position:'topright'},onAdd:function(){
+    const d=L.DomUtil.create('div','cc-legend leaflet-control');d.id='ccLegend';
+    d.innerHTML='<button type="button" aria-expanded="true"><span class="cc-lg-t"></span></button><div class="cc-lg-body"></div>';
+    d.querySelector('button').addEventListener('click',()=>{state.legendOpen=!state.legendOpen;prefs.legend=state.legendOpen?'open':'closed';savePrefs();applyLegendOpen()});
+    L.DomEvent.disableClickPropagation(d);L.DomEvent.disableScrollPropagation(d);return d}});
+  return new C()}
+function applyLegendOpen(){const d=legend&&legend.getContainer();if(!d)return;d.classList.toggle('cc-closed',!state.legendOpen);d.querySelector('button').setAttribute('aria-expanded',String(state.legendOpen))}
+function makeReadout(){
+  const C=L.Control.extend({options:{position:'bottomleft'},onAdd:function(){
+    const d=L.DomUtil.create('div','cc-readout leaflet-control');d.id='ccReadout';
+    d.innerHTML='<div class="cc-rd-h"><span class="cc-rd-t"></span><button type="button" class="cc-rd-copy"></button></div><div class="cc-rd-l cc-l1"></div><div class="cc-rd-l cc-l2"></div><div class="cc-rd-l cc-l3"></div>';
+    d.querySelector('.cc-rd-copy').addEventListener('click',()=>{const ll=pinned||d._last;if(!ll){return}copyText(lines(ll).text).then(()=>AM.showToast(tr('copied'),'info',{ms:1500})).catch(()=>{})});
+    L.DomEvent.disableClickPropagation(d);return d}});
+  return new C()}
+function paintReadout(ll){const d=readout.getContainer();const t=d.querySelector('.cc-rd-t'),b=d.querySelector('.cc-rd-copy');
+  d.classList.toggle('cc-pinned',!!pinned);t.textContent=pinned?'📌 '+tr('rdPin'):tr('rd');b.textContent=tr('copy');
+  if(!ll){d.querySelector('.cc-l1').textContent=tr('rdHint');d.querySelector('.cc-l2').textContent='';d.querySelector('.cc-l3').textContent='';return}
+  d._last=ll;const x=lines(ll);d.querySelector('.cc-l1').textContent=x.l1;d.querySelector('.cc-l2').textContent=x.l2;d.querySelector('.cc-l3').textContent=x.l3}
+function makeNm(){
+  const C=L.Control.extend({options:{position:'bottomright'},onAdd:function(){const d=L.DomUtil.create('div','cc-nm leaflet-control');d.id='ccNm';return d}});return new C()}
+function updateNm(){if(!nm||!map)return;const d=nm.getContainer(),sz=map.getSize(),y=Math.round(sz.y/2);
+  const a=map.containerPointToLatLng([0,y]),b=map.containerPointToLatLng([100,y]),m100=a.distanceTo(b);if(!(m100>0))return;
+  const nice=v=>{const p=Math.pow(10,Math.floor(Math.log10(v))),r=v/p;return(r>=5?5:r>=2?2:1)*p};
+  let label,m;const nm100=m100/1852;
+  if(nm100<0.5){m=nice(m100);label=m>=1000?(m/1000)+' km':m+' m';m=m}else{const n=nice(nm100);m=n*1852;label=n+' NM'}
+  d.style.width=Math.round(100*m/m100)+'px';d.textContent=label;d.dataset.meters=String(m)}
+
+/* ---- actions ---- */
+function pointsBounds(){const g=AS.map&&AS.map.markerLayer;if(!g)return null;const pts=g.getLayers().filter(l=>l instanceof L.CircleMarker);if(!pts.length)return null;return L.latLngBounds(pts.map(p=>p.getLatLng()))}
+function fitAll(){const b=pointsBounds();if(!b||!b.isValid()){AM.showToast(tr('nofit'),'warn',{ms:2500});return}
+  if(b.getSouthWest().equals(b.getNorthEast()))map.setView(b.getCenter(),14);else map.fitBounds(b,{padding:[50,50],maxZoom:16})}
+function goHome(){map.fitBounds([[5.2,98.8],[14.6,105.2]],{padding:[10,10]})}
+function toggleLabels(a){const cur=state.labels==null?autoLabels():state.labels;state.labels=!cur;prefs.labels=state.labels;savePrefs();applyLabels()}
+function autoLabels(){const g=AS.map&&AS.map.markerLayer;return g?g.getLayers().filter(l=>l instanceof L.CircleMarker).length<=50:true}
+function markerId(m){try{const p=m.getPopup();if(!p)return null;const c=p.getContent();const d=document.createElement('div');d.innerHTML=typeof c==='string'?c:'';const b=d.querySelector('b');return b?b.textContent.replace(/^\s*Point ID:\s*/,''):null}catch(e){return null}}
+function applyLabels(){const g=AS.map&&AS.map.markerLayer;if(!g)return;const on=state.labels==null?autoLabels():state.labels;
+  g.eachLayer(l=>{if(!(l instanceof L.CircleMarker))return;if(l._ccId==null)l._ccId=markerId(l);
+    if(l.getTooltip&&l.getTooltip())l.unbindTooltip();
+    if(on&&l._ccId)l.bindTooltip(esc(l._ccId),{permanent:true,direction:'right',offset:[9,0],className:'cc-lbl',opacity:1})});
+  const a=$('ccBtn_lbl');if(a)a.setAttribute('aria-pressed',String(on))}
+function toggleFull(){full=!full;const st=document.querySelector('.map-stage');if(!st)return;st.classList.toggle('cc-full',full);document.body.classList.toggle('cc-nofull-scroll',full);
+  const a=$('ccBtn_full');if(a)a.setAttribute('aria-pressed',String(full));setTimeout(()=>{map.invalidateSize();updateNm()},60)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(full){toggleFull()}else if(pinned){pinned=null;if(readout)paintReadout(readout.getContainer()._last||null)}}});
+
+/* ---- popup (rebuilt with Indian UTM + copy) ---- */
+function buildPopup(m){const ll=m.getLatLng(),x=lines(ll),u=indUtm(ll.lat,ll.lng),isS1=m.options.color===COL.s1.line;
+  const d=document.createElement('div');d.className='cc-pop';
+  d.innerHTML='<h4>'+esc(tr('pid')+': '+(m._ccId||''))+'</h4>'+
+   '<div class="cc-pop-r"><span>'+tr('sec')+'</span><span>'+(isS1?'1':'2')+'</span></div>'+
+   '<div class="cc-pop-r"><span>'+tr('wgs')+'</span><span>'+esc(Formatter.formatStr(ll.lat,'dm',true)+' '+Formatter.formatStr(ll.lng,'dm',false))+'</span></div>'+
+   '<div class="cc-pop-r"><span></span><span>'+esc(x.l2)+'</span></div>'+
+   (u?'<div class="cc-pop-r"><span>'+tr('ind')+' E</span><span>'+esc(Formatter.formatUTM(u.e))+'</span></div><div class="cc-pop-r"><span>'+tr('ind')+' N</span><span>'+esc(Formatter.formatUTM(u.n))+'</span></div>':'')+
+   '<button type="button">'+tr('copy')+'</button>';
+  d.querySelector('button').addEventListener('click',()=>copyText((m._ccId?m._ccId+'\n':'')+x.text).then(()=>AM.showToast(tr('copied'),'info',{ms:1500})).catch(()=>{}));
+  return d}
+function applyPopups(){const g=AS.map&&AS.map.markerLayer;if(!g)return;g.eachLayer(l=>{if(!(l instanceof L.CircleMarker))return;if(l._ccId==null)l._ccId=markerId(l);if(l._ccId==null)return;l.unbindPopup();l.bindPopup(()=>buildPopup(l))})}
+
+/* ---- legend content ---- */
+function routeNm(poly){try{const ll=poly.getLatLngs();let m=0;for(let i=0;i<ll.length-1;i++){const r=GeoMath.vincentyInverse(ll[i].lat,ll[i].lng,ll[i+1].lat,ll[i+1].lng);if(r.converged)m+=r.distance}return m/1852}catch(e){return NaN}}
+function legendData(){const g=AS.map&&AS.map.markerLayer;const o={s1:0,s2:0,route:null,buf:0};if(!g)return o;
+  g.eachLayer(l=>{if(l instanceof L.CircleMarker){if(l.options.color===COL.s1.line)o.s1++;else o.s2++}
+    else if(l instanceof L.Polygon)o.buf++;else if(l instanceof L.Polyline)o.route={n:l.getLatLngs().length,nm:routeNm(l)}});return o}
+function row(sym,label,extra){return'<div class="cc-lg-row"><span class="cc-lg-sym">'+sym+'</span><span>'+esc(label)+'</span>'+(extra!=null?'<b>'+esc(extra)+'</b>':'')+'</div>'}
+const dot=k=>'<span class="cc-lg-dot" style="background:'+COL[k].fill+';border-color:'+COL[k].line+'"></span>';
+function paintLegend(){if(!legend)return;const d=legend.getContainer(),o=legendData();d.querySelector('.cc-lg-t').textContent=tr('legend');
+  let h='';if(o.s1)h+=row(dot('s1'),tr('s1'),o.s1);if(o.s2)h+=row(dot('s2'),tr('s2'),o.s2);
+  if(o.route)h+=row('<span class="cc-lg-dash"></span>',tr('route'),o.route.n+' '+tr('wp')+(isFinite(o.route.nm)?' · '+o.route.nm.toFixed(1)+' NM':''));
+  if(o.buf){const w=Number(($('routeBufferM')||{}).value)||0;h+=row('<span class="cc-lg-area"></span>',tr('buf')+(w?' ±'+w+' m':''))}
+  if(!h)h='<div class="cc-lg-empty">'+tr('none')+'</div>';else h+='<div class="cc-lg-note">'+tr('note')+'</div>';
+  d.querySelector('.cc-lg-body').innerHTML=h;applyLegendOpen()}
+
+/* ---- init / redraw hooks ---- */
+function ensure(){if(typeof L==='undefined'||!AS.map||!AS.map.instance||AS.map.instance._ccInit)return;
+  map=AS.map.instance;map._ccInit=true;
+  const old=document.querySelector('.leaflet-control-coords');if(old)old.style.display='none';
+  tools=makeTools().addTo(map);legend=makeLegend().addTo(map);readout=makeReadout().addTo(map);nm=makeNm().addTo(map);
+  paintReadout(null);relabelTools();applyLegendOpen();updateNm();
+  map.on('mousemove',e=>{if(!pinned)paintReadout(e.latlng)});
+  map.getContainer().addEventListener('mouseleave',()=>{if(!pinned)paintReadout(null)});
+  map.on('click',e=>{if(pinned&&pinned.distanceTo(e.latlng)<1){pinned=null;paintReadout(e.latlng)}else{pinned=e.latlng;paintReadout(pinned)}});
+  map.on('zoomend moveend resize',updateNm)}
+function afterDraw(){ensure();if(!map)return;applyPopups();applyLabels();paintLegend();updateNm()}
+const oldDraw=AM.drawLeaflet;
+AM.drawLeaflet=function(){const r=oldDraw.apply(this,arguments);try{afterDraw()}catch(e){console.warn('Map layer skipped:',e)}return r};
+
+/* ---- Legacy SVG: structured legend (replaces the single coloured line) ---- */
+const sv=$('svgContainer');
+if(sv){const lg=document.createElement('div');lg.id='ccSvgLegend';lg.setAttribute('role','group');sv.appendChild(lg);
+  function paintSvgLegend(){const svg=$('coordinateSVG');if(!svg)return;const pts=svg.querySelectorAll('circle'),md=($('canvasMode')||{}).value;
+    let s1=0,s2=0;pts.forEach(c=>{const f=(c.getAttribute('fill')||'').toLowerCase();if(f===COL.s1.fill)s1++;else if(f===COL.s2.fill)s2++});
+    const route=!!svg.querySelector('path[stroke-dasharray]');let h='';
+    if(s1)h+=row(dot('s1'),tr('s1'),s1);if(s2)h+=row(dot('s2'),tr('s2'),s2);if(route)h+=row('<span class="cc-lg-dash"></span>',tr('route'));
+    if(!h)h='<span class="cc-lg-empty">'+tr('none')+'</span>';
+    h+='<span class="cc-lg-note" style="border:0;padding:0">'+tr(md==='utm'?'axu':'axw')+'</span>';lg.innerHTML=h}
+  const oldSvg=AM.drawSvg;AM.drawSvg=function(){const r=oldSvg.apply(this,arguments);try{paintSvgLegend()}catch(e){}return r}}
+
+/* ---- Auto-save switch ---- */
+(function(){const cb=$('chkAutosave');if(!cb)return;const K='cc_autosave',SK='cc_state_v691';let off=false;try{off=localStorage.getItem(K)==='0'}catch(e){}
+  cb.checked=!off;
+  cb.addEventListener('change',()=>{try{if(cb.checked)localStorage.removeItem(K);else{localStorage.setItem(K,'0');localStorage.removeItem(SK)}}catch(e){}});
+  const lab=()=>{const t=$('ccAutosaveTxt');if(t)t.textContent=TH()?'บันทึกอัตโนมัติ':'Auto-save'};lab();$('langBtn')&&$('langBtn').addEventListener('click',()=>setTimeout(lab,0))})();
+/* ---- language ---- */
+$('langBtn')&&$('langBtn').addEventListener('click',()=>setTimeout(()=>{relabelTools();if(readout)paintReadout(pinned||null);paintLegend();if(sv)try{AM.drawSvg()}catch(e){}},0));
+})();
+</script>
+<script id="uiLayer694">
+(function(){'use strict';
+const $=id=>document.getElementById(id),AS=AppState,TH=()=>AS.lang==='th';
+/* ---- Header: group controls (moves existing nodes; ids/handlers untouched) ---- */
+const nc=document.querySelector('.nav-controls');
+if(nc&&!nc.querySelector('.cc-hdr-sel')){
+  const mk=(lab,sel)=>{const d=document.createElement('div');d.className='cc-field';if(lab)d.appendChild(lab);d.appendChild(sel);return d};
+  const zl=nc.querySelector('label[for=zoneSelect]'),dl=nc.querySelector('label[for=datumSelect]'),zs=$('zoneSelect'),ds=$('datumSelect');
+  const g1=document.createElement('div');g1.className='cc-hdr-sel';
+  if(zs)g1.appendChild(mk(zl,zs));if(ds)g1.appendChild(mk(dl,ds));
+  const g2=document.createElement('div');g2.className='cc-hdr-act';
+  [nc.querySelector('.cc-autosave'),$('langBtn'),nc.querySelector('.clear-all')].forEach(e=>{if(e)g2.appendChild(e)});
+  nc.appendChild(g1);nc.appendChild(g2)}
+/* ---- Section toolbar: wrap format row + action row; move the import toggle into the action row ---- */
+document.querySelectorAll('[role=tabpanel]').forEach(panel=>{
+  const row1=panel.querySelector('.container>h2+.controls-row');if(!row1||row1.parentElement.classList.contains('cc-toolbar'))return;
+  const row2=row1.nextElementSibling;if(!row2||!row2.classList.contains('controls-row'))return;
+  const tb=document.createElement('div');tb.className='cc-toolbar';row1.parentNode.insertBefore(tb,row1);tb.appendChild(row1);tb.appendChild(row2);
+  const imp=panel.querySelector('.import-box');if(imp)row2.appendChild(imp)});
+/* ---- Colour-coded column headers (input / WGS84 result / Indian result) ---- */
+function paintHeads(tid){const t=$(tid);if(!t)return;const r0=t.querySelector('tbody tr');if(!r0)return;
+  [...t.querySelectorAll('thead th')].forEach((th,i)=>{const td=r0.cells[i];th.classList.remove('cc-h-wgs','cc-h-ind');if(!td)return;
+    if(td.classList.contains('out-wgs'))th.classList.add('cc-h-wgs');else if(td.classList.contains('out-ind'))th.classList.add('cc-h-ind')})}
+let raf=0;const sched=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;paintHeads('table1');paintHeads('table2')})};
+['table1','table2'].forEach(id=>{const t=$(id);if(!t)return;const mo=new MutationObserver(sched);
+  const h=t.querySelector('thead'),b=t.querySelector('tbody');if(h)mo.observe(h,{childList:true});if(b)mo.observe(b,{childList:true})});
+sched();
+/* ---- Idle hint inside the (otherwise empty) status line ---- */
+const HINT=['Results update as you type  ·  Enter = next row  ·  Shift+Enter = previous row','ผลลัพธ์คำนวณอัตโนมัติขณะพิมพ์  ·  Enter = แถวถัดไป  ·  Shift+Enter = แถวก่อนหน้า'];
+const hint=()=>['section1Status','section2Status'].forEach(id=>{const e=$(id);if(e)e.setAttribute('data-hint',HINT[TH()?1:0])});
+/* Clear Section left the previous result message on screen (class reset only): empty it so the idle hint shows */
+['section1Status','section2Status'].forEach(id=>{const e=$(id);if(!e)return;
+  new MutationObserver(()=>{if(e.className==='status'&&e.textContent.trim())e.textContent=''}).observe(e,{attributes:true,attributeFilter:['class']})});
+hint();$('langBtn')&&$('langBtn').addEventListener('click',()=>setTimeout(hint,0));
+})();
+</script>
+<script id="compactLayer695">
+(function(){'use strict';
+const $=id=>document.getElementById(id);
+/* ---- Header: brand | selects | actions  /  tabs | datum chips ---- */
+const top=document.querySelector('.nav-top-row'),nav=document.querySelector('.tab-nav'),hdr=$('globalNav');
+if(top&&nav&&hdr&&!hdr.querySelector('.cc-bar2')){
+  const brand=top.firstElementChild,dev=[...brand.children].find(e=>/Developed by/.test(e.textContent)&&e.tagName==='SPAN'&&!e.classList.contains('nav-title')&&!e.classList.contains('version-badge'));
+  const dd=$('datumDetails');
+  const bar2=document.createElement('div');bar2.className='cc-bar2';
+  hdr.insertBefore(bar2,nav);bar2.appendChild(nav);
+  if(dd)bar2.appendChild(dd);
+  if(dev){dev.className='cc-credit';dev.removeAttribute('style');dev.textContent='Developed by Rattawit W.';const b=brand.querySelector('.version-badge');if(b)b.title='Developed by Rattawit W.';if(dd)dd.querySelector('.banner-details').appendChild(dev);else bar2.appendChild(dev)}
+  const df=$('datumSelect')&&$('datumSelect').closest('.cc-field');if(df){df.classList.add('cc-datum');$('datumSelect').title='Transformation parameters (datum)'}
+}
+/* ---- Section toolbars: status into row 1; bottom action row into row 2 ---- */
+[['1','section1Status','btnCalcS1','btnClearS1','btnAddRows1','btnPasteS1'],['2','section2Status','btnCalcS2','btnClearS2','btnAddRows2','btnPasteS2']].forEach(([k,stId,calc,clear,add,paste])=>{
+  const tb=$(stId)&&$(stId).closest('[role=tabpanel]')&&$(stId).closest('[role=tabpanel]').querySelector('.cc-toolbar');if(!tb)return;
+  const rows=tb.querySelectorAll(':scope>.controls-row'),row1=rows[0],row2=rows[1];if(!row1||!row2)return;
+  row1.appendChild($(stId));                                   /* status shares the format row */
+  const bottom=$(calc)&&$(calc).parentElement;
+  if(bottom&&bottom!==row1&&bottom!==row2){
+    const lead=[$(calc),$(clear),$(add)].filter(Boolean);
+    const sep=document.createElement('span');sep.className='cc-vsep';sep.setAttribute('aria-hidden','true');
+    const first=row2.firstElementChild;
+    lead.forEach(e=>row2.insertBefore(e,first));row2.insertBefore(sep,first);
+    [...bottom.children].forEach(e=>row2.appendChild(e));       /* Send all, Export, hidden export buttons, Copy */
+    bottom.remove()}
+});
+/* long OK messages (e.g. far-from-CM warning) get their own full-width line; short ones stay inline */
+['section1Status','section2Status'].forEach(id=>{const e=$(id);if(!e)return;
+  const upd=()=>{const t=e.textContent||'';e.classList.toggle('cc-wide',e.classList.contains('ok')&&t.length>46);if(t&&e.classList.contains('ok'))e.title=t;else e.removeAttribute('title')};
+  new MutationObserver(upd).observe(e,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class']});upd()});
+})();
+</script>
 </body></html>
