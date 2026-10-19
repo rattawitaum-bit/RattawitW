@@ -1,0 +1,2252 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050c14">
+<title>ECHOFIELD v0.5.1 — offshore survey game</title>
+<style>:root{--bg:#050c14;--tx:#e8f0f7;--mu:#8ea5b8;--ln:rgba(140,190,230,.14);--ac:#ffb347;--cy:#7fd1ff;--mg:#e879f9;--gn:#6ee7b7}
+*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
+body{background:radial-gradient(1200px 600px at 60% -10%,#0f2a44 0%,transparent 60%),radial-gradient(800px 500px at 0% 100%,#0a1f2e 0%,transparent 60%),var(--bg);color:var(--tx);font:14px/1.45 "Segoe UI Variable","Segoe UI",system-ui,sans-serif;min-height:100vh}
+button{font:inherit;color:inherit;background:rgba(255,255,255,.04);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;cursor:pointer;text-align:left;transition:background .15s,border-color .15s,transform .1s,box-shadow .2s}
+button:hover:not(:disabled){background:rgba(127,209,255,.08);border-color:rgba(127,209,255,.35)}button:active:not(:disabled){transform:translateY(1px) scale(.99)}
+button.on{background:linear-gradient(180deg,rgba(127,209,255,.2),rgba(127,209,255,.08));border-color:var(--cy);box-shadow:0 0 0 1px rgba(127,209,255,.35),0 0 18px rgba(127,209,255,.15)}
+button:disabled{opacity:.4;cursor:default}
+.pri{background:linear-gradient(180deg,#ffbf5e,#e88a1f);border-color:#ffc874;color:#1a0f02;font-weight:700;text-align:center;box-shadow:0 6px 20px rgba(232,138,31,.3)}
+.pri:hover:not(:disabled){background:linear-gradient(180deg,#ffcb78,#f0962a)}
+.ghost{background:transparent}.ico{padding:6px 9px;line-height:0}.ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.glass{background:linear-gradient(180deg,rgba(20,40,60,.55),rgba(10,22,36,.55));border:1px solid var(--ln);border-radius:14px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+header{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--ln);background:rgba(5,12,20,.7);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5}
+.logo{font-weight:800;letter-spacing:.22em;font-size:18px}.logo b{color:var(--ac);text-shadow:0 0 18px rgba(255,179,71,.5)}
+.logo.big{font-size:64px;letter-spacing:.16em;display:block;line-height:1.05;animation:glow 4s ease-in-out infinite}
+@keyframes glow{50%{text-shadow:0 0 30px rgba(127,209,255,.25)}}
+.ver{color:var(--mu);font-size:11px;margin-left:8px;border:1px solid var(--ln);border-radius:20px;padding:1px 7px}
+.mt{display:flex;align-items:center;gap:8px;font-weight:600}.mt em{font-style:normal;color:#1a0f02;background:var(--ac);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:800}
+.stats{flex:1;display:flex;gap:22px;justify-content:flex-end;min-width:0}
+.stat{display:flex;flex-direction:column;min-width:0}.stat small{color:var(--mu);font-size:11px;letter-spacing:.04em}.stat b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1;display:inline-block;transform-origin:left center}
+.bump{animation:bump .45s ease}@keyframes bump{30%{transform:scale(1.18);color:var(--ac)}}
+.stat:first-child{min-width:240px}.bar{position:relative;height:6px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden;margin:4px 0 2px}
+#budUsed{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#e88a1f,var(--ac));transition:width .2s}#budPlan{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(127,209,255,.65) 0 4px,rgba(127,209,255,.35) 4px 8px)}
+main{display:grid;grid-template-columns:220px minmax(0,1fr) 320px;gap:14px;padding:14px;align-items:start}
+#sheet{display:contents}.grab{display:none}
+.tools{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:8px;padding:14px;position:sticky;top:78px}
+.stage{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.side{grid-column:3;grid-row:1;display:flex;flex-direction:column;gap:12px}
+h4{margin:6px 0 2px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);font-weight:700}h5{margin:12px 0 6px;font-size:12px;color:var(--mu)}
+.tg{display:flex;flex-direction:column;gap:6px}.tg.row{flex-direction:row}.tg.row button{flex:1;text-align:center}
+.seg{gap:0;border:1px solid var(--ln);border-radius:10px;overflow:hidden}.seg button{border:0;border-radius:0;padding:9px 2px;font-size:12.5px}.seg button+button{border-left:1px solid var(--ln)}
+.sens button{display:grid;grid-template-columns:12px 1fr;column-gap:8px;align-items:center;font-weight:700}.sens small{grid-column:2;color:var(--mu);font-size:11px;font-weight:400}
+.sw{width:10px;height:10px;border-radius:50%;grid-row:span 2}.c1{background:var(--cy);box-shadow:0 0 8px var(--cy)}.c2{background:var(--ac);box-shadow:0 0 8px var(--ac)}.c3{background:var(--mg);box-shadow:0 0 8px var(--mg)}.c4{background:var(--gn);box-shadow:0 0 8px var(--gn)}.c5{background:#fb7185;box-shadow:0 0 8px #fb7185}
+.v3{text-align:center}.sub{margin-top:6px;text-align:center;border-color:rgba(201,164,255,.5);background:rgba(201,164,255,.08);font-weight:600}
+.muted{color:var(--mu);font-size:12px;margin:2px 0}
+#mapwrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--ln);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#map{display:block;width:100%;cursor:crosshair;touch-action:manipulation}#map.is3d{cursor:grab;touch-action:none}#map.is3d:active{cursor:grabbing}
+#mapwrap:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 80px rgba(0,0,0,.55);border-radius:inherit}
+.badge{pointer-events:none;position:absolute;left:12px;bottom:10px;font-size:10.5px;letter-spacing:.12em;background:rgba(5,12,20,.7);padding:4px 9px;border-radius:20px;color:var(--mu);z-index:2}
+.north{position:absolute;right:12px;top:10px;font-size:11px;font-weight:700;color:var(--mu);background:rgba(5,12,20,.6);padding:3px 8px;border-radius:20px;z-index:2}
+#fab{display:none}
+#toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-8px);background:rgba(10,22,36,.92);border:1px solid var(--ln);padding:7px 14px;border-radius:20px;opacity:0;transition:.25s;pointer-events:none;z-index:3;font-weight:600;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+#toast.on{opacity:1;transform:translate(-50%,0)}#toast.hit{border-color:var(--ac);color:var(--ac);box-shadow:0 0 24px rgba(255,179,71,.3)}#toast.warn{border-color:#c9a4ff;color:#dcc6ff}
+.inst{display:flex;gap:12px}.inst>.ib{flex:1;min-width:0}
+.tb3d{position:absolute;left:10px;top:10px;display:flex;gap:4px;z-index:3;flex-wrap:wrap;max-width:calc(100% - 90px)}.tb3d button{background:rgba(5,12,20,.75);padding:5px 9px;font-size:12.5px;font-weight:600;text-align:center;min-width:32px}
+.cw.hrs:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:8px;background:repeating-linear-gradient(180deg,transparent 0,transparent calc(100%/9.6 - 1px),rgba(255,255,255,.07) calc(100%/9.6 - 1px),rgba(255,255,255,.07) calc(100%/9.6))}
+.tk{position:absolute;left:4px;top:2px;font-style:normal;font-size:9.5px;color:rgba(255,255,255,.55);z-index:2;pointer-events:none}.tk.b{top:auto;bottom:2px}
+.vrow{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin:5px 0;color:var(--mu)}.vrow b{color:var(--tx);font-variant-numeric:tabular-nums;text-align:right}
+.ok{color:var(--gn)!important}.off{color:#ffd08a!important}
+input[type=range]{width:100%;accent-color:#fb7185;margin:6px 0}
+.depth{font-size:12.5px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:8px;padding:6px 9px;line-height:1.6}
+.ib{padding:8px 10px 8px}.wfh{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.14em;color:var(--mu);font-weight:700;margin-bottom:6px}
+.live{color:#ff6b6b;animation:blink 1.2s steps(2) infinite}.ib.idle .live{color:var(--mu);animation:none;opacity:.4}@keyframes blink{50%{opacity:.3}}
+.cw{position:relative}.cw canvas{display:block;width:100%;height:130px;border-radius:8px;transition:filter .3s}
+.ib.idle canvas{filter:grayscale(1) brightness(.4)}
+.cw .off{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;color:var(--mu);letter-spacing:.06em;opacity:0;transition:.3s;pointer-events:none}
+.ib.idle .cw .off{opacity:1}
+#wfBox .cw:before{content:"";position:absolute;left:calc(50% - 1px);top:0;bottom:0;width:2px;background:rgba(255,255,255,.08);z-index:1}
+.scale{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);letter-spacing:.08em;margin-top:4px}
+.box{padding:12px 14px}.box p{margin:4px 0}.box ul{margin:8px 0 0;padding-left:18px;color:var(--mu);font-size:12.5px}
+#clist{display:flex;flex-direction:column;gap:6px}
+.ci{display:grid;grid-template-columns:34px auto 1fr;align-items:center;gap:8px;animation:slidein .35s ease both}@keyframes slidein{from{opacity:0;transform:translateX(10px)}}
+.ci .cl{color:var(--mu);font-size:12px;text-align:right}.ci.done b{color:var(--ac)}
+.dots{display:flex;gap:3px}.d{width:8px;height:8px;border-radius:50%;background:#2a3c4e}.d.l1{background:#8aa0b4}.d.l2{background:#ffd08a}.d.l3{background:#fff;box-shadow:0 0 6px #fff}
+.ev{display:flex;gap:8px}.ev figure{flex:1;min-width:0}.ev figure{margin:0;border-radius:10px}.ev canvas{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid var(--ln);display:block}
+.flash{animation:flash .9s ease}@keyframes flash{0%{box-shadow:0 0 0 0 rgba(255,179,71,.9)}100%{box-shadow:0 0 0 12px rgba(255,179,71,0)}}
+figcaption{font-size:11px;color:var(--mu);text-align:center;margin-top:4px;font-weight:700;letter-spacing:.08em}.lv{display:block;font-weight:700;letter-spacing:0}.l0{color:#5d7488}.l1{color:#b8c6d3}.l2{color:#ffd08a}.l3{color:#fff}
+#cls button{padding:7px 11px}#cls button.on{border-color:var(--ac);background:linear-gradient(180deg,rgba(255,179,71,.22),rgba(255,179,71,.08));box-shadow:0 0 0 1px rgba(255,179,71,.35)}
+.ov{position:fixed;inset:0;background:rgba(3,8,14,.78);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:9;padding:16px;animation:fade .3s ease}@keyframes fade{from{opacity:0}}
+.panel{padding:26px;max-width:760px;width:100%;max-height:92vh;overflow:auto;animation:rise .4s cubic-bezier(.2,.8,.2,1)}@keyframes rise{from{opacity:0;transform:translateY(20px) scale(.98)}}
+.menu{background:#040b13;padding:0;overflow:auto;place-items:start center}#msonar{position:fixed;inset:0;width:100%;height:100%}
+.mwrap{position:relative;max-width:1060px;width:100%;padding:48px 32px 32px}
+.kick{color:var(--cy);letter-spacing:.3em;font-size:11px;font-weight:700}
+.hero p{color:#b9cad8;font-size:19px;line-height:1.5;margin:14px 0 0}
+.sec{margin:28px 0 0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--mu)}
+.mcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:10px 0 18px}
+.camp{padding:16px 18px;margin-bottom:14px;border-color:rgba(255,179,71,.35);animation:rise .5s .3s cubic-bezier(.2,.8,.2,1) both}
+.crow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.crow .pri{padding:10px 22px}
+.crow input{font:inherit;color:var(--tx);background:rgba(255,255,255,.05);border:1px solid var(--ln);border-radius:10px;padding:9px 11px;width:170px;text-transform:uppercase;letter-spacing:.1em}.crow input.bad{border-color:#ff6b6b}
+#contRun{border-color:rgba(110,231,183,.5);color:var(--gn)}
+.drun{border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);margin:12px 0;padding:10px 0}.rhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:600}
+.pills{display:flex;gap:5px}.pill{font-style:normal;min-width:30px;text-align:center;padding:2px 6px;border-radius:12px;border:1px solid var(--ln);font-size:12px;color:var(--mu)}
+.pill.rStrong{color:#06101a;background:var(--cy);border-color:var(--cy)}.pill.rAdequate{color:#1a0f02;background:var(--ac);border-color:var(--ac)}.pill.rSparse{color:#1a0f02;background:#c9a4ff;border-color:#c9a4ff}.pill.cur{box-shadow:0 0 0 2px #fff}
+.pk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pk button{display:flex;flex-direction:column;gap:3px}.pk span{color:var(--mu);font-size:12px}
+.final{display:flex;align-items:baseline;gap:8px;margin-top:8px}.final b{font-size:40px;color:var(--ac)}.final span{color:var(--mu)}
+.gen{flex-direction:column;gap:14px;z-index:20}.gen p{color:var(--mu);letter-spacing:.08em}
+.spin{width:54px;height:54px;border-radius:50%;border:3px solid rgba(127,209,255,.15);border-top-color:var(--cy);animation:sp 0.9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.mc{display:flex;flex-direction:column;gap:6px;padding:18px;min-height:160px;background:linear-gradient(180deg,rgba(20,44,66,.8),rgba(8,20,32,.8));backdrop-filter:blur(8px);border-radius:16px;animation:rise .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*.08s)}
+.mc:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.4),0 0 0 1px rgba(127,209,255,.4)}
+.mc em{color:var(--ac);font-style:normal;font-weight:800;font-size:28px;line-height:1}.mc b{font-size:16px}.mc span{color:var(--mu);font-size:13px}.mc small{margin-top:auto;color:var(--cy);font-weight:600}
+.shop{padding:16px 18px;margin-bottom:14px;animation:rise .5s .35s cubic-bezier(.2,.8,.2,1) both}
+.shead{display:flex;justify-content:space-between;align-items:center}.shead h3{margin:0;font-size:15px;letter-spacing:.1em;text-transform:uppercase}.shead b{color:var(--ac);font-size:20px;margin-left:6px}
+.ups{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:12px 0 4px}
+.up{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid var(--ln);border-radius:12px;background:rgba(255,255,255,.03)}
+.up b{font-size:13.5px}.up span{color:var(--mu);font-size:12px;flex:1}.up button{text-align:center;padding:6px;font-weight:700;color:var(--ac);border-color:rgba(255,179,71,.4)}
+.up.own{border-color:rgba(110,231,183,.45);background:rgba(110,231,183,.06)}.up em{font-style:normal;color:var(--gn);font-weight:700;font-size:12.5px;text-align:center;padding:6px}
+.fine{color:#6d8497;font-size:12px}
+.rating{font-size:46px;font-weight:800;letter-spacing:.06em;margin:4px 0;animation:pop .6s cubic-bezier(.2,1.6,.4,1) both .1s}@keyframes pop{from{opacity:0;transform:scale(.6)}}
+.rStrong{color:var(--cy);text-shadow:0 0 24px rgba(127,209,255,.4)}.rAdequate{color:var(--ac)}.rSparse{color:#c9a4ff}
+.earn{color:var(--gn);font-weight:700;margin:0 0 8px}.earn.none{color:var(--mu);font-weight:400;font-size:12.5px}
+.ax{display:grid;grid-template-columns:110px 1fr 36px;gap:10px;align-items:center;margin:8px 0}.ax i{height:8px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden}
+.ax b{display:block;height:100%;width:0;background:linear-gradient(90deg,#3aa6e0,var(--cy));transition:width .8s cubic-bezier(.2,.8,.2,1)}.ax em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+#dNotes{color:#a9bccb;font-size:13px;padding-left:18px}
+@media (max-width:1100px){main{grid-template-columns:200px minmax(0,1fr)}.side{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:1fr 1fr}.stat:first-child{min-width:180px}.ups{grid-template-columns:repeat(3,1fr)}.mcs{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){
+ body:not(.inmenu){height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+ header{flex-wrap:wrap;gap:4px 10px;padding:8px 10px;position:static;flex:0 0 auto}.stats{flex-basis:100%;order:3;justify-content:space-between;gap:12px}.stat:first-child{min-width:0;flex:1}.stat b{font-size:18px}#budTxt{display:none}#snd{margin-left:auto}
+ .mt{font-size:13px}.brand .ver{display:none}
+ main{display:flex;flex-direction:column;align-items:stretch;flex:1;min-height:0;padding:0;gap:0}
+ .inst:has(.ib.na){grid-template-columns:1fr}.ib.na{display:none}
+ .stage{flex:0 0 auto;gap:6px}
+ #mapwrap{border-radius:0;border-left:0;border-right:0;box-shadow:none}
+ #fab{display:grid;place-items:center;position:absolute;right:10px;bottom:10px;width:52px;height:52px;border-radius:50%;z-index:3;padding:0;font-size:18px;background:linear-gradient(180deg,#ffbf5e,#e88a1f);color:#1a0f02;border:0;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+ .inst{gap:6px;padding:0 8px}.inst .wfh{font-size:8.5px;letter-spacing:.06em;white-space:nowrap;overflow:hidden}.inst .live{font-size:0}.inst .live:before{content:'●';font-size:9px}.tk{display:none}.tb3d button{padding:4px 7px;font-size:11.5px}.pk{grid-template-columns:1fr}.crow input{flex:1}.ib{padding:5px 7px}.cw canvas{height:56px}.scale{display:none}.wfh{font-size:9.5px;margin-bottom:3px}
+ #sheet{display:flex;flex-direction:column;flex:1;min-height:0;margin-top:8px;background:linear-gradient(180deg,#0e2032,#08131e);border-top:1px solid var(--ln);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.4);transition:top .3s cubic-bezier(.2,.8,.2,1);z-index:6}
+ #sheet.full{position:fixed;left:0;right:0;bottom:0;top:18vh;margin:0}
+ .grab{display:block;flex:0 0 auto;padding:4px 10px 0}
+ #grab{display:block;width:100%;padding:6px 0 8px;border:0;background:none}#grab i{display:block;width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:0 auto}
+ .tabs{display:flex;gap:6px;padding-bottom:8px}.tabs button{flex:1;text-align:center;padding:8px;font-weight:600}
+ .tabs i{font-style:normal;background:var(--ac);color:#1a0f02;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}.tabs i:empty{display:none}
+ .tools,.side{grid-column:auto;grid-row:auto;position:static;flex:1;min-height:0;overflow:auto;margin:0;border:0;background:none;box-shadow:none;backdrop-filter:none;padding:4px 12px 16px}
+ .side{display:flex}.tools>*,.side>*{flex-shrink:0}
+ body[data-tab=plan] .side,body[data-tab=brief] .tools,body[data-tab=contacts] .tools{display:none}
+ body[data-tab=brief] #contacts,body[data-tab=brief] #card,body[data-tab=contacts] #briefBox{display:none!important}
+ .sens{flex-direction:row;flex-wrap:wrap}.sens button{flex:1 1 40%;grid-template-columns:10px 1fr;padding:8px}.sens small{display:none}
+ .mcs{grid-template-columns:1fr 1fr;gap:10px;margin:22px 0 14px}.mc{min-height:0;padding:14px}.mc em{font-size:22px}.ups{grid-template-columns:1fr 1fr}
+ .logo.big{font-size:40px}.hero p{font-size:16px}.mwrap{padding:24px 16px}
+ body{font-size:15px}figcaption,.muted,.stat small,.tg small{font-size:12px}}
+
+#mapwrap:has(#map.is3d) #toast{top:52px}
+
+.step{color:var(--cy);font-weight:700;font-size:13px}select{background:#0d2032;color:#e8f0f7;border:1px solid var(--ln);padding:6px;border-radius:8px}#objectives,#dChecks{font-size:12.5px;color:var(--mu);line-height:1.7}#saveState{display:block;margin-top:8px}#rewardLines{border-bottom:1px solid var(--ln);margin-bottom:12px}#resumeGame{border-color:var(--cy);color:var(--cy)}#dCompletion{font-weight:800;letter-spacing:.12em;font-size:12px}.ax{grid-template-columns:145px 1fr 36px}#velBox .tg{margin:8px 0}#velBox .tg button{font-size:12.5px}#objectiveBox{flex-shrink:0}
+@media(max-width:900px){body[data-tab=plan] .side{display:none}body[data-tab=contacts] #objectiveBox{display:none}#objectives{font-size:12px}.ax{grid-template-columns:125px 1fr 28px}}
+
+.introActions{display:flex;gap:8px;flex-wrap:wrap;margin:24px 0 10px}.ib{position:relative;padding-bottom:34px}.expandProfile{position:absolute;bottom:5px;right:8px;padding:3px 8px;font-size:11px;color:var(--cy);border:0;background:rgba(127,209,255,.08)}
+#renderInfo{position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--mu);pointer-events:none;z-index:2;background:rgba(5,12,20,.65);padding:3px 6px;border-radius:8px}
+.tb3d{max-width:calc(100% - 50px)}.tb3d select{font-size:11px;padding:3px 6px}.tb3d button{padding:4px 7px}#mapwrap:has(#map.is3d) #toast{top:88px}
+.viewer{z-index:15;background:rgba(2,8,14,.94);padding:12px}.evidencePanel{width:min(1440px,98vw);max-height:96dvh;overflow:auto;padding:18px;background:#0b1a29}.evidenceHeader{display:flex;justify-content:space-between;align-items:center;gap:12px}.evidenceHeader h3{margin:4px 0 10px;font-size:22px}.evidenceControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0}.evidenceControls label{display:flex;align-items:center;gap:7px;color:var(--mu);font-size:12px}.evidenceControls input{width:120px}.evidenceGrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}.profileWrap{position:relative;min-width:0}.profileWrap canvas{width:100%;height:clamp(220px,44vh,440px);display:block;border-radius:10px;touch-action:none}.profileWrap p{position:absolute;top:40%;left:10%;right:10%;text-align:center;color:var(--mu)}.miniWrap canvas{width:100%;display:block;border-radius:10px;touch-action:none}.miniWrap p{margin:8px 0}.miniWrap button{font-size:12px;width:100%;text-align:center}.historyLabel{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mu);margin-top:8px}.historyLabel input{flex:1}.readout{font-size:12px;line-height:1.7;background:rgba(255,255,255,.04);border:1px solid var(--ln);padding:8px 10px;border-radius:8px;font-variant-numeric:tabular-nums}.tutorial{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:8;width:min(540px,92vw);padding:14px 18px;background:rgba(10,28,44,.97);border-color:var(--cy)}.tutorial>div{display:flex;align-items:center;justify-content:space-between;gap:10px}.tutorial button{padding:4px 10px;font-size:12px}.tutorial p{font-size:13px;color:#c1d3e3;margin:8px 0 0}
+@media(max-width:900px){.ib{padding-bottom:27px}.expandProfile{font-size:10px;padding:2px 5px}.evidencePanel{padding:12px;width:98vw}.evidenceHeader h3{font-size:17px}.evidenceGrid{grid-template-columns:1fr}.miniWrap{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:start}.miniWrap canvas{width:150px}.miniWrap p{font-size:10px;margin:0}.miniWrap button{grid-column:1/-1}.evidenceControls{gap:8px}.evidenceControls label{font-size:11px}.evidenceControls select{max-width:180px}.profileWrap canvas{height:250px}.tutorial{bottom:10px;padding:10px 12px}.tutorial p{font-size:12px}.tutorial b{font-size:12px}#renderInfo{bottom:4px;right:66px;font-size:8px;max-width:45%;white-space:nowrap;overflow:hidden}.tb3d{gap:3px}.tb3d button{font-size:10px;min-width:25px;padding:4px 5px}.tb3d select{font-size:9px;max-width:80px}.badge{font-size:8px;max-width:50%}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+.discovery{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,90%);padding:14px;z-index:4;background:rgba(8,24,38,.96);border-color:var(--ac)}.discovery p{font-size:13px;margin:0 0 10px}.discovery button{font-size:12px}#dNextSteps{margin:12px 0;padding:10px;border:1px solid var(--ln);border-radius:10px}#dNextSteps button{font-size:12px;margin:6px 4px 0 0}
+
+body[data-learn="0"] #mapwrap,body[data-learn="2"] #mapwrap{outline:2px solid var(--cy);outline-offset:-3px}body[data-learn="1"] #run,body[data-learn="1"] #fab,body[data-learn="3"] #submit{outline:2px solid #fff;outline-offset:3px;box-shadow:0 0 22px rgba(127,209,255,.5)}
+
+#bhVisual{display:block;width:100%;height:110px;border:1px solid var(--ln);border-radius:9px;margin:8px 0}
+/* v0.5.1: bounded workspaces, independent scrolling, always-visible actions. */
+:root{--header-h:78px}body:not(.inmenu){height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column}header{position:relative;flex:0 0 auto;min-width:0}main{flex:1;min-height:0;height:calc(100dvh - var(--header-h));grid-template-columns:228px minmax(0,1fr) 330px;grid-template-rows:minmax(0,1fr);align-items:stretch;overflow:hidden;padding:12px;gap:12px}#sheet{display:contents}.tools{position:static;top:auto;min-height:0;overflow:hidden;padding:0;gap:0;grid-column:1;grid-row:1}.toolScroll{flex:1;min-height:0;overflow:auto;padding:12px;overscroll-behavior:contain;scrollbar-gutter:stable}.toolScroll>*{margin-bottom:8px}.toolActions{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;padding:10px 12px;background:#0c1d2d;border-top:1px solid var(--ln)}.toolActions #submit{margin-top:0}.toolActions button{padding:8px 10px}.toolActions .tg.row button{padding:7px}.sens button{padding:8px 10px}.sens small{font-size:10.5px;line-height:1.35}.stage{grid-column:2;grid-row:1;min-height:0;overflow:hidden;gap:10px}#mapwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#06111c}#map{flex:none;max-width:100%;width:auto}.inst{flex:0 0 142px;min-height:0;gap:8px;overflow:hidden}.inst .ib{min-height:0;padding:8px 8px 27px;overflow:hidden}.inst .cw canvas{height:82px}.inst .wfh{font-size:9px;letter-spacing:.07em;white-space:nowrap;gap:5px}.inst .scale{font-size:8px;letter-spacing:0;gap:3px}.inst .scale span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.side{grid-column:3;grid-row:1;display:flex;min-height:0;min-width:0;overflow:hidden;gap:8px}.sideNav{display:flex;gap:5px;flex:0 0 auto}.sideNav button{flex:1;text-align:center;font-size:12px;padding:9px 6px}.sideNav span{color:var(--ac);font-weight:700}#objectiveBox{padding:9px 11px;max-height:155px;overflow:auto;margin:0;flex:0 0 auto}#objectives{font-size:11px;line-height:1.5}#saveState{font-size:10px;margin-top:4px}.sideScroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:8px}.sideScroll>.box{flex:0 0 auto;min-width:0}.sideScroll .box{padding:11px}.sideScroll #tips{font-size:12px}.sideScroll #brief{font-size:13px}.sideScroll .ev{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.sideScroll figcaption{font-size:10px;letter-spacing:0}.sideScroll .lv{font-size:10px}.sideScroll #cls{display:grid;grid-template-columns:1fr 1fr;gap:5px}.sideScroll #cls button{font-size:12px;padding:8px;line-height:1.3;min-width:0}.sideScroll .ci{grid-template-columns:28px auto minmax(0,1fr);gap:5px;padding:8px}.ci .cl{overflow-wrap:anywhere;font-size:11px}.vrow{flex-wrap:wrap}.vrow b{min-width:0;overflow-wrap:anywhere}.vrow select{max-width:100%}.box,button,select{min-width:0}#bhVisual{height:95px}.loadoutStatus{padding:9px 11px;background:rgba(127,209,255,.05);border:1px solid var(--ln);border-radius:9px;font-size:12px;margin:10px 0}.loadoutStatus p{margin:4px 0}.up em{font-size:11px}#restartUpgraded{margin-bottom:8px;color:var(--cy)}#routePanel{border:1px solid var(--ln);border-radius:9px;padding:8px;font-size:11px}#routePanel summary{cursor:pointer;font-weight:700;color:var(--cy)}#routePanel summary span{float:right}#routePanel p{font-size:10.5px;margin:7px 0}#legList{max-height:180px;overflow:auto;margin:6px 0}.legRow{display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--ln);padding:6px 0;overflow-wrap:anywhere}.legRow span{color:var(--ac)}.legRow small{color:var(--mu);font-size:10px}#applyPending{font-size:11px;width:100%;padding:7px;line-height:1.4}.checkModal{z-index:25}.checkPanel{width:min(780px,96vw);max-height:92dvh;overflow:auto;padding:22px;background:#0c1d2d}.checkHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.checkHead h3{margin:6px 0;font-size:21px}.checkHead button{flex:0 0 auto}.checkPanel p{font-size:13px;line-height:1.6}.checkActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;position:sticky;bottom:-22px;padding:12px 0;background:#0c1d2d}.checkActions button{flex:1 1 160px;text-align:center;font-size:12px}.answerRow{display:grid;grid-template-columns:100px minmax(0,1fr) 130px 70px;gap:8px;align-items:center;border-top:1px solid var(--ln);padding:10px 0}.answerRow label{font-size:12px;font-weight:700}.answerRow select{width:100%;font-size:12px;padding:8px}.answerRow button{font-size:12px;padding:8px}body[data-side=brief] .sideScroll>#velBox,body[data-side=brief] .sideScroll>#contacts,body[data-side=brief] .sideScroll>#card,body[data-side=depth] .sideScroll>#briefBox,body[data-side=depth] .sideScroll>#contacts,body[data-side=depth] .sideScroll>#card,body[data-side=contacts] .sideScroll>#briefBox,body[data-side=contacts] .sideScroll>#velBox{display:none!important}.tools,.toolScroll,.sideScroll,.checkPanel{scrollbar-width:thin;scrollbar-color:#35516b transparent}button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+@media(min-width:901px) and (max-width:1200px){main{grid-template-columns:196px minmax(0,1fr) 280px;gap:8px;padding:8px}.stats{gap:12px}.stat:first-child{min-width:150px}.logo{font-size:15px}.mt{font-size:12px}header{gap:10px;padding:8px 12px}.stat b{font-size:19px}.inst .live{font-size:0}.inst .live:before{content:'●';font-size:9px}.sideScroll #cls{grid-template-columns:1fr}.sens small{display:none}}
+@media(min-width:901px) and (max-height:650px){.inst{flex-basis:110px}.inst .cw canvas{height:55px}.inst .scale{display:none}.toolActions{padding:7px 10px}.toolActions button{padding:6px}.toolScroll{padding:8px}#objectiveBox{max-height:110px}.sideNav button{padding:7px}.toolScroll .sens small{display:none}}
+@media(max-width:900px){header{padding:6px 10px;gap:4px 8px}.brand .logo{font-size:15px}.mt{font-size:12px}.stats{gap:10px}.stat small{font-size:10px}.stat b{font-size:17px}.stats .stat:first-child{min-width:0}.stats .stat:nth-child(2){max-width:45%}.stats .stat small{letter-spacing:0}.stat:first-child .bar{margin-bottom:0}#menuBtn{padding:6px 9px;font-size:12px}main{display:flex;flex-direction:column;gap:0;padding:0;height:auto;overflow:hidden}.stage{flex:0 0 clamp(175px,43dvh,430px);min-height:0;gap:4px}#mapwrap{min-height:80px;flex:1;border-radius:0}.inst{flex:0 0 82px;gap:5px;padding:0 6px}.inst .ib{padding:5px 6px 23px}.inst .cw canvas{height:40px}.inst .wfh{font-size:8px;margin-bottom:3px}.inst .scale{display:none}.inst .expandProfile{font-size:10px;bottom:3px}.inst .live{font-size:0}.inst .live:before{content:'●';font-size:8px}#sheet{display:flex;flex:1;min-height:0;margin-top:4px;border-radius:12px 12px 0 0;overflow:hidden}#sheet.full{top:10dvh;z-index:7}.grab{padding:2px 8px 0}#grab{padding:4px 0 5px}.tabs{gap:4px;padding-bottom:5px}.tabs button{padding:7px 4px;font-size:12px}.tabs i{font-size:10px;margin-left:2px}.tools{flex:1;min-height:0;overflow:hidden;padding:0;gap:0;background:none;position:static}.toolScroll{padding:5px 10px 8px}.toolActions{padding:7px 10px;gap:5px}.toolActions button{padding:7px 9px}.toolActions .tg.row button{padding:5px}.sens{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.sens button{padding:7px;grid-template-columns:8px 1fr;gap:5px;font-size:12px}.sens small{display:none}.sw{width:7px;height:7px}.side{display:flex;flex:1;min-height:0;padding:0;gap:0;overflow:hidden}.sideNav{display:none}.sideScroll{padding:7px 10px 12px;gap:8px}#objectiveBox{margin:5px 10px 0;max-height:100px;padding:7px 9px}#saveState{display:none}body[data-tab=plan] .side,body[data-tab=brief] .tools,body[data-tab=depth] .tools,body[data-tab=contacts] .tools{display:none!important}body[data-tab=depth] #objectiveBox,body[data-tab=contacts] #objectiveBox{display:none!important}.sideScroll .ev{grid-template-columns:repeat(3,minmax(0,1fr))}.sideScroll #cls{grid-template-columns:1fr 1fr}.checkPanel{padding:15px;max-height:94dvh}.checkHead h3{font-size:18px}.answerRow{grid-template-columns:minmax(0,1fr) 100px;gap:7px}.answerRow label{grid-column:1/-1}.answerRow .submitClass{grid-column:1/-1}.checkActions{bottom:-15px}.checkActions button{flex-basis:100%;padding:9px}.checkHead button{font-size:11px;padding:6px}.sideScroll #card .tg.row button{font-size:12px}.tutorial{bottom:auto;top:calc(var(--header-h) + 8px);max-width:80vw;padding:8px 10px}.tutorial p{font-size:11px}#fab{width:42px;height:42px;bottom:8px;right:8px}.mwrap{padding:20px 12px}.introActions button{font-size:12px}.up{padding:10px}.shead{gap:10px;flex-wrap:wrap}.crow input{min-width:0}.evidenceControls label{max-width:100%}.evidenceControls select{max-width:100%}}
+@media(max-width:900px) and (max-height:500px){header{padding:4px 8px}.stage{flex-basis:37dvh}.inst{display:none}#sheet{margin-top:2px}.toolActions{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:5px 8px}.toolActions #run{grid-column:1}.toolActions #submit{grid-column:2;grid-row:1}.toolActions .tg{grid-column:1/-1}.tabs button{padding:5px}.sideScroll{padding:5px 8px}.checkPanel{max-height:96dvh}.checkActions{position:static}}
+/* Tutorial text must not intercept map planning gestures. */
+.tutorial{pointer-events:none}.tutorial button{pointer-events:auto}
+</style></head><body class="inmenu" data-tab="plan">
+<header>
+ <div class="brand"><span class="logo">ECHO<b>FIELD</b></span><span class="ver">v0.5.1</span></div>
+ <div class="mt"><em id="mTag"></em><span id="mTitle"></span></div>
+ <div class="stats">
+  <div class="stat"><small>Days free</small><b id="budNum">0</b><div class="bar"><i id="budUsed"></i><i id="budPlan"></i></div><small id="budTxt"></small></div>
+  <div class="stat"><small id="covLbl">Coverage</small><b id="covNum">0%</b></div>
+  <div class="stat" id="conBox"><small>Contacts</small><b id="conNum">0</b></div>
+ </div>
+ <button id="snd" class="ghost ico" aria-label="Sound"></button>
+ <button id="menuBtn" class="ghost">☰ Missions</button>
+</header>
+<main>
+ <section class="stage">
+  <div id="mapwrap"><canvas id="map"></canvas><div id="toast"></div><div id="discovery" class="discovery glass" hidden><p id="discoveryText"></p><button id="inspectDiscovery">Inspect evidence</button><button id="dismissDiscovery">Keep planning</button></div><div class="badge">ILLUSTRATIVE · synthetic seabed</div><div class="north">N ↑</div><small id="renderInfo"></small><button id="fab" aria-label="Run">▶</button>
+   <div id="tb3d" class="tb3d" hidden><button id="rotL" title="Rotate left (Q)">⟲</button><button id="rotR" title="Rotate right (E)">⟳</button><button id="zin" title="Zoom in">＋</button><button id="zout" title="Zoom out">－</button><button id="exg" title="Vertical exaggeration">↕1×</button><button id="fol" title="Follow vessel">Follow</button><button id="rst" title="Reset view">Reset</button><button id="curtain" title="Acquired seismic cutaway">Curtain</button><button id="panL" aria-label="Pan left">←</button><button id="panR" aria-label="Pan right">→</button><button id="panU" aria-label="Pan up">↑</button><button id="panD" aria-label="Pan down">↓</button><select id="quality" aria-label="Render quality"><option value="auto">Auto quality</option><option value="high">High</option><option value="low">Low</option></select></div></div>
+  <div class="inst">
+   <div class="glass ib" id="wfBox"><div class="wfh"><span>SSS WATERFALL</span><span class="live">● LIVE</span></div>
+    <div class="cw"><canvas id="wf" width="512" height="128"></canvas><div class="off">SSS off on this leg</div></div>
+    <div class="scale"><span>PORT</span><span>nadir gap</span><span>STBD</span></div></div>
+   <div class="glass ib" id="sbpBox"><div class="wfh"><span>SBP PROFILE</span><span class="live">● LIVE</span></div>
+    <div class="cw"><canvas id="sbpc" width="512" height="128"></canvas><div class="off">SBP off on this leg</div></div>
+    <div class="scale"><span>← older track</span><span>seabed · layers · hyperbolas</span><span>now</span></div></div>
+   <div class="glass ib" id="hrsBox"><div class="wfh"><span>2D HR SEISMIC</span><span class="live">● LIVE</span></div>
+    <div class="cw hrs"><canvas id="hrsc" width="512" height="192"></canvas><div class="off">2D HR off on this leg</div><i class="tk">0 ms</i><i class="tk b">~190 ms</i></div>
+    <div class="scale"><span>← older track</span><span>bright flat red = amplitude anomaly</span><span>now</span></div></div>
+  </div>
+ </section>
+ <div id="sheet">
+  <div class="grab"><button id="grab" aria-label="Expand panel"><i></i></button>
+   <nav class="tabs"><button data-t="plan" class="on">Plan</button><button data-t="brief">Brief</button><button data-t="depth" id="tabDepth">Depth</button><button data-t="contacts" id="tabC">Contacts <i id="tabBadge"></i></button></nav></div>
+  <aside class="tools glass"><div class="toolScroll">
+   <h4>Sensors · next legs</h4>
+   <div class="tg sens"><button data-s="mbes"><i class="sw c1"></i>MBES<small>Seabed shape · wide swath</small></button><button data-s="sss"><i class="sw c2"></i>SSS<small>Shadows · blind strip under fish</small></button><button data-s="mag"><i class="sw c3"></i>MAG<small>Ferrous only · close pass</small></button><button data-s="sbp"><i class="sw c4"></i>SBP<small>Below seabed · under keel only</small></button><button data-s="hrs"><i class="sw c5"></i>2D HR<small>Deep seismic · along line only</small></button></div>
+   <p class="muted" id="rate"></p>
+   <h4>Layer</h4>
+   <div class="tg row seg"><button data-v="bathy">Bathy</button><button data-v="sss">SSS</button><button data-v="mag">MAG</button><button data-v="sbp">SBP</button><button data-v="hrs">HR</button></div>
+   <button id="v3" class="v3">◢ 3D relief</button>
+   <details id="routePanel" open><summary>Queued legs <span id="legCount">0</span></summary><p class="muted">Sensor switches affect new legs only. A started leg keeps its original sensors.</p><div id="legList"></div><button id="applyPending">Apply selected sensors to unstarted legs</button><p id="pendingCost" class="muted"></p></details><label class="muted"><input id="pauseDiscovery" type="checkbox"> Pause when a contact is discovered</label><h4>Plan</h4></div><div class="toolActions">
+   <button id="run" class="pri">▶ Run survey</button>
+   <div class="tg row"><button id="spd">×3</button><button id="undo">↶ Undo</button><button id="clear">✕ Clear</button></div>
+   <button id="submit" class="sub">Submit findings →</button></div>
+  </aside>
+  <aside class="side"><nav class="sideNav" aria-label="Mission panel"><button data-side="brief" class="on">Brief</button><button data-side="depth" id="sideDepth">Depth</button><button data-side="contacts" id="sideContacts">Contacts <span id="sideBadge"></span></button></nav>
+   <div class="glass box" id="objectiveBox"><h4>Mission objectives</h4><div id="objectives"></div><small id="saveState" class="muted"></small></div>
+   <div class="sideScroll"><div class="glass box" id="briefBox"><h4>Brief</h4><p id="brief"></p><ul id="tips"></ul></div>
+   <div class="glass box" id="velBox" hidden><h4>Depth setup · BH-1</h4><p id="bhStep" class="step"></p><canvas id="bhVisual" width="300" height="110" aria-label="Logged and calculated H1 depth comparison"></canvas>
+    <div class="tg"><button id="locateBH">1. Add survey crossing over BH-1</button></div>
+    <label class="vrow">Mode <select id="depthMode"><option value="guided">Guided (recommended)</option><option value="manual">Manual</option></select></label>
+    <div class="vrow"><span>H1 logged at BH-1</span><b id="bhD"></b></div>
+    <div class="vrow"><span>H1 TWT measured</span><b id="bhT"></b></div>
+    <div class="vrow"><span>Velocity</span><b id="velV"></b></div>
+    <div id="manualVel" hidden><input type="range" id="vel" min="1400" max="2200" step="5" aria-label="Velocity"></div>
+    <div class="tg"><button id="fitBH">2. Auto-fit from measured BH-1</button><button id="confirmBH">3. Confirm depth tie</button></div>
+    <div class="vrow"><span>H1 depth at this velocity</span><b id="bhCalc"></b></div>
+    <p class="muted">depth = velocity × TWT ÷ 2. Match H1 to the log, then read anomaly depths.</p></div>
+   <div class="glass box" id="contacts"><h4>Contacts</h4><div id="clist"></div></div>
+   <div class="glass box" id="card" hidden>
+    <h4 id="cTitle"></h4><p id="cShape" class="muted"></p><p id="cDepth" class="depth" hidden></p>
+    <div class="ev">
+     <figure id="f_mbes"><canvas id="p_mbes" width="112" height="112"></canvas><figcaption>MBES<span id="l_mbes"></span></figcaption></figure>
+     <figure id="f_sss"><canvas id="p_sss" width="112" height="112"></canvas><figcaption>SSS<span id="l_sss"></span></figcaption></figure>
+     <figure id="f_mag"><canvas id="p_mag" width="112" height="112"></canvas><figcaption>MAG<span id="l_mag"></span></figcaption></figure>
+     <figure id="f_sbp"><canvas id="p_sbp" width="112" height="112"></canvas><figcaption>SBP<span id="l_sbp"></span></figcaption></figure>
+     <figure id="f_hrs"><canvas id="p_hrs" width="112" height="112"></canvas><figcaption>2D HR<span id="l_hrs"></span></figcaption></figure></div>
+    <div class="tg row"><button id="openEvidence">Inspect traces ↗</button><button id="clearEvidence">Clear picks</button></div><small id="evidenceCount" class="muted"></small><h5>Your call</h5>
+    <div id="cls" class="tg"><button data-c="natural">Natural feature</button><button data-c="debris">Man-made debris</button><button data-c="linear">Linear / pipeline-like</button><button data-c="buried">Buried / uncertain</button><button data-c="anomaly">Amplitude anomaly</button><button data-c="unknown">Not enough evidence</button></div>
+    <p class="muted">Correct: High +2, Low +1.5. Wrong: High -2, Low -1. Defer when evidence is insufficient.</p><h5>How certain are you?</h5><div id="conf" class="tg row seg"><button data-k="low">Low</button><button data-k="high">High</button></div>
+   </div>
+  </div></aside>
+ </div>
+</main>
+<div id="menu" class="ov menu" hidden><canvas id="msonar"></canvas><div class="mwrap">
+ <div class="hero"><small class="kick">OFFSHORE SURVEY GAME</small><span class="logo big">ECHO<b>FIELD</b></span><p>Every echo is evidence.<br>Plan the lines. Read the seabed. Make the call.</p></div>
+ <div class="introActions"><button id="learn" class="pri">Learn by doing · first survey</button><button id="exportSave">Export progress</button><button id="importSave">Import progress</button><input id="saveFile" type="file" accept="application/json,.json" hidden></div><p id="transferStatus" class="muted">Keep a progress backup before changing browser, file location or version.</p><h3 class="sec">Training</h3>
+ <div class="mcs">
+  <button class="mc" data-m="M1" style="--i:0"><em>01</em><b>Reveal the Seabed</b><span>Swath, overlap, survey days</span><small class="best"></small></button>
+  <button class="mc" data-m="M2" style="--i:1"><em>02</em><b>The Unknown Contact</b><span>Cross-check MBES, SSS, MAG</span><small class="best"></small></button>
+  <button class="mc" data-m="M3" style="--i:2"><em>03</em><b>The Missing Strip</b><span>Gaps in legacy data</span><small class="best"></small></button>
+  <button class="mc" data-m="M4" style="--i:3"><em>04</em><b>Beneath the Surface</b><span>SBP and buried objects</span><small class="best"></small></button>
+  <button class="mc" data-m="M5" style="--i:4"><em>05</em><b>Deep Read</b><span>2D HR seismic, depth tie</span><small class="best"></small></button>
+ </div>
+ <div class="camp glass"><div class="shead"><h3>Campaign · 6 missions</h3><span>Best run <b id="bestRun">—</b></span></div>
+  <p class="muted">Six missions back to back on freshly generated seabeds, from first map to final contract. Every run has a seed: share it so others can play the same seabed. Pick one perk after each mission. Every generated mission is proven solvable by the reference bot before you see it.</p>
+  <div class="crow"><button id="newRun" class="pri">New run</button><input id="seedIn" placeholder="Seed code" maxlength="6" spellcheck="false"><button id="seedGo">Play seed</button><button id="resumeGame" hidden></button><button id="contRun" hidden></button></div></div>
+ <div class="shop glass"><div class="shead"><h3>Workshop</h3><span>Credits <b id="credits">0</b></span></div><p class="muted">Permanent upgrades apply to new Training missions only. Campaign uses its own perks.</p><div id="loadoutStatus" class="loadoutStatus"></div><button id="restartUpgraded" hidden>Restart saved Training with purchased upgrades</button><div id="ups" class="ups"></div>
+  <p class="fine">Every completed mission earns 15 credits, plus 5 for Adequate or 10 for Strong. First clear +20; improved best adds the score difference. A full campaign adds +40. Replay completions still pay. Workshop upgrades apply to training; campaign uses its own perks.</p></div>
+ <p class="fine">Illustrative game · synthetic seabed, no real field, vessel or survey data · scores rate evidence quality, not site suitability · created by Rattawit Wongprasert</p>
+</div></div>
+<div id="deb" class="ov" hidden><div class="panel glass">
+ <small class="kick">DEBRIEF</small><div id="dRating" class="rating"></div><p id="dScore"></p><p id="dCompletion"></p><div id="dChecks"></div><p id="dEarn" class="earn"></p><div id="rewardLines"></div><div id="dNextSteps"></div><div id="dAxes"></div><ul id="dNotes"></ul>
+ <div id="dRun" class="drun" hidden><div class="rhead"><span id="runTot"></span><span id="runPills" class="pills"></span></div><div id="perks"></div></div>
+ <div class="tg row"><button id="review">Review map</button><button id="again">↻ Replay</button><button id="toMenu">Missions</button><button id="next" class="pri" hidden>Next mission →</button></div>
+</div></div>
+<section id="tutorial" class="tutorial glass" hidden><div><b id="tutorialTitle"></b><button id="skipTutorial">Skip</button></div><p id="tutorialText"></p></section>
+<div id="viewer" class="ov viewer" role="dialog" aria-modal="true" aria-label="Acquired evidence workspace" hidden><div class="evidencePanel glass">
+ <div class="evidenceHeader"><div><small class="kick">ACQUIRED EVIDENCE</small><h3>Trace ↔ track workspace</h3></div><button id="closeProfile">Close ✕</button></div>
+ <div class="evidenceControls"><label>Sensor <select id="profileSensor"><option value="sss">SSS</option><option value="sbp">SBP</option><option value="hrs">2D HR</option></select></label><label>Line <select id="profileLine"></select></label><label>Window <select id="profileSpan"><option value="200">200 traces</option><option value="500" selected>500 traces</option><option value="12000">All retained</option></select></label><label>Gain <input id="profileGain" type="range" min="0.3" max="3" step="0.1" value="1"></label></div>
+ <div class="evidenceGrid"><div class="profileWrap"><canvas id="profileCanvas" width="1000" height="440"></canvas><p id="profileEmpty" hidden>No acquired traces for this sensor. Collect a line first.</p></div><div class="miniWrap"><canvas id="profileMap" width="400" height="250"></canvas><p class="muted">Tap the track to locate a trace. White cursor is the same acquired position in both views. Chainage is in game cells.</p><button id="profileCurtain">Show this selection as 3D curtain</button></div></div>
+ <label class="historyLabel">Older history ← <input id="profileScroll" type="range" min="0" max="1" value="0"> → latest</label><small id="profileCount" class="muted"></small>
+ <p id="profileReadout" class="readout"></p>
+ <div class="evidenceControls"><label>Action <select id="pickMode"><option value="cursor">Inspect cursor</option><option value="seabed">Pick seabed</option><option value="reflector">Pick reflector / evidence</option></select></label><label>Attach to <select id="pickContact"></select></label></div>
+ <p id="pickReadout" class="readout">Green = observed seabed. Orange = your evidence marks. Manual 2D HR picks use ΔTWT below the seabed, not time from the top of the image. Manual picks are optional; Guided remains available.</p>
+ <p class="fine">Synthetic teaching data. SBP vertical scale is a sample index, not calibrated metres. HR depth uses the current velocity. Curtain geometry is illustrative, not a geotechnical model. History retains up to 12,000 acquisition samples per mission.</p>
+</div></div>
+
+<div id="submitCheck" class="ov checkModal" role="dialog" aria-modal="true" aria-labelledby="submitTitle" hidden><div class="checkPanel glass">
+ <div class="checkHead"><div><small class="kick">BEFORE YOU SUBMIT</small><h3 id="submitTitle">Would you like to classify your findings?</h3></div><button id="cancelSubmit" aria-label="Close submission review">Close ✕</button></div>
+ <p id="submitMessage"></p><div id="submitObjectives" class="muted"></div><div id="answerRows"></div>
+ <p class="muted">No answer is selected for you. “Not enough evidence” is an explicit decision, not a blank answer. Submitting ends this attempt and clears any remaining route.</p>
+ <div class="checkActions"><button id="reviewAnswers" class="pri">Save choices &amp; return to review</button><button id="submitAnyway">Submit current choices anyway</button><button id="keepSurveying">Keep surveying</button></div>
+</div></div>
+<div id="restartCheck" class="ov checkModal" role="dialog" aria-modal="true" aria-labelledby="restartTitle" hidden><div class="checkPanel glass"><h3 id="restartTitle">Restart with purchased upgrades?</h3><p>This replaces the saved Training attempt. Its survey data, route and answers will be cleared. Credits and purchased upgrades are kept. No extra credits are charged.</p><div class="checkActions"><button id="confirmRestart" class="pri">Restart Training</button><button id="cancelRestart">Keep saved attempt</button></div></div></div>
+<div id="gen" class="ov gen" hidden><div class="spin"></div><p id="genTxt"></p></div>
+<script>/* ECHOFIELD core v0.5.1 — deterministic, no DOM. World truth stays inside the closure. */
+(function (root) {
+  'use strict';
+  const W = 160, H = 100, SBN = 64, HRN = 96;
+  const RATE = { base: 0.02, mbes: 0.008, sss: 0.012, mag: 0.012, sbp: 0.01, hrs: 0.018 }; // survey days per cell
+  const SW = { mbes: 5, sssIn: 1.5, sssOut: 8, magLine: 1.2, magClear: 2.5, magWeak: 6, sbpLine: 1, sbpClear: 1.2, sbpWeak: 2.5, hrsLine: 1.2, hrsClear: 1.5, hrsWeak: 3 };
+  const SENSORS = ['mbes', 'sss', 'mag', 'sbp', 'hrs'];
+  const BITS = { mbes: 1, sss: 2, mag: 4, sbp: 8, hrs: 16 };
+  const UPGRADES = {
+    hull: { name: 'Efficient hull', desc: 'Base transit cost −20%', cost: 60 },
+    mbes: { name: 'Wide-swath MBES', desc: 'MBES swath 5 → 6.5 cells each side', cost: 70 },
+    sss: { name: 'Low-tow SSS', desc: 'Blind strip under the towfish 1.5 → 0.8', cost: 50 },
+    mag: { name: 'MAG gradiometer', desc: 'Clear-response range 2.5 → 3.5 cells', cost: 50 },
+    sbp: { name: 'SBP pole mount', desc: 'Sub-bottom profiler on every new Training mission', cost: 80 },
+    hrs: { name: 'Short-offset streamer', desc: '2D HR clear range 1.5 → 2.5 cells', cost: 60 }
+  };
+  const RUN_PERKS = Object.assign({}, UPGRADES, { sbp: { ...UPGRADES.sbp, desc: 'Sub-bottom profiler on remaining missions in this campaign run' }, reserve: { name: 'Contingency days', desc: 'Survey-day budget +15% for the rest of the run' } });
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function hash01(i, s) {
+    let x = Math.imul(i ^ s, 0x9E3779B1); x ^= x >>> 15;
+    x = Math.imul(x, 0x85EBCA77); x ^= x >>> 13;
+    return (x >>> 0) / 4294967296;
+  }
+  function makeNoise(seed, scale) {
+    const gw = Math.ceil(W / scale) + 2, gh = Math.ceil(H / scale) + 2;
+    const r = mulberry32(seed), g = new Float32Array(gw * gh);
+    for (let i = 0; i < g.length; i++) g[i] = r();
+    return function (x, y) {
+      x = Math.max(0, Math.min(W, x)) / scale; y = Math.max(0, Math.min(H, y)) / scale;
+      const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const a = g[yi * gw + xi], b = g[yi * gw + xi + 1], c = g[(yi + 1) * gw + xi], d = g[(yi + 1) * gw + xi + 1];
+      return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+    };
+  }
+  const gs = (x, w) => Math.exp(-x * x / (2 * w * w));
+  const ricker = (x, w) => { const a = 2.4 * (x / w) * (x / w); return (1 - 2 * a) * Math.exp(-a); };
+  const twtOf = (depth, vel) => Math.round(20000 * depth / vel) / 10; // ms, 0.1 precision
+
+  const MISSIONS = {
+    M1: {
+      id: 'M1', title: 'Reveal the Seabed', seed: 2026, budget: 34, start: { x: 4, y: 8 }, sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes'],
+      box: { x0: 15, y0: 15, x1: 145, y1: 85 }, goal: 'coverage', need: 0.9, kind: 'reveal',
+      tag: 'Swath, overlap and survey days',
+      brief: 'Map the target block with MBES. Cover at least 90% before the survey days run out. Overlap costs days; gaps cost coverage.',
+      tips: ['Click the map to place waypoints, then press Run.', 'The pale band shows the MBES swath of each planned leg.', 'Extra sensors cost more days per leg. This job needs MBES only.'],
+      contacts: [{ t: 'natural', x: 60, y: 40, r: 2.6 }, { t: 'natural', x: 118, y: 66, r: 2.2 }]
+    },
+    M2: {
+      id: 'M2', title: 'The Unknown Contact', seed: 2027, budget: 40, start: { x: 4, y: 50 }, sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes', 'sss'],
+      box: { x0: 25, y0: 20, x1: 135, y1: 80 }, goal: 'classify', need: 0.9, expected: 5, kind: 'identify',
+      tag: 'Cross-check MBES, SSS and MAG',
+      brief: 'Five contacts are expected in the block. Find them, cross-check each with more than one sensor, then classify. "Not enough evidence" is a valid answer.',
+      tips: ['SSS sees shapes and shadows, but has a blind strip under the towfish.', 'MAG only reacts to ferrous objects, and only when you pass close.', 'A confident wrong answer costs more than an honest "Not enough evidence".'],
+      contacts: [
+        { t: 'natural', x: 45, y: 32, r: 2.4 }, { t: 'debris', x: 70, y: 66, r: 1.2 },
+        { t: 'linear', x: 96, y: 34, ang: 0.55, len: 14 }, { t: 'buried', x: 116, y: 60 },
+        { t: 'natural', x: 84, y: 50, r: 1.6 }
+      ]
+    },
+    M3: {
+      id: 'M3', title: 'The Missing Strip', seed: 2028, budget: 14, start: { x: 4, y: 62 }, sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes', 'sss'],
+      box: { x0: 20, y0: 18, x1: 140, y1: 82 }, goal: 'classify', need: 0.97, expected: 4, kind: 'legacy',
+      tag: 'Find the gaps in legacy data',
+      brief: 'A previous crew surveyed this block with MBES + SSS. Their dataset looks complete, but it is not. Reach 97% coverage with only 14 survey days, then classify all four contacts.',
+      tips: ['Grey dashed lines are the legacy survey. Switch to the SSS layer to spot what they missed.', 'Re-running the whole block is impossible on this budget. Infill only.', 'Legacy data had no MAG. A short MAG pass can settle a doubtful contact.'],
+      legacy: [[20, 26, 140, 26], [140, 38, 20, 38], [20, 50, 78, 50], [106, 50, 140, 50], [140, 74, 20, 74]],
+      legacyS: { mbes: 1, sss: 1 },
+      contacts: [{ t: 'natural', x: 40, y: 30, r: 2.2 }, { t: 'debris', x: 110, y: 40, r: 1.2 }, { t: 'debris', x: 72, y: 62, r: 1.2 }, { t: 'buried', x: 92, y: 53 }]
+    },
+    M4: {
+      id: 'M4', title: 'Beneath the Surface', seed: 2029, budget: 42, start: { x: 4, y: 50 }, sensors: ['mbes', 'sss', 'mag', 'sbp'], defaults: ['mbes', 'sbp'],
+      box: { x0: 25, y0: 22, x1: 135, y1: 78 }, goal: 'classify', need: 0.9, expected: 5, kind: 'subsurface',
+      tag: 'Sub-bottom profiler and buried objects',
+      brief: 'Some objects never show on the seabed. Use the sub-bottom profiler (SBP) to look below it. Five contacts are expected; one sits inside the flagged zone and gives no magnetic response.',
+      tips: ['SBP only sees directly under the vessel. A buried point object shows as a hyperbola in the live profile.', 'A purple circle marks a zone flagged for follow-up. Cross it with SBP running.', '"No response" is evidence too: SBP clear + MAG silent tells a different story than MAG clear.'],
+      hints: [{ x: 112, y: 35, r: 7, label: 'FLAGGED ZONE' }],
+      contacts: [
+        { t: 'natural', x: 48, y: 60, r: 2.4 }, { t: 'debris', x: 70, y: 36, r: 1.2 },
+        { t: 'buried', x: 90, y: 64, d: 7 }, { t: 'buried', x: 112, y: 35, fe: false, d: 10 },
+        { t: 'linear', x: 60, y: 48, ang: -0.3, len: 16 }
+      ]
+    },
+    M5: {
+      id: 'M5', title: 'Deep Read', seed: 2030, budget: 52, start: { x: 4, y: 40 }, sensors: ['mbes', 'sss', 'mag', 'sbp', 'hrs'], defaults: ['mbes', 'sss', 'hrs'],
+      box: { x0: 25, y0: 20, x1: 135, y1: 80 }, goal: 'classify', need: 0.9, expected: 4, kind: 'deep',
+      tag: '2D HR seismic and the depth tie',
+      bh: { x: 58, y: 44, depth: 40 }, vel: 1760,
+      brief: 'Four contacts are expected, including a subsurface amplitude anomaly that only 2D HR seismic can resolve. Report its depth: tie your velocity to borehole BH-1, where horizon H1 sits 40 m below the seabed.',
+      tips: ['2D HR sees deep but only along the line. An amplitude anomaly is a bright, flat reflector with dimmed layers beneath it.', 'Run a 2D HR line over BH-1 to measure the travel time (TWT) to H1, then set velocity so H1 lands at 40 m.', 'Depth = velocity × TWT ÷ 2. A weak (off-centre) pick reads the TWT late; cross the anomaly near its centre.'],
+      contacts: [
+        { t: 'natural', x: 44, y: 66, r: 2.4 }, { t: 'debris', x: 112, y: 30, r: 1.2 },
+        { t: 'anomaly', x: 96, y: 52, r: 6, depth: 52 }, { t: 'buried', x: 120, y: 68 }
+      ]
+    }
+  };
+
+  // ---------------- world (truth) ----------------
+  function buildWorld(m) {
+    const n1 = makeNoise(m.seed, 40), n2 = makeNoise(m.seed + 7, 12), n3 = makeNoise(m.seed + 13, 25);
+    const n4 = makeNoise(m.seed + 21, 30), n5 = makeNoise(m.seed + 31, 18);
+    const sa = 0.6 + (m.seed % 5) * 0.1, ca = Math.cos(sa), sn = Math.sin(sa);
+    const h = new Float32Array(W * H), bs = new Float32Array(W * H), vel = m.vel || 1750;
+    const cs = m.contacts.map(c => {
+      const o = Object.assign({ r: c.t === 'anomaly' ? 6 : 1.2, ang: 0, len: 0, fe: !(c.t === 'natural' || c.t === 'anomaly'), d: 6 }, c);
+      if (o.t === 'anomaly') o.twt = twtOf(o.depth, vel);
+      return o;
+    });
+    function segDist(c, x, y) {
+      if (c.t !== 'linear') return Math.hypot(x - c.x, y - c.y);
+      const ux = Math.cos(c.ang), uy = Math.sin(c.ang), dx = x - c.x, dy = y - c.y;
+      const t = Math.max(-c.len / 2, Math.min(c.len / 2, dx * ux + dy * uy));
+      return Math.hypot(dx - t * ux, dy - t * uy);
+    }
+    const edist = (c, x, y) => c.t === 'anomaly' ? Math.max(0, segDist(c, x, y) - c.r) : segDist(c, x, y);
+    const foot = (c, x, y) => { const e = edist(c, x, y); return e <= 0 ? 1 : gs(e, 1.2); };
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, wave = Math.sin((x * ca + y * sn) / 2.6);
+      let hv = 0.6 * n1(x, y) + 0.3 * n2(x, y) + 0.035 * wave * n3(x, y);
+      let bv = 0.32 + 0.32 * n3(x, y) + 0.06 * wave;
+      for (const c of cs) {
+        if (c.t === 'anomaly' || c.t === 'buried') continue;
+        const d = segDist(c, x, y);
+        if (c.t === 'natural' && d < c.r * 1.6) { hv += 0.05 * Math.max(0, 1 - d / (c.r * 1.6)); if (d < c.r) bv += 0.32; }
+        if (c.t === 'debris' && d < c.r) { hv += 0.025; bv += 0.55; }
+        if (c.t === 'linear' && d < 0.9) { hv += 0.02; bv += 0.45; }
+      }
+      h[i] = hv; bs[i] = Math.min(1, bv);
+    }
+    function hAt(x, y) {
+      x = Math.max(0, Math.min(W - 1.001, x)); y = Math.max(0, Math.min(H - 1.001, y));
+      const xi = x | 0, yi = y | 0, fx = x - xi, fy = y - yi, x1 = Math.min(W - 1, xi + 1), y1 = Math.min(H - 1, yi + 1);
+      return (h[yi * W + xi] * (1 - fx) + h[yi * W + x1] * fx) * (1 - fy) + (h[y1 * W + xi] * (1 - fx) + h[y1 * W + x1] * fx) * fy;
+    }
+    function magAt(x, y) {
+      let v = 0;
+      for (const c of cs) {
+        if (!c.fe) continue;
+        const amp = c.t === 'buried' ? 1.4 : c.t === 'debris' ? 1 : 0.8, d = segDist(c, x, y) / 3;
+        v += amp / Math.pow(1 + d * d, 1.5);
+      }
+      return v;
+    }
+    function sbpAt(x, y) {
+      let v = 0.08 + 0.12 * n4(x, y);
+      for (const c of cs) {
+        if (c.t === 'natural') continue;
+        if (c.t === 'anomaly') { v += 0.35 * foot(c, x, y); continue; }
+        v += (c.t === 'buried' ? 0.9 : 0.45) * gs(segDist(c, x, y), 1.1);
+      }
+      return Math.min(1, v);
+    }
+    function hrsAt(x, y) {
+      let v = 0.06 + 0.12 * n5(x, y);
+      for (const c of cs) {
+        if (c.t === 'anomaly') v += 0.85 * foot(c, x, y);
+        else if (c.t === 'buried') v += 0.3 * gs(segDist(c, x, y), 1.2);
+      }
+      return Math.min(1, v);
+    }
+    function sbpCol(x, y, k) {
+      const col = new Uint8Array(SBN), sb = 8 + hAt(x, y) * 14;
+      const L1 = sb + 6 + 8 * n4(x, y), L2 = sb + 17 + 10 * n5(x, y), L3 = sb + 31 + 7 * Math.sin(x * 0.07 + n4(x, y) * 4);
+      let blank = 0;
+      for (const c of cs) if (c.t === 'anomaly') blank = Math.max(blank, foot(c, x, y));
+      for (let r = 0; r < SBN; r++) {
+        const nz = hash01(k * SBN + r, m.seed + 41), dz = r - sb;
+        let v = 0.03 * nz + 0.97 * gs(dz - 0.4, 0.75);
+        if (dz >= 0.8) {
+          const att = Math.exp(-dz / 42) * (dz > 4 ? 1 - 0.8 * blank : 1);
+          v += att * (0.16 * nz + 0.7 * gs(r - L1, 0.9) + 0.5 * gs(r - L2, 1.1) + 0.45 * gs(r - L3, 1.3));
+        }
+        for (const c of cs) {
+          if (c.t === 'natural' || c.t === 'anomaly') continue;
+          const dh = segDist(c, x, y) * 5; if (dh > 22) continue;
+          const dd = c.t === 'buried' ? c.d : 0.6, rr = sb + Math.sqrt(dd * dd + dh * dh);
+          v += (c.t === 'buried' ? 0.95 : 0.6) * Math.exp(-dh / 16) * gs(r - rr, 0.8);
+        }
+        col[r] = Math.min(255, v * 255);
+      }
+      return col;
+    }
+    // 2D HR seismic trace: row = 2 ms TWT. Signed amplitude stored as Int8.
+    const bhN4 = m.bh ? n4(m.bh.x, m.bh.y) : 0;
+    function h1Depth(x, y) { return m.bh ? m.bh.depth + 6 * (n4(x, y) - bhN4) : 34 + 6 * n4(x, y); }
+    function hrsCol(x, y, k) {
+      const col = new Int8Array(HRN), sb = 5 + hAt(x, y) * 10;
+      const r1 = sb + twtOf(h1Depth(x, y), vel) / 2, r0 = sb + 7 + 4 * n5(x, y), r2 = r1 + 12 + 5 * n3(x, y), r3 = r2 + 14 + 4 * Math.sin(x * 0.05 + y * 0.03);
+      let fa = 0, ra = 0;
+      for (const c of cs) if (c.t === 'anomaly') { const f = foot(c, x, y); if (f > fa) { fa = f; ra = sb + c.twt / 2; } }
+      for (let r = 0; r < HRN; r++) {
+        let v = 0.95 * ricker(r - sb, 1.1) + 0.07 * (hash01(k * HRN + r, m.seed + 57) - 0.5) * 2;
+        if (r > sb + 2) {
+          const below = fa > 0 && r > ra + 1.5, att = Math.exp(-(r - sb) / 120) * (below ? 1 - 0.7 * fa : 1), pd = below ? 2.5 * fa : 0;
+          v += att * (0.45 * ricker(r - r0, 1.6) + 0.7 * ricker(r - r1 - (r1 > ra && fa ? pd : 0), 1.7) + 0.5 * ricker(r - r2 - (r2 > ra && fa ? pd : 0), 1.8) + 0.45 * ricker(r - r3 - (r3 > ra && fa ? pd : 0), 1.9));
+          v += att * 0.12 * Math.sin(r * 1.7 + x * 0.3) * (hash01(r * 7 + (x | 0), m.seed + 3) - 0.3);
+        }
+        if (fa > 0) v += -1.2 * fa * ricker(r - ra, 1.7);
+        for (const c of cs) {
+          if (c.t !== 'buried') continue;
+          const dh = segDist(c, x, y) * 2.2; if (dh > 18) continue;
+          const rr = sb + Math.sqrt(Math.pow(twtOf(c.d, 1600) / 2, 2) + dh * dh);
+          v += 0.6 * Math.exp(-dh / 10) * ricker(r - rr, 1.0);
+        }
+        col[r] = Math.max(-127, Math.min(127, Math.round(v * 110)));
+      }
+      return col;
+    }
+    return { h, bs, cs, vel, magAt, sbpAt, hrsAt, sbpCol, hrsCol, segDist, edist, hAt };
+  }
+
+  const RESP = {
+    mbes: { natural: 3, debris: 2, linear: 2, buried: 1, anomaly: 1 },
+    sss: { natural: 3, debris: 3, linear: 3, buried: 1, anomaly: 1 },
+    magC: { natural: 1, debris: 3, linear: 3, buried: 3, anomaly: 1 },
+    magW: { natural: 1, debris: 2, linear: 2, buried: 2, anomaly: 1 },
+    sbpC: { natural: 1, debris: 2, linear: 2, buried: 3, anomaly: 2 },
+    sbpW: { natural: 1, debris: 1, linear: 1, buried: 2, anomaly: 1 },
+    hrsC: { natural: 1, debris: 1, linear: 1, buried: 2, anomaly: 3 },
+    hrsW: { natural: 1, debris: 1, linear: 1, buried: 1, anomaly: 2 }
+  };
+
+  function encode(a) {
+    const bytes = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+    if (typeof Buffer !== 'undefined') return Buffer.from(bytes).toString('base64');
+    let s = ''; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
+    return btoa(s);
+  }
+  function decode(s, Type) {
+    if (typeof s !== 'string') return Type.from(s);
+    const bytes = typeof Buffer !== 'undefined' ? Uint8Array.from(Buffer.from(s, 'base64')) : Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    return new Type(bytes.buffer);
+  }
+  // ---------------- game ----------------
+  function createGame(def, owned) {
+    owned = owned || {};
+    const m = typeof def === 'string' ? MISSIONS[def] : def, world = buildWorld(m);
+    const sw = Object.assign({}, SW), rt = Object.assign({}, RATE);
+    if (owned.hull) rt.base *= 0.8;
+    if (owned.mbes) sw.mbes = 6.5;
+    if (owned.sss) sw.sssIn = 0.8;
+    if (owned.mag) { sw.magClear = 3.5; sw.magLine = 1.6; }
+    if (owned.hrs) { sw.hrsClear = 2.5; sw.hrsWeak = 4; }
+    const budget = Math.round(m.budget * (owned.reserve ? 1.15 : 1) * 10) / 10;
+    const avail = SENSORS.filter(s => m.sensors.includes(s) || (s === 'sbp' && owned.sbp));
+    const K = {
+      W, H, SBN, HRN, ver: 0, cov: new Uint8Array(W * H), bathy: new Float32Array(W * H),
+      sss: new Float32Array(W * H), mag: new Float32Array(W * H), sbp: new Float32Array(W * H), hrs: new Float32Array(W * H),
+      contacts: [], sbpCols: [], sbpTotal: 0, hrsCols: [], hrsTotal: 0, bhTwt: null, records: [], lines: [], picks: []
+    };
+    const ev = world.cs.map(() => ({ mbes: 0, sss: 0, mag: 0, sbp: 0, hrs: 0, shape: null, twt: null, twtQ: 0, pickOffset: null }));
+    const st = { pos: { x: m.start.x, y: m.start.y }, heading: 0, used: 0, plan: [], submitted: false, steps: 0, vel: 1600 };
+    const answers = {};
+    let lineSeq = 0, activeLine = null;
+    const clean = s => { const o = {}; for (const k of SENSORS) o[k] = !!(s && s[k] && avail.includes(k)); return o; };
+
+    const rate = s => rt.base + SENSORS.reduce((a, k) => a + (s[k] && avail.includes(k) ? rt[k] : 0), 0);
+    function planCost() {
+      let p = st.pos, c = 0;
+      for (const w of st.plan) { c += Math.hypot(w.x - p.x, w.y - p.y) * rate(w.s); p = w; }
+      return c;
+    }
+    function addWaypoint(x, y, s) {
+      if (st.submitted) return false;
+      s = clean(s);
+      x = Math.max(0, Math.min(W - 0.01, x)); y = Math.max(0, Math.min(H - 0.01, y));
+      const last = st.plan.length ? st.plan[st.plan.length - 1] : st.pos;
+      const add = Math.hypot(x - last.x, y - last.y) * rate(s);
+      if (st.used + planCost() + add > budget + 1e-9) return false;
+      st.plan.push({ x, y, s, lineId: ++lineSeq });
+      return true;
+    }
+
+    // Transactional edit: acquired/current moving leg remains immutable.
+    function pendingSensors(selection, commit) {
+      if (st.submitted) return { ok: false, reason: 'Mission already submitted', editable: 0, locked: 0 };
+      const next = clean(selection), oldCost = planCost();
+      let from = st.pos, cost = 0, editable = 0, locked = 0;
+      const candidates = st.plan.map(w => {
+        const active = (w.travel || 0) > 1e-9;
+        if (active) locked++; else editable++;
+        const flags = active ? w.s : next;
+        cost += Math.hypot(w.x - from.x, w.y - from.y) * rate(flags); from = w;
+        return { w, flags, active };
+      });
+      const ok = editable > 0 && st.used + cost <= budget + 1e-9;
+      const result = { ok, editable, locked, oldCost, cost, delta: cost - oldCost,
+        reason: !editable ? 'No unstarted legs to update' : !ok ? 'Not enough survey days; plan unchanged' : 'Ready to update unstarted legs' };
+      if (commit && ok) for (const c of candidates) if (!c.active) {
+        c.w.s = { ...c.flags };
+        const line = K.lines.find(l => l.id === c.w.lineId); if (line) line.sensors = { ...c.flags };
+      }
+      return result;
+    }
+    function surveySeg(a, b, s) {
+      const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+      if (L < 1e-9) return;
+      const ux = dx / L, uy = dy / L, lx = -uy, ly = ux;
+      const n = Math.max(1, Math.ceil((L - 1e-8) / 0.4));
+      for (let k = 0; k < n; k++) {
+        const cx = a.x + dx * (k + 0.5) / n, cy = a.y + dy * (k + 0.5) / n;
+        if (s.mbes || s.sss || s.mag || s.sbp || s.hrs) for (let o = -sw.sssOut; o <= sw.sssOut; o += 0.5) {
+          const ix = Math.round(cx + o * lx), iy = Math.round(cy + o * ly);
+          if (ix < 0 || iy < 0 || ix >= W || iy >= H) continue;
+          const i = iy * W + ix, ao = Math.abs(o);
+          if (s.mbes && ao <= sw.mbes) { K.bathy[i] = world.h[i] + (hash01(i, m.seed) - 0.5) * 0.004; K.cov[i] |= 1; }
+          if (s.sss && ao >= sw.sssIn) {
+            let v = world.bs[i] * (0.85 + 0.15 * (1 - ao / sw.sssOut));
+            const sx = lx * Math.sign(o), sy = ly * Math.sign(o);
+            for (const c of world.cs) {
+              if (c.t === 'buried' || c.t === 'anomaly') continue;
+              const ddx = ix - c.x, ddy = iy - c.y, along = ddx * sx + ddy * sy;
+              const len = c.t === 'natural' ? c.r * 2.2 : 1.6;
+              let perp = Math.abs(ddx * sy - ddy * sx), w = c.t === 'linear' ? 0.9 : c.r;
+              if (c.t === 'linear') { const proj = Math.abs(Math.cos(c.ang) * sy - Math.sin(c.ang) * sx); w = Math.max(0.9, proj * c.len / 2); }
+              if (along > 0.6 && along < len + ao * 0.12 && perp < w) v = 0.03;
+            }
+            K.sss[i] = Math.min(1, v * (0.7 + 0.6 * hash01(i, m.seed + 5))); K.cov[i] |= 2;
+          }
+          if (s.mag && ao <= sw.magLine) { K.mag[i] = world.magAt(ix, iy); K.cov[i] |= 4; }
+          if (s.sbp && ao <= sw.sbpLine) { K.sbp[i] = world.sbpAt(ix, iy); K.cov[i] |= 8; }
+          if (s.hrs && ao <= sw.hrsLine) { K.hrs[i] = world.hrsAt(ix, iy); K.cov[i] |= 16; }
+        }
+        if (s.sbp) { K.sbpCols.push(world.sbpCol(cx, cy, K.sbpTotal)); K.sbpTotal++; if (K.sbpCols.length > 600) K.sbpCols.shift(); }
+        if (s.hrs) {
+          K.hrsCols.push(world.hrsCol(cx, cy, K.hrsTotal)); K.hrsTotal++; if (K.hrsCols.length > 600) K.hrsCols.shift();
+          if (m.bh && K.bhTwt === null && Math.hypot(cx - m.bh.x, cy - m.bh.y) <= 2.5) K.bhTwt = twtOf(m.bh.depth, world.vel);
+        }
+        if (Object.values(s).some(Boolean)) {
+          const rec = { id: K.records.length ? K.records[K.records.length - 1].id + 1 : 1,
+            line: activeLine ? activeLine.id : 0, x: cx, y: cy, heading: Math.atan2(uy, ux),
+            chainage: activeLine ? Math.hypot(cx - activeLine.origin.x, cy - activeLine.origin.y) : 0,
+            sbRow: 8 + world.hAt(cx, cy) * 14, hrRow: 5 + world.hAt(cx, cy) * 10 };
+          if (s.sbp) rec.sbp = K.sbpCols[K.sbpCols.length - 1];
+          if (s.hrs) rec.hrs = K.hrsCols[K.hrsCols.length - 1];
+          if (s.sss) {
+            rec.sss = new Uint8Array(64);
+            for (let j = 0; j < 64; j++) {
+              const off = ((j + 0.5) / 64 * 2 - 1) * sw.sssOut;
+              const ix = Math.round(cx + off * lx), iy = Math.round(cy + off * ly);
+              rec.sss[j] = Math.abs(off) < sw.sssIn ? 0 : ix >= 0 && iy >= 0 && ix < W && iy < H ? Math.round(K.sss[iy * W + ix] * 255) : 0;
+            }
+          }
+          K.records.push(rec); if (K.records.length > 12000) K.records.shift();
+        }
+      }
+      world.cs.forEach((c, j) => {
+        const rx = c.x - a.x, ry = c.y - a.y, t = rx * ux + ry * uy;
+        if (t < 0 || t >= L) return;
+        const dp = Math.abs(rx * lx + ry * ly), d = c.t === 'anomaly' ? Math.max(0, dp - c.r) : dp, e = ev[j];
+        const mb = c.t === 'natural' && c.r < 2 ? 2 : RESP.mbes[c.t];
+        if (s.mbes && d <= sw.mbes) { e.mbes = Math.max(e.mbes, mb); if (mb === 3) e.shape = e.shape || 'mound'; }
+        if (s.sss && d >= (c.t === 'anomaly' ? 0 : sw.sssIn) && d <= sw.sssOut) {
+          e.sss = Math.max(e.sss, RESP.sss[c.t]);
+          if (c.t === 'linear') e.shape = 'elongated'; else if (c.t !== 'buried' && c.t !== 'anomaly' && e.shape !== 'mound') e.shape = 'compact';
+          if (c.t === 'natural') e.shape = 'mound';
+        }
+        if (s.mag && d <= sw.magWeak) e.mag = Math.max(e.mag, !c.fe ? 1 : d <= sw.magClear ? RESP.magC[c.t] : RESP.magW[c.t]);
+        if (s.sbp && d <= sw.sbpWeak) e.sbp = Math.max(e.sbp, d <= sw.sbpClear ? RESP.sbpC[c.t] : RESP.sbpW[c.t]);
+        if (s.hrs && d <= sw.hrsWeak) {
+          const lv = d <= sw.hrsClear ? RESP.hrsC[c.t] : RESP.hrsW[c.t];
+          e.hrs = Math.max(e.hrs, lv);
+          if (c.t === 'anomaly' && lv >= 2 && (lv > e.twtQ || e.pickOffset === null || dp < e.pickOffset - 1e-8)) {
+            // centre picks are exact; edge picks read late (thinner, pulled-down top)
+            e.pickOffset = dp; e.twtQ = lv; e.twt = lv === 3 && dp <= c.r * 0.5 ? c.twt : Math.round(c.twt * (1 + 0.07 * Math.min(1, dp / c.r)) * 10) / 10;
+          }
+        }
+        if (!K.contacts.find(k => k.j === j) && (e.mbes >= 2 || e.sss >= 2 || e.mag >= 2 || e.sbp >= 2 || e.hrs >= 2)) {
+          const jx = (hash01(j, m.seed + 99) - 0.5) * 1.2, jy = (hash01(j, m.seed + 77) - 0.5) * 1.2;
+          K.contacts.push({ j, id: 'C' + (K.contacts.length + 1), x: c.x + jx, y: c.y + jy, ev: e, ext: 0, observed: [] });
+        }
+      });
+      for (const k of K.contacts) if (s.hrs && k.ev.hrs >= 2) {
+        const ix = Math.max(0, Math.min(W - 1, Math.round((a.x + b.x) / 2))), iy = Math.max(0, Math.min(H - 1, Math.round((a.y + b.y) / 2)));
+        if (K.hrs[iy * W + ix] > 0.55 && Math.hypot(ix - k.x, iy - k.y) < 14) {
+          if (!k.observed) k.observed = [];
+          if (!k.observed.length || Math.hypot(ix - k.observed[k.observed.length - 1].x, iy - k.observed[k.observed.length - 1].y) >= 0.8) k.observed.push({ x: ix, y: iy });
+        }
+      }
+      if (activeLine) activeLine.end = { x: b.x, y: b.y };
+      K.ver++;
+    }
+
+    if (m.legacy) for (const l of m.legacy) {
+      activeLine = { id: ++lineSeq, origin: { x: l[0], y: l[1] }, end: { x: l[2], y: l[3] }, sensors: clean(m.legacyS), legacy: true };
+      K.lines.push(activeLine); surveySeg(activeLine.origin, activeLine.end, activeLine.sensors);
+    }
+    activeLine = null;
+
+    function tick(dist) {
+      let left = Math.max(0, dist), moved = false;
+      while (left > 1e-9 && st.plan.length && !st.submitted) {
+        const w = st.plan[0];
+        if (!w.origin) { w.origin = { ...st.pos }; w.length = Math.hypot(w.x - st.pos.x, w.y - st.pos.y); w.travel = 0; w.sampled = 0; }
+        if (!K.lines.some(l => l.id === w.lineId)) K.lines.push({ id: w.lineId, origin: { ...w.origin }, end: { ...w.origin }, plannedEnd: { x: w.x, y: w.y }, sensors: { ...w.s } });
+        activeLine = K.lines.find(l => l.id === w.lineId);
+        const L = w.length, dx = w.x - w.origin.x, dy = w.y - w.origin.y;
+        const step = Math.min(left, Math.max(0, L - w.travel));
+        w.travel = Math.min(L, w.travel + step);
+        if (L > 1e-9) st.heading = Math.atan2(dy, dx);
+        const point = d => ({ x: w.origin.x + (L ? dx * d / L : 0), y: w.origin.y + (L ? dy * d / L : 0) });
+        while (w.sampled + 0.4 <= w.travel + 1e-8) {
+          surveySeg(point(w.sampled), point(w.sampled + 0.4), w.s); w.sampled += 0.4;
+        }
+        st.used += step * rate(w.s); st.pos = point(w.travel); left -= step; moved = moved || step > 0;
+        if (w.travel >= L - 1e-8) {
+          if (L - w.sampled > 1e-8) surveySeg(point(w.sampled), point(L), w.s);
+          st.pos = { x: w.x, y: w.y }; st.plan.shift();
+        }
+      }
+      st.steps++; return moved;
+    }
+
+    function flushActive() {
+      const w = st.plan[0]; if (!w || !w.origin || w.travel - w.sampled <= 1e-8) return;
+      activeLine = K.lines.find(l => l.id === w.lineId);
+      const L = w.length, point = d => ({ x: w.origin.x + (w.x - w.origin.x) * d / L, y: w.origin.y + (w.y - w.origin.y) * d / L });
+      surveySeg(point(w.sampled), point(w.travel), w.s); w.sampled = w.travel;
+    }
+    function addPick(recordId, sensor, row, contactId, mode) {
+      if (st.submitted || !['hrs','sbp','sss'].includes(sensor)) return false;
+      const rec = K.records.find(r => r.id === recordId); if (!rec || !rec[sensor] || !Number.isFinite(row)) return false;
+      row = Math.max(0, Math.min(rec[sensor].length - 1, row));
+      if (sensor === 'hrs' && mode !== 'seabed' && row <= (rec.manualHrSeabed ?? rec.hrRow)) return false;
+      const pick = { recordId, line: rec.line, sensor, row, contactId: contactId || null, mode: mode || 'reflector', x: rec.x, y: rec.y };
+      if (mode === 'seabed') { if (sensor === 'hrs') { rec.manualHrSeabed = row; for (const old of K.picks) if (old.recordId === recordId && old.sensor === 'hrs' && old.mode !== 'seabed') { old.twt = Math.max(0,(old.row-row)*2); const c = K.contacts.find(k=>k.id===old.contactId); if(c && Math.hypot(rec.x-c.x,rec.y-c.y)<=10) c.ev.manualTwt = Math.round(old.twt*10)/10; } } else if (sensor === 'sbp') rec.manualSbpSeabed = row; }
+      else if (sensor === 'hrs') {
+        pick.twt = Math.max(0, (row - (rec.manualHrSeabed ?? rec.hrRow)) * 2);
+        const contact = K.contacts.find(k => k.id === contactId);
+        pick.applied = !!(contact && contact.ev.hrs >= 2 && Math.hypot(rec.x - contact.x, rec.y - contact.y) <= 10);
+        if (pick.applied) contact.ev.manualTwt = Math.round(pick.twt * 10) / 10;
+      }
+      K.picks.push(pick); K.ver++; return pick;
+    }
+    function clearPicks(contactId) {
+      if (st.submitted) return;
+      for (const p of K.picks) if (p.contactId === contactId && p.mode === 'seabed') { const rec = K.records.find(r=>r.id===p.recordId); if(rec) { if(p.sensor==='hrs') delete rec.manualHrSeabed; if(p.sensor==='sbp') delete rec.manualSbpSeabed; } }
+      K.picks = K.picks.filter(p => p.contactId !== contactId);
+      const k = K.contacts.find(k => k.id === contactId); if (k) delete k.ev.manualTwt;
+    }
+    function boxCov(mask) {
+      const b = m.box; let c = 0, n = 0;
+      for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) { n++; if (K.cov[y * W + x] & mask) c++; }
+      return c / n;
+    }
+    const rating = t => t >= 75 ? 'Strong' : t >= 45 ? 'Adequate' : 'Sparse';
+    const evText = e => avail.map(k => `${k === 'hrs' ? '2D HR' : k.toUpperCase()} ${LV[e[k]]}`).join(', ');
+    const depthOf = twt => Math.round(st.vel * twt / 200) / 10;
+
+    function completion() {
+      const cov = boxCov(m.goal === 'coverage' ? 1 : 3);
+      const checks = [{ text: `Coverage ${(cov * 100).toFixed(1)}% / ${(m.need * 100).toFixed(0)}%`, ok: cov + 1e-8 >= m.need }];
+      if (m.goal !== 'coverage') {
+        const reviewed = K.contacts.filter(k => !!answers[k.id]).length;
+        checks.push({ text: `Contacts reviewed ${reviewed} / ${world.cs.length} (deferred decisions count)`, ok: reviewed === world.cs.length });
+      }
+      if (m.bh) checks.push({ text: 'BH-1 measured and depth tie within 5%', ok: K.bhTwt !== null && Math.abs(depthOf(K.bhTwt) - m.bh.depth) / m.bh.depth <= 0.05 });
+      return { complete: checks.every(c => c.ok), checks };
+    }
+    function snapshot() {
+      const out = { lineSeq, st: JSON.parse(JSON.stringify(st)), answers: { ...answers }, ev: JSON.parse(JSON.stringify(ev)), result,
+        K: { lines: K.lines, picks: K.picks, records: K.records.map(r => ({ ...r, sss: r.sss ? encode(r.sss) : null, sbp: r.sbp ? encode(r.sbp) : null, hrs: r.hrs ? encode(r.hrs) : null })), ver: K.ver, bhTwt: K.bhTwt, sbpTotal: K.sbpTotal, hrsTotal: K.hrsTotal,
+          contacts: K.contacts.map(({ ev, ...k }) => k), sbpCols: [], hrsCols: [] } };
+      for (const k of ['cov','bathy','sss','mag','sbp','hrs']) out.K[k] = encode(K[k]);
+      return out;
+    }
+    function restore(o) {
+      Object.assign(st, o.st); Object.assign(answers, o.answers); lineSeq = o.lineSeq || Math.max(0, ...st.plan.map(w => w.lineId || 0));
+      K.lines = o.K.lines || []; K.picks = o.K.picks || [];
+      K.records = (o.K.records || []).map(r => ({ ...r, sss: r.sss ? decode(r.sss, Uint8Array) : null, sbp: r.sbp ? decode(r.sbp, Uint8Array) : null, hrs: r.hrs ? decode(r.hrs, Int8Array) : null }));
+      o.ev.forEach((e, i) => Object.assign(ev[i], e)); result = o.result || null;
+      for (const k of ['cov','bathy','sss','mag','sbp','hrs']) { const values = typeof o.K[k] === 'string' ? decode(o.K[k], k === 'cov' ? Uint8Array : Float32Array) : o.K[k]; if (!values || values.length !== W * H) throw Error('Invalid grid length: '+k); K[k].set(values); }
+      for (const k of ['ver','bhTwt','sbpTotal','hrsTotal']) K[k] = o.K[k];
+      K.contacts = o.K.contacts.map(k => ({ ...k, ev: ev[k.j] }));
+      K.sbpCols = K.records.filter(r => r.sbp).slice(-600).map(r => r.sbp); K.hrsCols = K.records.filter(r => r.hrs).slice(-600).map(r => r.hrs);
+      if (!K.records.length) { K.sbpCols = (o.K.sbpCols || []).map(c => Uint8Array.from(c)); K.hrsCols = (o.K.hrsCols || []).map(c => Int8Array.from(c)); }
+      for (const w of st.plan) if (!w.lineId) w.lineId = ++lineSeq;
+    }
+    let result = null;
+    function submit() {
+      if (result) return result;
+      flushActive(); st.submitted = true; st.plan = [];
+      const eff = Math.max(0, 1 - st.used / budget);
+      if (m.goal === 'coverage') {
+        const cov = boxCov(1), covS = Math.min(cov / m.need, 1) * 100, effS = eff * 100 * (cov >= m.need ? 1 : 0.3);
+        const total = Math.round(0.7 * covS + 0.3 * effS);
+        return result = {
+          ...completion(), mission: m.id, total, rating: rating(total), axes: { Coverage: Math.round(covS), Efficiency: Math.round(effS) },
+          notes: [`MBES coverage of the block: ${(cov * 100).toFixed(1)}% (target ${Math.round(m.need * 100)}%).`,
+            `Survey days used: ${st.used.toFixed(1)} of ${budget}.`,
+            cov >= m.need ? 'The block is mapped. Fewer overlaps would free days for the next job.' : 'Gaps remain. Line spacing wider than the swath leaves unmapped strips.']
+        };
+      }
+      let sum = 0, cross = 0, dsum = 0, dn = 0;
+      const n = world.cs.length, notes = [], truth = [];
+      world.cs.forEach((c, j) => {
+        const k = K.contacts.find(q => q.j === j), e = ev[j];
+        truth.push({ t: c.t, x: c.x, y: c.y, r: c.t === 'anomaly' ? c.r : 0, id: k ? k.id : null });
+        if (c.t === 'anomaly') dn++;
+        if (!k) { sum -= 1; notes.push(`Missed: a ${label(c.t).toLowerCase()} was never detected.`); return; }
+        const ch = SENSORS.reduce((a, q) => a + (e[q] ? 1 : 0), 0);
+        cross += Math.min(ch, 2) / 2;
+        const a = answers[k.id];
+        let p = 0, verdict;
+        if (!a) { p = 0; verdict = `not answered (true type: ${label(c.t)})`; }
+        else if (a.cls === 'unknown') { p = ch >= 2 ? 0.25 : 0; verdict = `evidence insufficient: decision deferred (true type: ${label(c.t)})`; }
+        else if (a.cls === c.t) { p = a.conf === 'high' ? 2 : 1.5; verdict = `called ${label(a.cls)} (${a.conf}) — correct`; }
+        else { p = a.conf === 'high' ? -2 : -1; verdict = `called ${label(a.cls)} (${a.conf}) — it was ${label(c.t)}`; }
+        sum += p;
+        let extra = '';
+        if (c.t === 'anomaly') {
+          if (a && a.cls === 'anomaly' && e.twt !== null) {
+            const est = depthOf(e.manualTwt ?? e.twt), err = Math.abs(est - c.depth) / c.depth;
+            dsum += err <= 0.05 ? 1 : err <= 0.12 ? 0.5 : 0;
+            extra = ` Depth ${est} m (${e.manualTwt !== undefined ? 'manual pick' : 'assisted pick'}) reported vs ${c.depth} m (${(err * 100).toFixed(0)}% off).`;
+          } else extra = ` Depth not reported (true top ${c.depth} m).`;
+        }
+        notes.push(`${k.id}: ${evText(e)}; ${verdict}. Decision points ${p > 0 ? '+' : ''}${p} / 2.${extra}`);
+      });
+      notes.sort((a, b) => (a[0] === 'C' ? +a.slice(1, a.indexOf(':')) : 99) - (b[0] === 'C' ? +b.slice(1, b.indexOf(':')) : 99));
+      const cov = boxCov(3);
+      if (m.need > 0.9) notes.unshift(`Block coverage: ${(cov * 100).toFixed(1)}% (target ${(m.need * 100).toFixed(0)}%).`);
+      if (m.bh) notes.unshift(K.bhTwt === null ? 'BH-1 was never crossed with 2D HR, so the velocity was a guess.' : `Velocity used: ${st.vel} m/s. BH-1 tie: H1 at ${depthOf(K.bhTwt)} m vs ${m.bh.depth} m logged.`);
+      const calib = Math.round(Math.max(0, sum) / (2 * n) * 100), crossS = Math.round(cross / n * 100);
+      const covS = Math.round(Math.min(cov / m.need, 1) * 100), effS = Math.round(eff * 100);
+      const axes = { Coverage: covS, 'Cross-check': crossS, 'Decision & confidence': calib };
+      let total;
+      if (dn) {
+        const dS = Math.round(dsum / dn * 100); axes['Depth tie'] = dS;
+        total = Math.round(0.1 * covS + 0.15 * crossS + 0.5 * calib + 0.15 * dS + 0.1 * effS);
+      } else total = Math.round(0.1 * covS + 0.2 * crossS + 0.6 * calib + 0.1 * effS);
+      axes.Efficiency = effS;
+      return result = { ...completion(), mission: m.id, total, rating: rating(total), axes, notes, truth };
+    }
+
+    return {
+      mission: {
+        id: m.id, title: m.title, brief: m.brief, tips: m.tips, budget, box: m.box, goal: m.goal, expected: m.expected, need: m.need,
+        legacy: m.legacy || [], hints: m.hints || [], bh: m.bh ? { x: m.bh.x, y: m.bh.y, depth: m.bh.depth } : null, defaults: m.defaults || ['mbes'], kind: m.kind
+      },
+      sensors: avail, sw, K, st, rate, planCost, addWaypoint, tick, submit, depthOf, completion, snapshot, restore, addPick, clearPicks, pendingSensors,
+      setVel(v) { if (!st.submitted) st.vel = Math.max(1400, Math.min(2200, Math.round(v))); },
+      undo() { if (!st.submitted) { if (st.plan.length === 1) flushActive(); st.plan.pop(); } }, clearPlan() { if (!st.submitted) { flushActive(); st.plan = []; } },
+      classify(id, cls, conf) { if (!st.submitted && K.contacts.some(k => k.id === id) && ['natural','debris','linear','buried','anomaly','unknown'].includes(cls) && ['low','high'].includes(conf)) answers[id] = { ...answers[id], cls, conf }; }, answer: id => answers[id],
+      coverage: () => boxCov(m.goal === 'coverage' ? 1 : 3)
+    };
+  }
+
+  function label(t) { return { natural: 'Natural feature', debris: 'Man-made debris', linear: 'Linear / pipeline-like', buried: 'Buried / uncertain', anomaly: 'Amplitude anomaly', unknown: 'Not enough evidence' }[t]; }
+  const LV = ['not surveyed', 'no response', 'weak', 'clear'];
+
+  // ---------------- reference bot (uses knowledge only) ----------------
+  function botClass(e) {
+    const sub = e.mbes <= 1 && e.sss <= 1;
+    if (e.hrs === 3) return 'anomaly';
+    if (sub && (e.sbp === 3 || e.mag >= 2)) return 'buried';
+    if (e.hrs === 2 && sub && e.mag <= 1 && e.sbp <= 2 && e.twt !== null) return 'anomaly';
+    if (e.mag >= 2 && e.shape === 'elongated') return 'linear';
+    if (e.mag >= 2) return 'debris';
+    if (e.mag === 1 && (e.sss === 3 || e.mbes === 3 || e.shape === 'mound')) return 'natural';
+    return 'unknown';
+  }
+  function runBot(g, opt) {
+    const m = g.mission, b = m.box, K = g.K, has = s => g.sensors.includes(s);
+    const go = () => { while (g.st.plan.length) g.tick(1.5); };
+    const leg = (x0, y0, x1, y1, s) => g.addWaypoint(x0, y0, {}) && g.addWaypoint(x1, y1, s);
+    const scan = { mbes: 1, sss: 1, mag: 1 }; if (has('hrs')) scan.hrs = 1;
+    function lawn(sp, s) {
+      let dir = 0;
+      for (let y = b.y0 + sp / 2; y < b.y1; y += sp) { if (dir) leg(b.x1, y, b.x0, y, s); else leg(b.x0, y, b.x1, y, s); dir ^= 1; }
+      go();
+    }
+    function infill(s) {
+      for (let it = 0; it < 14; it++) {
+        let best = null;
+        for (let y = b.y0 + 1; y < b.y1 - 1; y++) {
+          let n = 0, x0 = 1e9, x1 = -1e9;
+          for (let yy = Math.max(b.y0, Math.ceil(y - g.sw.mbes + 0.5)); yy <= Math.min(b.y1 - 1, Math.floor(y + g.sw.mbes - 0.5)); yy++)
+            for (let x = b.x0; x < b.x1; x++) if (!(K.cov[yy * W + x] & 3)) { n++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+          if (n && (!best || n > best.n)) best = { n, y, x0, x1 };
+        }
+        if (!best || (g.coverage() >= m.need + 0.004 && best.n < 90)) break;
+        if (!leg(Math.max(0, best.x0 - 2), best.y, Math.min(W - 0.01, best.x1 + 2), best.y, s)) break;
+        go();
+      }
+    }
+    function investigate() {
+      for (const k of K.contacts) {
+        const e = k.ev, sub = e.mbes <= 1 && e.sss <= 1, s = { mbes: 1 };
+        if (has('mag') && e.mag === 0) s.mag = 1;
+        if (has('sbp') && sub && e.sbp < 3 && e.hrs < 3) s.sbp = 1;
+        if (has('hrs') && e.hrs === 2) s.hrs = 1;
+        if (has('hrs') && e.hrs === 0 && sub) s.hrs = 1;
+        if (Object.keys(s).length > 1) leg(k.x - 8, k.y, k.x + 8, k.y, s);
+      }
+      go();
+    }
+    if (m.kind === 'reveal') lawn(2 * g.sw.mbes, { mbes: 1 });
+    else if (m.legacy.length) infill(scan);
+    else lawn(has('hrs') ? 13 : 12, scan);
+    if (m.bh && K.bhTwt === null) { leg(m.bh.x - 5, m.bh.y, m.bh.x + 5, m.bh.y, { hrs: 1 }); go(); }
+    for (const h of m.hints) { const s = { mbes: 1 }; ['mag', 'sbp', 'hrs'].forEach(q => { if (has(q)) s[q] = 1; }); leg(h.x - h.r, h.y, h.x + h.r, h.y, s); go(); }
+    if (m.goal === 'classify') { investigate(); investigate(); }
+    if (m.bh && K.bhTwt) g.setVel(2000 * m.bh.depth / K.bhTwt);
+    for (const k of K.contacts) {
+      const c = botClass(k.ev), ch = SENSORS.reduce((a, q) => a + (k.ev[q] ? 1 : 0), 0);
+      g.classify(k.id, c, ch >= 2 && c !== 'unknown' ? 'high' : 'low');
+    }
+    return opt && opt.noSubmit ? null : g.submit();
+  }
+
+  // ---------------- campaign generator ----------------
+  const TPL = [
+    { kind: 'reveal', title: 'Reveal the Seabed', sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes'], types: ['natural', 'natural'], goal: 'coverage', need: 0.9 },
+    { kind: 'identify', title: 'The Unknown Contact', sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes', 'sss'], types: ['natural', 'natural', 'debris', 'linear', 'buried'], goal: 'classify', need: 0.9 },
+    { kind: 'legacy', title: 'The Missing Strip', sensors: ['mbes', 'sss', 'mag'], defaults: ['mbes', 'sss'], types: ['natural', 'debris', 'debris', 'buried'], goal: 'classify', need: 0.97 },
+    { kind: 'subsurface', title: 'Beneath the Surface', sensors: ['mbes', 'sss', 'mag', 'sbp'], defaults: ['mbes', 'sbp'], types: ['natural', 'debris', 'linear', 'buried', 'buriedNF'], goal: 'classify', need: 0.9 },
+    { kind: 'deep', title: 'Deep Read', sensors: ['mbes', 'sss', 'mag', 'sbp', 'hrs'], defaults: ['mbes', 'sss', 'hrs'], types: ['natural', 'debris', 'anomaly', 'buried'], goal: 'classify', need: 0.9 },
+    { kind: 'final', title: 'The Final Contract', sensors: ['mbes', 'sss', 'mag', 'sbp', 'hrs'], defaults: ['mbes', 'sss', 'hrs'], types: ['natural', 'debris', 'linear', 'buried', 'buriedNF', 'anomaly'], goal: 'classify', need: 0.95 }
+  ];
+  const BRIEF = {
+    reveal: d => `Map block ${d.area} with MBES. Cover at least 90% within the survey days.`,
+    identify: d => `${d.expected} contacts are expected in block ${d.area}. Find them, cross-check each with more than one sensor, then classify.`,
+    legacy: d => `Legacy MBES + SSS data for block ${d.area} has gaps. Infill to ${Math.round(d.need * 100)}% coverage, then classify all ${d.expected} contacts.`,
+    subsurface: d => `${d.expected} contacts are expected in block ${d.area}. One sits in the flagged zone with no magnetic response. Look below the seabed.`,
+    deep: d => `${d.expected} contacts in block ${d.area}, including an amplitude anomaly. Tie velocity at BH-1 (H1 logged at ${d.bh.depth} m below seabed) and report its depth.`,
+    final: d => `The full job for block ${d.area}: infill legacy gaps to ${Math.round(d.need * 100)}%, resolve all ${d.expected} contacts and report the anomaly depth via BH-1 (H1 at ${d.bh.depth} m).`
+  };
+  const TIPS = {
+    reveal: ['Line spacing = 2 × swath half-width avoids both gaps and waste.'],
+    identify: ['MAG separates ferrous from natural; SSS shadows show shape.'],
+    legacy: ['Use the SSS or Bathy layer to find what the legacy lines missed. Infill only.'],
+    subsurface: ['Cross the flagged zone with SBP. SBP clear + MAG silent is a story of its own.'],
+    deep: ['Cross BH-1 with 2D HR first, then set velocity. Cross the anomaly near its centre.'],
+    final: ['Budget is tight: infill first, then spend on the contacts that matter.']
+  };
+  function genDef(runSeed, idx, attempt) {
+    const T = TPL[idx], rnd = mulberry32((runSeed ^ Math.imul(idx + 1, 0x9E3779B1) ^ Math.imul(attempt + 1, 0x85EBCA77)) >>> 0);
+    const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1)), rf = (a, b) => a + rnd() * (b - a);
+    const box = { x0: ri(15, 28), y0: ri(15, 22), x1: ri(132, 145), y1: ri(76, 85) };
+    const area = String.fromCharCode(65 + ri(0, 25)) + '-' + ri(1, 9);
+    const d = {
+      id: 'R' + (idx + 1), kind: T.kind, title: T.title, seed: (runSeed + idx * 7919 + attempt * 104729) % 2147483647, sensors: T.sensors.slice(), defaults: T.defaults,
+      box, goal: T.goal, need: T.need, start: { x: 4, y: ri(20, 80) }, area, contacts: [], budget: 1e6
+    };
+    if (T.kind === 'deep' || T.kind === 'final') { d.vel = ri(160, 195) * 10; d.bh = { x: ri(box.x0 + 10, box.x1 - 10), y: ri(box.y0 + 8, box.y1 - 8), depth: ri(30, 48) }; }
+    const pts = d.bh ? [{ x: d.bh.x, y: d.bh.y, r: 6 }] : [];
+    for (const t0 of T.types) {
+      const t = t0 === 'buriedNF' ? 'buried' : t0, r = t === 'anomaly' ? rf(5, 7) : 0, mg = 8 + r;
+      let c = null;
+      for (let k = 0; k < 200 && !c; k++) {
+        const x = rf(box.x0 + mg, box.x1 - mg), y = rf(box.y0 + mg, box.y1 - mg);
+        if (pts.every(p => Math.hypot(p.x - x, p.y - y) > 14 + r + p.r)) c = { t, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+      }
+      if (!c) return null;
+      if (t === 'natural') c.r = Math.round(rf(1.6, 2.6) * 10) / 10;
+      if (t === 'debris') c.r = 1.2;
+      if (t === 'linear') { c.ang = Math.round(rf(-1.2, 1.2) * 100) / 100; c.len = ri(10, 16); }
+      if (t === 'buried') c.d = ri(5, 10);
+      if (t0 === 'buriedNF') { c.fe = false; d.hints = [{ x: c.x + rf(-3, 3), y: c.y + rf(-3, 3), r: 7, label: 'FLAGGED ZONE' }]; }
+      if (t === 'anomaly') { c.r = Math.round(r * 10) / 10; c.depth = ri(18, 55); }
+      d.contacts.push(c); pts.push({ x: c.x, y: c.y, r });
+    }
+    if (T.kind === 'legacy' || T.kind === 'final') {
+      const lines = [], sp = 12;
+      for (let y = box.y0 + 6; y < box.y1; y += sp) lines.push(y);
+      const drop = ri(1, lines.length - 2), cut = ri(0, lines.length - 1) === drop ? (drop + 1) % lines.length : ri(0, lines.length - 1);
+      const gx = ri(box.x0 + 20, box.x1 - 50), gl = ri(25, 40);
+      d.legacy = [];
+      lines.forEach((y, i) => {
+        if (i === drop) return;
+        if (T.kind === 'final' && y > (box.y0 + box.y1) / 2 + 4) return; // final: legacy covers north half only
+        if (i === cut) { d.legacy.push([box.x0, y, gx, y]); d.legacy.push([gx + gl, y, box.x1, y]); } else d.legacy.push([box.x0, y, box.x1, y]);
+      });
+      d.legacyS = { mbes: 1, sss: 1 };
+    }
+    d.expected = d.goal === 'classify' ? d.contacts.length : undefined;
+    d.brief = BRIEF[T.kind](d); d.tips = TIPS[T.kind];
+    return d;
+  }
+  function genMission(runSeed, idx) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const d = genDef(runSeed, idx, attempt);
+      if (!d) continue;
+      const g = createGame(d), r = runBot(g);
+      if (r.rating !== 'Strong' || !r.complete) continue;
+      if (d.goal === 'classify' && g.K.contacts.length !== d.contacts.length) continue;
+      d.budget = Math.ceil(g.st.used * 1.2 + 0.5);
+      const g2 = createGame(d), r2 = runBot(g2);
+      if (r2.rating !== 'Strong' || !r2.complete) continue;
+      d.botScore = r2.total; d.attempt = attempt;
+      return d;
+    }
+    throw new Error('mission generation failed');
+  }
+  const normalizeSeed = s => ((Math.trunc(s) % 2147483647) + 2147483647) % 2147483647 || 1;
+  const seedCode = s => normalizeSeed(s).toString(36).toUpperCase().padStart(6, '0');
+  const parseSeed = c => { const text = String(c).trim(); if (!/^[0-9a-z]{1,6}$/i.test(text)) return null; const v = parseInt(text, 36); return v > 0 && v < 2147483647 ? v : null; };
+
+
+  root.ECHO = { W, H, SBN, HRN, RATE, SW, SENSORS, BITS, UPGRADES, RUN_PERKS, MISSIONS, LV, label, createGame, runBot, botClass, genMission, normalizeSeed, seedCode, parseSeed, mulberry32, hash01 };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script><script>/* ECHOFIELD UI v0.5.1 — reads game.K (knowledge) only, never world truth. */
+(function () {
+  'use strict';
+  const E = window.ECHO, W = E.W, H = E.H, R = 4;
+  const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const map = $('#map'), ctx = map.getContext('2d');
+  const wf = $('#wf'), wctx = wf.getContext('2d'), sp = $('#sbpc'), sctx = sp.getContext('2d'), hp = $('#hrsc'), hctx = hp.getContext('2d');
+  let game = null, view = 'bathy', view3src = 'bathy', sensors = {}, run = null;
+  let running = false, speed = 3, sel = null, debrief = null, lastT = 0, toastT = 0, clock = 0, lastCount = 0, fr = 0, pingN = 0;
+  const drawn = { sbp: 0, hrs: 0, sss: 0 };
+  const cache = {}, fx = { wake: [], pings: [], pulses: [], pingT: 0 }, prevLv = {};
+  let lastSavedFingerprint = '', hitList = [], activeDef = null, activePerks = {}, activeTag = null, attemptId = null, rewardInfo = null, depthConfirmed = false;
+  const store = {
+    get: (k, d) => { try { return JSON.parse(localStorage.getItem('echofield.' + k)) ?? d; } catch (e) { return d; } },
+    set: (k, v) => { try { localStorage.setItem('echofield.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  };
+  // A single economy record makes each reward transaction idempotent across reloads.
+  function economy() {
+    return store.get('economyV1', { balance: store.get('credits', 0), claims: {}, first: {}, best: {}, owned: store.get('owned', {}) });
+  }
+  function creditReward(r) {
+    const ec = economy(); if (ec.claims[attemptId]) return ec.claims[attemptId];
+    const key = (run ? 'campaign:' : 'training:') + game.mission.kind;
+    const oldBest = run ? (ec.best[key] || 0) : (store.get('best', {})[r.mission] || 0);
+    const items = [];
+    if (r.complete) {
+      items.push(['Mission objectives complete', 15]);
+      if (r.rating === 'Strong') items.push(['Strong evidence', 10]);
+      else if (r.rating === 'Adequate') items.push(['Adequate evidence', 5]);
+      if (!ec.first[key]) { items.push(['First completion', 20]); ec.first[key] = true; }
+      if (r.total > oldBest) items.push(['Personal best improvement', r.total - oldBest]);
+      if (run && run.idx === 5) items.push(['Six-mission campaign completed', 40]);
+      ec.best[key] = Math.max(ec.best[key] || 0, r.total);
+    }
+    const total = items.reduce((a, x) => a + x[1], 0), info = { items, total, complete: r.complete };
+    ec.owned = ec.owned || store.get('owned', {}); ec.balance += total; ec.claims[attemptId] = info;
+    if (!store.set('economyV1', ec)) { toast('Storage unavailable: reward could not be saved.', 'warn'); return { items: [], total: 0, error: true }; }
+    return info;
+  }
+  function saveSession() {
+    if (!game || !attemptId) return;
+    const fingerprint = JSON.stringify([attemptId, game.K.ver, game.st.pos, game.st.used, game.st.plan, game.K.contacts.map(k => game.answer(k.id)), run, debrief?.total, rewardInfo, C3, depthConfirmed, sensors, view, view3src, sel, tutorStep]);
+    if (fingerprint === lastSavedFingerprint) return;
+    const session = { version: 2, camera: { ...C3 }, tutorial: tutorStep, def: activeDef, perks: activePerks, tag: activeTag, attemptId,
+      snapshot: game.snapshot(), run, debrief, rewardInfo, sensors, view, view3src, sel, depthConfirmed };
+    if (!store.set('sessionV1', session)) $('#saveState').textContent = 'Save unavailable: browser storage full or blocked';
+    else { $('#saveState').textContent = 'Progress saved on this browser'; lastSavedFingerprint = fingerprint; }
+  }
+  function resumeSession() {
+    const o = store.get('sessionV1', null); if (!o) return;
+    run = o.run; startGame(o.def, o.perks, o.tag, true);
+    game.restore(o.snapshot); attemptId = o.attemptId; rewardInfo = o.rewardInfo; debrief = o.debrief;
+    sensors = o.sensors; view = o.view; view3src = o.view3src; sel = o.sel; depthConfirmed = !!o.depthConfirmed;
+    lastCount = game.K.contacts.length; $('#vel').value = game.st.vel;
+    if (o.camera) Object.assign(C3, o.camera); tutorStep = o.tutorial ?? -1;
+    if (o.snapshot.K.records === undefined) toast('Older save restored. New trace history starts with your next survey.');
+    syncToggles(); contactList(); card(); hud();
+    if (debrief) showDebrief();
+    toast('Resumed at the saved position. Press Run to continue.');
+  }
+  const ABY = [6, 16, 27], BIT = { bathy: 1, sss: 2, mag: 4, sbp: 8, hrs: 16 };
+  const SCOL = { mbes: '127,209,255', sss: '255,179,71', mag: '232,121,249', sbp: '110,231,183', hrs: '251,113,133' };
+  const CH = E.SENSORS, CHN = { mbes: 'MBES', sss: 'SSS', mag: 'MAG', sbp: 'SBP', hrs: '2D HR' };
+
+  // ---------- sound ----------
+  const SND = (() => {
+    let ac = null, master = null, echo = null, eng = null, on = store.get('sound', true);
+    function init() {
+      if (ac) { if (ac.state === 'suspended') ac.resume().catch(() => {}); return; } const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+      ac = new C(); master = ac.createGain(); master.gain.value = on ? 0.6 : 0; master.connect(ac.destination);
+      echo = ac.createDelay(1); echo.delayTime.value = 0.2; const fb = ac.createGain(); fb.gain.value = 0.35;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1600;
+      echo.connect(fb); fb.connect(lp); lp.connect(echo); echo.connect(master);
+    }
+    function tone(f0, f1, dur, type, vol, wet, delay) {
+      if (!ac || !on) return;
+      const t = ac.currentTime + (delay || 0), o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); if (wet) g.connect(echo); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function thump() {
+      if (!ac || !on) return;
+      const t = ac.currentTime, len = 0.25, b = ac.createBuffer(1, ac.sampleRate * len, ac.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = b; f.type = 'lowpass'; f.frequency.value = 260; g.gain.value = 0.18; s.connect(f); f.connect(g); g.connect(master); g.connect(echo); s.start(t);
+    }
+    function engine(r) {
+      if (!ac) return;
+      if (r && !eng) {
+        const o = ac.createOscillator(), o2 = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+        o.type = 'sawtooth'; o.frequency.value = 46; o2.type = 'sine'; o2.frequency.value = 92; f.type = 'lowpass'; f.frequency.value = 180;
+        g.gain.value = 0.0001; g.gain.exponentialRampToValueAtTime(0.035, ac.currentTime + 0.6);
+        o.connect(f); o2.connect(f); f.connect(g); g.connect(master); o.start(); o2.start(); eng = { o, o2, g };
+      } else if (!r && eng) {
+        const e = eng; eng = null; e.g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.4); e.o.stop(ac.currentTime + 0.5); e.o2.stop(ac.currentTime + 0.5);
+      }
+    }
+    return {
+      init, engine, thump, get on() { return on; },
+      toggle() { on = !on; store.set('sound', on); if (master) master.gain.value = on ? 0.6 : 0; return on; },
+      ping() { tone(1450, 1150, 0.3, 'sine', 0.045, true); },
+      detect() { tone(660, 0, 0.18, 'triangle', 0.09, true); tone(990, 0, 0.32, 'triangle', 0.08, true, 0.12); },
+      click() { tone(1900, 1300, 0.035, 'square', 0.012); },
+      warn() { tone(220, 150, 0.22, 'sawtooth', 0.03); },
+      win(r) { (r === 'Strong' ? [523, 659, 784, 1047] : r === 'Adequate' ? [523, 659, 784] : [440, 392, 330]).forEach((f, i) => tone(f, 0, 0.4, 'triangle', 0.07, true, i * 0.12)); },
+      buy() { tone(880, 0, 0.12, 'square', 0.03); tone(1320, 0, 0.22, 'square', 0.03, false, 0.09); }
+    };
+  })();
+
+  // ---------- helpers ----------
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  function bil(f, x, y) {
+    x = clamp(x - 0.5, 0, W - 1.001); y = clamp(y - 0.5, 0, H - 1.001);
+    const xi = x | 0, yi = y | 0, fx_ = x - xi, fy = y - yi, i = yi * W + xi;
+    return (f[i] * (1 - fx_) + f[i + 1] * fx_) * (1 - fy) + (f[i + W] * (1 - fx_) + f[i + W + 1] * fx_) * fy;
+  }
+  function blurMask(cov, bit) {
+    const m = new Float32Array(W * H), o = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) m[i] = cov[i] & bit ? 1 : 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; s += m[Y * W + X]; n++;
+      }
+      o[y * W + x] = s / n;
+    }
+    return o;
+  }
+  function fill(src, cov, bit, passes) {
+    let v = Float32Array.from(src), k = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) k[i] = cov[i] & bit ? 1 : 0;
+    for (let p = 0; p < passes; p++) {
+      const nv = Float32Array.from(v), nk = Uint8Array.from(k);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = y * W + x; if (k[i]) continue;
+        let s = 0, n = 0;
+        if (x > 0 && k[i - 1]) { s += v[i - 1]; n++; } if (x < W - 1 && k[i + 1]) { s += v[i + 1]; n++; }
+        if (y > 0 && k[i - W]) { s += v[i - W]; n++; } if (y < H - 1 && k[i + W]) { s += v[i + W]; n++; }
+        if (n) { nv[i] = s / n; nk[i] = 1; }
+      }
+      v = nv; k = nk;
+    }
+    return v;
+  }
+  const DEPTH = [[4, 22, 52], [10, 52, 96], [18, 98, 130], [46, 150, 150], [130, 190, 160], [222, 210, 160]];
+  const MAGMA = [[20, 12, 40], [80, 20, 110], [170, 40, 120], [240, 100, 70], [255, 200, 90], [255, 250, 210]];
+  const SBPC = [[6, 24, 26], [14, 70, 70], [30, 140, 120], [110, 220, 170], [235, 255, 235]];
+  const HRSC = [[14, 12, 28], [70, 24, 60], [170, 40, 70], [245, 110, 100], [255, 220, 200]];
+  function ramp(stops, t) {
+    t = clamp(t, 0, 0.999) * (stops.length - 1);
+    const i = t | 0, f = t - i, a = stops[i], b = stops[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  }
+
+  let abyss = null;
+  function buildAbyss() {
+    const cv = document.createElement('canvas'); cv.width = W * R; cv.height = H * R;
+    const g = cv.getContext('2d'), img = g.createImageData(cv.width, cv.height), d = img.data;
+    for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+      const o = (y * cv.width + x) * 4, n = E.hash01(y * cv.width + x, 11) * 6;
+      const v = 1 - 0.35 * Math.hypot(x / cv.width - 0.5, y / cv.height - 0.5);
+      d[o] = ABY[0] * v + n * 0.4; d[o + 1] = ABY[1] * v + n * 0.7; d[o + 2] = ABY[2] * v + n; d[o + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    g.strokeStyle = 'rgba(120,180,230,.06)'; g.lineWidth = 1;
+    for (let x = 0; x <= W; x += 10) { g.beginPath(); g.moveTo(x * R + .5, 0); g.lineTo(x * R + .5, cv.height); g.stroke(); }
+    for (let y = 0; y <= H; y += 10) { g.beginPath(); g.moveTo(0, y * R + .5); g.lineTo(cv.width, y * R + .5); g.stroke(); }
+    abyss = cv;
+  }
+
+  // ---------- knowledge layers ----------
+  let lastBuild = 0;
+  function layer(mode, force) {
+    const K = game.K, c = cache[mode], now = performance.now();
+    if (c && (c.ver === K.ver || (!force && running && now - lastBuild < 110))) return c;
+    lastBuild = now;
+    const cv = c ? c.cv : document.createElement('canvas'); cv.width = W * R; cv.height = H * R;
+    const g = cv.getContext('2d'), img = g.createImageData(cv.width, cv.height), d = img.data;
+    const bit = BIT[mode];
+    let lo = 1e9, hi = -1e9;
+    for (let i = 0; i < W * H; i++) if (K.cov[i] & 1) { lo = Math.min(lo, K.bathy[i]); hi = Math.max(hi, K.bathy[i]); }
+    const span = hi > lo ? hi - lo : 1;
+    const bz = fill(K.bathy, K.cov, 1, 3), mb = blurMask(K.cov, 1);
+    const sh = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, zx = bz[y * W + Math.min(W - 1, x + 1)] - bz[y * W + Math.max(0, x - 1)];
+      const zy = bz[Math.min(H - 1, y + 1) * W + x] - bz[Math.max(0, y - 1) * W + x];
+      sh[i] = clamp(0.9 + (-zx * 0.7 - zy) * 14, 0.45, 1.35);
+    }
+    const val = mode === 'bathy' ? null : fill(K[mode], K.cov, bit, 2);
+    const mk = mode === 'bathy' ? mb : blurMask(K.cov, bit);
+    const pal = mode === 'mag' ? MAGMA : mode === 'sbp' ? SBPC : HRSC, sc_ = mode === 'mag' ? 1 / 1.1 : 1;
+    for (let py = 0; py < cv.height; py++) {
+      const y = (py + 0.5) / R;
+      for (let px = 0; px < cv.width; px++) {
+        const x = (px + 0.5) / R, o = (py * cv.width + px) * 4;
+        const a = sstep(0.15, 0.75, bil(mk, x, y)), ab = sstep(0.15, 0.75, bil(mb, x, y));
+        let r = 0, gg = 0, b = 0, al = 0;
+        const s = bil(sh, x, y), z = (bil(bz, x, y) - lo) / span;
+        if (mode === 'bathy') {
+          const col = ramp(DEPTH, z), ct = (z * 14) % 1, line = ct < 0.06 ? 0.78 : 1;
+          r = col[0] * s * line; gg = col[1] * s * line; b = col[2] * s * line; al = a;
+        } else if (mode === 'sss') {
+          const v = clamp(bil(val, x, y) + (E.hash01(py * 997 + px, 3) - 0.5) * 0.08, 0, 1), q = Math.pow(v, 0.85);
+          r = 20 + 235 * q; gg = 14 + 196 * q * q * 0.95 + 10 * q; b = 6 + 120 * q * q * q; al = a;
+          if (a < 0.98 && ab > 0) { const k = 34 * s; r = r * a + k * (1 - a); gg = gg * a + (k + 6) * (1 - a); b = b * a + (k + 14) * (1 - a); al = Math.max(a, ab * 0.85); }
+        } else {
+          const k = 26 * s, col = ramp(pal, clamp(bil(val, x, y) * sc_, 0, 1));
+          r = k * (1 - a) + col[0] * a; gg = (k + 6) * (1 - a) + col[1] * a; b = (k + 16) * (1 - a) + col[2] * a; al = Math.max(a, ab * 0.85);
+        }
+        d[o] = r; d[o + 1] = gg; d[o + 2] = b; d[o + 3] = al * 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    const out = { ver: K.ver, cv, data: d, lo, span, bz, mb };
+    cache[mode] = out; return out;
+  }
+
+  // ---------- shared draw helpers ----------
+  let sc = 1, cssScale = 1;
+  function resize() {
+    const wrap = $('#mapwrap'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.min(wrap.clientWidth, Math.max(1, wrap.clientHeight) * 1.6), h = w / 1.6;
+    map.style.width = w + 'px';
+    map.style.height = h + 'px'; map.width = Math.round(w * dpr); map.height = Math.round(h * dpr); sc = map.width / W; cssScale = dpr; r3T = 0;
+  }
+  function legCol(s) { return s.hrs ? SCOL.hrs : s.sbp && !s.sss ? SCOL.sbp : s.sss ? SCOL.sss : s.mag && !s.mbes ? SCOL.mag : s.mbes ? SCOL.mbes : '200,210,220'; }
+  function legSw(s) { const w = game.sw; return s.sss ? w.sssOut : s.mbes ? w.mbes : s.mag ? w.magLine : s.hrs ? w.hrsLine : s.sbp ? w.sbpLine : 0.3; }
+  function curLeg() { return game.st.plan.length && running ? game.st.plan[0].s : null; }
+  function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function label(text, x, y, col, bg) {
+    const fs = Math.max(10, 11 * cssScale); ctx.font = `700 ${fs}px Segoe UI,system-ui`;
+    const tw = ctx.measureText(text).width;
+    ctx.fillStyle = bg || 'rgba(6,16,26,.82)'; roundRect(x - 4, y - fs * 0.9, tw + 8, fs * 1.3, 4); ctx.fill();
+    ctx.fillStyle = col; ctx.fillText(text, x, y + fs * 0.1);
+  }
+  // project(wx, wy, lift) -> [x, y] in canvas px or null; poly helper samples straight world segments
+  function poly(project, pts, col, width, dash, samples) {
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath();
+    let pen = false;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1], n = samples ? Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / samples)) : 1;
+      for (let k = (i ? 1 : 0); k <= n; k++) {
+        const p = project(a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n, 0.15);
+        if (!p) { pen = false; continue; }
+        if (pen) ctx.lineTo(p[0], p[1]); else { ctx.moveTo(p[0], p[1]); pen = true; }
+      }
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  function circle(project, cx, cy, r, col, width, dash, fillCol) {
+    const pts = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 2; pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }); }
+    if (fillCol) {
+      ctx.fillStyle = fillCol; ctx.beginPath(); let pen = false;
+      for (const q of pts) { const p = project(q.x, q.y, 0.15); if (!p) continue; if (pen) ctx.lineTo(p[0], p[1]); else { ctx.moveTo(p[0], p[1]); pen = true; } }
+      ctx.fill();
+    }
+    poly(project, pts, col, width, dash);
+  }
+
+  function overlays(project, scl) {
+    const st = game.st, m = game.mission, b = m.box, lw = Math.max(1.2, 1.3 * cssScale);
+    for (const l of m.legacy) poly(project, [{ x: l[0], y: l[1] }, { x: l[2], y: l[3] }], 'rgba(220,230,240,.5)', lw, [4 * cssScale, 4 * cssScale], 3);
+    for (const h of m.hints) {
+      const pul = 1 + 0.05 * Math.sin(clock * 3);
+      circle(project, h.x, h.y, h.r * pul, 'rgba(201,164,255,.9)', 2 * cssScale, [6 * cssScale, 4 * cssScale], 'rgba(201,164,255,.08)');
+      const p = project(h.x, h.y - h.r, 0.5); if (p) label(h.label, p[0] - 40 * cssScale, p[1] - 8 * cssScale, '#dcc6ff');
+    }
+    poly(project, [{ x: b.x0, y: b.y0 }, { x: b.x1, y: b.y0 }, { x: b.x1, y: b.y1 }, { x: b.x0, y: b.y1 }, { x: b.x0, y: b.y0 }], 'rgba(160,225,255,.8)', lw * 1.2, [8 * cssScale, 5 * cssScale], 3);
+    { const p = project(b.x0, b.y0, 0.3); if (p) label('TARGET BLOCK', p[0] + 2, p[1] - 8 * cssScale, '#a0e1ff', 'rgba(6,16,26,.6)'); }
+    if (m.legacy.length) { const p = project(b.x1 - 22, b.y0, 0.3); if (p) label('LEGACY LINES', p[0], p[1] - 8 * cssScale, '#dce6f0', 'rgba(6,16,26,.6)'); }
+    // anomaly footprints (only once 2D HR has seen them)
+    for (const k of game.K.contacts) if (k.observed?.length > 1) poly(project, k.observed, 'rgba(251,113,133,.85)', 3 * cssScale, [], 1);
+    if (debrief && debrief.truth) for (const t of debrief.truth) if (t.r) circle(project, t.x, t.y, t.r, 'rgba(255,255,255,.35)', 1, [2, 3]);
+    if (profile.cursor) {
+      const p = project(profile.cursor.x, profile.cursor.y, 0.5);
+      if (p) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 8 * cssScale, 0, 7); ctx.stroke(); label(`L${profile.cursor.line} / ${profile.cursor.chainage.toFixed(1)}`, p[0] + 12, p[1], '#fff'); }
+    }
+    if (debrief) {
+      const mask = m.goal === 'coverage' ? 1 : 3;
+      for (let y = b.y0; y < b.y1; y += 3) for (let x = b.x0; x < b.x1; x += 3) if (!(game.K.cov[y * W + x] & mask)) {
+        const p = project(x, y, 0.1); if (p) { ctx.fillStyle = 'rgba(255,160,80,.6)'; ctx.fillRect(p[0] - 2, p[1] - 2, 4, 4); }
+      }
+      for (const l of game.K.lines) if (!l.legacy) poly(project, [l.origin, l.end], 'rgba(255,255,255,.3)', 1, [2,4], 3);
+    }
+    // borehole
+    if (m.bh) {
+      const p = project(m.bh.x, m.bh.y, 0.4);
+      if (p) {
+        const s = 8 * cssScale, tied = game.K.bhTwt !== null;
+        ctx.fillStyle = tied ? '#6ee7b7' : '#e6eef5'; ctx.strokeStyle = '#06101a'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(p[0], p[1] - s); ctx.lineTo(p[0] + s * 0.85, p[1] + s * 0.6); ctx.lineTo(p[0] - s * 0.85, p[1] + s * 0.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+        label('BH-1' + (tied ? ' ✓' : ''), p[0] + s, p[1] - s * 0.4, tied ? '#6ee7b7' : '#e6eef5');
+      }
+    }
+    // plan
+    let p0 = st.pos;
+    for (const w of st.plan) {
+      const c = legCol(w.s), a = project(p0.x, p0.y, 0.2), z = project(w.x, w.y, 0.2);
+      if (scl) { ctx.strokeStyle = `rgba(${c},.12)`; ctx.lineWidth = legSw(w.s) * 2 * scl; if (a && z) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(z[0], z[1]); ctx.stroke(); } }
+      ctx.lineDashOffset = -clock * 20;
+      poly(project, [p0, w], `rgba(${c},.95)`, Math.max(1.4, 1.6 * cssScale), [5 * cssScale, 4 * cssScale], 2);
+      ctx.lineDashOffset = 0;
+      if (z) { ctx.fillStyle = '#06101a'; ctx.strokeStyle = `rgb(${c})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(z[0], z[1], 4 * cssScale, 0, 7); ctx.fill(); ctx.stroke(); }
+      p0 = w;
+    }
+    drawContacts(project, Math.max(7, 7 * cssScale + (scl ? scl * 0.6 : 0)));
+    if (debrief && debrief.truth) for (const t of debrief.truth) if (!t.id) {
+      circle(project, t.x, t.y, 2.5 + t.r, '#c9a4ff', 2, [4, 3]);
+      const p = project(t.x, t.y, 0.3); if (p) label('MISSED', p[0] + 12 * cssScale, p[1], '#c9a4ff');
+    }
+    for (let i = 1; i < fx.wake.length; i++) {
+      const a = project(fx.wake[i - 1].x, fx.wake[i - 1].y, 0.1), q = project(fx.wake[i].x, fx.wake[i].y, 0.1), t = i / fx.wake.length;
+      if (!a || !q) continue;
+      ctx.strokeStyle = `rgba(230,245,255,${0.35 * t})`; ctx.lineWidth = cssScale * (1 + 5 * (1 - t));
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+    }
+    for (const pg of fx.pings) {
+      const t = (clock - pg.t) / 1.4; if (t > 1 || t < 0) continue;
+      circle(project, pg.x, pg.y, Math.max(0.5, pg.r * t), `rgba(${pg.c},${0.55 * (1 - t)})`, 2);
+    }
+  }
+  function drawContacts(project, r) {
+    hitList = [];
+    for (const k of game.K.contacts) {
+      const p = project(k.x, k.y, 1.2); if (!p) continue;
+      const [x, y] = p, a = game.answer(k.id), on = sel === k.id;
+      hitList.push({ id: k.id, x, y });
+      const pu = fx.pulses.find(q => q.id === k.id), pt = pu ? (clock - pu.t) : 9;
+      if (pt < 2.4) for (let j = 0; j < 3; j++) {
+        const t = (pt - j * 0.35) / 1.5; if (t < 0 || t > 1) continue;
+        ctx.strokeStyle = `rgba(255,190,90,${1 - t})`; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(x, y, r * (1 + 4 * t), 0, 7); ctx.stroke();
+      }
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2);
+      g.addColorStop(0, a ? 'rgba(255,190,90,.55)' : 'rgba(255,208,138,.35)'); g.addColorStop(1, 'rgba(255,190,90,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = a ? '#ffb347' : 'rgba(8,18,30,.85)'; ctx.strokeStyle = on ? '#fff' : '#ffd08a'; ctx.lineWidth = on ? 2.6 : 1.8;
+      ctx.fillRect(-r / 2, -r / 2, r, r); ctx.strokeRect(-r / 2, -r / 2, r, r); ctx.restore();
+      if (on) { ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.lineDashOffset = -clock * 12; ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; }
+      label(k.id, x + r * 0.9, y - r * 1.4, a ? '#ffb347' : '#fff');
+    }
+  }
+  function drawVessel(x, y, hd, L, leg) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(hd);
+    if (leg && leg.hrs) {
+      ctx.strokeStyle = 'rgba(251,113,133,.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-L * 0.5, L * 0.08); ctx.lineTo(-L * 2.6, L * 0.08); ctx.stroke();
+      ctx.fillStyle = `rgba(251,113,133,${0.5 + 0.5 * Math.sin(clock * 6)})`; ctx.beginPath(); ctx.arc(-L * 0.75, -L * 0.12, L * 0.07, 0, 7); ctx.fill();
+    }
+    if (leg && leg.sss) {
+      ctx.strokeStyle = 'rgba(255,200,120,.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-L * 0.5, 0); ctx.lineTo(-L * 1.6, 0); ctx.stroke();
+      ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.ellipse(-L * 1.7, 0, L * 0.14, L * 0.06, 0, 0, 7); ctx.fill();
+    }
+    ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+    const g = ctx.createLinearGradient(0, -L * 0.25, 0, L * 0.25); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#b9c6d2');
+    ctx.fillStyle = g; ctx.strokeStyle = '#0b1622'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(L * 0.62, 0); ctx.quadraticCurveTo(L * 0.35, -L * 0.26, L * 0.1, -L * 0.25);
+    ctx.lineTo(-L * 0.5, -L * 0.23); ctx.lineTo(-L * 0.5, L * 0.23); ctx.lineTo(L * 0.1, L * 0.25); ctx.quadraticCurveTo(L * 0.35, L * 0.26, L * 0.62, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#e8792f'; ctx.fillRect(-L * 0.42, -L * 0.17, L * 0.22, L * 0.34);
+    ctx.fillStyle = '#1b2c3d'; ctx.fillRect(L * 0.02, -L * 0.15, L * 0.24, L * 0.3);
+    ctx.fillStyle = '#7fd1ff'; ctx.fillRect(L * 0.2, -L * 0.13, L * 0.04, L * 0.26);
+    if (leg && leg.sbp) { ctx.strokeStyle = `rgb(${SCOL.sbp})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-L * 0.1, -L * 0.25); ctx.lineTo(-L * 0.1, -L * 0.42); ctx.stroke(); }
+    if (leg) { ctx.fillStyle = `rgba(${legCol(leg)},${0.6 + 0.4 * Math.sin(clock * 8)})`; ctx.beginPath(); ctx.arc(L * 0.12, 0, L * 0.05, 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+
+  // ---------- 2D ----------
+  function draw2D() {
+    const st = game.st;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(abyss, 0, 0, map.width, map.height);
+    ctx.drawImage(layer(view).cv, 0, 0, map.width, map.height);
+    overlays((x, y) => [x * sc, y * sc], sc);
+    drawVessel(st.pos.x * sc, st.pos.y * sc, st.heading, Math.max(16, sc * 3.4), curLeg());
+  }
+
+  // ---------- 3D (orbit voxel terrain, knowledge only) ----------
+  const C3 = { yaw: 0, zoom: 1, follow: false, ex: 1, pitch: 1, panX: 0, panY: 0, curtain: false };
+  let qualityScale = 0.65, renderMs = 0, lastTerrainKey = '';
+  const profile = { sensor: 'hrs', line: 'all', cursor: null, row: 0, gain: 1, span: 500, offset: 0, mode: 'cursor', cacheKey: '', image: null };
+  let tutorStep = -1, tutorialStartCoverage = 0;
+  let r3 = null, r3T = 0, pick = null, cam = null;
+  function heightAt(L, wx, wy) {
+    const m = clamp(bil(L.mb, wx, wy) * 1.4, 0, 1);
+    return (m * clamp((bil(L.bz, wx, wy) - L.lo) / L.span, 0, 1) * 4.5 + (1 - m) * 1.6) * C3.ex;
+  }
+  function camera(sw, shh) {
+    const b = game.mission.box, hw = (b.x1 - b.x0) / 2, hh = (b.y1 - b.y0) / 2;
+    const F = { x: Math.sin(C3.yaw), y: -Math.cos(C3.yaw) }, Rt = { x: Math.cos(C3.yaw), y: Math.sin(C3.yaw) };
+    const Rf = Math.abs(hw * F.x) + Math.abs(hh * F.y), Rl = Math.abs(hw * Rt.x) + Math.abs(hh * Rt.y);
+    const near = (C3.follow ? 28 : 60) * C3.zoom, D = near + Rf, zf = near, zb = near + 2 * Rf;
+    const a = 0.8 / (1 / zf - 1 / zb), hor = a / zf - 0.93, fov = (Rl + 4) / zf * 1.02, h = 40 * C3.pitch, s = a / 40 * shh;
+    const T = C3.follow ? { x: game.st.pos.x, y: game.st.pos.y } : { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+    return { F, Rt, C: { x: T.x + C3.panX - F.x * D, y: T.y + C3.panY - F.y * D }, hor, fov, h, s, sw, shh, D, zf, zb };
+  }
+  function proj3(c, wx, wy, hz) {
+    const dx = wx - c.C.x, dy = wy - c.C.y, z = dx * c.F.x + dy * c.F.y; if (z < 2) return null;
+    const u = dx * c.Rt.x + dy * c.Rt.y;
+    return [(u / (c.fov * z) + 1) / 2 * c.sw, (c.h - hz) * c.s / z - c.hor * c.shh];
+  }
+  function draw3D() {
+    const sw = Math.max(120, Math.round(map.width * qualityScale)), shh = Math.max(75, Math.round(map.height * qualityScale));
+    if (!r3 || r3.width !== sw || r3.height !== shh) { r3 = document.createElement('canvas'); r3.width = sw; r3.height = shh; pick = { x: new Float32Array(sw * shh), y: new Float32Array(sw * shh) }; r3T = 0; }
+    const L = layer('bathy'), Lv = view3src === 'bathy' ? L : layer(view3src), now = performance.now();
+    cam = camera(sw, shh);
+    const terrainKey = [game.K.ver, view3src, C3.yaw, C3.zoom, C3.panX, C3.panY, C3.pitch, C3.ex, C3.follow ? game.st.pos.x : 0, C3.follow ? game.st.pos.y : 0, sw, shh].join(':');
+    if (r3T === 0 || (terrainKey !== lastTerrainKey && now - r3T > (dragging ? 45 : 100))) {
+      const started = performance.now(); r3T = now; lastTerrainKey = terrainKey;
+      const c = cam, g = r3.getContext('2d'), img = g.createImageData(sw, shh), d = img.data, yb = new Float32Array(sw).fill(shh), cw = W * R;
+      pick.x.fill(NaN); pick.y.fill(NaN);
+      for (let y = 0; y < shh; y++) { const t = y / shh; for (let x = 0; x < sw; x++) { const o = (y * sw + x) * 4; d[o] = 4 + 6 * t; d[o + 1] = 12 + 14 * t; d[o + 2] = 24 + 22 * t; d[o + 3] = 255; } }
+      const z0 = Math.max(3, c.zf * 0.35), z1 = c.zb + 70;
+      for (let z = z0; z < z1; z += 0.2 + z * 0.0035) {
+        const mx = c.C.x + c.F.x * z, my = c.C.y + c.F.y * z, hw = c.fov * z;
+        const lx = mx - c.Rt.x * hw, ly = my - c.Rt.y * hw, ddx = 2 * c.Rt.x * hw / sw, ddy = 2 * c.Rt.y * hw / sw;
+        const fog = clamp((z - c.zf) / (c.zb - c.zf + 40), 0, 1) * 0.55;
+        for (let i = 0; i < sw; i++) {
+          const wx = lx + ddx * i, wy = ly + ddy * i; if (wx < 0 || wy < 0 || wx >= W || wy >= H) continue;
+          const hz = heightAt(L, wx, wy), top = (c.h - hz) * c.s / z - c.hor * shh; if (top >= yb[i]) continue;
+          const o = (((wy * R) | 0) * cw + ((wx * R) | 0)) * 4, al = Lv.data[o + 3] / 255;
+          // slope light (cheap): compare with a sample further along the view
+          const hz2 = heightAt(L, wx + c.F.x * 0.8, wy + c.F.y * 0.8), lit = clamp(1 + (hz2 - hz) * 0.35, 0.7, 1.25);
+          let r = (Lv.data[o] * al + 10 * (1 - al)) * lit, gg = (Lv.data[o + 1] * al + 22 * (1 - al)) * lit, b = (Lv.data[o + 2] * al + 36 * (1 - al)) * lit;
+          r = r * (1 - fog) + 8 * fog; gg = gg * (1 - fog) + 20 * fog; b = b * (1 - fog) + 34 * fog;
+          for (let yy = Math.max(0, top | 0); yy < yb[i]; yy++) { const q = yy * sw + i, p = q * 4; d[p] = r; d[p + 1] = gg; d[p + 2] = b; pick.x[q] = wx; pick.y[q] = wy; }
+          yb[i] = Math.max(0, top);
+        }
+      }
+      g.putImageData(img, 0, 0);
+      renderMs = performance.now() - started;
+      if ($('#quality').value === 'auto') { if (renderMs > 85 && qualityScale > 0.36) qualityScale = Math.max(0.35, qualityScale - 0.1); else if (renderMs < 25 && qualityScale < 0.7) qualityScale += 0.025; }
+      $('#renderInfo').textContent = `Terrain ${renderMs.toFixed(0)} ms · ${(qualityScale * 100).toFixed(0)}% resolution`;
+    }
+    ctx.imageSmoothingEnabled = true; if(C3.curtain){ctx.fillStyle='#06111d';ctx.fillRect(0,0,map.width,map.height);ctx.globalAlpha=.42;} ctx.drawImage(r3, 0, 0, map.width, map.height); ctx.globalAlpha=1;
+    const k = map.width / sw, P = (wx, wy, lift) => { const p = proj3(cam, wx, wy, heightAt(L, wx, wy) + (lift || 0) * 1.5); return p ? [p[0] * k, p[1] * k] : null; };
+    if (C3.curtain) drawCurtain(L, cam, k);
+    overlays(P, 0);
+    drawVesselMesh(L, cam, k);
+    // compass
+    const cx = map.width - 34 * cssScale, cy = 54 * cssScale, rr = 14 * cssScale;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-C3.yaw);
+    ctx.fillStyle = 'rgba(5,12,20,.65)'; ctx.beginPath(); ctx.arc(0, 0, rr + 4 * cssScale, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.moveTo(0, -rr); ctx.lineTo(4 * cssScale, 0); ctx.lineTo(-4 * cssScale, 0); ctx.fill();
+    ctx.fillStyle = '#8ea5b8'; ctx.beginPath(); ctx.moveTo(0, rr); ctx.lineTo(4 * cssScale, 0); ctx.lineTo(-4 * cssScale, 0); ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- live instruments ----------
+  function scroll(cv, c2, total, cols, key, paint) {
+    if (total <= drawn[key]) return;
+    const base = total - cols.length; if (drawn[key] < base) drawn[key] = base;
+    const n = total - drawn[key], cw = 2, shift = Math.min(cv.width, n * cw);
+    c2.drawImage(cv, shift, 0, cv.width - shift, cv.height, 0, 0, cv.width - shift, cv.height);
+    const img = c2.createImageData(cw, cv.height), d = img.data;
+    for (; drawn[key] < total; drawn[key]++) {
+      const x = cv.width - (total - drawn[key]) * cw; if (x < -cw) continue;
+      paint(cols[drawn[key] - base], d, cw, cv.height); c2.putImageData(img, x, 0);
+    }
+  }
+  function paintSbp(col, d, cw, h) {
+    const rows = h / E.SBN;
+    for (let y = 0; y < h; y++) {
+      const fy = y / rows - 0.5, i0 = clamp(fy | 0, 0, E.SBN - 1), i1 = Math.min(E.SBN - 1, i0 + 1), t = clamp(fy - i0, 0, 1), v = (col[i0] * (1 - t) + col[i1] * t) / 255, q = Math.pow(v, 0.8);
+      for (let c = 0; c < cw; c++) { const o = (y * cw + c) * 4; d[o] = 8 + 200 * q; d[o + 1] = 18 + 232 * q; d[o + 2] = 22 + 210 * q; d[o + 3] = 255; }
+    }
+  }
+  function paintHrs(col, d, cw, h) {
+    const rows = h / E.HRN;
+    for (let y = 0; y < h; y++) {
+      const fy = y / rows - 0.5, i0 = clamp(fy | 0, 0, E.HRN - 1), i1 = Math.min(E.HRN - 1, i0 + 1), t = clamp(fy - i0, 0, 1);
+      const v = (col[i0] * (1 - t) + col[i1] * t) / 127 * (1 + 1.2 * y / h), q = Math.min(1, Math.pow(Math.abs(v), 0.6));
+      let r = 12, g = 15, b = 24;
+      if (v < 0) { r += 243 * q; g += 70 * q; b += 60 * q; } else { r += 70 * q; g += 140 * q; b += 231 * q; }
+      for (let c = 0; c < cw; c++) { const o = (y * cw + c) * 4; d[o] = r; d[o + 1] = g; d[o + 2] = b; d[o + 3] = 255; }
+    }
+  }
+  function instruments(nRows) {
+    const leg = curLeg(), st = game.st, K = game.K;
+    $('#wfBox').classList.toggle('idle', !(leg && leg.sss)); $('#sbpBox').classList.toggle('idle', !(leg && leg.sbp)); $('#hrsBox').classList.toggle('idle', !(leg && leg.hrs));
+    for (const rec of K.records) if (rec.sss && rec.id > drawn.sss) {
+      wctx.drawImage(wf, 0, 0, wf.width, wf.height - 1, 0, 1, wf.width, wf.height - 1);
+      const row = wctx.createImageData(wf.width, 1);
+      for (let x = 0; x < wf.width; x++) { const v = rec.sss[Math.min(63, Math.floor(x / wf.width * 64))] / 255, o = x * 4; row.data[o] = 20 + 235 * v; row.data[o+1] = 14 + 190 * v * v; row.data[o+2] = 6 + 110 * v * v * v; row.data[o+3] = 255; }
+      wctx.putImageData(row, 0, 0); drawn.sss = rec.id;
+    }
+    scroll(sp, sctx, K.sbpTotal, K.sbpCols, 'sbp', paintSbp);
+    const before = drawn.hrs;
+    scroll(hp, hctx, K.hrsTotal, K.hrsCols, 'hrs', paintHrs);
+    if (drawn.hrs > before && (drawn.hrs / 12 | 0) !== (before / 12 | 0)) SND.thump();
+  }
+  function wfRow(st, K, r) {
+    wctx.drawImage(wf, 0, 0, wf.width, wf.height - 1, 0, 1, wf.width, wf.height - 1);
+    const row = wctx.createImageData(wf.width, 1), d = row.data, sw = game.sw;
+    const lx = -Math.sin(st.heading), ly = Math.cos(st.heading), half = wf.width / 2;
+    for (let i = 0; i < wf.width; i++) {
+      const o = (i - half) / half * sw.sssOut, ao = Math.abs(o), q = i * 4;
+      let v = 0;
+      if (ao >= sw.sssIn) {
+        const x = st.pos.x + o * lx, y = st.pos.y + o * ly;
+        if (x >= 0 && y >= 0 && x < W && y < H) v = bil(K.sss, x, y);
+        v = clamp(v * (0.7 + 0.3 * (1 - ao / sw.sssOut)) + (E.hash01((st.steps * 7 + r) * 613 + i, 9) - 0.5) * 0.18, 0, 1);
+      } else v = ao > sw.sssIn - 0.25 ? 0.5 : 0.02 + E.hash01(st.steps * 31 + i, 4) * 0.03;
+      d[q] = 20 + 235 * v; d[q + 1] = 14 + 190 * v * v; d[q + 2] = 6 + 110 * v * v * v; d[q + 3] = 255;
+    }
+    wctx.putImageData(row, 0, 0);
+  }
+
+  // ---------- HUD ----------
+  const tw = {};
+  function setNum(id, v, fmt) {
+    const t = tw[id] || (tw[id] = { shown: v });
+    if (t.target !== v) { if (t.target !== undefined && Math.abs(v - t.target) > 0.5) bump(id); t.target = v; }
+    t.shown += (t.target - t.shown) * 0.2; if (Math.abs(t.target - t.shown) < 0.05) t.shown = t.target;
+    $('#' + id).textContent = fmt(t.shown);
+  }
+  function bump(id) { const el = $('#' + id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  function hud() {
+    const st = game.st, m = game.mission, pc = game.planCost();
+    const u = st.used / m.budget * 100, pl = pc / m.budget * 100;
+    $('#budUsed').style.width = u + '%'; $('#budPlan').style.left = u + '%'; $('#budPlan').style.width = Math.min(100 - u, pl) + '%';
+    setNum('budNum', m.budget - st.used - pc, v => v.toFixed(1));
+    $('#budTxt').textContent = `${st.used.toFixed(1)} used · ${pc.toFixed(1)} planned · of ${m.budget}`;
+    setNum('covNum', game.coverage() * 100, v => v.toFixed(0) + '%');
+    $('#covLbl').textContent = m.goal === 'coverage' ? 'MBES coverage · target 90%' : `Coverage · target ${(m.need * 100).toFixed(0)}%`;
+    $('#conNum').textContent = m.goal === 'coverage' ? '—' : `${game.K.contacts.length}/${m.expected}`;
+    const dis = (!st.plan.length && !running) || st.submitted;
+    $('#run').innerHTML = running ? '❚❚&nbsp; Pause' : '▶&nbsp; Run survey'; $('#run').disabled = dis; $('#fab').innerHTML = running ? '❚❚' : '▶'; $('#fab').disabled = dis;
+    $('#rate').textContent = `${(game.rate(sensors) * 10).toFixed(2)} days per 10 cells`;
+    if (toastT && performance.now() > toastT) { $('#toast').classList.remove('on'); toastT = 0; }
+    if (m.bh) velPanel();
+    updateRouteUI();
+    const objectiveHTML = game.completion().checks.map(c => `<div class="${c.ok ? 'ok' : ''}">${c.ok ? '✓' : '○'} ${escapeHTML(c.text)}</div>`).join('');
+    if ($('#objectives').innerHTML !== objectiveHTML) $('#objectives').innerHTML = objectiveHTML;
+  }
+  function toast(t, kind) { const el = $('#toast'); el.textContent = t; el.className = 'on ' + (kind || ''); toastT = performance.now() + 2400; }
+  function velPanel() {
+    const K = game.K, m = game.mission;
+    $('#bhD').textContent = m.bh.depth + ' m';
+    $('#bhT').textContent = K.bhTwt === null ? 'not measured · cross BH-1 with 2D HR' : K.bhTwt.toFixed(1) + ' ms';
+    $('#velV').textContent = game.st.vel + ' m/s';
+    const measured = K.bhTwt !== null;
+    drawBHTie(measured ? game.depthOf(K.bhTwt) : null, m.bh.depth);
+    $('#fitBH').disabled = !measured || game.st.submitted;
+    $('#confirmBH').disabled = !measured || Math.abs(game.depthOf(K.bhTwt) - m.bh.depth) / m.bh.depth > 0.05 || game.st.submitted;
+    $('#bhStep').textContent = !measured ? '1 / 3: Collect BH-1 data with 2D HR' : !depthConfirmed ? '2 / 3: Match H1 to the log, then confirm' : '3 / 3: Ready to read anomaly depths';
+    $('#confirmBH').textContent = depthConfirmed ? '✓ Depth tie confirmed' : 'Confirm depth tie';
+    const el = $('#bhCalc');
+    if (K.bhTwt === null) { el.textContent = '—'; el.className = ''; }
+    else { const dd = game.depthOf(K.bhTwt), err = (dd - m.bh.depth) / m.bh.depth; el.textContent = `${dd.toFixed(1)} m (${err >= 0 ? '+' : ''}${(err * 100).toFixed(1)}%)`; el.className = Math.abs(err) <= 0.02 ? 'ok' : 'off'; }
+  }
+
+  function contactList() {
+    const K = game.K, el = $('#clist'), av = game.sensors;
+    el.innerHTML = K.contacts.length ? '' : '<p class="muted">No contacts yet. Run survey lines across the block.</p>';
+    for (const k of K.contacts) {
+      const a = game.answer(k.id), b = document.createElement('button');
+      b.className = 'ci' + (sel === k.id ? ' on' : '') + (a ? ' done' : '');
+      const dots = CH.filter(c => av.includes(c)).map(c => `<i class="d l${k.ev[c]}" title="${CHN[c]}"></i>`).join('');
+      b.innerHTML = `<b>${k.id}</b><span class="dots">${dots}</span><span class="cl">${a ? E.label(a.cls) + ' · ' + a.conf : 'Unclassified'}</span>`;
+      b.onclick = () => select(k.id); el.appendChild(b);
+    }
+    const un = K.contacts.filter(k => !game.answer(k.id)).length;
+    $('#tabBadge').textContent = K.contacts.length ? (un ? un : '✓') : '';
+    $('#sideBadge').textContent = un ? String(un) : K.contacts.length ? '✓' : '';
+  }
+  const LVL = ['Not surveyed', 'No response', 'Weak', 'Clear'];
+  const isMobile = () => matchMedia('(max-width:900px)').matches;
+  function select(id) { setSide('contacts'); sel = id; card(); contactList(); SND.click(); if (isMobile()) { setTab('contacts'); } requestAnimationFrame(() => { $('#card').scrollIntoView({ behavior: 'auto', block: 'nearest' }); }); }
+  function card() {
+    const el = $('#card'), k = game.K.contacts.find(c => c.id === sel);
+    if (!k) { el.hidden = true; return; }
+    el.hidden = false;
+    $('#cTitle').textContent = `Contact ${k.id}`;
+    $('#cShape').textContent = k.ev.shape ? `Shape seen: ${k.ev.shape}` : 'Shape not resolved';
+    const dEl = $('#cDepth');
+    if (k.ev.twt !== null) {
+      dEl.hidden = false;
+      dEl.innerHTML = `Anomaly top: <b>${(k.ev.manualTwt ?? k.ev.twt).toFixed(1)} ms ΔTWT (${k.ev.manualTwt !== undefined ? 'manual' : 'assisted'})</b> <span class="${k.ev.twtQ === 3 ? 'ok' : 'off'}">${k.ev.twtQ === 3 ? '· strong signal; cross-check with another line' : '· weak signal: collect another crossing'}</span><br>→ <b>${game.depthOf(k.ev.manualTwt ?? k.ev.twt).toFixed(1)} m</b> below seabed at ${game.st.vel} m/s`;
+    } else dEl.hidden = true;
+    const pv = prevLv[k.id] || (prevLv[k.id] = {});
+    CH.forEach(ch => {
+      const fig = $('#f_' + ch); fig.hidden = !game.sensors.includes(ch); if (fig.hidden) return;
+      const cv = $('#p_' + ch), g = cv.getContext('2d'), lv = k.ev[ch], mode = ch === 'mbes' ? 'bathy' : ch;
+      g.fillStyle = '#07121e'; g.fillRect(0, 0, cv.width, cv.height);
+      if (lv > 0) {
+        const src = layer(mode, true).cv, Rr = 8 + (k.ext || 0);
+        g.imageSmoothingEnabled = true;
+        g.drawImage(src, (k.x - Rr) * R, (k.y - Rr) * R, Rr * 2 * R, Rr * 2 * R, 0, 0, cv.width, cv.height);
+        g.strokeStyle = 'rgba(255,255,255,.55)'; g.setLineDash([3, 3]); g.strokeRect(cv.width / 2 - 14, cv.height / 2 - 14, 28, 28); g.setLineDash([]);
+      } else { g.fillStyle = '#5d7488'; g.font = '12px Segoe UI,system-ui'; g.textAlign = 'center'; g.fillText('not surveyed', cv.width / 2, cv.height / 2 + 4); }
+      const t = $('#l_' + ch); t.textContent = LVL[lv]; t.className = 'lv l' + lv;
+      if (pv[ch] !== undefined && lv > pv[ch]) { fig.classList.remove('flash'); void fig.offsetWidth; fig.classList.add('flash'); }
+      pv[ch] = lv;
+    });
+    $('#evidenceCount').textContent = `${game.K.picks.filter(p => p.contactId === k.id).length} evidence marks attached`;
+    const a = game.answer(k.id) || {};
+    $$('#cls button').forEach(b => b.classList.toggle('on', b.dataset.c === a.cls));
+    $$('#conf button').forEach(b => b.classList.toggle('on', b.dataset.k === (a.conf || 'low')));
+  }
+
+  // ---------- mobile sheet ----------
+  function setTab(t) { document.body.dataset.tab = t; if(t !== 'plan') setSide(t); $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); }
+  $$('.tabs button').forEach(b => b.onclick = () => { setTab(b.dataset.t); SND.click(); });
+  $('#grab').onclick = () => { $('#sheet').classList.toggle('full'); SND.click(); };
+
+  // ---------- flow ----------
+  const owned = () => economy().owned || store.get('owned', {});
+  function startGame(def, perks, tag, restoring) {
+    activeDef = def; activePerks = { ...perks }; activeTag = tag;
+    attemptId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2); rewardInfo = null; depthConfirmed = false;
+    game = E.createGame(def, perks); setRun(false); sel = null; debrief = null; lastCount = game.K.contacts.length; drawn.sbp = 0; drawn.hrs = 0; drawn.sss = 0;
+    Object.keys(cache).forEach(k => delete cache[k]); Object.keys(prevLv).forEach(k => delete prevLv[k]); fx.wake = []; fx.pings = []; fx.pulses = []; fx.bhTold = false;
+    sensors = {}; game.mission.defaults.forEach(s => { if (game.sensors.includes(s)) sensors[s] = true; });
+    view = game.mission.kind === 'legacy' ? 'sss' : 'bathy'; view3src = view; C3.follow = false; C3.yaw = 0; C3.zoom = 1; C3.panX = 0; C3.panY = 0; C3.pitch = 1; profile.cursor = null; profile.cacheKey = ''; profile.offset = 0; tutorStep = -1;
+    $('#menu').hidden = true; $('#deb').hidden = true; $('#gen').hidden = true; document.body.classList.remove('inmenu');
+    $('#mTag').textContent = tag; $('#mTitle').textContent = game.mission.title;
+    $('#brief').textContent = game.mission.brief;
+    $('#tips').replaceChildren(...game.mission.tips.map(t => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    const cls = game.mission.goal === 'classify';
+    $('#contacts').hidden = !cls; $('#conBox').hidden = !cls; $('#tabC').hidden = !cls;
+    $('#velBox').hidden = !game.mission.bh; $('#tabDepth').hidden = !game.mission.bh; $('#sideDepth').hidden = !game.mission.bh; $('#sideContacts').hidden = !cls; if (game.mission.bh) $('#vel').value = game.st.vel;
+    $$('[data-s]').forEach(b => b.hidden = !game.sensors.includes(b.dataset.s));
+    $$('[data-v]').forEach(b => b.hidden = b.dataset.v !== 'bathy' && !game.sensors.includes(b.dataset.v));
+    $('#cls [data-c="anomaly"]').hidden = !game.sensors.includes('hrs');
+    $('#sbpBox').hidden = !game.sensors.includes('sbp'); $('#hrsBox').hidden = !game.sensors.includes('hrs');
+    wctx.fillStyle = '#0a0703'; wctx.fillRect(0, 0, wf.width, wf.height);
+    sctx.fillStyle = '#061214'; sctx.fillRect(0, 0, sp.width, sp.height);
+    hctx.fillStyle = '#0c0f18'; hctx.fillRect(0, 0, hp.width, hp.height);
+    $('#sheet').classList.remove('full'); setTab('plan'); setSide('brief');
+    $('#submitCheck').hidden = true; $('#restartCheck').hidden = true; routeKey = ''; 
+    syncToggles(); contactList(); card(); resize(); hud();
+    if (game.K.contacts.length) toast(`Legacy data: ${game.K.contacts.length} contacts already on file`);
+    if (!restoring) saveSession();
+    $('#tutorial').hidden = true; $('#viewer').hidden = true; $('#discovery').hidden = true; document.body.dataset.learn = '';
+    $('#depthMode').value = 'guided'; $('#manualVel').hidden = true;
+  }
+  function startTraining(id) { run = null; startGame(id, owned(), id); }
+  function syncToggles() {
+    $$('[data-s]').forEach(b => b.classList.toggle('on', !!sensors[b.dataset.s]));
+    $$('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === (view === '3d' ? view3src : view)));
+    $('#v3').classList.toggle('on', view === '3d');
+    map.classList.toggle('is3d', view === '3d'); $('#tb3d').hidden = view !== '3d'; $('.north').hidden = view === '3d';
+    $('#fol').classList.toggle('on', C3.follow); $('#curtain').classList.toggle('on', C3.curtain); $('#exg').textContent = `↕${C3.ex}×`;
+  }
+  function setRun(v) { running = v; if(v) SND.init(); SND.engine(v); }
+
+  // ---------- campaign ----------
+  function newRun(seed) {
+    run = { seed: E.normalizeSeed(seed), idx: 0, scores: [], ratings: [], perks: {}, offers: null, selected: null };
+    store.set('run', run); playRun();
+  }
+  function playRun() {
+    $('#gen').hidden = false; $('#genTxt').textContent = `Charting seabed ${run.idx + 1}/6 · seed ${E.seedCode(run.seed)}`;
+    setTimeout(() => {
+      try { const def = E.genMission(run.seed, run.idx); startGame(def, run.perks, `R${run.idx + 1}/6`); }
+      catch (err) { $('#gen').hidden = true; menu(); $('#transferStatus').textContent = 'This seed could not produce a validated mission. Choose another seed. Existing progress is retained.'; }
+    }, 40);
+  }
+  function offers() {
+    const r = E.mulberry32(run.seed + run.idx * 31), keys = Object.keys(E.RUN_PERKS).filter(k => !run.perks[k]), out = [];
+    while (keys.length && out.length < 3) out.push(keys.splice(Math.floor(r() * keys.length), 1)[0]);
+    return out;
+  }
+  function runPanel() {
+    const box = $('#dRun');
+    if (!run) { box.hidden = true; $('#again').hidden = false; $('#next').hidden = true; return; }
+    box.hidden = false; $('#again').hidden = true;
+    const total = run.scores.reduce((a, b) => a + b, 0), done = run.idx >= 6;
+    $('#runPills').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="pill ${run.ratings[i] ? 'r' + run.ratings[i] : ''} ${i === run.idx - 1 ? 'cur' : ''}">${run.scores[i] ?? i + 1}</i>`).join('');
+    $('#runTot').textContent = `Run ${E.seedCode(run.seed)} · ${total} / ${run.idx * 100}`;
+    const perks = $('#perks');
+    if (!debrief.complete) {
+      perks.innerHTML = '<p class="muted">Objectives incomplete. Retry this mission to continue the campaign. No completion credits were awarded.</p>';
+      $('#again').hidden = false; $('#next').hidden = true; return;
+    }
+    if (done) {
+      const best = store.get('bestRun', null), isBest = !best || total > best.total;
+      if (isBest) store.set('bestRun', { total, seed: run.seed });
+      perks.innerHTML = `<div class="final"><b>${total}</b><span>/ 600 · ${isBest ? 'new best run' : 'best ' + best.total}</span></div>`;
+      $('#next').hidden = true; store.set('run', null);
+      return;
+    }
+    if (run.selected) {
+      perks.innerHTML = `<p class="earn">Fitted: ${E.RUN_PERKS[run.selected].name}</p>`;
+      $('#next').hidden = false; $('#next').disabled = false; return;
+    }
+    run.offers = run.offers || offers(); store.set('run', run);
+    perks.innerHTML = '<h5>Pick one perk for the rest of the run</h5><div class="pk">' + run.offers.map(k => `<button data-p="${k}"><b>${E.RUN_PERKS[k].name}</b><span>${E.RUN_PERKS[k].desc}</span></button>`).join('') + '</div>';
+    $$('[data-p]').forEach(b => b.onclick = () => {
+      run.perks[b.dataset.p] = true; run.selected = b.dataset.p; run.offers = null; store.set('run', run); saveSession(); SND.buy();
+      perks.innerHTML = `<p class="earn">Fitted: ${E.RUN_PERKS[b.dataset.p].name}</p>`; $('#next').disabled = false;
+    });
+    $('#next').hidden = false; $('#next').disabled = run.offers.length > 0;
+  }
+
+  function finish() {
+    if (debrief) { showDebrief(); return; }
+    setRun(false); debrief = game.submit(); rewardInfo = creditReward(debrief);
+    if (run && debrief.complete) {
+      run.scores[run.idx] = debrief.total; run.ratings[run.idx] = debrief.rating; run.idx++; run.offers = null; run.selected = null; store.set('run', run);
+    } else if (!run) {
+      const best = store.get('best', {});
+      best[debrief.mission] = Math.max(best[debrief.mission] || 0, debrief.total); store.set('best', best);
+    }
+    showDebrief(); saveSession();
+  }
+  function showDebrief() {
+    const earnTxt = rewardInfo && rewardInfo.total ? `+${rewardInfo.total} credits` : 'No completion reward: finish the objectives on your next attempt';
+    const rt = $('#dRating'); rt.textContent = debrief.rating; rt.className = 'rating r' + debrief.rating;
+    $('#dEarn').textContent = earnTxt; $('#dEarn').className = earnTxt.startsWith('+') ? 'earn' : 'earn none'; $('#dEarn').hidden = !earnTxt;
+    $('#dAxes').innerHTML = Object.entries(debrief.axes).map(([k, v]) => `<div class="ax"><span>${escapeHTML(k)}</span><i><b data-w="${Number(v) || 0}"></b></i><em>${Number(v) || 0}</em></div>`).join('');
+    $('#dNotes').replaceChildren(...debrief.notes.map(n => { const li=document.createElement('li'); li.textContent=n; return li; }));
+    $('#dCompletion').textContent = debrief.complete ? 'OBJECTIVES COMPLETE' : 'OBJECTIVES INCOMPLETE';
+    $('#dCompletion').className = debrief.complete ? 'ok' : 'off';
+    $('#rewardLines').innerHTML = (rewardInfo?.items || []).map(([name, value]) => `<div class="vrow"><span>${escapeHTML(name)}</span><b>+${Number(value) || 0} cr</b></div>`).join('');
+    $('#dChecks').innerHTML = (debrief.checks || []).map(c => `<div class="${c.ok ? 'ok' : 'off'}">${c.ok ? '✓' : '○'} ${escapeHTML(c.text)}</div>`).join('');
+    renderNextSteps(); runPanel();
+    $('#deb').hidden = false; contactList(); card();
+    requestAnimationFrame(() => requestAnimationFrame(() => $$('#dAxes b').forEach((b, i) => { b.style.transitionDelay = (i * 0.12) + 's'; b.style.width = b.dataset.w + '%'; })));
+    const t0 = performance.now(), T = debrief.total;
+    (function cnt(t) { const k = Math.min(1, (t - t0) / 900); $('#dScore').textContent = `Evidence score ${Math.round(T * (1 - Math.pow(1 - k, 3)))} / 100`; if (k < 1) requestAnimationFrame(cnt); })(t0);
+    SND.win(debrief.rating);
+  }
+  function menu() {
+    const best = store.get('best', {});
+    $$('.mc[data-m]').forEach(b => { const s = best[b.dataset.m]; b.querySelector('.best').textContent = s ? `Best ${s}` : 'Not played'; });
+    if (game) saveSession();
+    const session = store.get('sessionV1', null);
+    $('#resumeGame').hidden = !session;
+    if (session) $('#resumeGame').textContent = `Resume ${session.tag} · ${session.debrief ? 'debrief / perk' : 'in progress'}`;
+    const saved = store.get('run', null), br = store.get('bestRun', null);
+    $('#contRun').hidden = !(saved && saved.idx < 6);
+    if (saved && saved.idx < 6) $('#contRun').textContent = `Continue ${E.seedCode(saved.seed)} · mission ${saved.idx + 1}/6`;
+    $('#bestRun').textContent = br ? `${br.total} · ${E.seedCode(br.seed)}` : '—';
+    shop();
+    $('#menu').hidden = false; $('#deb').hidden = true; setRun(false); document.body.classList.add('inmenu');
+  }
+  function shop() {
+    const cr = economy().balance, own = owned();
+    $('#credits').textContent = cr;
+    $('#ups').innerHTML = Object.entries(E.UPGRADES).map(([k, u]) =>
+      `<div class="up${own[k] ? ' own' : ''}"><b>${u.name}</b><span>${u.desc}</span>${own[k] ? '<em>Purchased · new Training</em>' : `<button data-u="${k}" ${cr < u.cost ? 'disabled' : ''}>${u.cost} cr${cr < u.cost ? ` · need ${u.cost - cr} more` : ''}</button>`}</div>`).join('');
+    $$('[data-u]').forEach(b => b.onclick = () => {
+      const k = b.dataset.u, u = E.UPGRADES[k], ec = economy(), c = ec.balance; if (c < u.cost || owned()[k]) return;
+      const o = { ...owned(), [k]: true }; ec.balance = c - u.cost; ec.owned = o; if (!store.set('economyV1', ec)) { $('#loadoutStatus').textContent = 'Purchase could not be saved. No credits charged.'; return; } SND.buy(); shop();
+    });
+    updateLoadoutStatus();
+  }
+
+  // ---------- menu sonar background ----------
+  const ms = $('#msonar'), mctx = ms.getContext('2d');
+  function menuBg() {
+    const w = ms.width = ms.clientWidth, h = ms.height = ms.clientHeight, cx = w * 0.72, cy = h * 0.5, rr = Math.max(w, h) * 0.7;
+    mctx.fillStyle = '#040b13'; mctx.fillRect(0, 0, w, h);
+    mctx.strokeStyle = 'rgba(127,209,255,.08)'; mctx.lineWidth = 1;
+    for (let i = 1; i < 7; i++) { mctx.beginPath(); mctx.arc(cx, cy, rr * i / 7, 0, 7); mctx.stroke(); }
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; mctx.beginPath(); mctx.moveTo(cx, cy); mctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); mctx.stroke(); }
+    const a = clock * 0.9;
+    for (let j = 0; j < 40; j++) {
+      const t = j / 40; mctx.fillStyle = `rgba(127,209,255,${0.16 * (1 - t)})`;
+      mctx.beginPath(); mctx.moveTo(cx, cy); mctx.arc(cx, cy, rr, a - (j + 1) * 0.02, a - j * 0.02); mctx.closePath(); mctx.fill();
+    }
+    for (let i = 0; i < 26; i++) {
+      const pa = E.hash01(i, 5) * 6.283, pr = (0.15 + 0.8 * E.hash01(i, 6)) * rr * 0.9;
+      const d = ((a - pa) % 6.283 + 6.283) % 6.283, al = Math.max(0, 1 - d / 2.4);
+      mctx.fillStyle = `rgba(255,190,90,${al})`; mctx.beginPath(); mctx.arc(cx + Math.cos(pa) * pr, cy + Math.sin(pa) * pr, 2 + 2 * al, 0, 7); mctx.fill();
+    }
+  }
+
+  // ---------- input ----------
+  let dragging = false, down = null;
+  document.addEventListener('pointerdown', () => SND.init(), { once: true });
+  const pointers = new Map(); let pinchStart = null;
+  map.addEventListener('contextmenu', e => e.preventDefault());
+  map.addEventListener('pointerdown', e => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    down = { x: e.clientX, y: e.clientY, yaw: C3.yaw, pitch: C3.pitch, panX: C3.panX, panY: C3.panY, pan: e.shiftKey || e.button === 2, moved: false };
+    if (view === '3d') map.setPointerCapture(e.pointerId);
+    if (pointers.size === 2) { const p = [...pointers.values()]; pinchStart = { d: Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y), zoom: C3.zoom }; down.moved = true; }
+  });
+  map.addEventListener('pointermove', e => {
+    if (!down || view !== '3d') return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2 && pinchStart) { const p = [...pointers.values()]; C3.zoom = clamp(pinchStart.zoom * pinchStart.d / Math.max(10,Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)),0.4,1.8); dragging = true; down.moved = true; r3T=0; return; }
+    const dx=e.clientX-down.x, dy=e.clientY-down.y;
+    if (Math.hypot(dx,dy)>5 || down.moved) {
+      down.moved=true; dragging=true;
+      if (down.pan) { C3.follow=false; C3.panX=clamp(down.panX-dx*0.12,-80,80); C3.panY=clamp(down.panY-dy*0.12,-60,60); }
+      else { C3.yaw=down.yaw+dx*0.008; C3.pitch=clamp(down.pitch+dy*0.004,0.65,1.35); }
+    }
+  });
+  map.addEventListener('pointerup', e => {
+    pointers.delete(e.pointerId); const d=down;
+    if (pointers.size) { if (down) down.moved=true; return; }
+    down=null; pinchStart=null; dragging=false;
+    if (d && !d.moved && game) tapMap(e.clientX,e.clientY);
+  });
+  map.addEventListener('pointercancel', () => { pointers.clear(); down=null; pinchStart=null; dragging=false; });
+  map.addEventListener('wheel', e => { if (view !== '3d') return; e.preventDefault(); C3.zoom = clamp(C3.zoom * Math.exp(e.deltaY * 0.0012), 0.4, 1.8); r3T = 0; }, { passive: false });
+  function tapMap(cx, cy) {
+    const r = map.getBoundingClientRect(), px = (cx - r.left) * map.width / r.width, py = (cy - r.top) * map.height / r.height;
+    const hit = hitList.find(h => Math.hypot(h.x - px, h.y - py) < 18 * cssScale);
+    if (hit) return select(hit.id);
+    if (game.st.submitted) return;
+    let x, y;
+    if (view === '3d') {
+      r3T = 0; draw3D();
+      if (!pick || !r3) return;
+      const i = Math.floor(py * r3.height / map.height) * r3.width + Math.floor(px * r3.width / map.width);
+      x = pick.x[i]; y = pick.y[i];
+      if (!Number.isFinite(x)) return toast('Tap on the seabed to place a waypoint.');
+    } else { x = px / sc; y = py / sc; }
+    if (!CH.some(s => sensors[s])) toast('Transit leg: no sensors running.');
+    if (!game.addWaypoint(x, y, sensors)) { toast('Not enough survey days for that leg.', 'warn'); SND.warn(); } else SND.click();
+    hud();
+  }
+  $$('[data-s]').forEach(b => b.onclick = () => { sensors[b.dataset.s] = !sensors[b.dataset.s]; syncToggles(); hud(); SND.click(); });
+  $$('[data-v]').forEach(b => b.onclick = () => { if (view === '3d') view3src = b.dataset.v; else view = b.dataset.v; r3T = 0; syncToggles(); SND.click(); });
+  $('#v3').onclick = () => { if (view === '3d') view = view3src; else { view3src = view; view = '3d'; } r3T = 0; syncToggles(); SND.click(); };
+  $('#rotL').onclick = () => { C3.yaw -= Math.PI / 8; r3T = 0; }; $('#rotR').onclick = () => { C3.yaw += Math.PI / 8; r3T = 0; };
+  $('#zin').onclick = () => { C3.zoom = clamp(C3.zoom / 1.2, 0.4, 1.8); r3T = 0; }; $('#zout').onclick = () => { C3.zoom = clamp(C3.zoom * 1.2, 0.4, 1.8); r3T = 0; };
+  $('#fol').onclick = () => { C3.follow = !C3.follow; r3T = 0; syncToggles(); };
+  $('#rst').onclick = () => { C3.yaw = 0; C3.zoom = 1; C3.follow = false; C3.ex = 1; C3.panX=0; C3.panY=0; C3.pitch=1; r3T = 0; syncToggles(); };
+  $('#exg').onclick = () => { C3.ex = C3.ex === 1 ? 2 : C3.ex === 2 ? 0.5 : 1; $('#exg').textContent = `↕${C3.ex}×`; r3T = 0; };
+  $$('.mc[data-m]').forEach(b => b.onclick = () => { SND.init(); SND.click(); startTraining(b.dataset.m); });
+  $('#newRun').onclick = () => { SND.init(); newRun((Date.now() ^ Math.floor(Math.random() * 1e9)) % 2147483647 || 1); };
+  $('#seedGo').onclick = () => { const s = E.parseSeed($('#seedIn').value); if (!s) { $('#seedIn').classList.add('bad'); return; } $('#seedIn').classList.remove('bad'); SND.init(); newRun(s); };
+  $('#resumeGame').onclick = resumeSession;
+  $('#contRun').onclick = () => { const o = store.get('sessionV1', null); if (o && o.run) return resumeSession(); run = store.get('run', null); if (run) playRun(); };
+  $('#next').onclick = () => { if (run && run.idx < 6 && (run.selected || !run.offers?.length)) playRun(); };
+  $$('#cls button').forEach(b => b.onclick = () => {
+    if (!sel) return; const a = game.answer(sel) || { conf: 'low' }; game.classify(sel, b.dataset.c, a.conf); card(); contactList(); SND.click();
+  });
+  $$('#conf button').forEach(b => b.onclick = () => {
+    if (!sel) return; const a = game.answer(sel); if (!a) return toast('Pick a class first.'); game.classify(sel, a.cls, b.dataset.k); card(); contactList(); SND.click();
+  });
+  $('#vel').oninput = e => { game.setVel(+e.target.value); depthConfirmed = false; hud(); if (sel) card(); };
+  $('#depthMode').onchange = e => { $('#manualVel').hidden = e.target.value !== 'manual'; };
+  $('#fitBH').onclick = () => {
+    if (game.K.bhTwt === null) return;
+    game.setVel(2000 * game.mission.bh.depth / game.K.bhTwt); $('#vel').value = game.st.vel; depthConfirmed = false;
+    hud(); if (sel) card(); toast('Velocity fitted from the measured BH-1 tie. Confirm to finish.'); saveSession();
+  };
+  $('#confirmBH').onclick = () => { depthConfirmed = true; hud(); toast('Depth tie ready. Select an anomaly to read its depth.', 'hit'); saveSession(); };
+  $('#locateBH').onclick = () => {
+    const bh = game.mission.bh; if (!bh || game.st.submitted) return;
+    const previous = JSON.parse(JSON.stringify(game.st.plan));
+    const ok = game.addWaypoint(Math.max(0, bh.x - 4), bh.y, {}) && game.addWaypoint(bh.x + 4, bh.y, { hrs: true });
+    if (!ok) { game.st.plan = previous; toast('Insufficient days. Plan a shorter route to BH-1.', 'warn'); return; }
+    setTab('plan'); toast('BH-1 transit and 2D HR crossing added. Press Run.'); hud(); saveSession();
+  };
+  const toggleRun = () => { if (!game || game.st.submitted) return; if (!running && !game.st.plan.length) return; setRun(!running); };
+  $('#run').onclick = toggleRun; $('#fab').onclick = toggleRun;
+  $('#spd').onclick = () => { speed = speed === 1 ? 3 : speed === 3 ? 8 : 1; $('#spd').textContent = `×${speed}`; SND.click(); };
+  $('#undo').onclick = () => { game.undo(); hud(); SND.click(); };
+  $('#clear').onclick = () => { game.clearPlan(); hud(); SND.click(); };
+  $('#submit').onclick = requestSubmit;
+  const ICO = on => `<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/>${on ? '<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>' : '<path d="M17 9l5 6M22 9l-5 6"/>'}</svg>`;
+  $('#snd').onclick = () => { SND.init(); $('#snd').innerHTML = ICO(SND.toggle()); };
+  $('#snd').innerHTML = ICO(SND.on);
+  $('#menuBtn').onclick = menu; $('#again').onclick = () => { if (run) playRun(); else startTraining(game.mission.id); }; $('#toMenu').onclick = menu;
+  $('#review').onclick = () => { $('#deb').hidden = true; };
+  window.addEventListener('resize', () => game && resize());
+  window.addEventListener('keydown', e => {
+    if (['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
+    if (e.key === 'Escape') { $('#viewer').hidden = true; closeCheck('#submitCheck'); closeCheck('#restartCheck'); return; }
+    if (!$('#submitCheck').hidden || !$('#restartCheck').hidden) return;
+    if (e.key === ' ' && $('#menu').hidden && $('#deb').hidden) { toggleRun(); e.preventDefault(); }
+    if (view === '3d' && (e.key === 'q' || e.key === 'e')) { C3.yaw += e.key === 'q' ? -0.2 : 0.2; r3T = 0; }
+  });
+
+  function loop(t) {
+    const dt = Math.min(0.05, (t - lastT) / 1000 || 0); lastT = t; clock += dt;
+    if (!$('#menu').hidden) menuBg();
+    if (game && running && $('#submitCheck').hidden && $('#restartCheck').hidden) {
+      game.tick(dt * 9 * speed);
+      const p = game.st.pos, lw = fx.wake[fx.wake.length - 1];
+      if (lw && Math.hypot(lw.x - p.x, lw.y - p.y) > 4) fx.wake = [];
+      if (!lw || Math.hypot(lw.x - p.x, lw.y - p.y) > 0.6) { fx.wake.push({ x: p.x, y: p.y }); if (fx.wake.length > 40) fx.wake.shift(); }
+      const leg = curLeg();
+      if (leg && CH.some(s => leg[s]) && clock - fx.pingT > 0.55) {
+        fx.pingT = clock; fx.pings.push({ x: p.x, y: p.y, t: clock, c: legCol(leg), r: legSw(leg) }); if (fx.pings.length > 8) fx.pings.shift();
+        if (pingN++ % 3 === 0) SND.ping();
+      }
+      if (game.K.contacts.length !== lastCount) {
+        for (const k of game.K.contacts.slice(lastCount)) { fx.pulses.push({ id: k.id, t: clock }); toast(`New contact ${k.id} detected`, 'hit'); }
+        SND.detect(); const found = game.K.contacts[lastCount]; lastCount = game.K.contacts.length; contactList();
+        if ($('#pauseDiscovery').checked && found) { setRun(false); select(found.id); $('#discovery').hidden=false; $('#discoveryText').textContent=`${found.id} detected. Inspect the acquired evidence before choosing a class.`; }
+      }
+      if (game.mission.bh && game.K.bhTwt !== null && !fx.bhTold) { fx.bhTold = true; toast('BH-1 tied: H1 travel time measured', 'hit'); SND.detect(); }
+      if (sel && (fr++ % 20 === 0)) card();
+      instruments(Math.max(1, Math.round(dt * 9 * speed * 6)));
+      if (!game.st.plan.length) { setRun(false); toast('Lines complete. Review evidence or plan more.'); }
+    } else if (game) instruments(0);
+    if (game && $('#menu').hidden) { if (view === '3d') draw3D(); else draw2D(); hud(); if (!$('#viewer').hidden && fr++ % 5 === 0) renderProfile(); if (tutorStep >= 0) updateTutorial(); }
+    requestAnimationFrame(loop);
+  }
+
+  // Evidence workspace: all rendering uses acquired records, never the hidden world.
+  function recordsForProfile() {
+    return game.K.records.filter(r => r[profile.sensor] && (profile.line === 'all' || String(r.line) === profile.line));
+  }
+  function profileWindow() {
+    const rows = recordsForProfile();
+    const end = Math.max(1, rows.length - profile.offset), start = Math.max(0, end - profile.span);
+    return rows.slice(start, end);
+  }
+  function profileOptions() {
+    const lines = game.K.lines.filter(l => game.K.records.some(r => r.line === l.id && r[profile.sensor]));
+    $('#profileLine').replaceChildren(new Option('All acquired lines', 'all'), ...lines.map(l => new Option(`L${l.id}${l.legacy ? ' (legacy)' : ''}`, String(l.id))));
+    if (profile.line !== 'all' && !lines.some(l => String(l.id) === profile.line)) profile.line = 'all';
+    $('#profileLine').value = profile.line;
+    $('#pickContact').replaceChildren(new Option('Unassigned evidence', ''), ...game.K.contacts.map(k => new Option(k.id, k.id)));
+    $('#pickContact').value = sel || '';
+  }
+  function openProfile(sensor) {
+    if (!game) return;
+    setRun(false); profile.sensor = sensor; profile.line = 'all'; profile.offset = 0; profile.cacheKey = '';
+    $('#profileSensor').value = sensor; $('#viewer').hidden = false; profileOptions(); renderProfile();
+  }
+  function sampleColor(sensor, raw, row, gain) {
+    if (sensor === 'hrs') {
+      const v = raw / 127 * gain * (1 + 0.8 * row / E.HRN), q = Math.min(1, Math.pow(Math.abs(v), 0.7));
+      return v < 0 ? [12+243*q,15+70*q,24+60*q] : [12+70*q,15+140*q,24+231*q];
+    }
+    const q = Math.min(1, raw / 255 * gain);
+    return sensor === 'sss' ? [20+235*q,14+190*q*q,6+110*q*q*q] : [8+200*q,18+232*q,22+210*q];
+  }
+  function renderProfile() {
+    if (!game || $('#viewer').hidden) return;
+    const cv = $('#profileCanvas'), g = cv.getContext('2d'), mini = $('#profileMap'), mg = mini.getContext('2d');
+    const rows = profileWindow(), n = rows.length, h = profile.sensor === 'hrs' ? E.HRN : E.SBN;
+    const key = [game.K.ver, profile.sensor, profile.line, profile.span, profile.offset, profile.gain, cv.width, cv.height].join(':');
+    if (profile.cacheKey !== key) {
+      const img = g.createImageData(cv.width, cv.height), d = img.data;
+      for (let x=0; x<cv.width; x++) {
+        const rec = rows[Math.min(n-1,Math.floor(x/cv.width*n))];
+        for (let y=0;y<cv.height;y++) {
+          const row=Math.min(h-1,Math.floor(y/cv.height*h)), c=rec ? sampleColor(profile.sensor,rec[profile.sensor][row],row,profile.gain) : [8,18,28], o=(y*cv.width+x)*4;
+          d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;
+        }
+      }
+      const temp=document.createElement('canvas');temp.width=cv.width;temp.height=cv.height;temp.getContext('2d').putImageData(img,0,0);
+      profile.image=temp;profile.cacheKey=key;
+    }
+    g.drawImage(profile.image,0,0);
+    g.font='12px Segoe UI,system-ui';
+    const unit = profile.sensor === 'hrs' ? 'ms TWT from trace datum' : profile.sensor === 'sbp' ? 'synthetic sample index (not depth)' : 'port to starboard range bins';
+    for(let i=0;i<=8;i++) {const y=i/8*cv.height;g.strokeStyle='rgba(255,255,255,.12)';g.beginPath();g.moveTo(0,y);g.lineTo(cv.width,y);g.stroke();g.fillStyle='#c3d2e1';g.fillText(String(Math.round(i/8*(h-1)*(profile.sensor==='hrs'?2:1))),5,Math.max(12,y-3));}
+    // Acquired seabed picks, line boundaries, manual evidence marks.
+    if (profile.sensor !== 'sss') {
+      g.strokeStyle='#6ee7b7';g.lineWidth=1.5;g.beginPath();
+      rows.forEach((r,i)=>{const y=(profile.sensor==='hrs' ? (r.manualHrSeabed ?? r.hrRow) : (r.manualSbpSeabed ?? r.sbRow))/h*cv.height,x=(i+.5)/Math.max(1,n)*cv.width;if(!i||rows[i-1].line!==r.line)g.moveTo(x,y);else g.lineTo(x,y);});g.stroke();
+    }
+    for(let i=1;i<n;i++) if(rows[i].line!==rows[i-1].line){const x=i/n*cv.width;g.strokeStyle='#ffb347';g.beginPath();g.moveTo(x,0);g.lineTo(x,cv.height);g.stroke();g.fillStyle='#ffb347';g.fillText(`L${rows[i].line}`,x+3,18);}
+    for(const p of game.K.picks) if(p.sensor===profile.sensor){const i=rows.findIndex(r=>r.id===p.recordId);if(i<0)continue;const x=(i+.5)/n*cv.width,y=p.row/h*cv.height;g.strokeStyle=p.mode==='seabed'?'#6ee7b7':'#ffb347';g.lineWidth=2;g.strokeRect(x-4,y-4,8,8);}
+    if(profile.cursor){const i=rows.findIndex(r=>r.id===profile.cursor.id);if(i>=0){const x=(i+.5)/n*cv.width,y=profile.row/h*cv.height;g.strokeStyle='#fff';g.setLineDash([4,4]);g.beginPath();g.moveTo(x,0);g.lineTo(x,cv.height);g.moveTo(0,y);g.lineTo(cv.width,y);g.stroke();g.setLineDash([]);}}
+    mg.drawImage(abyss,0,0,mini.width,mini.height);mg.drawImage(layer('bathy').cv,0,0,mini.width,mini.height);
+    const sx=mini.width/W,sy=mini.height/H;
+    mg.strokeStyle='#fb7185';mg.lineWidth=2;mg.beginPath();rows.forEach((r,i)=>{if(!i||r.line!==rows[i-1].line)mg.moveTo(r.x*sx,r.y*sy);else mg.lineTo(r.x*sx,r.y*sy);});mg.stroke();
+    for(const k of game.K.contacts){mg.fillStyle=k.id===sel?'#fff':'#ffb347';mg.beginPath();mg.arc(k.x*sx,k.y*sy,4,0,7);mg.fill();mg.font='11px Segoe UI';mg.fillText(k.id,k.x*sx+5,k.y*sy-5);}
+    if(profile.cursor){const r=profile.cursor;mg.strokeStyle='#fff';mg.lineWidth=2;mg.beginPath();mg.arc(r.x*sx,r.y*sy,7,0,7);mg.stroke();}
+    const rec=profile.cursor;
+    $('#profileReadout').textContent=rec ? `L${rec.line} · trace ${rec.id} · chainage ${rec.chainage.toFixed(1)} cells · XY ${rec.x.toFixed(2)}, ${rec.y.toFixed(2)} · ${unit}` : `${n} acquired traces · ${unit}. Click a trace or the map to inspect.`;
+    $('#profileEmpty').hidden=!!n;
+    $('#profileScroll').max=String(Math.max(0,recordsForProfile().length-1));$('#profileScroll').value=String(profile.offset);
+    $('#profileCount').textContent=`${n} shown / ${recordsForProfile().length} retained for this selection`;
+  }
+  $('#profileCanvas').addEventListener('pointerdown', e=>{
+    const cv=e.currentTarget,b=cv.getBoundingClientRect(),rows=profileWindow(),rec=rows[Math.min(rows.length-1,Math.floor((e.clientX-b.left)/b.width*rows.length))];if(!rec)return;
+    const n=rec[profile.sensor].length;profile.cursor=rec;profile.row=clamp((e.clientY-b.top)/b.height*n,0,n-1);
+    if(profile.mode!=='cursor') {
+      const cid=$('#pickContact').value||null;
+      const pick=game.addPick(rec.id,profile.sensor,profile.row,cid,profile.mode);
+      if(!pick)$('#pickReadout').textContent='Pick below the seabed on acquired data. Submitted missions are review-only.';
+      else {$('#pickReadout').textContent=pick.twt!==undefined ? `Manual ΔTWT ${pick.twt.toFixed(1)} ms below picked seabed → ${game.depthOf(pick.twt).toFixed(1)} m at ${game.st.vel} m/s. ${pick.applied ? 'Used for '+cid+' depth.' : cid ? 'Evidence marked for '+cid+'; not used for depth because the trace is outside its 10-cell association range or HR evidence is insufficient.' : 'Unassigned; choose a contact to use for its depth.'}` : `Evidence mark saved on L${rec.line}, trace ${rec.id}.`;if(sel)card();saveSession();}
+    } else {
+      const sb=rec.manualHrSeabed??rec.hrRow,dt=(profile.row-sb)*2;
+      $('#pickReadout').textContent=profile.sensor==='hrs'?`Cursor ${ (profile.row*2).toFixed(1)} ms from trace datum; seabed ${(sb*2).toFixed(1)} ms; ΔTWT ${dt.toFixed(1)} ms; ${dt>=0?game.depthOf(dt).toFixed(1)+' m below seabed':'above seabed'}.`:'Cursor linked to acquired track position.';
+    }
+    renderProfile();
+  });
+  $('#profileMap').addEventListener('pointerdown',e=>{
+    const b=e.currentTarget.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*W,y=(e.clientY-b.top)/b.height*H;
+    const rows=recordsForProfile();if(!rows.length)return;
+    const rec=rows.reduce((a,r)=>Math.hypot(r.x-x,r.y-y)<Math.hypot(a.x-x,a.y-y)?r:a,rows[0]);
+    profile.cursor=rec;const i=rows.indexOf(rec);profile.offset=Math.max(0,rows.length-i-Math.floor(profile.span/2));profile.cacheKey='';renderProfile();
+  });
+  $('#profileSensor').onchange=e=>{profile.sensor=e.target.value;profile.offset=0;profile.cacheKey='';profileOptions();renderProfile();};
+  $('#profileLine').onchange=e=>{profile.line=e.target.value;profile.offset=0;profile.cacheKey='';renderProfile();};
+  $('#profileGain').oninput=e=>{profile.gain=+e.target.value;profile.cacheKey='';renderProfile();};
+  $('#profileSpan').onchange=e=>{profile.span=+e.target.value;profile.cacheKey='';renderProfile();};
+  $('#profileScroll').oninput=e=>{profile.offset=+e.target.value;profile.cacheKey='';renderProfile();};
+  $('#pickMode').onchange=e=>{profile.mode=e.target.value;};
+  $('#pickContact').onchange=e=>{if(e.target.value){sel=e.target.value;card();contactList();}};
+  $('#closeProfile').onclick=()=>{$('#viewer').hidden=true;};
+  $('#profileCurtain').onclick=()=>{C3.curtain=true;$('#viewer').hidden=true;if(view!=='3d'){view3src=view;view='3d';}r3T=0;syncToggles();$('#curtain').classList.add('on');};
+  $('#openEvidence').onclick=()=>openProfile(game.sensors.includes('hrs')?'hrs':game.sensors.includes('sbp')?'sbp':'sss');
+  $('#clearEvidence').onclick=()=>{if(sel){game.clearPicks(sel);card();saveSession();}};
+  [['wfBox','sss'],['sbpBox','sbp'],['hrsBox','hrs']].forEach(([id,ch])=>{const b=document.createElement('button');b.className='expandProfile';b.textContent='Expand ↗';b.onclick=()=>openProfile(ch);$('#'+id).appendChild(b);});
+
+  // Software-projected 3D mesh. Vertices have real XYZ, not a flattened sprite.
+  function drawVesselMesh(L,c,k) {
+    const st=game.st,hd=st.heading,base=heightAt(L,st.pos.x,st.pos.y)+2.4,faces=[];
+    const world=(x,y,z)=>({x:st.pos.x+x*Math.cos(hd)-y*Math.sin(hd),y:st.pos.y+x*Math.sin(hd)+y*Math.cos(hd),z:base+z});
+    function face(v,col){const w=v.map(p=>world(...p)),pp=w.map(p=>proj3(c,p.x,p.y,p.z));if(pp.some(p=>!p))return;faces.push({pp,col,depth:w.reduce((a,p)=>a+(p.x-c.C.x)*c.F.x+(p.y-c.C.y)*c.F.y,0)/w.length});}
+    function box(x0,y0,z0,x1,y1,z1,col){const a=[x0,y0,z0],b=[x1,y0,z0],d=[x0,y1,z0],e=[x0,y0,z1],f=[x1,y0,z1],g=[x1,y1,z1],h=[x0,y1,z1],cc=[x1,y1,z0];face([a,b,f,e],col[0]);face([b,cc,g,f],col[1]);face([cc,d,h,g],col[0]);face([d,a,e,h],col[1]);face([e,f,g,h],col[2]);}
+    const outline=[[-3,-.9],[1.7,-.9],[3.5,0],[1.7,.9],[-3,.9]];
+    for(let i=0;i<outline.length;i++){const a=outline[i],b=outline[(i+1)%outline.length];face([[a[0],a[1],0],[b[0],b[1],0],[b[0],b[1],.7],[a[0],a[1],.7]],i%2?'#cbd6df':'#8b9aa8');}
+    face(outline.map(([x,y])=>[x,y,.7]),'#e8eef3');
+    box(.3,-.65,.7,1.9,.65,1.7,['#e8eef5','#aebecb','#f5f8fa']);
+    box(1.7,-.66,1.1,1.92,.66,1.5,['#3f9fc9','#244f70','#78c8ee']);
+    box(-2.5,-.6,.7,-1.1,.6,1.05,['#b95c26','#e8792f','#f7a35e']);
+    box(-.15,-.08,1.7,0,.08,4.2,['#8997a5','#e5edf5','#fff']);
+    box(-.6,-.9,3.2,.6,.9,3.3,['#b9cbd8','#dce8ef','#fff']);
+    box(-2.8,-.8,.7,-2.65,-.65,2.3,['#d88c3c','#ffc06c','#fff']);box(-2.8,.65,.7,-2.65,.8,2.3,['#d88c3c','#ffc06c','#fff']);box(-2.8,-.8,2.2,-2.65,.8,2.35,['#d88c3c','#ffc06c','#fff']);
+    faces.sort((a,b)=>b.depth-a.depth);
+    for(const f of faces){ctx.fillStyle=f.col;ctx.strokeStyle='rgba(4,12,20,.5)';ctx.lineWidth=.6*cssScale;ctx.beginPath();f.pp.forEach((p,i)=>i?ctx.lineTo(p[0]*k,p[1]*k):ctx.moveTo(p[0]*k,p[1]*k));ctx.closePath();ctx.fill();ctx.stroke();}
+    const leg=curLeg();if(leg)for(const [ch,len,off] of [['sss',10,0],['hrs',18,.5]])if(leg[ch]){
+      const a=world(-3,off,.7),b=world(-len,off,.2),p=proj3(c,a.x,a.y,a.z),q=proj3(c,b.x,b.y,b.z);if(!p||!q)continue;
+      ctx.strokeStyle=`rgb(${SCOL[ch]})`;ctx.lineWidth=1.5*cssScale;ctx.beginPath();ctx.moveTo(p[0]*k,p[1]*k);ctx.lineTo(q[0]*k,q[1]*k);ctx.stroke();ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.arc(q[0]*k,q[1]*k,2*cssScale,0,7);ctx.fill();
+    }
+  }
+  let curtainCache = { key: '', image: null };
+  function drawCurtain(L,c,k) {
+    const cacheKey = JSON.stringify([attemptId, game.K.ver, C3, profile.sensor, profile.line, profile.gain, game.st.vel, map.width, map.height, c.sw, c.shh]);
+    if (curtainCache.key === cacheKey && curtainCache.image) { ctx.drawImage(curtainCache.image,0,0); return; }
+    const sensor=profile.sensor==='sss'?'hrs':profile.sensor;
+    let rows=game.K.records.filter(r=>r[sensor]&&(profile.line==='all'||String(r.line)===profile.line));
+    if(!rows.length){rows=game.K.records.filter(r=>r.sbp);if(!rows.length)return;}
+    const ch=rows[0][sensor]?sensor:'sbp',stride=Math.max(1,Math.ceil(rows.length/180)),quads=[];
+    for(let i=0;i<rows.length-stride;i+=stride){const a=rows[i],b=rows[i+stride];if(a.line!==b.line)continue;const n=a[ch].length,sb=ch==='hrs'?a.hrRow:a.sbRow;
+      for(let r=Math.ceil(sb);r<n-3;r+=4){const delta=r-sb,depth=ch==='hrs'?delta*game.st.vel/1000:delta*.4;
+        const z0=heightAt(L,a.x,a.y)-depth*.18,z1=z0-(ch==='hrs'?4*game.st.vel/1000:1.6)*.18;
+        const pp=[[a.x,a.y,z0],[b.x,b.y,heightAt(L,b.x,b.y)-depth*.18],[b.x,b.y,heightAt(L,b.x,b.y)-depth*.18-(z0-z1)],[a.x,a.y,z1]].map(v=>proj3(c,...v));if(pp.some(p=>!p))continue;
+        const col=sampleColor(ch,a[ch][r],r,profile.gain);quads.push({pp,col,depth:(a.x-c.C.x)*c.F.x+(a.y-c.C.y)*c.F.y});
+      }
+    }
+    quads.sort((a,b)=>b.depth-a.depth);
+    const cv=document.createElement('canvas');cv.width=map.width;cv.height=map.height;const cg=cv.getContext('2d');cg.globalAlpha=.86;
+    for(const q of quads){cg.fillStyle=`rgb(${q.col.map(Math.round).join(',')})`;cg.beginPath();q.pp.forEach((p,i)=>i?cg.lineTo(p[0]*k,p[1]*k):cg.moveTo(p[0]*k,p[1]*k));cg.closePath();cg.fill();}
+    curtainCache={key:cacheKey,image:cv};ctx.drawImage(cv,0,0);
+  }
+  $('#curtain').onclick=()=>{C3.curtain=!C3.curtain;$('#curtain').classList.toggle('on',C3.curtain);r3T=0;};
+  $('#quality').onchange=e=>{qualityScale=e.target.value==='high'?.8:e.target.value==='low'?.35:.65;r3T=0;};
+  [['panL',-8,0],['panR',8,0],['panU',0,-8],['panD',0,8]].forEach(([id,x,y])=>$('#'+id).onclick=()=>{C3.follow=false;C3.panX=clamp(C3.panX+x,-80,80);C3.panY=clamp(C3.panY+y,-60,60);r3T=0;syncToggles();});
+
+  // Interactive learning: progress follows real actions, not a slideshow.
+  function updateTutorial() {
+    if(tutorStep<0)return;
+    document.body.dataset.learn=String(tutorStep); $('#tutorial').hidden=false;
+    const steps=[['Plan one line','Keep MBES on. Tap two points inside the target block. The pale band is what this line can measure.'],['Run the survey','Press Run. Watch the swath become acquired seabed, not just a planned band.'],['Inspect the remaining gaps','One line does not map the block. Place another parallel line about 10 cells away. Unmapped sea is still dark.'],['Finish the job','Continue until the coverage objective is green. Then Submit. Credits depend on completing objectives, not beating your old score.']];
+    if(tutorStep===0&&game.st.plan.length>=2)tutorStep=1;
+    if(tutorStep===1&&game.coverage()>tutorialStartCoverage+.015){tutorStep=2;tutorialStartCoverage=game.st.plan.length;}
+    if(tutorStep===2&&game.st.plan.length>tutorialStartCoverage)tutorStep=3;
+    const step=steps[Math.min(3,tutorStep)];$('#tutorialTitle').textContent=`${Math.min(4,tutorStep+1)} / 4 · ${step[0]}`;$('#tutorialText').textContent=step[1];
+    if(game.st.submitted){tutorStep=-1;document.body.dataset.learn='';$('#tutorial').hidden=true;store.set('tutorialDone',true);}
+  }
+  $('#learn').onclick=()=>{startTraining('M1');tutorStep=0;tutorialStartCoverage=game.coverage();updateTutorial();};
+  $('#skipTutorial').onclick=()=>{tutorStep=-1;document.body.dataset.learn='';$('#tutorial').hidden=true;saveSession();};
+
+  // Portable progress: explicit export/import works across local-file origins.
+  function exportProgress() {
+    if(game)saveSession();
+    const payload={};for(const key of ['economyV1','owned','credits','best','bestRun','run','sessionV1','sound','tutorialDone']){const value=store.get(key,null);if(value!==null)payload[key]=value;}
+    const blob=new Blob([JSON.stringify({format:'ECHOFIELD_PROGRESS',version:2,payload})],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ECHOFIELD_progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function validateProgress(o) {
+    if(o?.format!=='ECHOFIELD_PROGRESS'||![1,2].includes(o.version)||!o.payload||typeof o.payload!=='object')throw Error('Not an ECHOFIELD progress backup.');
+    const p=o.payload,ec=p.economyV1;
+    if(ec&&(!Number.isFinite(ec.balance)||ec.balance<0||ec.balance>1e9||!ec.claims||!ec.first||!ec.best))throw Error('Invalid credit ledger.');
+    for(const obj of [p.owned,ec?.owned,p.run?.perks,p.sessionV1?.run?.perks])if(obj&&Object.keys(obj).some(k=>!E.RUN_PERKS[k]))throw Error('Invalid upgrade key.');
+    const se=p.sessionV1;
+    if(se){
+      const d=typeof se.def==='string'?E.MISSIONS[se.def]:se.def;
+      if(!d||!Array.isArray(d.tips)||d.tips.length>20||!d.start||!Number.isFinite(d.start.x)||!Number.isFinite(d.start.y)||!Array.isArray(d.contacts)||d.contacts.length>12||!Number.isFinite(d.seed)||!Number.isFinite(d.budget)||d.budget>250||d.budget<=0||!Array.isArray(d.sensors)||d.sensors.some(k=>!E.SENSORS.includes(k)))throw Error('Invalid mission definition.');
+      for(const c of d.contacts)if(!['natural','debris','linear','buried','anomaly'].includes(c.t)||!Number.isFinite(c.x)||!Number.isFinite(c.y)||c.x<0||c.x>=W||c.y<0||c.y>=H)throw Error('Invalid contact geometry.');
+      if(!d.box||![d.box.x0,d.box.x1,d.box.y0,d.box.y1].every(Number.isFinite)||d.box.x0<0||d.box.y0<0||d.box.x1>W||d.box.y1>H||d.box.x1<=d.box.x0||d.box.y1<=d.box.y0)throw Error('Invalid mission block.');
+      if(!Array.isArray(se.snapshot?.ev)||se.snapshot.ev.length!==d.contacts.length||!Array.isArray(se.snapshot?.K?.contacts)||se.snapshot.K.contacts.length>d.contacts.length)throw Error('Invalid observation state.');
+      if((se.snapshot?.K?.records?.length||0)>12000||(se.snapshot?.st?.plan?.length||0)>500)throw Error('Save exceeds supported limits.');
+      if(d.legacy && (!Array.isArray(d.legacy)||d.legacy.length>50||d.legacy.some(l=>!Array.isArray(l)||l.length!==4||!l.every(Number.isFinite))))throw Error('Invalid legacy lines.');
+      const probe=E.createGame(se.def,se.perks||{});probe.restore(se.snapshot);
+      for(const w of probe.st.plan)if(!Number.isFinite(w.x)||!Number.isFinite(w.y)||w.x<0||w.x>=W||w.y<0||w.y>=H||!w.s||Object.keys(w.s).some(k=>!E.SENSORS.includes(k)))throw Error('Invalid waypoint.');
+      if(!Number.isFinite(probe.st.used)||probe.st.used<0||probe.st.used>probe.mission.budget+.01)throw Error('Invalid survey budget state.');
+      for(const r of probe.K.records)if(!Number.isFinite(r.x)||!Number.isFinite(r.y)||r.x<0||r.x>=W||r.y<0||r.y>=H||r.hrs&&r.hrs.length!==E.HRN||r.sbp&&r.sbp.length!==E.SBN||r.sss&&r.sss.length!==64)throw Error('Invalid acquired trace.');
+      for(const k of probe.K.contacts)if(!/^C[0-9]{1,2}$/.test(k.id)||!Number.isInteger(k.j)||k.j<0||k.j>=d.contacts.length||!Number.isFinite(k.x)||!Number.isFinite(k.y))throw Error('Invalid observed contact.');
+      for(const e of se.snapshot.ev)if(E.SENSORS.some(k=>!Number.isInteger(e[k])||e[k]<0||e[k]>3))throw Error('Invalid evidence level.');
+      const ru=se.run;if(ru&&(!Number.isInteger(ru.idx)||ru.idx<0||ru.idx>6||ru.selected&&!E.RUN_PERKS[ru.selected]||ru.offers?.some(k=>!E.RUN_PERKS[k])||!Array.isArray(ru.scores)||ru.scores.some(v=>!Number.isFinite(v)||v<0||v>100)||!Array.isArray(ru.ratings)||ru.ratings.some(v=>!['Strong','Adequate','Sparse'].includes(v))))throw Error('Invalid campaign state.');
+    }
+    return p;
+  }
+  async function importProgress(file) {
+    if(!file||file.size>15*1024*1024)throw Error('Choose a progress JSON smaller than 15 MB.');
+    const p=validateProgress(JSON.parse(await file.text())),keys=['economyV1','owned','credits','best','bestRun','run','sessionV1','sound','tutorialDone'];
+    const old={};for(const key of keys)old[key]=localStorage.getItem('echofield.'+key);
+    try{for(const key of keys){if(p[key]===undefined)localStorage.removeItem('echofield.'+key);else localStorage.setItem('echofield.'+key,JSON.stringify(p[key]));}}
+    catch(e){for(const key of keys){if(old[key]===null)localStorage.removeItem('echofield.'+key);else localStorage.setItem('echofield.'+key,old[key]);}throw Error('Import could not be saved; original progress restored.');}
+    // Avoid overwriting imported session with the currently open game.
+    setRun(false);game=null;run=null;attemptId=null;debrief=null;lastSavedFingerprint='';menu();$('#transferStatus').textContent='Progress imported. Use Resume to continue. Existing progress was replaced, not added.';
+  }
+  $('#exportSave').onclick=exportProgress;
+  $('#importSave').onclick=()=>$('#saveFile').click();
+  $('#saveFile').onchange=async e=>{try{await importProgress(e.target.files[0]);}catch(err){$('#transferStatus').textContent=err.message;}e.target.value='';};
+  window.__transfer={exportProgress,importProgress,validateProgress};
+
+  function renderNextSteps() {
+    const box=$('#dNextSteps');box.replaceChildren();const b=game.mission.box,mask=game.mission.goal==='coverage'?1:3;
+    let best={n:0};
+    for(let y=b.y0+1;y<b.y1-1;y++) {let n=0,x0=b.x1,x1=b.x0;for(let yy=Math.max(b.y0,y-4);yy<=Math.min(b.y1-1,y+4);yy++)for(let x=b.x0;x<b.x1;x++)if(!(game.K.cov[yy*W+x]&mask)){n++;x0=Math.min(x0,x);x1=Math.max(x1,x);}if(n>best.n)best={n,y,x0,x1};}
+    const h=document.createElement('h4');h.textContent='What to improve next';box.appendChild(h);
+    const p=document.createElement('p');p.className='muted';p.textContent=best.n?`Coverage-only suggestion: an infill crossing near Y ${best.y}, from X ${best.x0} to ${best.x1}, would address a remaining gap. Orange dots on Review map show unmapped samples. This is not a guaranteed optimal route.`:'Coverage target is mapped. Compare confidence with evidence and spend fewer days on overlapping lines next time.';box.appendChild(p);
+    for(const k of game.K.contacts){const a=game.answer(k.id);if(!a||a.cls==='unknown'||k.ev.mag===0){const bt=document.createElement('button');bt.textContent=`Review ${k.id}: ${k.ev.mag===0?'add a MAG cross-check':'inspect evidence before a confident call'}`;bt.onclick=()=>{$('#deb').hidden=true;select(k.id);};box.appendChild(bt);}}
+  }
+  $('#inspectDiscovery').onclick=()=>{$('#discovery').hidden=true;openProfile(game.sensors.includes('hrs')?'hrs':game.sensors.includes('sbp')?'sbp':'sss');};
+  $('#dismissDiscovery').onclick=()=>{$('#discovery').hidden=true;};
+
+  let lastBHTie='';
+  function drawBHTie(calculated, logged) {
+    const key=[calculated,logged].join(':');if(lastBHTie===key)return;lastBHTie=key;
+    const cv=$('#bhVisual'),g=cv.getContext('2d'),max=Math.max(60,logged*1.5,calculated||0),top=20,bottom=88;
+    g.fillStyle='#081624';g.fillRect(0,0,cv.width,cv.height);g.font='11px Segoe UI';g.textAlign='center';
+    for(const [x,title,d,col] of [[80,'BH-1 log',logged,'#7fd1ff'],[220,'Current velocity',calculated,'#ffb347']]){
+      g.fillStyle='#9eb5c8';g.fillText(title,x,13);g.strokeStyle='#304a60';g.beginPath();g.moveTo(x,top);g.lineTo(x,bottom);g.stroke();
+      if(d!==null){const y=top+d/max*(bottom-top);g.strokeStyle=calculated!==null&&Math.abs(calculated-logged)/logged<=.05?'#6ee7b7':col;g.lineWidth=3;g.beginPath();g.moveTo(x-38,y);g.lineTo(x+38,y);g.stroke();g.fillStyle=g.strokeStyle;g.fillText(`H1 ${d.toFixed(1)} m`,x,103);}else{g.fillStyle='#7892a8';g.fillText('Collect data first',x,103);}
+    }
+    g.lineWidth=1;g.textAlign='left';
+  }
+  let sheetDown=null,sheetDragged=false;
+  $('#grab').style.touchAction='none';
+  $('#grab').addEventListener('pointerdown',e=>{sheetDown=e.clientY;sheetDragged=false;$('#grab').setPointerCapture(e.pointerId);});
+  $('#grab').addEventListener('pointerup',e=>{if(sheetDown!==null&&Math.abs(e.clientY-sheetDown)>20){sheetDragged=true;$('#sheet').classList.toggle('full',e.clientY<sheetDown);}sheetDown=null;});
+  $('#grab').onclick=()=>{if(sheetDragged){sheetDragged=false;return;}$('#sheet').classList.toggle('full');SND.click();};
+
+  let routeKey = '', checkReturnFocus = null;
+  function setSide(tab) {
+    document.body.dataset.side = tab;
+    $$('[data-side]').forEach(b => b.classList.toggle('on', b.dataset.side === tab));
+    if ($('.sideScroll')) $('.sideScroll').scrollTop = 0;
+  }
+  $$('[data-side]').forEach(b => b.onclick = () => setSide(b.dataset.side));
+  function updateRouteUI() {
+    if (!game) return;
+    const st = game.st, preview = game.pendingSensors(sensors, false);
+    const key = JSON.stringify([st.plan.map(w => [w.lineId,w.x,w.y,w.s,(w.travel||0)>0]),sensors,st.submitted]);
+    if (routeKey !== key) {
+      routeKey = key; $('#legCount').textContent = st.plan.length;
+      const nodes = st.plan.map((w,i) => {
+        const row = document.createElement('div'); row.className = 'legRow';
+        const title = document.createElement('b'); title.textContent = `L${w.lineId ?? i+1} → ${w.x.toFixed(1)}, ${w.y.toFixed(1)}`;
+        const flags = document.createElement('span'); flags.textContent = CH.filter(ch => w.s[ch]).map(ch => CHN[ch]).join(' + ') || 'Transit only';
+        const state = document.createElement('small'); state.textContent = (w.travel||0)>0 ? 'Started · sensors locked' : 'Unstarted · editable';
+        row.append(title,flags,state); return row;
+      });
+      if (!nodes.length) { const p=document.createElement('p');p.className='muted';p.textContent='Tap the map to queue a survey leg.';nodes.push(p); }
+      $('#legList').replaceChildren(...nodes);
+    }
+    $('#applyPending').disabled = !preview.ok || running;
+    $('#pendingCost').textContent = st.plan.length ? `${preview.editable} editable · ${preview.locked} started. Remaining route ${preview.oldCost?.toFixed(2) || '0.00'} → ${preview.cost?.toFixed(2) || '0.00'} days. ${running ? 'Pause to apply changes.' : preview.reason}` : 'Select sensors before adding a new leg.';
+  }
+  $('#applyPending').onclick = () => {
+    if (running) return;
+    const result = game.pendingSensors(sensors,true);
+    toast(result.ok ? `Updated ${result.editable} unstarted legs. Started leg and acquired data kept.` : result.reason, result.ok ? '' : 'warn');
+    routeKey='';hud();saveSession();
+  };
+  function loadoutNames(perks) {
+    return Object.keys(E.UPGRADES).filter(k => perks && perks[k]).map(k => E.UPGRADES[k].name).join(', ') || 'Standard equipment';
+  }
+  function updateLoadoutStatus() {
+    const saved=store.get('sessionV1',null), box=$('#loadoutStatus');box.replaceChildren();
+    const p=document.createElement('p');p.textContent=`Purchased: ${loadoutNames(owned())}.`;box.appendChild(p);
+    $('#restartUpgraded').hidden=true;
+    if (!saved) return;
+    const status=document.createElement('p');
+    if (saved.run) status.textContent='Saved Campaign uses its run perks only. Permanent Workshop purchases do not change this run.';
+    else {
+      status.textContent=`Saved ${saved.tag}: ${loadoutNames(saved.perks)}. Resume keeps this original loadout.`;
+      const missing=Object.keys(E.UPGRADES).filter(k=>owned()[k]&&!saved.perks?.[k]);
+      if(missing.length){const note=document.createElement('p');note.className='ok';note.textContent=`Not fitted to this save: ${missing.map(k=>E.UPGRADES[k].name).join(', ')}. Start a new Training or restart below.`;box.appendChild(note);$('#restartUpgraded').hidden=false;}
+    }
+    box.appendChild(status);
+  }
+  function openCheck(id,focusSelector) {
+    setRun(false);checkReturnFocus=document.activeElement;$(id).hidden=false;
+    requestAnimationFrame(()=>$(focusSelector).focus({preventScroll:true}));
+  }
+  function closeCheck(id) {
+    const wasOpen=!$(id).hidden;$(id).hidden=true;
+    if(wasOpen&&checkReturnFocus?.isConnected)checkReturnFocus.focus({preventScroll:true});
+  }
+  $('#restartUpgraded').onclick=()=>openCheck('#restartCheck','#cancelRestart');
+  $('#cancelRestart').onclick=()=>closeCheck('#restartCheck');
+  $('#confirmRestart').onclick=()=>{
+    const saved=store.get('sessionV1',null);if(!saved||saved.run)return closeCheck('#restartCheck');
+    const def=typeof saved.def==='string'?saved.def:saved.def.id;
+    if(!E.MISSIONS[def])return;
+    closeCheck('#restartCheck');startTraining(def);toast('Restarted with purchased upgrades. Credits kept.');
+  };
+  function requestSubmit() {
+    if(!game)return;
+    if(game.st.submitted){showDebrief();return;}
+    setRun(false);
+    const classification=game.mission.goal==='classify', unanswered=classification?game.K.contacts.filter(k=>!game.answer(k.id)):[];
+    const missing=classification?Math.max(0,game.mission.expected-game.K.contacts.length):0;
+    const checks=game.completion().checks, incomplete=checks.filter(c=>!c.ok);
+    if(!unanswered.length&&!missing&&!incomplete.length){finish();return;}
+    $('#submitTitle').textContent=unanswered.length?'Would you like to classify your findings first?':'Review before ending this attempt';
+    $('#submitMessage').textContent=classification
+      ? `${unanswered.length} detected contacts have no answer. ${missing} expected contacts have not been detected. You can answer below, return to the survey, or explicitly submit as-is.`
+      : 'The coverage target is not complete. Keep surveying or explicitly submit this incomplete attempt.';
+    $('#submitObjectives').replaceChildren(...checks.map(c=>{const p=document.createElement('p');p.className=c.ok?'ok':'off';p.textContent=`${c.ok?'✓':'○'} ${c.text}`;return p;}));
+    const rows=classification?game.K.contacts.map(k=>{
+      const a=game.answer(k.id),row=document.createElement('div');row.className='answerRow';row.dataset.contact=k.id;
+      const title=document.createElement('label');title.htmlFor='submitClass'+k.id;title.textContent=`${k.id} · ${a?'answered':'no answer'}`;
+      const cls=document.createElement('select');cls.id='submitClass'+k.id;cls.className='submitClass';cls.setAttribute('aria-label',`Classification for ${k.id}`);
+      cls.appendChild(new Option(a ? 'Keep saved answer' : 'Choose an answer (optional)',''));
+      for(const type of ['natural','debris','linear','buried','anomaly','unknown'])if(type!=='anomaly'||game.sensors.includes('hrs'))cls.appendChild(new Option(E.label(type),type));
+      cls.value=a?.cls||'';
+      const conf=document.createElement('select');conf.className='submitConfidence';conf.setAttribute('aria-label',`Confidence for ${k.id}`);conf.append(new Option('Low confidence','low'),new Option('High confidence','high'));conf.value=a?.conf||'low';
+      const inspect=document.createElement('button');inspect.textContent='Inspect';inspect.onclick=()=>{saveSubmitChoices();closeCheck('#submitCheck');select(k.id);};
+      row.append(title,cls,conf,inspect);return row;
+    }):[];
+    $('#answerRows').replaceChildren(...rows);
+    $('#reviewAnswers').hidden=!classification||!game.K.contacts.length;
+    $('#submitAnyway').textContent=unanswered.length?'Submit current choices anyway':'Submit incomplete attempt';
+    openCheck('#submitCheck','#keepSurveying');
+  }
+  function saveSubmitChoices() {
+    $$('#answerRows .answerRow').forEach(row=>{const cls=row.querySelector('.submitClass').value;if(cls)game.classify(row.dataset.contact,cls,row.querySelector('.submitConfidence').value);});
+    contactList();card();hud();saveSession();
+  }
+  $('#cancelSubmit').onclick=()=>closeCheck('#submitCheck');
+  $('#keepSurveying').onclick=()=>closeCheck('#submitCheck');
+  $('#reviewAnswers').onclick=()=>{
+    saveSubmitChoices();closeCheck('#submitCheck');
+    const next=game.K.contacts.find(k=>!game.answer(k.id))||game.K.contacts[0];if(next)select(next.id);
+  };
+  $('#submitAnyway').onclick=()=>{
+    if($('#submitCheck').hidden||!game||game.st.submitted)return;
+    saveSubmitChoices();closeCheck('#submitCheck');finish();
+  };
+  // Trap focus in explicit confirmation dialogs. Escape never submits.
+  document.addEventListener('keydown',e=>{
+    const modal=['#submitCheck','#restartCheck'].map($).find(el=>!el.hidden);if(!modal)return;
+    if(e.key==='Escape'){e.preventDefault();closeCheck('#'+modal.id);return;}
+    if(e.key!=='Tab')return;
+    const controls=[...modal.querySelectorAll('button:not(:disabled),select:not(:disabled)')].filter(el=>el.getClientRects().length);
+    const first=controls[0],last=controls[controls.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
+  const headerObserver=new ResizeObserver(entries=>{
+    const h=Math.ceil(entries[0].contentRect.height+parseFloat(getComputedStyle($('header')).paddingTop)+parseFloat(getComputedStyle($('header')).paddingBottom)+1);
+    document.documentElement.style.setProperty('--header-h',h+'px');
+  });headerObserver.observe($('header'));
+  const mapObserver=new ResizeObserver(()=>{if(game)resize();});mapObserver.observe($('#mapwrap'));
+
+  setInterval(() => { if (game && $('#menu').hidden) saveSession(); }, 5000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { setRun(false); saveSession(); } });
+  window.addEventListener('pagehide', saveSession);
+  buildAbyss();
+  window.__echo = { openProfile, get profile() { return profile; }, get game() { return game; }, get run() { return run; }, startTraining, newRun, finish, menu, setRun, saveSession, resumeSession, economy, C3, setView: v => { if (v === '3d') { view3src = view; view = '3d'; } else view = v; syncToggles(); } };
+  menu(); requestAnimationFrame(loop);
+})();
+</script>
+</body></html>
