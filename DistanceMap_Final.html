@@ -156,7 +156,7 @@
   </div>
   <div id="metaBar" class="metabar">
     <span class="chip">Owner <b id="ownerName">POP Geomatics</b></span>
-    <span class="chip">V261027.03</span>
+    <span class="chip">V261027.04</span>
     <span class="chip">Speed <b id="speedHeader">8</b> kn</span>
     <span class="chip"><b id="dateHeader"></b></span>
   </div>
@@ -549,12 +549,18 @@ function initMap(){
   linesLayer=L.layerGroup().addTo(map);
   hiLayer=L.layerGroup().addTo(map);
   map.on('click',clearHi);
-  // Labels use pixel offsets -> re-layout only when zoom/size changes (NOT on pan; no auto re-fit)
-  map.on('zoomend moveend resize', ()=>{ applyMarkerScale(); clearTimeout(_rlTimer); _rlTimer=setTimeout(renderLabels,80); });
+  // Labels use pixel offsets and only markers in view get one -> re-layout on zoom / pan / resize (no auto re-fit)
+  let _lastZ=null;   // marker radius depends on the zoom level only; labels are re-solved on zoom / pan / resize (only markers in view get a label)
+  map.on('zoomend moveend resize', ()=>{ const z=map.getZoom(); if(z!==_lastZ){ _lastZ=z; applyMarkerScale(); } clearTimeout(_rlTimer); _rlTimer=setTimeout(renderLabels,80); });
   fitMap();
 }
 const _measureCtx=document.createElement('canvas').getContext('2d');
-function measureTextPx(text,px=12,f='Inter, system-ui, sans-serif',w=700){_measureCtx.font=`${w} ${px}px ${f}`;return{w:_measureCtx.measureText(text).width,h:px};}
+const _mCache=new Map();   // text widths: the font stack is fixed, so a width never goes stale
+function measureTextPx(text,px=12,f='Inter, system-ui, sans-serif',w=700){
+  const k=w+'|'+px+'|'+f+'|'+text; let v=_mCache.get(k);
+  if(v===undefined){ _measureCtx.font=`${w} ${px}px ${f}`; v=_measureCtx.measureText(text).width; if(_mCache.size>5000) _mCache.clear(); _mCache.set(k,v); }
+  return{w:v,h:px};
+}
 function escapeXml(s){return String(s).replace(/[<>&'"]/g,c=>c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':c==="'"?'&#39;':'&quot;');}
 function makePoiChipSVG(name,{ref=false,fontPx=12,padX=7,padY=3}={}){const f='Inter, system-ui, sans-serif',w=700,{w:tw}=measureTextPx(name,fontPx,f,w),halo=3,chipW=Math.ceil(tw+padX*2),chipH=Math.ceil(fontPx+padY*2),textY=padY+fontPx-2,fill='#fff',stroke=ref?'#93c5fd':'#cbd5e1',textFill=ref?'#0b3d91':'#0b1a2a';return `<svg xmlns="http://www.w3.org/2000/svg" width="${chipW}" height="${chipH}"><rect x="0.5" y="0.5" rx="10" ry="10" width="${chipW-1}" height="${chipH-1}" fill="${fill}" stroke="${stroke}"/><text x="${padX}" y="${textY}" font-family="${f}" font-size="${fontPx}" font-weight="${w}" fill="${textFill}" stroke="#ffffff" stroke-width="${halo}" stroke-linejoin="round" paint-order="stroke fill">${escapeXml(name)}</text></svg>`;}
 
@@ -564,9 +570,9 @@ const hexRgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 let _groups=[];
 /* Co-located POIs (closer than CFG.MERGE_NM) are drawn as ONE marker + one label "A / B". Matrix keeps every POI. */
 function computeGroups(){
-  const gs=[];
+  const gs=[], DC=distCache();
   pois.forEach((p,i)=>{
-    const g=gs.find(g=>kmToNm(distKm(pois[g.idx[0]].lat,pois[g.idx[0]].lon,p.lat,p.lon))<CFG.MERGE_NM);
+    const g=gs.find(g=>DC.nm[g.idx[0]][i]<CFG.MERGE_NM);
     if(g) g.idx.push(i); else gs.push({idx:[i]});
   });
   _groups=gs.map(g=>({idx:g.idx,lat:pois[g.idx[0]].lat,lon:pois[g.idx[0]].lon,name:g.idx.map(i=>pois[i].name).join(' / '),label:shortLabel(g.idx.map(i=>pois[i].name).join(' / '))}));
@@ -612,6 +618,14 @@ function updateLegend(){
 /* ===== Label placement (rectangle-aware, unit-agnostic: px on screen, mm in PDF) =====
    pts: [{x,y,w,h,pri}] anchors + label size; r = marker radius; bnd = {x0,y0,x1,y1}
    obst: extra fixed rects [{x,y,w,h}]. Returns [{cx,cy,w,h,leader,lx,ly}] aligned with pts. */
+/* Uniform grid of rectangles: hit() = same answer as "any rectOv(r,q)>eps" over all added q, without scanning them all. */
+function rectGrid(cs){
+  const g=new Map(), c=v=>Math.floor(v/cs), K=(x,y)=>x*65536+y;   // integer cell key (|cell| < 32768)
+  return {
+    add(r){ const x1=c(r.x+r.w),y1=c(r.y+r.h); for(let x=c(r.x);x<=x1;x++) for(let y=c(r.y);y<=y1;y++){ const k=K(x,y); let a=g.get(k); if(!a) g.set(k,a=[]); a.push(r); } },
+    hit(r,eps){ const x1=c(r.x+r.w),y1=c(r.y+r.h); for(let x=c(r.x);x<=x1;x++) for(let y=c(r.y);y<=y1;y++){ const a=g.get(K(x,y)); if(a) for(let i=0;i<a.length;i++) if(rectOv(r,a[i])>eps) return true; } return false; }
+  };
+}
 function rectOv(a,b){ return Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)); }
 /* ===== Label engine (px on screen, mm in PDF). Deterministic: fixed-seed PRNG -> same input = same layout ===== */
 function segLenIn(s,rc){
@@ -690,6 +704,7 @@ function layoutLabelsFast(pts,r,bnd,u,obst,segs){
   obst=obst||[]; segs=segs||[]; const n=pts.length, EPS=0.02*u*u, gaps=[2,7,14,24].map(v=>v*u);
   const markers=pts.map(p=>({x:p.x-r,y:p.y-r,w:2*r,h:2*r}));
   const order=pts.map((_,i)=>i).sort((a,b)=>(pts[b].pri||0)-(pts[a].pri||0)||a-b), placed=[], res=new Array(n).fill(null);
+  const mg=rectGrid(40*u), pg=rectGrid(40*u); markers.forEach(m=>mg.add(m));
   for(const i of order){
     const p=pts[i], W2=p.w/2, H2=p.h/2; let best=null;
     for(let ri=0;ri<gaps.length&&!best;ri++){
@@ -703,15 +718,13 @@ function layoutLabelsFast(pts,r,bnd,u,obst,segs){
         let bad=false;
         for(const q of obst) if(rectOv(rc,q)>EPS){ bad=true; break; }
         if(bad) continue;
-        for(let j=0;j<n;j++) if(rectOv(rc,markers[j])>EPS){ bad=true; break; }
-        if(bad) continue;
-        for(const q of placed) if(rectOv(rc,q)>EPS){ bad=true; break; }
-        if(bad) continue;
+        if(mg.hit(rc,EPS)) continue;
+        if(pg.hit(rc,EPS)) continue;
         let sc=pf; if(segs.length){ const diag=Math.hypot(rc.w,rc.h); let s=0; for(const sg of segs) s+=segLenIn(sg,rc); sc+=Math.min(s/diag,2.5)*8; }
         if(!best||sc<best.sc){ rc.sc=sc; best=rc; }
       }
     }
-    if(best){ placed.push(best); res[i]={cx:best.cx,cy:best.cy,w:p.w,h:p.h,leader:false,lx:p.x,ly:p.y}; }
+    if(best){ placed.push(best); pg.add(best); res[i]={cx:best.cx,cy:best.cy,w:p.w,h:p.h,leader:false,lx:p.x,ly:p.y}; }
   }
   return res;
 }
@@ -740,7 +753,7 @@ function placeChipsCapped(T,fixed,bnd,u,max){
   const sel=chipPick(T,max); if(!sel) return placeChips(T,fixed,bnd,u,T.map(t=>t.s).filter(Boolean));
   const TT=T.filter((t,i)=>sel.has(i)), r0=placeChips(TT,fixed,bnd,u,TT.map(t=>t.s).filter(Boolean)), res=new Array(T.length).fill(null); let q=0;
   T.forEach((t,i)=>{ if(sel.has(i)) res[i]=r0[q++]; });
-  const blocked=fixed.concat(res.filter(Boolean).map(r=>r.rc)), EPS=0.02*u*u;
+  const blocked=fixed.concat(res.filter(Boolean).map(r=>r.rc)), EPS=0.02*u*u, bg=rectGrid(40*u); blocked.forEach(b=>bg.add(b));
   const rest=T.map((t,i)=>i).filter(i=>T[i].s&&!sel.has(i)).sort((a,b)=>T[b].len-T[a].len||a-b);
   for(const i of rest){
     const t=T[i], s=t.s, len=T[i].len; if(len<1e-6) continue;
@@ -750,16 +763,15 @@ function placeChipsCapped(T,fixed,bnd,u,max){
       for(const off of [0,gap,-gap]){
         const cx=s[0]+(s[2]-s[0])*f+nx*off, cy=s[1]+(s[3]-s[1])*f+ny*off, rc={x:cx-t.w/2,y:cy-t.h/2,w:t.w,h:t.h,cx,cy};
         if(rc.x<bnd.x0||rc.y<bnd.y0||rc.x+rc.w>bnd.x1||rc.y+rc.h>bnd.y1) continue;
-        let bad=false; for(const b of blocked) if(rectOv(rc,b)>EPS){ bad=true; break; }
-        if(!bad){ hit=rc; break; }
+        if(!bg.hit(rc,EPS)){ hit=rc; break; }
       }
     }
-    if(hit){ res[i]={rc:hit,cx:hit.cx,cy:hit.cy}; blocked.push(hit); }
+    if(hit){ res[i]={rc:hit,cx:hit.cx,cy:hit.cy}; blocked.push(hit); bg.add(hit); }
   }
   return res;
 }
 function placeChips(T,fixed,bnd,u,allSegs){
-  const n=T.length, EPS=0.02*u*u, HIDE=40;
+  const n=T.length, EPS=0.02*u*u, HIDE=40, fg=rectGrid(40*u); fixed.forEach(q=>fg.add(q));
   const C=T.map((t,ti)=>{
     const s=t.s, list=[]; if(!s) return list;
     const len=Math.hypot(s[2]-s[0],s[3]-s[1]); if(len<1e-6) return list;
@@ -767,8 +779,7 @@ function placeChips(T,fixed,bnd,u,allSegs){
     for(let f=0.06;f<=0.9401;f+=0.02) for(let oi=0;oi<off.length;oi++){
       const cx=s[0]+(s[2]-s[0])*f+nx*off[oi], cy=s[1]+(s[3]-s[1])*f+ny*off[oi], rc={x:cx-t.w/2,y:cy-t.h/2,w:t.w,h:t.h,cx,cy};
       if(rc.x<bnd.x0||rc.y<bnd.y0||rc.x+rc.w>bnd.x1||rc.y+rc.h>bnd.y1) continue;
-      let bad=false; for(const q of fixed) if(rectOv(rc,q)>EPS){ bad=true; break; }
-      if(bad) continue;
+      if(fg.hit(rc,EPS)) continue;
       let sc=0; if(allSegs){ const diag=Math.hypot(rc.w,rc.h); for(let k=0;k<allSegs.length;k++){ if(k===ti&&oi===0) continue; sc+=segLenIn(allSegs[k],rc); } sc=Math.min(sc/diag,4); }
       rc.base=sc*12+Math.abs(f-0.5)*0.8+(oi?0.8+oi*0.2:0); list.push(rc);
     }
@@ -776,8 +787,11 @@ function placeChips(T,fixed,bnd,u,allSegs){
   });
   const cur=new Array(n).fill(0);                                   // index into C[i]; C[i].length = hidden
   const rc_=(i,k)=>k<C[i].length?C[i][k]:null;
+  // two chips can only collide if the boxes around ALL their candidate spots touch: other chips contribute exactly 0 and are skipped (same result, fewer pair tests)
+  const bb=C.map(l=>{ if(!l.length) return null; let x0=1e18,y0=1e18,x1=-1e18,y1=-1e18; for(const r of l){ if(r.x<x0)x0=r.x; if(r.y<y0)y0=r.y; if(r.x+r.w>x1)x1=r.x+r.w; if(r.y+r.h>y1)y1=r.y+r.h; } return {x0,y0,x1,y1}; });
+  const nbr=bb.map((a,i)=>{ const o=[]; if(a) for(let j=0;j<n;j++) if(j!==i&&bb[j]&&a.x0<=bb[j].x1&&bb[j].x0<=a.x1&&a.y0<=bb[j].y1&&bb[j].y0<=a.y1) o.push(j); return o; });
   let ops=0;
-  const cost=(i,k)=>{ ops++; const a=rc_(i,k); if(!a) return HIDE; let e=a.base; for(let j=0;j<n;j++){ if(j===i) continue; const b=rc_(j,cur[j]); if(b&&rectOv(a,b)>EPS) e+=15; } return e; };
+  const cost=(i,k)=>{ ops++; const a=rc_(i,k); if(!a) return HIDE; let e=a.base; for(const j of nbr[i]){ const b=rc_(j,cur[j]); if(b&&rectOv(a,b)>EPS) e+=15; } return e; };
   const order=T.map((_,i)=>i).sort((a,b)=>C[a].length-C[b].length);
   for(let i=0;i<n;i++) cur[i]=C[i].length;
   for(const i of order){ let bk=C[i].length,be=cost(i,bk); for(let k=0;k<C[i].length;k++){ const e=cost(i,k); if(e<be){ be=e; bk=k; } } cur[i]=bk; }
@@ -854,12 +868,12 @@ function renderPOIs(keep){
   const tb=document.querySelector('#poiTable tbody'); if(!keep) tb.innerHTML='';
   const prev = els.ref.value!=='' ? els.ref.value : _savedRef;
   _savedRef='';
-  els.ref.innerHTML='<option value="">— None —</option>';
+  els.ref.innerHTML='<option value="">— None —</option>'+pois.map((p,i)=>`<option value="${i}">${esc(p.name)}</option>`).join('');
   markersLayer.clearLayers();
-  pois.forEach((p,i)=>{ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=p.name; els.ref.appendChild(opt); });
   if(prev !== '' && Number(prev)>=0 && Number(prev) < pois.length) els.ref.value = prev;
   const refIndex = refIdxNow();
   computeGroups();
+  const frag=document.createDocumentFragment();
   pois.forEach((p,i)=>{
     if(keep) return;
     const isRef = i === refIndex;
@@ -867,8 +881,9 @@ function renderPOIs(keep){
     tr.className=(isRef?'is-ref':'')+(edModified(p)?' ed-mod':'')+(_ed.base.length&&!_ed.orig.has(p)?' ed-new':''); tr.dataset.q=(p.name+' '+(p.type||'')).toLowerCase();
     tr.innerHTML=_ed.on?edRowHtml(p):`<td class="nm" title="${esc(p.name)}">${isRef?'<span class="badge-ref" style="margin:0 6px 0 0">Ref</span>':''}${esc(p.name)}</td><td class="dm">${formatDM(p.lat,true)}</td><td class="dm">${formatDM(p.lon,false)}</td><td>${fmtNum(p.e)}</td><td>${fmtNum(p.n)}</td>`;
     if(_ed.on) edWireRow(tr,p); else tr.addEventListener('click',()=>pickRef(i));
-    tb.appendChild(tr);
+    frag.appendChild(tr);
   });
+  if(!keep) tb.appendChild(frag);
   const base=CFG.MARKER_BASE_RADIUS, types=poiTypes(), rg=refGroupIdx(), zs=zoomScale(); let refMarker=null; _markerObjs=[];
   _groups.forEach((g,gi)=>{
     const st=groupStyle(g,types), isRef=gi===rg;
@@ -891,16 +906,12 @@ function renderPOIs(keep){
 }
 /* All pairwise distances computed ONCE per POI list (km + nm + max): matrix screen, PDF pages and block pages share it. */
 let _dc=null;
-function distCache(){
+function distCache(){   // each pair is computed once (upper triangle) and mirrored; cleared on every edit via edTail()
   if(_dc&&_dc.for===pois&&_dc.n===pois.length) return _dc;
-  const n=pois.length, km=[], nm=[]; let max=1;
-  for(let i=0;i<n;i++){
-    const rk=new Array(n), rn=new Array(n);
-    for(let j=0;j<n;j++){
-      if(i===j){ rk[j]=null; rn[j]=null; continue; }
-      const k=distKm(pois[i].lat,pois[i].lon,pois[j].lat,pois[j].lon), v=kmToNm(k); rk[j]=k; rn[j]=v; if(v>max) max=v;
-    }
-    km.push(rk); nm.push(rn);
+  const n=pois.length, km=Array.from({length:n},()=>new Array(n).fill(null)), nm=Array.from({length:n},()=>new Array(n).fill(null)); let max=1;
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    const k=distKm(pois[i].lat,pois[i].lon,pois[j].lat,pois[j].lon), v=kmToNm(k);
+    km[i][j]=km[j][i]=k; nm[i][j]=nm[j][i]=v; if(v>max) max=v;
   }
   return (_dc={for:pois,n,km,nm,max});
 }
@@ -910,74 +921,28 @@ function matrixShown(){ return document.getElementById('pane-matrix').style.disp
 function flushMatrix(){ if(_mxDirty){ _mxDirty=false; renderMatrix(); } }
 function requestMatrix(){ _mxDirty=true; if(!matrixShown()) return; clearTimeout(_mxTimer); if(pois.length>CFG.MATRIX_SINGLE_MAX) _mxTimer=setTimeout(flushMatrix,150); else flushMatrix(); }
 function renderMatrix(){
-  const thead=document.querySelector('#matrixTable thead');
-  const tbody=document.querySelector('#matrixTable tbody');
+  const thead=document.querySelector('#matrixTable thead'), tbody=document.querySelector('#matrixTable tbody');
   thead.innerHTML=''; tbody.innerHTML='';
   if(!pois.length) return;
-
-  // Header: two-line names + make first data column sticky
-  const trh=document.createElement('tr');
-  const firstTh = document.createElement('th');
-  firstTh.textContent = 'From \\ To';
-  trh.appendChild(firstTh);
-  pois.forEach((p, idx)=>{
-    const th=document.createElement('th');
-    th.innerHTML = `<div title="${esc(p.name)}" style="width:120px;line-height:1.15;text-align:center;margin:0 auto">${esc(breakNameTwoLines(p.name)).replace(/\n/g,"<br>")}</div>`;
-    if(idx===0) th.classList.add('sticky-2'); // the first data column
-    trh.appendChild(th);
-  });
-  thead.appendChild(trh);
-
-  const speed=speedVal(), DC=distCache();
-  // Build rows; put nm into data attribute for heat shading
-  for(let i=0;i<pois.length;i++){
-    const row=document.createElement('tr');
-    const th=document.createElement('th');
-    th.innerHTML = `<div title="${esc(pois[i].name)}" style="width:140px;line-height:1.15">${esc(breakNameTwoLines(pois[i].name)).replace(/\n/g,"<br>")}</div>`;
-    row.appendChild(th);
-
-    for(let j=0;j<pois.length;j++){
-      const td=document.createElement('td');
-      if(i===j){
-        td.className = 'muted empty';
-        td.textContent = '—';
-      } else {
-        const km = DC.km[i][j];
-        const nm = DC.nm[i][j], hrs = nm/speed;
-        td.setAttribute('data-nm', String(nm));
-        td.title = `${km.toFixed(2)} km | ${nm.toFixed(1)} nm | ${hrsToHM(hrs)}`;
-        td.innerHTML = `<div><div style="font-weight:700">${nm.toFixed(1)} nm</div><div class="muted">${hrsToHM(hrs)}</div></div>`;
-      }
-      // Make first data column cells sticky
-      if(j===0) td.classList.add('sticky-2');
-      row.appendChild(td);
+  const n=pois.length, speed=speedVal(), DC=distCache(), nm2=s=>esc(breakNameTwoLines(s)).replace(/\n/g,'<br>');
+  let max=0; for(let i=0;i<n;i++) for(let j=0;j<n;j++) if(i!==j&&DC.nm[i][j]>max) max=DC.nm[i][j]; max=max||1;   // heat scale = longest leg
+  // one HTML string per table: no per-cell DOM nodes, no per-cell listeners (200 POIs = 40 000 cells)
+  thead.innerHTML='<tr><th>From \\ To</th>'+pois.map((p,j)=>`<th${j===0?' class="sticky-2"':''}><div title="${esc(p.name)}" style="width:120px;line-height:1.15;text-align:center;margin:0 auto">${nm2(p.name)}</div></th>`).join('')+'</tr>';
+  const rows=new Array(n);
+  for(let i=0;i<n;i++){
+    let h=`<tr><th><div title="${esc(pois[i].name)}" style="width:140px;line-height:1.15">${nm2(pois[i].name)}</div></th>`;
+    for(let j=0;j<n;j++){
+      if(i===j){ h+=`<td class="muted empty${j===0?' sticky-2':''}">—</td>`; continue; }
+      const km=DC.km[i][j], nm=DC.nm[i][j], hm=hrsToHM(nm/speed), hue=220-Math.round(Math.min(1,nm/max)*180);
+      h+=`<td${j===0?' class="sticky-2"':''} data-nm="${nm}" title="${km.toFixed(2)} km | ${nm.toFixed(1)} nm | ${hm}" style="background:hsla(${hue}, 75%, 96%, 1)"><div><div style="font-weight:700">${nm.toFixed(1)} nm</div><div class="muted">${hm}</div></div></td>`;
     }
-    tbody.appendChild(row);
+    rows[i]=h+'</tr>';
   }
-
-  // Heat shading by nm (light for short, darker for long)
-  (function shade(){
-    const cells = tbody.querySelectorAll('td[data-nm]');
-    let max = 0;
-    cells.forEach(td => { const v = parseFloat(td.getAttribute('data-nm')||'0'); if(v>max) max=v; });
-    max = max || 1;
-    cells.forEach(td => {
-      const v = parseFloat(td.getAttribute('data-nm')||'0');
-      const ratio = Math.min(1, v/max);
-      const hue = 220 - Math.round(ratio*180);
-      td.style.background = `hsla(${hue}, 75%, 96%, 1)`;
-    });
-  })();
-
-  addMatrixHoverHighlight();
-
-  // Compute sticky offset for second column based on rendered width of first column
-  requestAnimationFrame(()=>{
-    const tbl = document.getElementById('matrixTable');
-    const firstColCells = tbl.querySelectorAll('th:first-child, td:first-child');
-    let w = 0;
-    firstColCells.forEach(c => { w = Math.max(w, c.offsetWidth); });
-    tbl.style.setProperty('--sticky-left-1', w + 'px');
+  tbody.innerHTML=rows.join('');
+  _hlRow=null; _hlCol=-1; addMatrixHoverHighlight();
+  requestAnimationFrame(()=>{                       // all cells of a column share one width: read one cell instead of all
+    const tbl=document.getElementById('matrixTable'), c=tbl.rows[0]&&tbl.rows[0].cells[0];
+    if(c) tbl.style.setProperty('--sticky-left-1', c.offsetWidth+'px');
   });
 }
 
@@ -991,7 +956,7 @@ function renderDistTable(){
   if(r<0||!pois[r]){ tbl.style.display='none'; head.textContent=''; emp.style.display='block'; return; }
   tbl.style.display=''; emp.style.display='none';
   const A=pois[r], sp=speedVal();
-  const rows=pois.map((p,i)=>({i,p,km:distKm(A.lat,A.lon,p.lat,p.lon)})).filter(x=>x.i!==r).sort((a,b)=>a.km-b.km||a.i-b.i);
+  const DC=distCache(), rows=pois.map((p,i)=>({i,p,km:DC.km[r][i]})).filter(x=>x.i!==r).sort((a,b)=>a.km-b.km||a.i-b.i);
   head.innerHTML=`From <b>${esc(A.name)}</b> &bull; ${sp} kn &bull; nearest first`;
   rows.forEach(x=>{
     const nm=kmToNm(x.km), tr=document.createElement('tr');
@@ -1037,23 +1002,17 @@ function renderMultiList(){
   });
   syncMulti();
 }
-function addMatrixHoverHighlight(){
-  const table=document.getElementById('matrixTable');
-  const rows=Array.from(table.querySelectorAll('tbody tr'));
-  const clearHL=()=>{
-    rows.forEach(r=>r.classList.remove('row-hl'));
-    table.querySelectorAll('.col-hl').forEach(el=>el.classList.remove('col-hl'));
-  };
-  table.onmouseleave=clearHL;
-  rows.forEach(r=>{
-    Array.from(r.children).forEach((cell,ci)=>{
-      cell.addEventListener('mouseenter',()=>{
-        clearHL(); r.classList.add('row-hl');
-        rows.forEach(rr=>{const c=rr.children[ci]; if(c) c.classList.add('col-hl');});
-        const headRow=table.tHead && table.tHead.rows[0]; if(headRow && headRow.children[ci]) headRow.children[ci].classList.add('col-hl');
-      });
-    });
+let _hlRow=null, _hlCol=-1;
+function addMatrixHoverHighlight(){   // listeners are attached ONCE (the table element is static; only its rows are rebuilt)
+  const table=document.getElementById('matrixTable'); if(table._hl) return; table._hl=true;
+  const setCol=(c,on)=>{ if(c<0) return; for(const r of table.rows){ const x=r.cells[c]; if(x) x.classList.toggle('col-hl',on); } };
+  table.addEventListener('mouseover',e=>{
+    const cell=e.target.closest&&e.target.closest('td,th'); if(!cell||!table.tBodies[0]||!table.tBodies[0].contains(cell)) return;
+    const r=cell.parentElement, c=cell.cellIndex;
+    if(r!==_hlRow){ if(_hlRow) _hlRow.classList.remove('row-hl'); r.classList.add('row-hl'); _hlRow=r; }
+    if(c!==_hlCol){ setCol(_hlCol,false); setCol(c,true); _hlCol=c; }
   });
+  table.addEventListener('mouseleave',()=>{ if(_hlRow) _hlRow.classList.remove('row-hl'); setCol(_hlCol,false); _hlRow=null; _hlCol=-1; });
 }
 function drawLines(){
   linesLayer.clearLayers(); updateLegend(); if(!pois.length) return;
@@ -1062,7 +1021,7 @@ function drawLines(){
   const a=map.latLngToContainerPoint([A.lat,A.lon]), T=[];
   _groups.forEach((g,gi)=>{
     if(gi===rg) return;
-    const nm=kmToNm(distKm(A.lat,A.lon,g.lat,g.lon)), text=`${nm.toFixed(1)} nm · ${hrsToHM(nm/speed)}`;
+    const nm=distCache().nm[Number(els.ref.value)][g.idx[0]], text=`${nm.toFixed(1)} nm · ${hrsToHM(nm/speed)}`;
     const line=L.polyline([[A.lat,A.lon],[g.lat,g.lon]],{color:'#2563eb',weight:2,opacity:0.9}).addTo(linesLayer);
     const b=map.latLngToContainerPoint([g.lat,g.lon]);
     T.push({line,text,s:clipSeg(a.x,a.y,b.x,b.y,{x0:0,y0:0,x1:sz.x,y1:sz.y}),w:Math.ceil(measureTextPx(text,11,'Inter, system-ui, sans-serif',600).w+12),h:16});
@@ -1585,7 +1544,7 @@ function drawPanel(doc,v,o){
   if(showLines&&o.distLabels){
     doc.setFontSize(6.5);
     const T=targets.map(t=>{
-      const nm=kmToNm(distKm(refP.lat,refP.lon,t.g.lat,t.g.lon)), txt=`${nm.toFixed(1)} nm · ${hrsToHM(nm/sp)}`;
+      const nm=distCache().nm[ref.idx][t.g.idx[0]], txt=`${nm.toFixed(1)} nm · ${hrsToHM(nm/sp)}`;
       return {s:t.s,txt,w:doc.getTextWidth(txt)+2.4,h:3.6};
     });
     const res=placeChipsCapped(T,placed.concat(mRects,obst),{x0:R.x0,y0:R.y0,x1:R.x1,y1:R.y1},0.35,CFG.CHIP_MAX_PDF);
@@ -1900,7 +1859,7 @@ els.btnPreviewPOIs.addEventListener('click', ()=>{
 els.btnPreviewMatrix.addEventListener('click', ()=>{
   if(!pois.length){alert('Load POIs first');return;}
   const w=window.open('about:blank','_blank','width=1200,height=800'); if(!w){alert('Allow pop-ups in Edge.');return;}
-  const speed=speedVal();
+  const speed=speedVal(), DC=distCache();
   const nowStr=new Date().toLocaleString();
 
   const head=`<tr>
@@ -1914,8 +1873,7 @@ els.btnPreviewMatrix.addEventListener('click', ()=>{
     const wgsCell = `<div>${formatDM(from.lat,true)}</div><div>${formatDM(from.lon,false)}</div>`;
     const tds = pois.map((to,j)=>{
       if(i===j) return `<td class="muted empty">—</td>`;
-      const km=distKm(from.lat,from.lon,to.lat,to.lon);
-      const nm=kmToNm(km), hrs=nm/speed;
+      const nm=DC.nm[i][j], hrs=nm/speed;
       return `<td><div class="cell"><div class="nm">${nm.toFixed(1)} nm</div><div class="tm">${hrsToHM(hrs)}</div></div></td>`;
     }).join('');
     return `<tr><th class="sticky-left"><div class="name2l">${nameHtml}</div></th><td class="sticky-left-2 wgs">${wgsCell}</td>${tds}</tr>`;
@@ -2123,7 +2081,6 @@ function restore(){
 const onSpeedChange = ()=>{ els.speedHeader.textContent=speedVal(); requestMatrix(); renderDistTable(); drawLines(); persist(); };
 els.speed.addEventListener('blur',()=>{ if(parseFloat(els.speed.value)>60){ els.speed.value='60'; onSpeedChange(); setStatus('Speed limited to 60 kn.',false); } if(!(parseFloat(els.speed.value)>0)){ els.speed.value='8'; onSpeedChange(); setStatus('Speed must be greater than 0 - reset to 8 kn.',false); } });
 els.speed.addEventListener('input', onSpeedChange);
-els.speed.addEventListener('change', onSpeedChange);
 els.ref.addEventListener('change', ()=>{ if(els.ref.value!==''&&!_hadRef&&!els.toggleLines.checked) els.toggleLines.checked=true; renderPOIs(); persist(); });
 els.filter.addEventListener('input', applyFilter);
 document.getElementById('mrAll').addEventListener('click',()=>{ pois.forEach(p=>_multiSel.add(p.name)); syncMulti(); persist(); });
@@ -2149,12 +2106,12 @@ function csvUnguard(v){ const s=String(v==null?'':v); return (s[0]==="'"&&csvRis
 els.btnExportMatrixExcel.addEventListener('click', ()=>{
   if(!pois.length){ alert('Load POIs first.'); return; }
   const sp=speedVal();
-  const nm=(a,b)=>kmToNm(distKm(a.lat,a.lon,b.lat,b.lon));
+  const DC=distCache();
   const names=pois.map(p=>p.name);
   const poi=[['POI list'],['Name','Type','Easting (m)','Northing (m)','Lat (WGS84 DM)','Lon (WGS84 DM)','Lat (deg)','Lon (deg)'],
     ...pois.map(p=>[p.name,p.type||'',p.e,p.n,formatDM(p.lat,true),formatDM(p.lon,false),p.lat.toFixed(6),p.lon.toFixed(6)])];
-  const dist=[['Distance (nm), WGS84 geodesic'],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':nm(a,b).toFixed(2))])];
-  const time=[[`Time (h:mm) at ${sp} kn, straight line`],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':hrsToHM(nm(a,b)/sp))])];
+  const dist=[['Distance (nm), WGS84 geodesic'],['From \\ To',...names],...pois.map((a,i)=>[a.name,...pois.map((b,j)=>i===j?'':DC.nm[i][j].toFixed(2))])];
+  const time=[[`Time (h:mm) at ${sp} kn, straight line`],['From \\ To',...names],...pois.map((a,i)=>[a.name,...pois.map((b,j)=>i===j?'':hrsToHM(DC.nm[i][j]/sp))])];
   const rows=[['GOT Distance Matrix'],['Speed (kn)',sp],['Reference',refInfo().name],[],...poi,[],...dist,[],...time];
   const toCSV=arr=>arr.map(row=>row.map(x=>{ let s=String(x??''); if(typeof x!=='number') s=csvSafe(s); return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
   const blob=new Blob(['\ufeff'+toCSV(rows)],{type:'text/csv;charset=utf-8'});
@@ -2398,7 +2355,7 @@ edE('edInfo').addEventListener('click',()=>{ if(!_ed.log.length) return; documen
 /* ========= Session save / load (.json) =========
    Saves the POI list (name, type, UTM E/N), reference, speed, line toggle, basemap, PDF mode, multi-reference ticks and map view.
    lat/lon are stored for traceability only: on load they are RE-COMPUTED from E/N with this app's datum code (Indian 1975 -> WGS84). */
-const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261027.03';
+const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261027.04';
 function sessionFileName(d){ const p=n=>String(n).padStart(2,'0'); return `DistanceMap_session_${ydm(d)}_${p(d.getHours())}${p(d.getMinutes())}.json`; }
 function buildSession(){
   const r=refIdxNow(), c=map.getCenter();
