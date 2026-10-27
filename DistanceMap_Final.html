@@ -50,6 +50,7 @@
   .card.loaded .drop{padding:7px 10px} .card.loaded .drop small{display:none} .card.loaded .drop svg{width:18px;height:18px}
   .drop svg{flex:none;color:var(--brand)} .drop b{display:block;color:var(--ink)} .drop small{display:block;color:var(--muted);font-size:11.5px;margin-top:1px}
   .rowbar{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+  #dataSummary{flex:1 0 100%} #btnTemplate{margin-left:auto}
   .summary{flex:1;min-width:0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .summary b{color:var(--ink)}
   button.link{border:0;background:none;color:var(--brand-d);cursor:pointer;padding:2px 4px;border-radius:6px;font-weight:600;font-size:12px}
@@ -155,7 +156,7 @@
   </div>
   <div id="metaBar" class="metabar">
     <span class="chip">Owner <b id="ownerName">POP Geomatics</b></span>
-    <span class="chip">V261010.11</span>
+    <span class="chip">V261027.03</span>
     <span class="chip">Speed <b id="speedHeader">8</b> kn</span>
     <span class="chip"><b id="dateHeader"></b></span>
   </div>
@@ -166,12 +167,13 @@
       <h3><span class="step">1</span>Data</h3>
       <label id="drop" class="drop" for="file">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
-        <span><b id="dropTitle">Drop a CSV here or click to browse</b><small>Name, Easting, Northing [, Type] &bull; UTM 47N (m) &bull; up to 200 POIs</small></span>
-        <input id="file" class="sr-only" type="file" accept=".csv,.json,text/csv,text/plain,application/json,application/vnd.ms-excel" title="CSV: Name,Easting,Northing[,Type]"/>
+        <span><b id="dropTitle">Drop a CSV / XLSX here or click to browse</b><small>Name, Easting, Northing [, Type] &bull; UTM 47N (m) &bull; .csv .xlsx (1st sheet) &bull; up to 200 POIs</small></span>
+        <input id="file" class="sr-only" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.json,text/csv,text/plain,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" title="CSV / XLSX: Name,Easting,Northing[,Type]"/>
       </label>
       <div class="rowbar">
         <div id="dataSummary" class="summary">No data loaded</div>
         <button id="btnTemplate" class="link" type="button">CSV template</button>
+        <button id="btnTemplateX" class="link" type="button">XLSX template</button>
         <button id="btnClear" class="link danger" type="button">Clear</button>
       </div>
       <div class="rowbar" style="margin-top:2px">
@@ -184,6 +186,7 @@
         <div id="edInfo" class="summary" role="button" tabindex="0">POI list edits</div>
         <button id="btnEdit" class="link" type="button" title="Edit name / type / E / N, delete POIs. Changes are kept in this browser.">Edit</button>
         <button id="btnExportCsv" class="link" type="button" title="Download the current list as CSV (Name,Easting,Northing,Type) - same format as the import, date-stamped file name">Export CSV</button>
+        <button id="btnExportXlsx" class="link" type="button" title="Download the current list as Excel (.xlsx): POI sheet with the same Name,Easting,Northing,Type columns + WGS84 lat/lon + Info sheet">Export XLSX</button>
       </div>
     </section>
 
@@ -197,7 +200,7 @@
       <details class="more">
         <summary>Display &amp; PDF options</summary>
         <div class="grid2">
-          <div><label class="fld" for="baseSelect">Basemap</label><select id="baseSelect"><option value="esri-gray">Esri Light Gray</option><option value="esri-ocean">Esri Ocean</option><option value="osm">OpenStreetMap</option><option value="carto">CARTO (API key)</option><option value="none">None (vector only)</option></select></div>
+          <div><label class="fld" for="baseSelect">Basemap</label><select id="baseSelect"><option value="esri-gray">Esri Light Gray</option><option value="esri-ocean" selected>Esri Ocean</option><option value="osm">OpenStreetMap</option><option value="carto">CARTO (API key)</option><option value="none">None (vector only)</option></select></div>
           <div><label class="fld" for="pdfMapMode">PDF map page</label><select id="pdfMapMode"><option value="vector">Vector (clean)</option><option value="shot">With basemap</option></select></div>
         </div>
         <div class="range"><span>Table size</span><input id="zoomRange" type="range" min="0.8" max="1.2" step="0.02" value="1.00" aria-label="Table size"></div>
@@ -208,9 +211,10 @@
     <section class="card">
       <h3><span class="step">3</span>Export</h3>
       <button id="btnExport" class="btn primary block" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span id="exportLbl">Export PDF &middot; matrix + map</span></button>
-      <div class="btngrid c2">
+      <div class="btngrid c3">
         <button id="btnExportMatrixOnly" class="btn" type="button">Matrix PDF</button>
         <button id="btnExportMatrixExcel" class="btn" type="button">Matrix CSV</button>
+        <button id="btnExportMatrixXlsx" class="btn" type="button" title="Excel workbook: POI + Distance (nm) + Time (h:mm) matrices + Info">Matrix XLSX</button>
       </div>
       <div class="btngrid c3">
         <button id="btnPreviewMapA3" class="btn" type="button">Map A3</button>
@@ -241,7 +245,7 @@
             <thead><tr><th>Name</th><th>Lat (WGS84 DM)</th><th>Lon (WGS84 DM)</th><th>Easting (m)</th><th>Northing (m)</th></tr></thead>
             <tbody></tbody>
           </table>
-          <div id="poiEmpty" class="empty-hint">No POIs yet.<br>Drop a CSV above, or download the template.</div>
+          <div id="poiEmpty" class="empty-hint">No POIs yet.<br>Drop a CSV / XLSX above, or download a template.</div>
         </div>
         <div id="pane-matrix" style="display:none"><table id="matrixTable"><thead></thead><tbody></tbody></table></div>
         <div id="pane-dist" style="display:none">
@@ -253,7 +257,7 @@
     </section>
     <div id="statusArea" class="status">Ready.</div>
   </aside>
-  <main id="mapWrap"><div id="map"></div><div id="mapEmpty">Load a CSV to plot POIs on the map</div></main>
+  <main id="mapWrap"><div id="map"></div><div id="mapEmpty">Load a CSV / XLSX to plot POIs on the map</div></main>
 </div>
 <!-- Libs -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
@@ -470,6 +474,9 @@ const els={
   btnExport:document.getElementById('btnExport'),
   btnExportMatrixOnly:document.getElementById('btnExportMatrixOnly'),
   btnExportMatrixExcel:document.getElementById('btnExportMatrixExcel'),
+  btnExportMatrixXlsx:document.getElementById('btnExportMatrixXlsx'),
+  btnExportXlsx:document.getElementById('btnExportXlsx'),
+  btnTemplateX:document.getElementById('btnTemplateX'),
   btnPreviewPOIs:document.getElementById('btnPreviewPOIs'),
   btnPreviewMatrix:document.getElementById('btnPreviewMatrix'),
   btnPreviewMapA3:document.getElementById('btnPreviewMapA3'),
@@ -492,7 +499,7 @@ const shortLabel=(s,max)=>{ s=String(s==null?'':s); max=max||CFG.MAP_LABEL_MAX; 
 const fmtNow=()=>new Date().toLocaleString([], {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
 /* ========= Map ========= */
-/* Basemaps: CARTO raster tiles now need an API key (watermark "API KEY REQUIRED"). Default = keyless Esri. */
+/* Basemaps: CARTO raster tiles now need an API key (watermark "API KEY REQUIRED"). Default = Esri Ocean (keyless). */
 const BASEMAPS={
   'esri-gray':{url:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',opt:{maxNativeZoom:16},attr:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors'},
   'esri-ocean':{url:'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',opt:{maxNativeZoom:13},attr:'Tiles &copy; Esri &mdash; GEBCO, NOAA, Garmin and other contributors'},
@@ -510,7 +517,7 @@ function setBasemap(id){
     key=localStorage.getItem('got_carto_key')||'';
     if(!key){
       key=(prompt('CARTO API key (free: carto.com/basemaps/apikey)')||'').trim();
-      if(!key){ els.base.value='esri-gray'; return setBasemap('esri-gray'); }
+      if(!key){ els.base.value='esri-ocean'; return setBasemap('esri-ocean'); }
       localStorage.setItem('got_carto_key',key);
     }
   }
@@ -874,7 +881,7 @@ function renderPOIs(keep){
   if(refMarker&&refMarker.bringToFront) refMarker.bringToFront();
   applyFilter();
   { const has=pois.length>0; document.getElementById('poiEmpty').style.display=has?'none':'block'; document.getElementById('mapEmpty').style.display=has?'none':'block';
-    document.getElementById('dataCard').classList.toggle('loaded',has); document.getElementById('dropTitle').textContent=has?'Replace CSV (drop or click)':'Drop a CSV here or click to browse';
+    document.getElementById('dataCard').classList.toggle('loaded',has); document.getElementById('dropTitle').textContent=has?'Replace CSV / XLSX (drop or click)':'Drop a CSV / XLSX here or click to browse';
     els.summary.innerHTML=has?`<b>${pois.length}</b> POIs &bull; ${_groups.length} markers${refIdxNow()>=0?` &bull; ref <b>${esc(shortLabel(pois[refIdxNow()].name,22))}</b>`:''}`:'No data loaded'; }
   _hadRef=refIdxNow()>=0;
   requestMatrix(); renderDistTable(); renderMultiList();
@@ -1078,24 +1085,46 @@ function statusNote(dist){
   setStatus(parts.length?`${base} • ${parts.join(' • ')}`:base,true);
 }
 
-/* ========= CSV load / template ========= */
-/* Future improvement ideas:
-   - Accept header aliases (e.g., "Point Name", "UTM_E", "UTM_N") and map them to Name/Easting/Northing.
-   - Strip non-breaking spaces (NBSP) inside numbers more aggressively.
-   - Allow choosing delimiter (comma/semicolon/TAB) explicitly via a setting.
-   - Give per-row error details for malformed lines.
-*/
+/* ========= POI file import (CSV / TXT / XLSX) =========
+   Header aliases are matched after normalising (lower case, "(..)" removed, only a-z0-9 kept); priority = list order. */
+const COL_ALIAS={
+  name:['name','pointname','poiname','poi','station','label'],
+  e:['easting','eastings','east','utme','utmeasting','e','x'],
+  n:['northing','northings','north','utmn','utmnorthing','n','y'],
+  type:['type','category','class','group']
+};
+const normHdr=h=>String(h==null?'':h).replace(/\(.*?\)/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function findCols(hdrRaw){
+  const h=hdrRaw.map(normHdr), ix=k=>{ for(const a of COL_ALIAS[k]){ const i=h.indexOf(a); if(i>=0) return i; } return -1; };
+  return {iN:ix('name'),iE:ix('e'),iNo:ix('n'),iT:ix('type')};
+}
+/* "1,234.5" = thousands; "673112,69" = decimal comma (only when decComma: ; / TAB files and Excel text cells) */
+const makeNum=decComma=>s=>{ s=String(s).replace(/[\s\u00a0"]/g,''); if(s==='') return NaN; if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s=s.replace(/,/g,''); else if(decComma&&/^-?\d+,\d+$/.test(s)) s=s.replace(',','.'); else s=s.replace(/,/g,''); return Number(s); };
+/* Shared row validation for CSV and XLSX. body=[{ln,cols}] (ln = file line / Excel row). strict (CSV): more fields than the header = skipped (decimal comma in a comma-separated file). */
+function collectRows(hdrLen,C,body,num,strict,unit){
+  const rows=[], skipped=[], get=(a,i)=>(i>=0&&i<a.length&&a[i]!=null)?a[i]:'';
+  for(const {ln,cols} of body){
+    if(cols.every(c=>String(c==null?'':c).trim()==='')) continue;                       // blank / ",,,," rows
+    const name=csvUnguard(String(get(cols,C.iN)).trim()), eStr=String(get(cols,C.iE)).trim(), nStr=String(get(cols,C.iNo)).trim(), e=num(eStr), n=num(nStr);
+    if(!name){ skipped.push(`${unit} ${ln}: empty name`); continue; }
+    if(strict&&cols.slice(hdrLen).some(c=>c!=='')){ skipped.push(`${unit} ${ln} (${name}): ${cols.filter((c,k)=>k<hdrLen||c!=='').length} fields but the header has ${hdrLen} - decimal comma in a comma-separated file? use ; or quote the values`); continue; }
+    if(!Number.isFinite(e)||!Number.isFinite(n)||eStr===''||nStr===''){ skipped.push(`${unit} ${ln} (${name}): E/N not numeric`); continue; }
+    if(e<0||e>2000000||n<0||n>12000000){ skipped.push(`${unit} ${ln} (${name}): E/N out of UTM range - decimal comma or wrong units?`); continue; }
+    if(Math.abs(e)<1000&&Math.abs(n)<1000){ skipped.push(`${unit} ${ln} (${name}): E/N look like degrees (lat/lon), expected UTM metres`); continue; }
+    rows.push({Name:name,Easting:e,Northing:n,Type:csvUnguard(String(get(cols,C.iT)).trim())});
+  }
+  if(!rows.length) return {rows:[],reason:'No valid rows found'+(skipped.length?` (${skipped[0]})`:''),skipped};
+  return {rows,reason:null,skipped};
+}
 function parseCsvRobust(text){
   text = text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'); // strip BOM, normalize EOL
-  const lines = text.split(/\n/).filter(l=>l.trim().length>0);
+  const lines = text.split(/\n/).map((t,i)=>({t,ln:i+1})).filter(x=>x.t.trim().length>0);   // ln = real line number in the file
   if(!lines.length) return {rows:[],reason:'Empty file'};
-
   // delimiter = the most frequent of , ; TAB in the header line (quotes ignored). With ; or TAB a comma inside a number is a DECIMAL comma.
   const cnt=(s,ch)=>{ let q=false,n=0; for(const c of s){ if(c==='"'||c==='\u201C'||c==='\u201D') q=!q; else if(!q&&c===ch) n++; } return n; };
-  const delim=[',',';','\t'].map(d=>[d,cnt(lines[0],d)]).sort((a,b)=>b[1]-a[1])[0][0];
-  const num=s=>{ s=String(s).replace(/[\s\u00a0"]/g,''); if(s==='') return NaN; if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s=s.replace(/,/g,''); else if(delim!==','&&/^-?\d+,\d+$/.test(s)) s=s.replace(',','.'); else s=s.replace(/,/g,''); return Number(s); };
+  const detect=s=>[',',';','\t'].map(d=>[d,cnt(s,d)]).sort((a,b)=>b[1]-a[1])[0][0];
   // Splitter that honors quotes; only the detected delimiter splits
-  const split = s => {
+  const splitBy=(s,delim) => {
     const out=[]; let cur=''; let q=false;
     for(let i=0;i<s.length;i++){
       let ch=s[i], nx=s[i+1];
@@ -1110,35 +1139,139 @@ function parseCsvRobust(text){
     out.push(cur.trim());
     return out;
   };
-
-  const headersRaw = split(lines[0]).map(h=>h.trim());
-  const norm = h => h.replace(/\s+/g,'').replace(/\(.*?\)/g,'').toLowerCase();
-  const headers = headersRaw.map(norm);
-  const iN  = headers.findIndex(h => h === 'name');
-  const iE  = headers.findIndex(h => h === 'easting');
-  const iNo = headers.findIndex(h => h === 'northing');
-  const iT  = headers.findIndex(h => h === 'type' || h === 'category');
-  if(iN===-1 || iE===-1 || iNo===-1) return {rows:[],reason:'CSV must have headers: Name,Easting,Northing'};
-
-  const rows=[], skipped=[];
-  for(let r=1;r<lines.length;r++){
-    const cols = split(lines[r]);
-    const get = (arr,idx)=> (idx>=0 && idx<arr.length ? arr[idx] : '');
-    const name = String(get(cols,iN)).trim();
-    const eStr = String(get(cols,iE)).trim(), nStr = String(get(cols,iNo)).trim();
-    const e = num(eStr), n = num(nStr);
-    const ln=r+1;                                   // 1-based line number in the file (header = line 1)
-    if(!name){ skipped.push(`line ${ln}: empty name`); continue; }
-    if(cols.slice(headers.length).some(c=>c!=='')){ skipped.push(`line ${ln} (${name}): ${cols.filter((c,k)=>k<headers.length||c!=='').length} fields but the header has ${headers.length} - decimal comma in a comma-separated file? use ; or quote the values`); continue; }
-    if(!Number.isFinite(e)||!Number.isFinite(n)||eStr===''||nStr===''){ skipped.push(`line ${ln} (${name}): E/N not numeric`); continue; }
-    if(e<0||e>2000000||n<0||n>12000000){ skipped.push(`line ${ln} (${name}): E/N out of UTM range - decimal comma or wrong units?`); continue; }
-    if(Math.abs(e)<1000&&Math.abs(n)<1000){ skipped.push(`line ${ln} (${name}): E/N look like degrees (lat/lon), expected UTM metres`); continue; }
-    rows.push({Name:name,Easting:e,Northing:n,Type:String(get(cols,iT)).trim()});
+  // header = first line (of the first 30) that has Name / Easting / Northing columns (title lines above it are ignored)
+  let hi=-1, delim=',', hdrRaw=null, C=null;
+  for(let k=0;k<Math.min(lines.length,30)&&hi<0;k++){
+    const d=detect(lines[k].t), h=splitBy(lines[k].t,d), c=findCols(h);
+    if(c.iN>=0&&c.iE>=0&&c.iNo>=0){ hi=k; delim=d; hdrRaw=h; C=c; }
   }
-  if(!rows.length) return {rows:[],reason:'No valid rows found'+(skipped.length?` (${skipped[0]})`:''),skipped};
-  return {rows,reason:null,skipped};
+  if(hi<0) return {rows:[],reason:'CSV must have headers: Name,Easting,Northing',skipped:[]};
+  const body=lines.slice(hi+1).map(x=>({ln:x.ln,cols:splitBy(x.t,delim)}));
+  return collectRows(hdrRaw.length,C,body,makeNum(delim!==','),true,'line');
 }
-function loadRows(rows,skipped){
+/* ========= XLSX (dependency-free): ZIP + OOXML reader / writer =========
+   Reader: first sheet that has the Name / Easting / Northing headers (shared strings, inline strings, text numbers, formula results).
+   Writer: ZIP "stored" + inline strings + minimal styles. Needs DecompressionStream (Chrome / Edge 103+, Safari 16.4+, Firefox 113+) for reading only. */
+const _te=new TextEncoder(), _td=new TextDecoder('utf-8');
+let _crcT=null;
+function crc32(u8){
+  if(!_crcT){ _crcT=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); _crcT[n]=c>>>0; } }
+  let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=_crcT[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0;
+}
+function zipStore(files){                                        // files:[{name,data:Uint8Array}] -> Uint8Array (no compression)
+  const u16=v=>[v&255,(v>>>8)&255], u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255], parts=[], cen=[]; let off=0, cenLen=0;
+  files.forEach(f=>{
+    const nm=_te.encode(f.name), crc=crc32(f.data), sz=f.data.length;
+    const lh=Uint8Array.from([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0),...nm]);
+    const ch=Uint8Array.from([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(sz),...u32(sz),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off),...nm]);
+    parts.push(lh,f.data); cen.push(ch); off+=lh.length+sz; cenLen+=ch.length;
+  });
+  const end=Uint8Array.from([0x50,0x4b,5,6,...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cenLen),...u32(off),...u16(0)]);
+  const all=parts.concat(cen,[end]), out=new Uint8Array(all.reduce((s,a)=>s+a.length,0)); let p=0; all.forEach(a=>{ out.set(a,p); p+=a.length; }); return out;
+}
+async function inflateRaw(u8){
+  if(typeof DecompressionStream==='undefined') throw new Error('this browser cannot unzip .xlsx (no DecompressionStream) - update Edge / Chrome, or save the sheet as .csv');
+  const ds=new DecompressionStream('deflate-raw'), w=ds.writable.getWriter(); w.write(u8); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+async function unzipXlsx(buf){                                  // returns {partName:text} for the workbook / sheet / shared-strings parts only
+  const u8=new Uint8Array(buf), dv=new DataView(buf); let e=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-65557);i--) if(dv.getUint32(i,true)===0x06054b50){ e=i; break; }
+  if(e<0) throw new Error('not a valid .xlsx (ZIP) file');
+  const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const out={};
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) throw new Error('damaged ZIP directory');
+    const meth=dv.getUint16(p+10,true), csz=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=_td.decode(u8.subarray(p+46,p+46+nl)); p+=46+nl+el+cl;
+    if(!/^xl\/(workbook\.xml|_rels\/workbook\.xml\.rels|sharedStrings\.xml|worksheets\/[^\/]+\.xml)$/.test(name)) continue;
+    if(dv.getUint32(lo,true)!==0x04034b50) throw new Error('damaged ZIP entry');
+    const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true), raw=u8.subarray(ds,ds+csz);
+    if(meth!==0&&meth!==8) throw new Error('unsupported ZIP compression ('+meth+')');
+    out[name]=_td.decode(meth===0?raw:await inflateRaw(raw));
+  }
+  return out;
+}
+const RNS='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+function xlsxSheets(files){                                      // -> [{name,rows:[{r,c:[cells]}]}] (visible sheets first)
+  const X=s=>{ const d=new DOMParser().parseFromString(s,'application/xml'); if(d.getElementsByTagName('parsererror').length) throw new Error('damaged XML inside the workbook'); return d; };
+  const T=(el,n)=>Array.from(el.getElementsByTagNameNS('*',n));
+  const txt=el=>T(el,'t').filter(t=>!(t.parentNode&&t.parentNode.localName==='rPh')).map(t=>t.textContent).join('');
+  if(!files['xl/workbook.xml']) throw new Error('not an Excel workbook (xl/workbook.xml missing)');
+  const sst=files['xl/sharedStrings.xml']?T(X(files['xl/sharedStrings.xml']),'si').map(txt):[];
+  const rel={}; if(files['xl/_rels/workbook.xml.rels']) T(X(files['xl/_rels/workbook.xml.rels']),'Relationship').forEach(r=>{ rel[r.getAttribute('Id')]=r.getAttribute('Target'); });
+  const colIdx=ref=>ref.replace(/[^A-Za-z]/g,'').toUpperCase().split('').reduce((s,ch)=>s*26+ch.charCodeAt(0)-64,0)-1;
+  const out=T(X(files['xl/workbook.xml']),'sheet').map((s,i)=>{
+    const rid=s.getAttributeNS(RNS,'id')||s.getAttribute('r:id'), t=rel[rid], part=t?(t[0]==='/'?t.slice(1):'xl/'+t.replace(/^\.\//,'')):'xl/worksheets/sheet'+(i+1)+'.xml';
+    if(!files[part]) return {name:s.getAttribute('name')||('Sheet'+(i+1)),hidden:/hidden/i.test(s.getAttribute('state')||''),rows:[]};   // chart sheet etc.: kept so the tab order stays true
+    const rows=[];
+    T(X(files[part]),'row').forEach((re,ri)=>{
+      const c=[];
+      T(re,'c').forEach((ce,ci)=>{
+        const ref=ce.getAttribute('r'), col=ref?colIdx(ref):ci, t=ce.getAttribute('t'), ve=T(ce,'v')[0], v=ve?ve.textContent:'';
+        c[col]=t==='s'?(sst[Number(v)]==null?'':sst[Number(v)]):t==='inlineStr'?txt(ce):t==='str'?v:(t==='b'||t==='e')?'':(v===''?'':(Number.isFinite(Number(v))?Number(v):v));
+      });
+      rows.push({r:Number(re.getAttribute('r'))||ri+1,c:Array.from(c,x=>x==null?'':x)});
+    });
+    return {name:s.getAttribute('name')||('Sheet'+(i+1)),hidden:/hidden/i.test(s.getAttribute('state')||''),rows};
+  }).filter(Boolean);
+  return out.filter(s=>!s.hidden).concat(out.filter(s=>s.hidden));
+}
+/* Multi-sheet workbooks: ONLY the FIRST sheet (first visible tab, left to right) is read - never "the first sheet that happens to work".
+   The other sheets are ignored; if one of them also has Name/Easting/Northing headers the status warns that its data was NOT loaded. */
+function sheetHeader(sh){ for(let k=0;k<Math.min(sh.rows.length,30);k++){ const C=findCols(sh.rows[k].c); if(C.iN>=0&&C.iE>=0&&C.iNo>=0) return {k,C}; } return null; }
+async function parseXlsxFile(f){
+  let sheets; try{ sheets=xlsxSheets(await unzipXlsx(await f.arrayBuffer())); }catch(e){ return {rows:[],reason:'Cannot read the .xlsx: '+(e.message||e),skipped:[]}; }
+  if(!sheets.length) return {rows:[],reason:'The workbook has no worksheets',skipped:[]};
+  const first=sheets[0], others=sheets.slice(1), H=sheetHeader(first);
+  const alt=others.map(sh=>({sh,h:sheetHeader(sh)})).filter(x=>x.h).map(x=>`"${x.sh.name}"${x.sh.hidden?' (hidden)':''}: ${x.sh.rows.slice(x.h.k+1).filter(r=>r.c.some(v=>String(v).trim()!=='')).length} rows`);
+  if(!H) return {rows:[],reason:`The first sheet "${first.name}" has no Name,Easting,Northing headers`+(alt.length?`. Sheets with these headers: ${alt.join('; ')} - move the one you want to the first position (or copy its data to the first sheet)`:(others.length?` (the other ${others.length} sheet(s) are not read)`:'')),skipped:[]};
+  const res=collectRows(first.rows[H.k].c.length,H.C,first.rows.slice(H.k+1).map(r=>({ln:r.r,cols:r.c})),makeNum(true),false,'row');
+  const nm=others.map(sh=>sh.name), shown=nm.slice(0,4).join(', ')+(nm.length>4?`, +${nm.length-4} more`:'');
+  res.info=`sheet "${first.name}"`+(others.length?` - first of ${sheets.length} sheets, ignored: ${shown}`:'');
+  res.notes=alt.length?[`NOT loaded (other sheet with POI headers): ${alt.join('; ')}`]:[];
+  return res;
+}
+/* ---- writer. sheet = {name,rows:[[cell]],freeze:'row'|'both'|'',w:colIndex=>width}; cell = string | number | {v,s} | null; s = style 0 plain, 1 header, 2 #,##0.00, 3 0.00, 4 [h]:mm, 5 0.000000 ---- */
+const XML_HEAD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const xEsc=s=>String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/[<>&"]/g,c=>c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':'&quot;');
+const xCol=i=>{ let s=''; for(i++;i>0;i=Math.floor((i-1)/26)) s=String.fromCharCode(65+(i-1)%26)+s; return s; };
+const XLSX_STYLES=XML_HEAD+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="[h]:mm"/><numFmt numFmtId="165" formatCode="0.000000"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+function xlsxSheetXml(sh){
+  const wd=[]; let maxC=0;
+  const rowsXml=sh.rows.map((row,ri)=>{
+    let cs='';
+    row.forEach((cell,ci)=>{
+      if(cell==null||cell==='') return;
+      const o=(typeof cell==='object')?cell:{v:cell,s:0}, v=o.v; if(v==null||v==='') return;
+      const ref=xCol(ci)+(ri+1), st=o.s?` s="${o.s}"`:'';
+      maxC=Math.max(maxC,ci+1); wd[ci]=Math.max(wd[ci]||0,typeof v==='number'?12:String(v).length);
+      if(typeof v==='number'){ if(Number.isFinite(v)) cs+=`<c r="${ref}"${st}><v>${v}</v></c>`; }
+      else cs+=`<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xEsc(v)}</t></is></c>`;
+    });
+    return `<row r="${ri+1}">${cs}</row>`;
+  }).join('');
+  const cols=Array.from({length:maxC},(_,i)=>`<col min="${i+1}" max="${i+1}" width="${sh.w?sh.w(i):Math.min(40,Math.max(8,(wd[i]||0)+2))}" customWidth="1"/>`).join('');
+  const pane=sh.freeze==='both'?'<pane xSplit="1" ySplit="1" topLeftCell="B2" activePane="bottomRight" state="frozen"/>':sh.freeze==='row'?'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>':'';
+  return XML_HEAD+`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols?`<cols>${cols}</cols>`:''}<sheetData>${rowsXml}</sheetData></worksheet>`;
+}
+function xlsxBuild(sheets){                                       // -> Uint8Array (.xlsx)
+  const nm=sheets.map((s,i)=>String(s.name).replace(/[\[\]:*?\/\\]/g,'_').slice(0,31)||('Sheet'+(i+1)));
+  const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships', PR='http://schemas.openxmlformats.org/package/2006/relationships', WS='application/vnd.openxmlformats-officedocument.spreadsheetml.';
+  const files=[
+    {name:'[Content_Types].xml',x:XML_HEAD+`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${WS}sheet.main+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="${WS}worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="${WS}styles+xml"/></Types>`},
+    {name:'_rels/.rels',x:XML_HEAD+`<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml',x:XML_HEAD+`<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R}"><sheets>${nm.map((n,i)=>`<sheet name="${xEsc(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels',x:XML_HEAD+`<Relationships xmlns="${PR}">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`},
+    {name:'xl/styles.xml',x:XLSX_STYLES}
+  ].concat(sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,x:xlsxSheetXml(s)})));
+  return zipStore(files.map(f=>({name:f.name,data:_te.encode(f.x)})));
+}
+function downloadBytes(name,u8,type){
+  const url=URL.createObjectURL(new Blob([u8],{type})), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+const XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+function loadRows(rows,skipped,info,notes){
   let list=rows;
   let note=''; if(list.length>CFG.MAX_POIS){ note=` (truncated from ${list.length} to ${CFG.MAX_POIS})`; list=list.slice(0,CFG.MAX_POIS); }
   const out=[];
@@ -1156,9 +1289,10 @@ function loadRows(rows,skipped){
   const dup=[...new Set(out.map(p=>p.name).filter((nm,i,a)=>a.indexOf(nm)!==i))];
   const warn=[]; if(note) warn.push(note.trim().replace(/^\(|\)$/g,''));
   if(skipped&&skipped.length) warn.push(`skipped ${skipped.length} row(s): ${skipped.slice(0,3).join('; ')}${skipped.length>3?'; …':''}`);
+  if(notes&&notes.length) warn.push(...notes);
   if(dup.length) warn.push(`duplicate names: ${dup.slice(0,4).join(', ')}${dup.length>4?', …':''}`);
   { const far=out.filter(p=>p.lon<93||p.lon>106||p.lat<-5||p.lat>25).length; if(far) warn.push(`${far} POI(s) far outside the Gulf of Thailand area - check units / datum`); }
-  setStatus(`Loaded ${out.length} POIs${warn.length?' - '+warn.join(' | '):'.'}`, !warn.length);
+  setStatus(`Loaded ${out.length} POIs${info?` (${info})`:''}${warn.length?' - '+warn.join(' | '):'.'}`, !warn.length);
 }
 
 
@@ -1912,6 +2046,10 @@ els.btnTemplate.addEventListener('click', ()=>{
   const blob=new Blob([csv],{type:'text/csv'}), url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='poi_template.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
+els.btnTemplateX.addEventListener('click', ()=>{
+  const H=['Name','Easting','Northing','Type'].map(h=>({v:h,s:1}));
+  downloadBytes('poi_template.xlsx',xlsxBuild([{name:'in',freeze:'row',rows:[H,['BQP',865817,888640,'Facility'],['FSO2',868003,892995,'Facility']]}]),XLSX_MIME);
+});
 els.btnClear.addEventListener('click', ()=>{
   _mxDirty=true; pois=[]; _groups=[]; _lblRects=[]; _mkRects=[]; _lblMiss=''; els.ref.innerHTML='<option value="">— None —</option>';
   document.querySelector('#poiTable tbody').innerHTML='';
@@ -1923,94 +2061,36 @@ els.btnClear.addEventListener('click', ()=>{
   persist(); fitMap();
 });
 
-/* ========= File + Drag/Drop ========= */
-els.file.addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  if(/\.json$/i.test(f.name)){ try{ await loadSessionFile(f); } finally{ e.target.value=''; } return; }
-  if(!/\.csv$/i.test(f.name)){ alert('Please upload a CSV with headers Name,Easting,Northing'); e.target.value=''; return; }
-  try{
-    
-let text;
-try{
-  if (f.arrayBuffer) {
-    const buf = await f.arrayBuffer();
-    // try UTF-8 first
-    let dec = new TextDecoder('utf-8', {fatal:false});
-    text = dec.decode(buf);
-    // Heuristic: if we see lots of NULs, try UTF-16LE then UTF-16BE
-    const nulFrac = (new Uint8Array(buf)).filter(b=>b===0).length / Math.max(1, buf.byteLength);
-    if(nulFrac > 0.1){
-      try{ text = new TextDecoder('utf-16le').decode(buf); }
-      catch{ try{ text = new TextDecoder('utf-16be').decode(buf); } catch{} }
-    }
-  } else if (f.text) {
-    text = await f.text();
-  } else {
-    text = await new Promise((resolve, reject)=>{
-      const r = new FileReader();
-      r.onload = ()=>resolve(r.result);
-      r.onerror = ()=>reject(r.error||new Error("File read failed"));
-      r.readAsText(f, "utf-8");
-    });
-  }
-} catch (e) {
-  console.error(e);
-  setStatus('Failed to read file: '+(e.message||e), false);
-  alert('Failed to read file: '+(e.message||e));
-  return;
+/* ========= File + Drag/Drop (one entry point: .csv / .tsv / .txt / .xlsx / .xlsm / .json session) ========= */
+async function readText(f){
+  const buf=await f.arrayBuffer(), u=new Uint8Array(buf);
+  if(u[0]===0xFF&&u[1]===0xFE) return {text:new TextDecoder('utf-16le').decode(buf),enc:'UTF-16LE'};
+  if(u[0]===0xFE&&u[1]===0xFF) return {text:new TextDecoder('utf-16be').decode(buf),enc:'UTF-16BE'};
+  let nul=0; for(let i=0;i<u.length;i++) if(u[i]===0) nul++;
+  if(nul/Math.max(1,u.length)>0.1) return {text:new TextDecoder('utf-16le').decode(buf),enc:'UTF-16LE'};
+  try{ return {text:new TextDecoder('utf-8',{fatal:true}).decode(buf),enc:''}; }catch(e){}
+  try{ return {text:new TextDecoder('windows-874').decode(buf),enc:'not UTF-8: decoded as Windows-874'}; }catch(e){}   // Thai Excel "CSV (Comma delimited)"
+  return {text:new TextDecoder('utf-8').decode(buf),enc:''};
 }
-const {rows,reason,skipped}=parseCsvRobust(text);
-
-    if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    _srcName=f.name; loadRows(rows,skipped);
-  }catch(err){ console.error(err); setStatus('Failed to read the CSV: '+(err.message||err), false); alert('Failed to read the CSV: '+(err.message||err)); }
-  finally{ e.target.value=''; }
-});
+async function importFile(f){
+  const nm=f.name||'', isX=/\.(xlsx|xlsm)$/i.test(nm), isT=/\.(csv|tsv|txt)$/i.test(nm);
+  if(/\.json$/i.test(nm)){ await loadSessionFile(f); return; }
+  if(!isX&&!isT){ alert(/\.xls$/i.test(nm)?'Legacy .xls is not supported. In Excel use Save As -> Excel Workbook (.xlsx) or CSV, then load it again.':'Please load a .csv or .xlsx with headers Name,Easting,Northing (or a .json session).'); return; }
+  if(f.size>30*1024*1024){ const m=`File is too large (${Math.round(f.size/1048576)} MB, limit 30 MB). Nothing loaded.`; setStatus(m,false); alert(m); return; }
+  try{
+    let res;
+    if(isX) res=await parseXlsxFile(f);
+    else{ const t=await readText(f); res=parseCsvRobust(t.text); if(t.enc) res.info=t.enc; }
+    if(!res.rows.length){ const m=(res.reason||'No valid rows')+'. Nothing loaded.'; setStatus(m,false); alert(m); return; }
+    _srcName=nm; loadRows(res.rows,res.skipped,res.info,res.notes);
+  }catch(err){ console.error(err); setStatus('Failed to read '+nm+': '+(err.message||err),false); alert('Failed to read '+nm+': '+(err.message||err)); }
+}
+els.file.addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; try{ await importFile(f); } finally{ e.target.value=''; } });
 window.addEventListener('dragover', e => { e.preventDefault(); });
-window.addEventListener('drop',     e => { e.preventDefault(); });
+window.addEventListener('drop',     e => { e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) importFile(f); });   // drop anywhere on the page (map, tables) = import
 ['dragenter','dragover'].forEach(ev=>els.drop.addEventListener(ev, e=>{e.preventDefault(); els.drop.classList.add('drag');}));
 ['dragleave','drop'].forEach(ev=>els.drop.addEventListener(ev, e=>{e.preventDefault(); els.drop.classList.remove('drag');}));
-els.drop.addEventListener('drop', async e=>{
-  const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return;
-  if(/\.json$/i.test(f.name)){ await loadSessionFile(f); return; }
-  if(!/\.csv$/i.test(f.name)){ alert('Please drop a CSV with headers Name,Easting,Northing'); return; }
-  try{
-    
-let text;
-try{
-  if (f.arrayBuffer) {
-    const buf = await f.arrayBuffer();
-    // try UTF-8 first
-    let dec = new TextDecoder('utf-8', {fatal:false});
-    text = dec.decode(buf);
-    // Heuristic: if we see lots of NULs, try UTF-16LE then UTF-16BE
-    const nulFrac = (new Uint8Array(buf)).filter(b=>b===0).length / Math.max(1, buf.byteLength);
-    if(nulFrac > 0.1){
-      try{ text = new TextDecoder('utf-16le').decode(buf); }
-      catch{ try{ text = new TextDecoder('utf-16be').decode(buf); } catch{} }
-    }
-  } else if (f.text) {
-    text = await f.text();
-  } else {
-    text = await new Promise((resolve, reject)=>{
-      const r = new FileReader();
-      r.onload = ()=>resolve(r.result);
-      r.onerror = ()=>reject(r.error||new Error("File read failed"));
-      r.readAsText(f, "utf-8");
-    });
-  }
-} catch (e) {
-  console.error(e);
-  setStatus('Failed to read file: '+(e.message||e), false);
-  alert('Failed to read file: '+(e.message||e));
-  return;
-}
-const {rows,reason,skipped}=parseCsvRobust(text);
-
-    if(!rows.length){ setStatus(reason||'No valid rows', false); return; }
-    _srcName=f.name; loadRows(rows,skipped);
-  }catch(err){ console.error(err); setStatus(err.message||err, false); alert('Failed to read the CSV: '+(err.message||err)); }
-});
+els.drop.addEventListener('drop', async e=>{ e.stopPropagation(); const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(f) await importFile(f); });
 
 /* ========= Tabs, persistence, live updates ========= */
 document.querySelectorAll('.tab').forEach(t=>{
@@ -2025,6 +2105,10 @@ function persist(){ const data={speed:els.speed.value, ref:els.ref.value, show:e
 function restore(){
   try{
     const data=JSON.parse(localStorage.getItem('got_app_v2')||'{}');
+    if(localStorage.getItem('got_base_default')!=='ocean-1'){   // one-time: the previous default (Light Gray) saved in this browser becomes Esri Ocean; any other saved choice stays
+      localStorage.setItem('got_base_default','ocean-1');
+      if(data.base==='esri-gray'){ data.base='esri-ocean'; localStorage.setItem('got_app_v2',JSON.stringify(data)); }
+    }
     if(data.speed) els.speed.value=data.speed;
     if(data.show!=null) els.toggleLines.checked=data.show;
     if(data.zoom){ els.zoom.value=data.zoom; document.documentElement.style.setProperty('--table-scale', data.zoom); }
@@ -2053,6 +2137,14 @@ els.shore.addEventListener('change', ()=>{ updateShore(); persist(); });
 els.zoom.addEventListener('input', ()=>{ document.documentElement.style.setProperty('--table-scale', els.zoom.value); persist(); });
 setInterval(()=>{ els.dateHeader.textContent=fmtNow(); },15000);
 
+/* ========= CSV injection guard (OWASP) =========
+   A text cell that Excel / LibreOffice would read as a formula (starts with = + - @ TAB CR LF, also after leading blanks) gets a leading ' in EVERY CSV export:
+   POI Name / Type, Matrix CSV, change-log CSV. Pure numbers (-12.5) are left alone. Import removes that ' again, so export -> import returns the original text.
+   No CSV cell is ever written as a formula. (.xlsx export stores text as inline strings = never a formula.) */
+const CSV_RISK=/^[\t\r\n]|^[\s\u00a0\u200b\ufeff]*[=+\-@]/, CSV_NUM=/^[+-]?\d+(\.\d+)?$/;
+const csvRisky=s=>{ const t=s.replace(/^'+/,''); return CSV_RISK.test(t)&&!CSV_NUM.test(t); };   // leading ' are looked through, so a real name "'=x" and "=x" never collide
+function csvSafe(v){ const s=String(v==null?'':v); return csvRisky(s)?"'"+s:s; }
+function csvUnguard(v){ const s=String(v==null?'':v); return (s[0]==="'"&&csvRisky(s.slice(1)))?s.slice(1):s; }
 /* ========= Matrix export (CSV for Excel): numeric blocks, no merged "nm, h:mm" cells ========= */
 els.btnExportMatrixExcel.addEventListener('click', ()=>{
   if(!pois.length){ alert('Load POIs first.'); return; }
@@ -2062,14 +2154,43 @@ els.btnExportMatrixExcel.addEventListener('click', ()=>{
   const poi=[['POI list'],['Name','Type','Easting (m)','Northing (m)','Lat (WGS84 DM)','Lon (WGS84 DM)','Lat (deg)','Lon (deg)'],
     ...pois.map(p=>[p.name,p.type||'',p.e,p.n,formatDM(p.lat,true),formatDM(p.lon,false),p.lat.toFixed(6),p.lon.toFixed(6)])];
   const dist=[['Distance (nm), WGS84 geodesic'],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':nm(a,b).toFixed(2))])];
-  const time=[[`Time (h:mm) at ${sp} kn, straight line`],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':{raw:'="'+hrsToHM(nm(a,b)/sp)+'"'})])];
+  const time=[[`Time (h:mm) at ${sp} kn, straight line`],['From \\ To',...names],...pois.map(a=>[a.name,...pois.map(b=>a===b?'':hrsToHM(nm(a,b)/sp))])];
   const rows=[['GOT Distance Matrix'],['Speed (kn)',sp],['Reference',refInfo().name],[],...poi,[],...dist,[],...time];
-  const toCSV=arr=>arr.map(row=>row.map(x=>{ if(x&&x.raw!==undefined) return x.raw; let s=String(x??''); if(typeof x!=='number'&&/^[=+\-@\t\r]/.test(s)) s="'"+s; return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
+  const toCSV=arr=>arr.map(row=>row.map(x=>{ let s=String(x??''); if(typeof x!=='number') s=csvSafe(s); return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
   const blob=new Blob(['\ufeff'+toCSV(rows)],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
   a.href=url; a.download=`Distance_Matrix_${ydm(new Date())}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
+/* ========= Excel (.xlsx) export: POI list (same columns as the import) + optional distance / time matrices ========= */
+function xPoiSheet(){
+  return {name:'POI',freeze:'row',rows:[['Name','Easting','Northing','Type','Lat (deg)','Lon (deg)','Lat (WGS84 DM)','Lon (WGS84 DM)'].map(h=>({v:h,s:1})),
+    ...pois.map(p=>[p.name,{v:p.e,s:2},{v:p.n,s:2},p.type||'',{v:p.lat,s:5},{v:p.lon,s:5},formatDM(p.lat,true),formatDM(p.lon,false)])]};
+}
+function xInfoSheet(){
+  const r=refInfo();
+  return {name:'Info',rows:[[{v:'Item',s:1},{v:'Value',s:1}],['Exported',edStamp()],['Owner',OWNER],['App version',APP_VERSION],['Source file',_ed.src||''],['POIs',pois.length],
+    ['Input datum','Indian 1975 / UTM 47N (E/N in metres)'],['Output datum','WGS84 (3-parameter geocentric shift)'],['Distance method',CFG.DIST_METHOD+' (WGS84 ellipsoid)'],['Speed (kn)',speedVal()],['Reference',r.idx>=0?r.name:'']]};
+}
+function exportXlsx(withMatrix){
+  if(!pois.length){ alert('Load POIs first.'); return; }
+  const d=new Date(), sheets=[xPoiSheet()];
+  if(withMatrix){
+    const DC=distCache(), sp=speedVal(), hdr=['From \\ To',...pois.map(p=>p.name)].map(h=>({v:h,s:1}));
+    const mat=(f)=>pois.map((a,i)=>[{v:a.name,s:1},...pois.map((b,j)=>i===j?null:f(DC.nm[i][j]))]);
+    const w=ci=>ci===0?30:13;
+    sheets.push({name:'Distance_nm',freeze:'both',w,rows:[hdr,...mat(v=>({v,s:3}))]});
+    sheets.push({name:`Time_hmm_${String(sp).replace(/\./g,'_')}kn`,freeze:'both',w,rows:[hdr,...mat(v=>({v:v/sp/24,s:4}))]});
+  }
+  sheets.push(xInfoSheet());
+  const changed=pois.some(p=>edModified(p)||!_ed.orig.has(p))||pois.length!==_ed.base.length;
+  const fn=withMatrix?`Distance_Matrix_${edFileStamp(d)}.xlsx`:`${edBaseName()}_${changed?'edited':'export'}_${edFileStamp(d)}.xlsx`;
+  downloadBytes(fn,xlsxBuild(sheets),XLSX_MIME);
+  if(!withMatrix){ _ed.lastExport=edStamp(d); edLog('export','','','',`${fn} (${pois.length} POIs)`); edSave(); edSyncUi(); }
+  setStatus(`Excel exported: ${fn} (${pois.length} POIs${withMatrix?`, ${pois.length}x${pois.length} matrices`:''})`);
+}
+els.btnExportXlsx.addEventListener('click',()=>exportXlsx(false));
+els.btnExportMatrixXlsx.addEventListener('click',()=>exportXlsx(true));
 /* ========= POI editor =========
    Edit name / type / E / N, delete rows, Undo, Reset to original. Everything is kept in this browser (localStorage: POIs via persist(),
    edit state + dated change log via ED_KEY) and the current list can be exported as the SAME csv (Name,Easting,Northing,Type) with a dated file name. */
@@ -2083,7 +2204,7 @@ const edGeo=p=>{ const [la,lo]=indian1975UTMToWGS84(p.e,p.n); p.lat=la; p.lon=lo
 const edMk=b=>{ const p={name:b.name,e:b.e,n:b.n,lat:0,lon:0,type:b.type||''}; edGeo(p); return p; };
 const edSame=(p,b)=>!!b&&p.name===b.name&&(p.type||'')===(b.type||'')&&p.e===b.e&&p.n===b.n;
 const edModified=p=>{ const b=_ed.orig.get(p); return !!b&&!edSame(p,b); };
-const edCsvQ=s=>{ s=String(s==null?'':s); return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
+const edCsvQ=s=>{ s=csvSafe(s); return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; };
 function edLog(action,poi,field,oldV,newV){
   _ed.log.push({t:edStamp(),action,poi:poi||'',field:field||'',old:oldV==null?'':String(oldV),new:newV==null?'':String(newV)});
   if(_ed.log.length>ED_LOG_MAX) _ed.log.splice(1,_ed.log.length-ED_LOG_MAX);      // keep the first ("load") entry
@@ -2277,7 +2398,7 @@ edE('edInfo').addEventListener('click',()=>{ if(!_ed.log.length) return; documen
 /* ========= Session save / load (.json) =========
    Saves the POI list (name, type, UTM E/N), reference, speed, line toggle, basemap, PDF mode, multi-reference ticks and map view.
    lat/lon are stored for traceability only: on load they are RE-COMPUTED from E/N with this app's datum code (Indian 1975 -> WGS84). */
-const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261010.11';
+const SESSION_APP='GOT-DistanceMap', SESSION_SCHEMA=1, APP_VERSION='V261027.03';
 function sessionFileName(d){ const p=n=>String(n).padStart(2,'0'); return `DistanceMap_session_${ydm(d)}_${p(d.getHours())}${p(d.getMinutes())}.json`; }
 function buildSession(){
   const r=refIdxNow(), c=map.getCenter();
@@ -2336,7 +2457,7 @@ function applySession(P){
   if(S.pdfMap) els.pdfMode.value=S.pdfMap;
   if(S.shore!=null) els.shore.checked=S.shore;
   if(S.tableScale!=null){ els.zoom.value=String(S.tableScale); document.documentElement.style.setProperty('--table-scale',String(S.tableScale)); }
-  if(S.basemap){ let b=S.basemap; if(b==='carto'&&!localStorage.getItem('got_carto_key')) b='esri-gray'; els.base.value=b; setBasemap(b); }
+  if(S.basemap){ let b=S.basemap; if(b==='carto'&&!localStorage.getItem('got_carto_key')) b='esri-ocean'; els.base.value=b; setBasemap(b); }
   updateShore();
   pois=P.pois; els.ref.value=''; _savedRef=P.ref>=0?String(P.ref):'';
   _multiSel=new Set(P.multi); _mrKey=null; _distRef=-2; clearHi();
