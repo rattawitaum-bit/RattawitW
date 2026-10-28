@@ -393,7 +393,7 @@
           if (String(res.solver || '').startsWith('collocation')) f.push({ level: 'info', code: 'MULTI_BUOY_SOLVER', text: res.solver === 'collocation-retry' ? 'Multi-buoy solver (retry)' : 'Multi-buoy solver', tip: 'Solved by the span-decoupled nodal collocation solver (Worker v4.6): used only when the standard shooting solver cannot handle several buoys floating partially submerged. Result passed internal checks (force residual < 1 N, no seabed penetration, span/node depth gap <= 0.01 m, force continuity at every buoy, fairlead within 0.01 m). "Retry" = robust second pass (Worker v4.7) used only when the first pass is rejected.' });
           if (res.multiTouchdown) { const cl = contactsOf(res); f.push({ level: 'info', code: 'MULTI_TOUCHDOWN_SOLVED', text: cl.length > 1 ? `${cl.length} mid-line seabed contacts (${res.contact2Length?.toFixed(1)} m)` : `2nd seabed contact ${res.contact2Length?.toFixed(1)} m`, tip: `Solved: line touches the seabed tangentially between buoy(s) - ${cl.map(c => `${c.length.toFixed(1)} m at ${c.near.toFixed(0)}-${c.far.toFixed(0)} m from the fairlead`).join('; ')}${res.anchorUpliftForce > 0 ? `; anchor uplifted ${res.anchorUpliftForce.toFixed(2)} t` : ''}. Contact stretches modelled frictionless; buoys may float partially submerged.` }); }
           else if (res.seabedContactSuspended) f.push({ level: 'bad', code: 'MULTI_TOUCHDOWN', text: 'Invalid: multi-touchdown', tip: (res.multiTouchdownNote ? res.multiTouchdownNote + '. ' : '') + 'Suspended line re-contacts the seabed and no validated solution was found (e.g. several buoys at the surface). Tensions/offset for this case are not valid.' });
-          if (buoyPoints(res).some(p => p.inGroundedZone)) f.push({ level: 'bad', code: 'BUOY_ON_GROUNDED', text: 'Buoy on grounded zone', tip: 'A buoy sits on the grounded part of the line - the engine does not model this correctly.' });
+          if (buoyPoints(res).some(p => p.inGroundedZone && !p.isSlack)) f.push({ level: 'bad', code: 'BUOY_ON_GROUNDED', text: 'Buoy on grounded zone', tip: 'A buoy sits on the grounded part of the line - the engine does not model this correctly.' });
           if (hasMBL && res.fairleadTension > minMBL / df) f.push({ level: 'bad', code: 'EXCEEDS_SWL', text: 'Exceeds SWL', tip: `FL ${res.fairleadTension?.toFixed(1)} t > SWL ${(minMBL / df).toFixed(1)} t (MBL ${minMBL} t / DF ${df})` });
           (structures || []).forEach(st => {
               const c = clearanceAt(res, st, waterDepth);
@@ -413,6 +413,22 @@
           return list.map(c => ({ length: c.length, far: res.fairleadX - c.startX, near: res.fairleadX - c.startX - c.length }))
                      .sort((a, b) => a.near - b.near);
       };
+      // v13.8: expand the Worker v4.8 columnar point cloud (x/z/s in mm, bit flags, segment table, buoy list)
+      // back into the point objects used everywhere else. Results without `pc` (older Worker, imported files) pass through.
+      const expandResults = (arr) => (Array.isArray(arr) ? arr : []).map(r => {
+          if (!r || !r.pc) return r;
+          const { pc, ...rest } = r;
+          const pts = pc.x.map((x, i) => {
+              const f = pc.f[i], sg = pc.segs[pc.k[i]] || [];
+              const p = { x: x / 1000, z: pc.z[i] / 1000, s: pc.s[i] / 1000, isGrounded: !!(f & 1), segmentId: sg[0], segmentType: sg[1] };
+              if (f & 2) p.isAnchor = true;
+              if (f & 4) p.isJoint = true;
+              if (f & 16) p.isContact2 = true;
+              return p;
+          });
+          (pc.b || []).forEach(({ i, ...b }) => { if (pts[i]) Object.assign(pts[i], b, { isBuoy: true }); });
+          return { ...rest, points: pts };
+      });
       const isInvalidCase = (flags) => flags.some(f => ['MULTI_TOUCHDOWN', 'BUOY_ON_GROUNDED', 'NOT_CONVERGED', 'OFFSET_NOT_REACHED', 'MAX_NA', 'MAX_INCOMPLETE'].includes(f.code));
       // C_UI4: structures must be positive distances
       const parseStructDists = (str) => (str || '').split(',').map(x => parseFloat(String(x).split('@')[0])).filter(n => !isNaN(n) && n > 0);
@@ -666,106 +682,86 @@
                           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><IconX size={20} /></button>
                       </div>
                       <div className="p-6 overflow-y-auto text-sm text-gray-600 dark:text-gray-300 space-y-5">
+                          {(() => {
+                              const H = ({ children }) => <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">{children}</h3>;
+                              return (<>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2">1. Overview</h3>
-                              <p className="text-gray-900 dark:text-white">
-                                  <strong>SLACK Cloud Engine</strong> is a professional <strong>Grade 1 (Static) Catenary Suite</strong> designed for mooring analysis. It supports multi-configuration comparison and is powered by a high-precision Cloudflare Worker.
-                              </p>
+                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2">1. What SLACK does</h3>
+                              <p>Grade 1 <strong>static</strong> catenary analysis for anchor lines: multi-segment wire / chain / fiber, elastic stretch, seabed friction, surface buoys (MLB) with pennants, and subsea-structure clearance. All solving is done by the SLACK Cloud Engine (Cloudflare Worker); this page only prepares inputs and displays results.</p>
+                              <p className="mt-2 text-xs"><strong>Accuracy basis:</strong> results are intended for ±0.5 m vertical (depth, clearance) and ±1 m horizontal (offset, touchdown). Solver tolerances are at least 10× tighter.</p>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">2. Multi-Tab Comparison</h3>
-                              <p className="mb-2">Click the <strong>+</strong> button to add configurations. The chart aggregates all tabs:</p>
+                              <H>2. Quick start</H>
+                              <ol className="list-decimal pl-4 space-y-1">
+                                  <li>Pick a <strong>Fleet Vessel</strong> preset (or enter water depth, fairlead elevation, segments and buoys).</li>
+                                  <li>Enter <strong>Target Tensions</strong> (horizontal tension H, t) or switch to <strong>OFFSET</strong> and enter target offsets (m).</li>
+                                  <li>Tick <strong>Find Max (0m Grd)</strong> to add the lift-off tension.</li>
+                                  <li>Press <strong>Calculate</strong> (Ctrl+Enter). Unchanged inputs reuse cached results (Shift+Click to force).</li>
+                              </ol>
+                          </div>
+                          <div>
+                              <H>3. Inputs</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Active Tab:</strong> Shown in full color with detailed labels.</li>
-                                  <li><strong>Inactive Tab:</strong> Shown as dimmed background profiles for easy comparison.</li>
-                                  <li><strong>Project Name:</strong> Used as the legend label and filename for export.</li>
-                                  <li><strong>v8 - Switching tabs does NOT trigger auto-calc</strong> - existing results are shown cached; click <em>Calculate</em> to refresh. Saves worker API quota.</li>
+                                  <li><strong>Segments</strong> are listed fairlead → anchor. Weight, EA and MBL are generic estimates from type + diameter (OrcaFlex line-type wizard fits). Typing a value marks it MANUAL; ↺ / ✕ restores the auto value. Use certificate values when available.</li>
+                                  <li><strong>Friction</strong> defaults: wire 0.6, chain 1.0 (static, soft clay).</li>
+                                  <li><strong>Buoys</strong>: distance is measured from the anchor along the line. Buoyancy excludes the pennant; pennant weight (submerged) is auto from pennant Ø × length. A buoy is <em>SLACK</em> when the wire is shallower than the pennant length (no lift).</li>
+                                  <li><strong>Design Factor</strong>: SWL = weakest-segment MBL / DF (default 2.0, API RP 2SK intact quasi-static).</li>
+                                  <li><strong>Subsea Structures</strong>: distance from the fairlead. <code>400</code> = all bearings, <code>400@270</code> = ±45°, <code>400@270:30</code> = ±30°. <strong>Min Clearance</strong> (default 20 m) is checked at each structure.</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">3. Engineering Outputs</h3>
-                              <ul className="list-disc pl-4 space-y-2">
-                                  <li><strong>FL Ten (t):</strong> Fairlead Resultant Tension (T_FL = √(H² + V²)). Critical for clamp/shackle selection.</li>
-                                  <li><strong>Anch V (t):</strong> Vertical uplift at anchor. A ⚠ warning indicates the line is fully airborne at the seabed.</li>
-                                  <li><strong>Grounded (m):</strong> Length of the line resting on the seabed.</li>
-                              </ul>
-                          </div>
-                          <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">4. Calculation Modes</h3>
-                              <ul className="list-disc pl-4 space-y-2">
-                                  <li><strong>Tension Mode:</strong> Profile for specific Horizontal Tensions (H).</li>
-                                  <li><strong>Offset Mode:</strong> Tension required to achieve a specific horizontal offset.</li>
-                                  <li><strong>Find Max (0m Grd):</strong> Finds the tension where the line just lifts off the seabed (violet line). Worker v4.1 bisects to the true lift-off point (grounded → 0, zero anchor uplift, ±0.01 t).</li>
-                              </ul>
-                          </div>
-                          <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">5. Data Management</h3>
+                              <H>4. Results table</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Import/Export:</strong> Save and load mooring setups via JSON.</li>
-                                  <li><strong>Save Setup:</strong> Store the current config in your browser (localStorage) for quick recall via the Load button.</li>
-                                  <li><strong>Standards:</strong> Use the sizing dropdown to auto-fill density, EA, weight (kg/m auto-calc from diameter), and friction (µ).</li>
+                                  <li><strong>Offset</strong>: horizontal fairlead → anchor. <strong>Grounded</strong>: anchor-side length on the seabed; <strong>+L</strong> = extra mid-line seabed contact. <strong>Touchdown</strong>: from the fairlead to the nearest touchdown ("(mid)" = mid-line contact).</li>
+                                  <li><strong>Anch H / V / Res</strong>: anchor horizontal, uplift and resultant load. <strong>FL Ten</strong>: fairlead tension √(H²+V²). <strong>SWL Util</strong>: FL Ten / SWL.</li>
+                                  <li><strong>Buoys (sub.)</strong>: submerged fraction of each buoy (&lt;50% ok, 50-85% warn, ≥85% high, SUB = fully submerged, SLACK = no lift).</li>
+                                  <li><strong>Status</strong> pills: hover for details. Rows with Invalid, Not converged, Offset not reached, Find Max N/A or Find Max incomplete are dimmed and drawn dashed - do not use their offset or grounded length.</li>
+                                  <li><strong>CSV</strong> exports every column plus the solver used.</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">6. Fleet Vessel Presets (NEW)</h3>
-                              <p className="mb-1">The <strong>Quick Fill: Fleet Vessel</strong> dropdown auto-loads full config (water depth, segments, buoys, tensions) for common vessel types:</p>
+                              <H>5. Find Max and Offset mode</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>TENDER</strong>: ED1/ED2,Vantris (64mm)</li>
-                                  <li><strong>AWB</strong>: NVT/KMT (52mm), EWB400 (64mm + piggyback)</li>
-                                  <li><strong>JACKUP</strong>: 4-point AHT positioning with 1.5" (38mm) wire; default tensions <code>5, 10, 15</code> (light on API quota)</li>
+                                  <li><strong>Find Max</strong> = the tension at which the grounded length reaches 0 with no anchor uplift (±0.01 t). <em>N/A</em> when the anchor is lifted even at 0.1 t (e.g. a large buoy near the anchor).</li>
+                                  <li><strong>Offset mode</strong> finds the tension for a target offset (±0.05 m). Targets outside the reachable range are flagged <em>Offset not reached</em>.</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">7. Top View / Plan (NEW)</h3>
-                              <p className="mb-1">Switch to <strong>Top View (Plan)</strong> for a bird's-eye view of the mooring layout:</p>
+                              <H>6. Multi-buoy and mid-line seabed contact</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Rig</strong> at center; anchor lines fan out at the bearings you configure.</li>
-                                  <li><strong>Grounded portion</strong> shown as thick dashed segment; <strong>suspended</strong> is thin solid.</li>
-                                  <li><strong>Buoys</strong> projected as yellow dots along each line.</li>
-                                  <li><strong>Subsea structures</strong> (from Environment field) shown as red dashed circles at the given radial distance from the fairlead.</li>
-                                  <li><strong>Collision flag</strong>: red ring if the anchor lands within 150 m (GMI) of a structure; the Structure check table lists crossings and the line clearance above the seabed against the Min Clearance setting (default 20 m).</li>
-                                  <li>Bearings default to standard patterns (8-point for Tender/AWB, 4-point for Jackup) but each line can be edited in the table below the diagram.</li>
+                                  <li>At low tension a buoy can lift the line and let it touch the seabed again further on. The engine solves these tangential mid-line contacts (status "2nd seabed contact" / "N mid-line seabed contacts"). Contact stretches are modelled frictionless.</li>
+                                  <li>With 2+ buoys floating partially submerged the standard solver is unstable; those cases are re-solved buoy-by-buoy and tagged <strong>Multi-buoy solver</strong> ("retry" = second, more robust pass). Every such result is checked (force balance, no seabed penetration, fairlead position) before it is shown.</li>
+                                  <li>Anything that still cannot be solved stays flagged <em>Invalid</em>.</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">0. v13 - Read First</h3>
+                              <H>7. Top View (Plan)</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Material model:</strong> weight, EA and MBL are generic estimates from diameter (OrcaFlex wizard catalogue fits: 6-strand IWRC wire, studlink/studless R3 chain, polyester). Typing a value marks it MANUAL; ↺ restores auto.</li>
-                                  <li><strong>SWL:</strong> MBL of the weakest segment / DF. Default DF 2.0 (API RP 2SK intact, quasi-static). SWL Util 100% = at SWL.</li>
-                                  <li><strong>Friction:</strong> wire 0.6, chain 1.0 (static, soft clay). Edit per segment.</li>
-                                  <li><strong>Pennant weight:</strong> submerged weight from pennant Ø × length.</li>
-                                  <li><strong>Status</strong> shows every condition: Not converged, FL below surface, Invalid multi-touchdown, Buoy on grounded zone, Exceeds SWL, Low clearance at structure, Anchor uplift, Buoy submerged, Friction-held. Invalid cases are drawn dashed.</li>
-                                  <li><strong>Multi-touchdown (v4.5):</strong> when buoys lift the line and it comes back down, the engine solves tangential mid-line seabed contacts (up to 4, e.g. a "double hump" with 2 buoys floating partially submerged). Shown as "+L" in Grounded and "(mid)" in Touchdown. Contact stretches are modelled frictionless. Cases it still cannot solve stay flagged <em>Invalid</em>. The Worker setting MULTI_TOUCHDOWN=off restores the v4.2 single-touchdown engine.</li>
-                                  <li><strong>Multi-buoy solver (v4.6):</strong> 2+ buoys that float partially submerged make the standard (shooting) solver unstable. Those cases are re-solved node-by-node at the buoys (collocation) and shown with a "Multi-buoy solver" tag. It is used only when the standard solver fails and every result is checked before it is accepted. v4.7 adds a robust retry pass (tag "retry").</li>
-                                  <li><strong>Engine calls:</strong> only on Calculate / Ctrl+Enter. Unchanged inputs reuse cached results (Shift+Click to force). Changed inputs show an "outdated" banner.</li>
+                                  <li>Rig at the centre; lines at the configured bearings (8-point Tender/AWB or 4-point Jackup, editable). Solid = suspended, thick dashed = on the seabed. Buoys coloured by submerged fraction.</li>
+                                  <li>Structures: red ring (all bearings) or arc (sector). The <strong>Structure check</strong> table lists crossings, clearance vs Min Clearance and anchor distance vs 150 m (GMI).</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">9. v10 UX Improvements</h3>
+                              <H>8. Tabs, files and limits</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Toast notifications</strong> replace blocking dialogs — Save/Load/Import feedback appears bottom-right without interrupting your workflow.</li>
-                                  <li><strong>Better error messages</strong> with a Retry button — instead of raw "Failed to fetch", you get classified hints (Network/CORS, CPU limit, timeout) with actionable guidance.</li>
-                                  <li><strong>Fleet preset dropdown remembers selection</strong> — see which vessel is currently loaded at a glance.</li>
-                                  <li><strong>Import restores results</strong> — if the JSON was exported with results, no re-calculation is triggered (saves API quota).</li>
-                                  <li><strong>Export includes anchor pattern & bearings</strong> — Top View survives round-trip export/import.</li>
-                                  <li><strong>Overwrite confirmation</strong> when Save Setup name already exists — no silent data loss.</li>
-                                  <li><strong>Debounced inputs (300ms)</strong> — heavy typing in Water Depth / Fairlead Z / Tension no longer causes re-render lag.</li>
-                                  <li><strong>ARIA labels & focus management</strong> throughout — improved accessibility for keyboard and screen-reader users.</li>
+                                  <li><strong>+</strong> adds a tab; other tabs are drawn dimmed for comparison. Switching tabs never recalculates.</li>
+                                  <li><strong>Save Setup</strong> stores the tab in this browser; <strong>Export/Import JSON</strong> moves it between machines (results included).</li>
+                                  <li>Limits per calculation: 12 targets, 20 segments, 10 buoys, 10 km line, 3000 m water depth. The engine runs on a CPU-limited free tier: if you see a CPU/budget message, use fewer targets or untick Find Max.</li>
                               </ul>
                           </div>
                           <div>
-                              <h3 className="text-xs font-bold text-accent-600 dark:text-accent-400 uppercase tracking-wider mb-2 border-t border-gray-100 dark:border-gray-800 pt-2">8. Smart Auto-Fill (NEW)</h3>
+                              <H>9. Model assumptions</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Auto tension</strong> (button next to tension input): suggests tension list based on wire Ø. Jackup (≤40mm) → 5,10,15 · Tender (≥60mm) → 5,10,20,40 · AWB (44-52mm) → 3,5,20,35. Combined with Find Max, total solver runs stay ≤4 per calc to fit free Cloudflare CPU quota.</li>
-                                  <li><strong>Auto weight from Ø</strong>: Enter diameter → weight (kg/m) auto-computes via API 2F formula (Wire: 0.00423·d² · Chain: 0.0219·d²). Overriding weight locks it as MANUAL.</li>
-                                  <li><strong>Auto EA from Ø</strong>: EA = k·d² per material type; edit to lock as MANUAL.</li>
+                                  <li>Static (no current, wave or dynamic loads); flat, horizontal seabed; pennants vertical; linear EA (fiber is non-linear in reality); generic material properties unless entered manually.</li>
                               </ul>
                           </div>
+                              </>);
+                          })()}
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261102-v13.7</span>
-                              <span>Worker: v4.7-261102</span>
+                              <span>Frontend: v261103-v13.8</span>
+                              <span>Worker: v4.8-261103</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
@@ -1491,7 +1487,7 @@
                       <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={1.5} strokeDasharray={isSlack ? '2 2' : undefined} />
                       {showLabel && (
                           <text x={11} y={-5} fontSize={10} fill={isDark ? "#BCC8D8" : "#3C4C60"} fontWeight="600" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
-                              B{payload.buoyNo} · {isSlack ? 'SLACK' : `${((payload.utilization || 0) * 100).toFixed(0)}% sub.`} · top {(payload.buoyTopZ ?? 0).toFixed(1)} / bot {(payload.buoyBottomZ ?? payload.pennantTopZ).toFixed(1)} m
+                              B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${((payload.utilization || 0) * 100).toFixed(0)}% sub. · top ${(payload.buoyTopZ ?? 0).toFixed(1)} / bot ${(payload.buoyBottomZ ?? payload.pennantTopZ).toFixed(1)} m`}
                           </text>
                       )}
                   </g>
@@ -1511,7 +1507,7 @@
                       <rect x={-8} y={-10} width={16} height={10} fill={isDark ? "#FF5C5C" : "#C42B2B"} rx={1} stroke="none" />
                       <path d="M-14 -20 L-6 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
                       <path d="M6 -20 L14 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
-                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={9} fontWeight="700" style={{textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.8)' : 'none'}}>STRUCT</text>
+                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={9} fontWeight="700" style={{textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.8)' : 'none'}}>STRUCT {payload.x} m</text>
                   </g>
               );
           };
@@ -1619,7 +1615,7 @@
                               <ReferenceLine y={activeWD} stroke={isDark ? "#94A4B8" : "#55687F"} strokeWidth={2} strokeOpacity={0.8} ifOverflow="extendDomain" label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 10, fontWeight: 'bold' }} />
                               
                               {structures.map((stX, idx) => (
-                                  <ReferenceLine key={`struct-line-${idx}`} x={stX} stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeDasharray="3 3" strokeOpacity={0.6} label={{ value: `STRUCT ${stX} m · min clr ${statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE} m`, angle: -90, position: 'insideTopLeft', fill: isDark ? "#FF5C5C" : "#C42B2B", fontSize: 9, opacity: 0.9, dy: 30 }} />
+                                  <ReferenceLine key={`struct-line-${idx}`} x={stX} stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeDasharray="3 3" strokeOpacity={0.6} />
                               ))}
                           </ScatterChart>
                       </ResponsiveContainer>
@@ -2374,7 +2370,8 @@
                   })),
                   targets: dedupInputs,
                   calcMode: calcMode,
-                  calculateMax: showMaxTension
+                  calculateMax: showMaxTension,
+                  pointFormat: 'c1'   // v13.8: Worker v4.8 columnar points (4x smaller payload)
               };
               const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
               const MAX_RETRIES = 1;   // v13: network/timeout only, never 5xx
@@ -2397,7 +2394,7 @@
                           // v11: never retry a CPU/budget 503 - retrying re-burns the CPU that caused it.
                           if (response.status === 503 && /CPU|budget/i.test(errMsg)) {
                               if (Array.isArray(errData.partialResults) && errData.partialResults.length) {
-                                  updateConfigById(tabId, { results: errData.partialResults, resultsSig: null, calcWaterDepth: parseFloat(waterDepth) });
+                                  updateConfigById(tabId, { results: expandResults(errData.partialResults), resultsSig: null, calcWaterDepth: parseFloat(waterDepth) });
                                   pushToast('warning', `Budget limit reached — showing ${errData.partialResults.length} of ${dedupInputs.length} cases. Reduce targets or turn off Find Max.`, 6000);
                                   setLoading(false);
                                   return;
@@ -2406,7 +2403,7 @@
                           }
                           throw new Error(errMsg);
                       }
-                      const data = await response.json();
+                      const data = expandResults(await response.json());
                       updateConfigById(tabId, { results: data, resultsSig: sig, calcWaterDepth: parseFloat(waterDepth) });
                       setLoading(false);
                       if (isRetry) pushToast('success', 'Calculation succeeded on retry');
@@ -2478,7 +2475,7 @@
                                   </div>
                                   <div className="flex flex-col">
                                       <span className="leading-none tracking-[0.14em] text-gray-800 dark:text-gray-100">SLACK</span>
-                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">Catenary Analysis · v13.7</span>
+                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">Catenary Analysis · v13.8</span>
                                   </div>
                               </h1>
                               <div className="flex gap-0.5">
