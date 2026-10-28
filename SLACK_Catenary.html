@@ -571,7 +571,7 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
-      const APP_VERSION = 'v13.14';
+      const APP_VERSION = 'v13.15';
       const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
@@ -803,6 +803,7 @@
                                   <li><strong>Save Setup</strong> stores the tab in this browser; <strong>Export/Import JSON</strong> moves it between machines (results included).</li>
                                   <li>Limits per calculation: 12 targets, 20 segments, 10 buoys, 10 km line, 3000 m water depth. Tension targets must be &gt; 0 t (max 5000 t), offset targets &gt;= 0 m; invalid entries are ignored with a warning.</li>
                                   <li>The page connects to the engine when it opens; a request with no answer in 12 s is retried once automatically.</li>
+                                  <li>Cases whose inputs did not change are reused, not recalculated (a note shows how many were sent / reused). Shift+Click Calculate recomputes everything.</li>
                                   <li>Each target (and Find Max) is sent as its own request, in parallel, to stay inside the free-tier CPU limit. If some cases fail, the others are still shown and a warning lists the failed ones - press <strong>Recalculate</strong>.</li>
                               </ul>
                           </div>
@@ -817,8 +818,8 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261109-{APP_VERSION}</span>
-                              <span>Worker: v4.11-261109</span>
+                              <span>Frontend: v261111-{APP_VERSION}</span>
+                              <span>Worker: v4.12-261111</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
@@ -2283,12 +2284,19 @@
           calcWaterDepth: null
       });
 
-      // v13.12: open the connection to the engine while the user is still filling in inputs (cheap 400 reply, no solve),
-      // so the first Calculate does not pay DNS + TLS + proxy set-up.
+      // v13.12: open the connection to the engine while the user is still filling in inputs, so the first Calculate does not
+      // pay DNS + TLS + proxy set-up. v13.15: plain GET (engine v4.12 answers 204 - no solve, no CORS preflight = ONE call;
+      // v13.14's OPTIONS made the browser send a second, preflight request). no-cors: the reply is never read.
       let engineWarmed = false;
+      // v13.14: per-case result cache. A case is reused when the PHYSICAL inputs (WD, FL, segments, buoys) and its own target
+      // are unchanged - e.g. adding one target to "5, 10, 20" sends 1 request instead of 4 (+ Find Max + SWL).
+      // Shift+Click / Ctrl+Shift+Enter bypasses it. Kept in memory for this page only (max 300 cases).
+      const caseCache = new Map();
+      const cacheGet = (k) => caseCache.get(k);
+      const cachePut = (k, v) => { if (caseCache.size >= 300) caseCache.delete(caseCache.keys().next().value); caseCache.set(k, v); };
       const warmEngine = () => {
           if (engineWarmed) return; engineWarmed = true;
-          try { fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: '{}' }).catch(() => { engineWarmed = false; }); } catch (e) { engineWarmed = false; }
+          try { fetch(WORKER_URL, { method: 'GET', mode: 'no-cors' }).catch(() => { engineWarmed = false; }); } catch (e) { engineWarmed = false; }
       };
 
       const App = () => {
@@ -2668,14 +2676,22 @@
               // v13.12: a timeout is NOT a CPU kill (that returns at once as "Failed to fetch"). Dashboard showed 0 errors
               // and ~20 ms wall time while the first click timed out at 20 s -> the delay is on the network path
               // (proxy / first TLS connection). So: 12 s per attempt and ONE automatic retry for timeouts only.
-              const EXPECTED_ENGINE = 'v4.11';
+              const EXPECTED_ENGINE = 'v4.12';
               const TIMEOUT_MS = [12000, 15000];
               const jobs = dedupInputs.map(t => ({ ...payload, targets: [t], calculateMax: false }));
               if (showMaxTension) jobs.push({ ...payload, targets: [], calculateMax: true });
-              let engineSeen = null;
+              const physKey = JSON.stringify([payload.waterDepth, payload.targetZ, payload.segments, payload.buoys]);
+              const jobKey = (b) => physKey + '|' + b.calcMode + '|' + (b.calculateMax ? 'MAX' : b.targets.join(','));
+              let engineSeen = null, nCached = 0, nSent = 0;
               const runJob = async (body) => {
-                  try { return await runOnce(body, TIMEOUT_MS[0]); }
-                  catch (e) { if (e && e.name === 'AbortError') return await runOnce(body, TIMEOUT_MS[1]); throw e; }
+                  const key = jobKey(body);
+                  if (!force) { const hit = cacheGet(key); if (hit) { nCached++; return hit; } }
+                  nSent++;
+                  let out;
+                  try { out = await runOnce(body, TIMEOUT_MS[0]); }
+                  catch (e) { if (e && e.name === 'AbortError') out = await runOnce(body, TIMEOUT_MS[1]); else throw e; }
+                  cachePut(key, out);
+                  return out;
               };
               const runOnce = async (body, ms) => {
                   const controller = new AbortController();
@@ -2727,6 +2743,13 @@
                           const already = merged.some(r => !r.isMaxTensionCase && Math.abs(r.fairleadTension - swl) < 0.01 * swl);
                           if (lo && hi && !already) {
                               let found = null;
+                              // v13.14: ONE request - engine v4.11 solves H for a target fairlead tension, seeded with the
+                              // bracket the page already has (flHint). Older engines answer 400 -> secant below (1-5 requests).
+                              try {
+                                  const r = (await runJob({ ...payload, calcMode: 'fltension', targets: [Math.round(goal * 1000) / 1000], calculateMax: false,
+                                                            flHint: [[lo.horizontalTension, lo.fairleadTension], [hi.horizontalTension, hi.fairleadTension]] }))[0];
+                                  if (r && r.fairleadTension > 0.99 * swl && r.fairleadTension <= swl) found = r;
+                              } catch (e) { /* old engine - fall back */ }
                               for (let it = 0; it < 5 && !found; it++) {
                                   const hG = Math.round((lo.horizontalTension + (goal - lo.fairleadTension) * (hi.horizontalTension - lo.horizontalTension) / (hi.fairleadTension - lo.fairleadTension)) * 1000) / 1000;
                                   if (!(hG > lo.horizontalTension + 1e-3 && hG < hi.horizontalTension - 1e-3)) break;
@@ -2735,15 +2758,16 @@
                                   if (r.fairleadTension > 0.99 * swl && r.fairleadTension <= swl) found = r;
                                   else if (r.fairleadTension <= goal) lo = r; else hi = r;
                               }
-                              if (found) { found.isSwlCase = true; merged.push(found); }
+                              if (found) merged.push({ ...found, isSwlCase: true });
                           }
                       }
                   } catch (e) { /* SWL case is optional */ }
                   merged.sort((a, b) => (a.isMaxTensionCase ? 1 : 0) - (b.isMaxTensionCase ? 1 : 0) || a.horizontalTension - b.horizontalTension);
               }
               // complete result -> cached signature; partial -> no signature (shows "outdated", Recalculate re-runs)
-              updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || '' });
+              updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || cfg.engineVersion || '' });
               setLoading(false);
+              if (nCached && !failed.length) pushToast('info', `${nSent} case${nSent === 1 ? '' : 's'} sent to the engine, ${nCached} reused (inputs unchanged). Shift+Click to recompute all.`, 6000);
               if (failed.length) {
                   const cls = classifyError(failed[0].err);
                   pushToast('warning', `${failed.length} of ${jobs.length} cases failed (${failed.map(f => f.label).join(', ')}): ${cls.title}. Press Recalculate to retry.`, 9000);
@@ -2886,7 +2910,7 @@
                               <div role="status" className="flex items-center gap-3 px-3 py-2 rounded-lg border border-warn-600/40 dark:border-warn-400/40 bg-warn-600/10 dark:bg-warn-400/10 text-warn-600 dark:text-warn-400 text-xs">
                                   <IconWarning size={14} aria-hidden="true"/>
                                   <span className="flex-1"><b>Inputs changed</b> - chart and table show the previous calculation.</span>
-                                  <button onClick={() => handleCalculate(false, true)} disabled={loading} className="px-2 py-1 rounded bg-warn-600 dark:bg-warn-400 text-white dark:text-gray-950 font-bold disabled:opacity-50">Recalculate</button>
+                                  <button onClick={() => handleCalculate(false, false)} disabled={loading} className="px-2 py-1 rounded bg-warn-600 dark:bg-warn-400 text-white dark:text-gray-950 font-bold disabled:opacity-50">Recalculate</button>
                               </div>
                           )}
                           {/* v13.13: three views; chart area and results table share the height without overlapping */}
@@ -2926,6 +2950,6 @@
         </React.StrictMode>
       );
     </script>
-    <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'></script><!-- End Cloudflare Web Analytics -->
+    <!-- Cloudflare Web Analytics (v13.14: skipped when opened from file://, origin null is rejected by the beacon) --><script>if (location.protocol !== 'file:') { const s = document.createElement('script'); s.type = 'module'; s.src = 'https://static.cloudflareinsights.com/beacon.min.js'; s.setAttribute('data-cf-beacon', '{"token": "03caaaf2ed8a44f1ab64db56724afd7a"}'); document.body.appendChild(s); }</script><!-- End Cloudflare Web Analytics -->
   </body>
 </html>
