@@ -303,8 +303,10 @@
       // mud. Two tuned sets instead: vivid on dark, deep on light. Measured minimum contrast
       // is 5.36:1 (dark) and 5.27:1 (light) across all seven series including Find Max.
       const SERIES = {
-          dark:  ['#38A9F5', '#3DD68C', '#F5A524', '#FF6B6B', '#B68CFF', '#FF79C6'],
-          light: ['#0F6FB8', '#0A7A47', '#B02626', '#0E7490', '#B32473', '#4D5B0E']   // v13: no amber/brown - reserved for pennant, rig, MLB
+          // v13.13: case lines use ONLY blue / cyan / magenta / slate tones. Red, green and amber are reserved for
+          // status (ok / warn / bad) and violet for Max, so a line colour can never be mistaken for a verdict.
+          dark:  ['#4EA8FF', '#2DD4DF', '#F06EC8', '#8FA3BF', '#6F86FF', '#9AD7FF'],
+          light: ['#0F6FB8', '#0E7490', '#B32473', '#475569', '#3F51D6', '#0284C7']
       };
       const MAX_CASE_COLOR = { dark: '#C77DFF', light: '#7C3AED' };
       const seriesColor = (i, isDark) => {
@@ -312,6 +314,13 @@
           return p[i % p.length];
       };
       const maxCaseColor = (isDark) => isDark ? MAX_CASE_COLOR.dark : MAX_CASE_COLOR.light;
+      const SWL_CASE_COLOR = { dark: '#F1F5F9', light: '#0F172A' };
+      const caseColorOf = (r, i, isDark) => r.isMaxTensionCase ? maxCaseColor(isDark) : r.isSwlCase ? (isDark ? SWL_CASE_COLOR.dark : SWL_CASE_COLOR.light) : seriesColor(i, isDark);
+      const caseTag = (r) => r.isMaxTensionCase ? ' (Max)' : r.isSwlCase ? ' (SWL)' : '';
+      // v13.13: signature of the physical inputs only (no targets) - used to flag "edited" vs the loaded fleet preset
+      const inputSig = (c) => JSON.stringify([parseFloat(c.waterDepth), parseFloat(c.fairleadElev),
+          (c.segments || []).map(s => [s.type, +s.diameter, +s.length, +s.w, s.w_wet || '', +s.EA, +s.frictionCoeff]),
+          (c.buoys || []).map(b => [+b.distanceFromAnchor, +b.netBuoyancy, +b.pennantLength, +b.pennantWeight, +b.pennantLoad, +b.height])]);
       // Back-compat alias for any remaining reference.
       const COLORS = SERIES.dark;
 
@@ -403,6 +412,7 @@
           });
           if ((res.anchorUpliftForce || 0) > 0.005) f.push({ level: res.isAnchorUplift ? 'bad' : 'warn', code: 'ANCHOR_UPLIFT', text: `Anchor uplift ${res.anchorUpliftForce.toFixed(2)} t`, tip: 'Vertical load at the anchor' });
           if (buoyPoints(res).some(p => !p.isSlack && (p.buoyUtilization || 0) >= 0.999)) f.push({ level: 'warn', code: 'BUOY_SUBMERGED', text: 'Buoy submerged', tip: 'At least one buoy is fully submerged' });
+          if (res.isSwlCase) f.push({ level: 'info', code: 'SWL_CASE', text: 'At SWL', tip: `Tension solved so that the fairlead tension equals the SWL (${(minMBL / df).toFixed(1)} t = MBL ${minMBL} t / DF ${df}) - the operating limit of this line.` });
           if (res.frictionCapped) f.push({ level: 'info', code: 'FRICTION_HELD', text: 'Friction-held (Anch H = 0)', tip: 'Seabed friction on the grounded length absorbs all horizontal tension, so the anchor carries no load (Anch H = 0). Grounded length and touchdown are still valid.' });
           return f;
       };
@@ -561,10 +571,12 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
+      const APP_VERSION = 'v13.13';
+      const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
           if (err?.name === 'AbortError' || msg.includes('aborted')) {
-              return { title: 'Request Timed Out', hint: 'The worker took too long to respond. Try fewer targets or turn off Find Max.', canRetry: true, category: 'timeout' };
+              return { title: 'No response from the engine (timeout)', hint: 'The request got no answer within the time limit, even after one automatic retry. The engine itself answers in a few ms, so this is the network path (company proxy / VPN / first TLS connection).\nPress Retry - the connection is usually warm by then.', canRetry: true, category: 'timeout' };
           }
           if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('CORS') || msg.includes('Load failed')) {
               return { title: 'Engine did not respond', hint: 'Most likely the Cloudflare CPU limit stopped this case (the platform then returns no CORS header, so the browser reports a network error).\nOther causes: no internet / VPN, or the page opened from an unapproved origin.\nTry: fewer low-tension targets, or untick Find Max, then Recalculate.', canRetry: true, category: 'network' };
@@ -658,6 +670,43 @@
           );
       }
 
+      // v13.11 compact field: 10 px label, 28 px input, optional MANUAL dot + reset, red border on error.
+      function CF({ label, unit, error, manual, onReset, className, title, ...props }) {
+          return (
+              <label className={`block min-w-0 ${className || ''}`} title={title}>
+                  <span className="flex items-center gap-1 text-[10px] leading-none mb-0.5 text-gray-500 dark:text-gray-400 truncate">
+                      {label}
+                      {manual && <span className="text-warn-600 dark:text-warn-400 font-bold" title="Manual value">●</span>}
+                      {manual && onReset && <button type="button" onClick={(e) => { e.preventDefault(); onReset(); }} className="text-warn-600 dark:text-warn-400 hover:text-bad-600 font-bold" title="Restore auto value" aria-label={`Restore auto ${label}`}>↺</button>}
+                  </span>
+                  <span className="relative block">
+                      <input type={props.type || 'number'} {...props}
+                          className={`w-full bg-white dark:bg-gray-950 border rounded pl-1.5 ${unit ? (unit.length > 1 ? 'pr-7' : 'pr-4') : 'pr-1'} py-1 text-[12px] font-mono text-gray-800 dark:text-gray-100 outline-none
+                              ${error ? 'border-bad-600 dark:border-bad-400 bg-bad-600/5' : manual ? 'border-warn-600/60 dark:border-warn-400/60' : 'border-gray-300 dark:border-gray-700 focus:border-accent-500'}`} />
+                      {unit && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">{unit}</span>}
+                  </span>
+              </label>
+          );
+      }
+      // v13.11 accordion section: header shows a one-line summary when collapsed; open state remembered in the browser.
+      function Acc({ id, title, summary, open, onToggle, errors, action, children }) {
+          return (
+              <section className="border border-gray-200 dark:border-gray-700/70 rounded-lg bg-gray-50/60 dark:bg-gray-800/40">
+                  <div className="flex items-center gap-1 px-2 py-1.5">
+                      <button onClick={() => onToggle(id)} aria-expanded={open} aria-label={`${title} section`} className="flex-1 min-w-0 flex items-center gap-1.5 text-left">
+                          <IconChevronDown size={13} className={`shrink-0 text-gray-500 transition-transform ${open ? '' : '-rotate-90'}`} />
+                          <span className="text-[11px] uppercase font-bold tracking-[0.08em] text-gray-700 dark:text-gray-200 shrink-0">{title}</span>
+                          {errors > 0 && <span className="shrink-0 text-[10px] font-bold text-white bg-bad-600 rounded-full px-1.5">{errors}</span>}
+                          {!open && <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate font-mono">{summary}</span>}
+                      </button>
+                      {action}
+                  </div>
+                  {open && <div className="px-2 pb-2">{children}</div>}
+              </section>
+          );
+      }
+      const SHORT_TYPE = { WIRE: 'Wire 6×IWRC', CHAIN: 'Chain studlink R3', CHAIN_STUDLESS: 'Chain studless R3', FIBER: 'Polyester (lin.)' };
+
       function SelectField({ label, value, onChange, children }) {
           return (
               <div className="group">
@@ -694,7 +743,7 @@
                           <div>
                               <H>2. Quick start</H>
                               <ol className="list-decimal pl-4 space-y-1">
-                                  <li>Pick a <strong>Fleet Vessel</strong> preset (or enter water depth, fairlead elevation, segments and buoys).</li>
+                                  <li>Pick a <strong>Fleet preset</strong> (or enter water depth, fairlead elevation, segments and buoys). Sections <em>Site</em>, <em>Line</em> and <em>Buoys</em> fold to a one-line summary (click the header); segment weight / EA / MBL / friction are under the grey properties line of each segment.</li>
                                   <li>Enter <strong>Target Tensions</strong> (horizontal tension H, t) or switch to <strong>OFFSET</strong> and enter target offsets (m).</li>
                                   <li>Tick <strong>Find Max (0m Grd)</strong> to add the lift-off tension.</li>
                                   <li>Press <strong>Calculate</strong> (Ctrl+Enter). Unchanged inputs reuse cached results (Shift+Click to force).</li>
@@ -717,6 +766,8 @@
                                   <li><strong>Anch H / V / Res</strong>: anchor horizontal, uplift and resultant load. <strong>FL Ten</strong>: fairlead tension √(H²+V²). <strong>SWL Util</strong>: FL Ten / SWL.</li>
                                   <li><strong>Buoys (sub.)</strong>: submerged fraction of each buoy (&lt;50% ok, 50-85% warn, ≥85% high, SUB = fully submerged, SLACK = no lift).</li>
                                   <li><strong>Status</strong> pills: hover for details. Rows with Invalid, Not converged, Offset not reached, Find Max N/A or Find Max incomplete are dimmed and drawn dashed - do not use their offset or grounded length.</li>
+                                  <li><strong>Click a row</strong> to select that case: the chart emphasises it (full buoy markers, pennants, labels), the Top View draws and labels it and the Tension – Offset view rings it. Hover a row to preview it. The chevron expands the full list of warnings with explanations. Drag the bar above the table (or use ↑ ↓, double-click to collapse) to change its height - it is remembered.</li>
+                                  <li>A case <strong>(SWL)</strong> is added automatically when SWL lies inside the calculated range: the tension at which the fairlead tension equals MBL / DF. Max (lift-off) usually overshoots SWL.</li>
                                   <li><strong>CSV</strong> exports every column plus the solver used. <strong>PNG</strong> saves the current view (profile or top view). <strong>PDF</strong> opens a one-page report (chart, results, line and buoy inputs) in the print dialog - choose "Save as PDF".</li>
                               </ul>
                           </div>
@@ -739,7 +790,9 @@
                               <H>7. Top View (Plan)</H>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li>Rig at the centre; lines at the configured bearings (8-point Tender/AWB or 4-point Jackup, editable). Solid = suspended, thick dashed = on the seabed. Buoys coloured by submerged fraction.</li>
-                                  <li>In the profile, full buoy markers, pennants and labels are drawn for one case only (default Max; pick another in the "Buoys:" list or hover a line). Other cases show a small dot. "top X m above surface" = part of the buoy is out of the water.</li>
+                                  <li>Profile: the selected case gets full buoy markers, pennants and labels; other cases show a small faint buoy. The view stops just beyond the end of the suspended part (button "Show full length" restores the flat grounded stretch and the anchors). <em>V.E.</em> tells how much larger depth is drawn than distance. "top X m above surface" = part of the buoy is out of the water.</li>
+                                  <li><strong>Tension – Offset</strong> view: fairlead tension against offset with the SWL line, plus metres of offset per tonne for each step. Below ~0.1 m per tonne offset is not a usable proxy for tension.</li>
+                                  <li>Case colours are blue / cyan / magenta / slate only; red, green and amber always mean status, violet = Max, white = SWL.</li>
                                   <li>Structures: red ring (all bearings) or arc (sector). The <strong>Structure check</strong> table checks every calculated case and shows the worst one per line (lowest clearance usually occurs at low tension), with clearance vs Min Clearance and anchor distance vs the <strong>Anchor ↔ Struct min</strong> setting (default 150 m, GMI).</li>
                               </ul>
                           </div>
@@ -749,6 +802,7 @@
                                   <li><strong>+</strong> adds a tab; other tabs are drawn dimmed for comparison. Switching tabs never recalculates.</li>
                                   <li><strong>Save Setup</strong> stores the tab in this browser; <strong>Export/Import JSON</strong> moves it between machines (results included).</li>
                                   <li>Limits per calculation: 12 targets, 20 segments, 10 buoys, 10 km line, 3000 m water depth. Tension targets must be &gt; 0 t (max 5000 t), offset targets &gt;= 0 m; invalid entries are ignored with a warning.</li>
+                                  <li>The page connects to the engine when it opens; a request with no answer in 12 s is retried once automatically.</li>
                                   <li>Each target (and Find Max) is sent as its own request, in parallel, to stay inside the free-tier CPU limit. If some cases fail, the others are still shown and a warning lists the failed ones - press <strong>Recalculate</strong>.</li>
                               </ul>
                           </div>
@@ -763,7 +817,7 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261105-v13.10</span>
+                              <span>Frontend: v261108-{APP_VERSION}</span>
                               <span>Worker: v4.10-261105</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
@@ -792,6 +846,7 @@
           designFactor, setDesignFactor,
           minClearance, setMinClearance,
           gmiMin, setGmiMin,
+          presetSig,
           // v10 NEW: injected from App
           activePresetKey, setActivePresetKey,   // M2: remember selection
           bulkUpdateConfig,                       // M6: batch state updates
@@ -859,7 +914,8 @@
           };
 
           const addBuoy = () => {
-              setBuoys([...buoys, { id: makeClientId('buoy'), distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 30, pennantDiameter: DEFAULT_PENNANT_DIA, pennantWeight: pennantWeightT(30, DEFAULT_PENNANT_DIA), pennantLoad: 0.05, height: 2.0, isPennantWeightManual: false }]);
+              const nid = makeClientId('buoy'); setPropOpen(o => ({ ...o, [nid]: true }));
+              setBuoys([...buoys, { id: nid, distanceFromAnchor: 100, netBuoyancy: 5, pennantLength: 30, pennantDiameter: DEFAULT_PENNANT_DIA, pennantWeight: pennantWeightT(30, DEFAULT_PENNANT_DIA), pennantLoad: 0.05, height: 2.0, isPennantWeightManual: false }]);
           };
 
           const removeBuoy = (index) => {
@@ -898,12 +954,14 @@
                                                   pennantWeight: pennantWeightT(b.pennantLength, b.pennantDiameter) })),
                   designFactor: DEFAULT_DF,
                   presetKey: key,
+                  presetSig: '',
                   calcMode: p.calcMode || 'tension',
                   showMaxTension: !!p.showMaxTension,
                   tensionsStr: p.tensionsStr || '5, 20, 40',
                   patternType: pType,
                   anchorBearings: (PATTERN_TEMPLATES[pType] || []).map(a => ({ ...a }))
               };
+              updates.presetSig = inputSig({ waterDepth: updates.waterDepth, fairleadElev: updates.fairleadElev, segments: updates.segments, buoys: updates.buoys });
               if (bulkUpdateConfig) {
                   bulkUpdateConfig(updates);
               } else {
@@ -1042,6 +1100,13 @@
               });
           };
           const [mySetupNames, setMySetupNames] = useState([]);
+          // v13.11 layout state
+          const [secOpen, setSecOpen] = useState(() => { try { return { site: true, line: true, buoys: true, ...JSON.parse(localStorage.getItem('slack_sections') || '{}') }; } catch (e) { return { site: true, line: true, buoys: true }; } });
+          const toggleSec = (id) => setSecOpen(o => { const n = { ...o, [id]: !o[id] }; try { localStorage.setItem('slack_sections', JSON.stringify(n)); } catch (e) {} return n; });
+          const [propOpen, setPropOpen] = useState({});
+          const lineTotal = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
+          const lineMBL = mblSummary(segments);
+          const presetEdited = !!(activePresetKey && presetSig && inputSig({ waterDepth, fairleadElev, segments, buoys }) !== presetSig);
           useEffect(() => {
               try { setMySetupNames(Object.keys(JSON.parse(localStorage.getItem('slack_my_setups') || '{}'))); }
               catch(e) { setMySetupNames([]); }
@@ -1095,6 +1160,11 @@
               });
               return e;
           }, [waterDepth, fairleadElev, segments, buoys, isFairleadInvalid, wdBuf, designFactor, minClearance, gmiMin, subseaBuf, tensBuf]);
+          const secErrors = {
+              site: configErrors.filter(m => /^(Water depth|Design factor|Min clearance|Anchor-to-structure|Structure|Fairlead)/.test(m)).length,
+              line: configErrors.filter(m => /^(Segment|Payout|Max 20)/.test(m)).length,
+              buoys: configErrors.filter(m => /^(Buoy|Max 10)/.test(m)).length
+          };
           // A16: reachable offset range shown to the user (rigid-line estimate)
           const offsetRange = (() => {
               const L = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
@@ -1127,253 +1197,189 @@
 
           return (
               <div className="flex flex-col h-full relative">
-                  {/* SCROLLABLE CONTENT */}
-                  <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-6">
-                      <section>
-                          <SectionHeader title="Environment" icon={IconWaves} />
-                          <div className="space-y-3 p-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg">
-                              <div className="p-2 bg-accent-50 dark:bg-accent-600/10 border-2 border-accent-300 dark:border-accent-600/50 rounded-lg">
-                                  <label className="block text-[11px] font-bold text-accent-700 dark:text-accent-400 mb-1.5 flex items-center gap-1 uppercase tracking-wider">
-                                      <IconAnchor size={11} /> Quick Fill: Fleet Vessel
-                                  </label>
-                                  <div className="relative">
-                                      {/* v10 M2: dropdown remembers active preset (via activePresetKey), no auto-reset */}
-                                      <select value={activePresetKey || ''} onChange={e => { if (e.target.value) applyFleetPreset(e.target.value); }} className="w-full bg-white dark:bg-gray-900 border border-accent-400 dark:border-accent-500 rounded px-2 py-2 text-xs font-medium text-accent-700 dark:text-accent-300 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none appearance-none transition-all shadow-sm cursor-pointer" aria-label="Fleet preset selector">
-                                          <option value="">-- Select vessel: auto-loads all fields --</option>
-                                          <optgroup label="TENDER (Large wire)">
-                                              {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='TENDER').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
-                                          </optgroup>
-                                          <optgroup label="AWB (Accommodation)">
-                                              {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='AWB').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
-                                          </optgroup>
-                                          <optgroup label="JACKUP (4-point AHT positioning)">
-                                              {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='JACKUP').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
-                                          </optgroup>
-                                      </select>
-                                      <IconChevronDown size={12} className="absolute right-2 top-2.5 text-accent-500 pointer-events-none" />
-                                  </div>
-                                  <div className="flex gap-2 mt-2">
-                                      <button onClick={saveMySetup} aria-label="Save current setup to browser storage" className="flex-1 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded border border-emerald-300 dark:border-emerald-700 transition-colors uppercase tracking-wider">
-                                          Save Setup
-                                      </button>
-                                      {mySetupNames.length > 0 && (
-                                          <div className="flex-1 relative">
-                                              <select defaultValue="" aria-label="Load saved setup" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-full text-[11px] font-bold bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 text-purple-700 dark:text-purple-300 px-2 py-1 rounded border border-purple-300 dark:border-purple-700 uppercase tracking-wider cursor-pointer appearance-none">
-                                                  <option value="">Load ({mySetupNames.length})</option>
-                                                  {mySetupNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                              </select>
-                                          </div>
-                                      )}
-                                      {mySetupNames.length > 0 && (
-                                          <select defaultValue="" aria-label="Delete saved setup" title="Delete a saved setup" onChange={e => { deleteMySetup(e.target.value); e.target.value=''; }} className="w-8 text-[11px] font-bold bg-white dark:bg-gray-900 text-bad-600 dark:text-bad-400 px-1 py-1 rounded border border-gray-300 dark:border-gray-700 cursor-pointer appearance-none text-center">
-                                              <option value="">✕</option>
-                                              {mySetupNames.map(n => <option key={n} value={n}>Delete: {n}</option>)}
-                                          </select>
-                                      )}
-                                  </div>
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 leading-tight">
-                                      {activePresetKey && FLEET_PRESETS[activePresetKey] ? FLEET_PRESETS[activePresetKey].label : 'Loads WD, segments, buoys, tension profile and anchor pattern. Line properties use the generic material model.'}
-                                  </p>
-                              </div>
-                              <InputField label="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} type="text" placeholder="e.g. Mooring_Line_A" className="col-span-2" />
-                              <div className="grid grid-cols-2 gap-3">
-                                  {/* v10 S2: debounced local buffer for smoother typing */}
-                                  <InputField label="Water Depth" value={wdBuf} onChange={e => setWdBuf(e.target.value)} unit="m" min={0} error={waterDepth <= 0 ? "Depth > 0" : undefined} />
-                                  <InputField label="Fairlead Elev." title="Height of the fairlead above mean sea level" value={flBuf} onChange={e => setFlBuf(e.target.value)} unit="m" error={isFairleadInvalid ? "Z ≥ 0" : undefined} />
-                              </div>
-                              <InputField label="Design Factor (SWL = MBL / DF)" title="Default 2.0 = API RP 2SK intact, quasi-static" value={designFactor} onChange={e => setDesignFactor(e.target.value)} error={!(parseFloat(designFactor) > 0) ? 'DF > 0' : undefined} unit="x" placeholder={`Default ${DEFAULT_DF}`} />
-                              <div className="border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
-                                  <InputField label="Subsea Structures (Dist from FL)" title="Comma list. 400 = all bearings, 400@270 = ±45°, 400@270:30 = ±30°" value={subseaBuf} onChange={e => setSubseaBuf(e.target.value)} type="text" placeholder="e.g. 150, 400@270" />
-                                  <div className="grid grid-cols-2 gap-3 mt-3">
-                                      <InputField label="Min Clearance" title="Minimum line height above the seabed at each structure distance" value={minClearance} onChange={e => setMinClearance(e.target.value)} error={minClearance === '' || Number(minClearance) < 0 ? '≥ 0' : undefined} unit="m" placeholder={`Default ${DEFAULT_MIN_CLEARANCE}`} />
-                                      <InputField label="Anchor ↔ Struct min" title="Minimum horizontal distance anchor to structure (default 150 m, GMI 7.1.5). Used by the Top View check." value={gmiMin} onChange={e => setGmiMin(e.target.value)} error={gmiMin === '' || isNaN(Number(gmiMin)) || Number(gmiMin) < 0 ? '≥ 0' : undefined} unit="m" placeholder={`Default ${DEFAULT_GMI_MIN}`} />
-                                  </div>
-                              </div>
+                  {/* v13.11 REDESIGN: compact accordions with one-line summaries, dense 2-3 column fields,
+                      segment/buoy properties folded behind "Properties". Target: whole setup visible with little or no scrolling. */}
+                  <div className="flex-1 overflow-y-auto pr-1 pb-3 space-y-2">
+                      {/* Preset + saved setups: one row */}
+                      <div className="flex gap-1.5 items-center">
+                          <div className="relative flex-1 min-w-0">
+                              <select value={activePresetKey || ''} onChange={e => { if (e.target.value) applyFleetPreset(e.target.value); }} title={activePresetKey && FLEET_PRESETS[activePresetKey] ? FLEET_PRESETS[activePresetKey].label : 'Fleet preset: loads WD, segments, buoys, tensions and anchor pattern'} className="w-full bg-accent-50 dark:bg-accent-600/10 border border-accent-300 dark:border-accent-600/50 rounded-md pl-2 pr-6 py-1.5 text-xs font-semibold text-accent-700 dark:text-accent-300 outline-none appearance-none cursor-pointer" aria-label="Fleet preset selector">
+                                  <option value="">Fleet preset…</option>
+                                  <optgroup label="TENDER (Large wire)">
+                                      {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='TENDER').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
+                                  </optgroup>
+                                  <optgroup label="AWB (Accommodation)">
+                                      {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='AWB').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
+                                  </optgroup>
+                                  <optgroup label="JACKUP (4-point AHT positioning)">
+                                      {Object.keys(FLEET_PRESETS).filter(k => FLEET_PRESETS[k].category==='JACKUP').map(k => (<option key={k} value={k}>{FLEET_PRESETS[k].short}</option>))}
+                                  </optgroup>
+                              </select>
+                              <IconChevronDown size={12} className="absolute right-2 top-2 text-accent-500 pointer-events-none" />
                           </div>
-                      </section>
+                          {presetEdited && <button onClick={() => applyFleetPreset(activePresetKey)} aria-label="Inputs differ from the preset - reset to preset" title="Inputs were edited after loading this preset. Click to reload the preset values." className="text-[11px] font-bold text-warn-600 dark:text-warn-400 border border-warn-600/50 dark:border-warn-400/50 rounded-md px-1.5 py-1.5 hover:bg-warn-600/10 whitespace-nowrap">edited ↺</button>}
+                          <button onClick={saveMySetup} aria-label="Save current setup to browser storage" title="Save this setup in the browser" className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 rounded-md px-2 py-1.5 hover:bg-emerald-100">Save</button>
+                          {mySetupNames.length > 0 && (
+                              <select defaultValue="" aria-label="Load saved setup" title="Load a saved setup" onChange={e => { loadMySetup(e.target.value); e.target.value=''; }} className="w-[70px] text-[11px] font-bold bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 py-1.5 rounded-md border border-purple-300 dark:border-purple-700 cursor-pointer appearance-none">
+                                  <option value="">Load ({mySetupNames.length})</option>
+                                  {mySetupNames.map(n => <option key={n} value={n}>{n}</option>)}
+                              </select>
+                          )}
+                          {mySetupNames.length > 0 && (
+                              <select defaultValue="" aria-label="Delete saved setup" title="Delete a saved setup" onChange={e => { deleteMySetup(e.target.value); e.target.value=''; }} className="w-7 text-[11px] font-bold bg-white dark:bg-gray-900 text-bad-600 dark:text-bad-400 px-1 py-1.5 rounded-md border border-gray-300 dark:border-gray-700 cursor-pointer appearance-none text-center">
+                                  <option value="">✕</option>
+                                  {mySetupNames.map(n => <option key={n} value={n}>Delete: {n}</option>)}
+                              </select>
+                          )}
+                      </div>
 
-                      <section>
-                          <div className="flex justify-between items-center mb-2">
-                              <SectionHeader title="Line Segments (Fairlead → Anchor)" icon={IconAnchor} />
-                              <button onClick={addSegment} aria-label="Add new segment" className="flex items-center gap-1 text-[11px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
-                                  <IconPlus size={12} /> Add
-                              </button>
+                      <Acc id="site" title="Site & checks" open={secOpen.site} onToggle={toggleSec} errors={secErrors.site}
+                           summary={`WD ${wdBuf || '?'} m · FL +${flBuf || '?'} m · DF ${designFactor} · Struct ${subseaBuf ? subseaBuf : 'none'}`}>
+                          <div className="grid grid-cols-6 gap-x-2 gap-y-1.5">
+                              <CF className="col-span-4" label="Project" type="text" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="e.g. Mooring_Line_A" />
+                              <CF className="col-span-2" label="Design factor" unit="×" title="SWL = MBL / DF. Default 2.0 = API RP 2SK intact, quasi-static" value={designFactor} onChange={e => setDesignFactor(e.target.value)} error={!(parseFloat(designFactor) > 0)} placeholder={`${DEFAULT_DF}`} />
+                              <CF className="col-span-2" label="Water depth" unit="m" value={wdBuf} onChange={e => setWdBuf(e.target.value)} error={waterDepth <= 0 || isNaN(parseFloat(wdBuf))} />
+                              <CF className="col-span-2" label="Fairlead elev." unit="m" title="Height of the fairlead above mean sea level" value={flBuf} onChange={e => setFlBuf(e.target.value)} error={isFairleadInvalid} />
+                              <CF className="col-span-2" label="Min clearance" unit="m" title="Minimum line height above the seabed at each structure distance" value={minClearance} onChange={e => setMinClearance(e.target.value)} error={minClearance === '' || Number(minClearance) < 0} placeholder={`${DEFAULT_MIN_CLEARANCE}`} />
+                              <CF className="col-span-4" label="Subsea structures (dist. from FL)" type="text" title="Comma list. 400 = all bearings, 400@270 = ±45°, 400@270:30 = ±30°" value={subseaBuf} onChange={e => setSubseaBuf(e.target.value)} placeholder="e.g. 150, 400@270" />
+                              <CF className="col-span-2" label="Anchor ↔ struct" unit="m" title="Minimum horizontal distance between an anchor and a subsea structure (default 150 m, GMI 7.1.5). Used by the Top View / Structure check." value={gmiMin} onChange={e => setGmiMin(e.target.value)} error={gmiMin === '' || isNaN(Number(gmiMin)) || Number(gmiMin) < 0} placeholder={`${DEFAULT_GMI_MIN}`} />
                           </div>
-                          <div className="space-y-3">
+                      </Acc>
+
+                      <Acc id="line" title="Line · fairlead → anchor" open={secOpen.line} onToggle={toggleSec} errors={secErrors.line}
+                           summary={`${segments.length} seg · ${lineTotal.toFixed(0)} m${lineMBL.hasMBL ? ` · SWL ${(lineMBL.minMBL / (parseFloat(designFactor) || DEFAULT_DF)).toFixed(0)} t` : ''}`}
+                           action={<button onClick={addSegment} aria-label="Add new segment" className="flex items-center gap-0.5 text-[11px] font-semibold text-accent-700 dark:text-accent-300 hover:bg-accent-600/10 px-1.5 py-0.5 rounded"><IconPlus size={12} /> Add</button>}>
+                          <div className="space-y-1.5">
                               {segments.map((seg, idx) => {
                                   const density = MATERIAL_DENSITIES[seg.type] || 7850;
                                   const factor = (density - SEAWATER_DENSITY) / density;
                                   const dryVal = typeof seg.w === 'string' ? parseFloat(seg.w) : seg.w;
                                   const autoWet = (isNaN(dryVal) ? 0 : dryVal) * factor;
                                   const hasManualWet = seg.w_wet !== undefined && seg.w_wet !== null && seg.w_wet !== '' && !isNaN(parseFloat(seg.w_wet)) && parseFloat(seg.w_wet) !== 0;
-                                  
                                   const isLenInvalid = !validatePositive(seg.length, false);
                                   const isWeightInvalid = !validatePositive(seg.w, false);
                                   const isEAInvalid = seg.EA !== '' && seg.EA !== undefined && !validatePositive(parseFloat(seg.EA), false);
                                   const isFrictionInvalid = !validatePositive(seg.frictionCoeff, true);
-
+                                  const propErr = isWeightInvalid || isEAInvalid || isFrictionInvalid;
+                                  const nManual = [seg.isWeightManual, hasManualWet, seg.isEAManual, seg.isMBLManual].filter(Boolean).length;
+                                  const open = !!propOpen[seg.id] || propErr;
+                                  const wetShown = hasManualWet ? parseFloat(seg.w_wet) : autoWet;
                                   return (
-                                      <div key={seg.id} className="bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 p-3 rounded-lg group relative transition-colors hover:border-gray-300 dark:hover:border-gray-700 shadow-soft">
-                                          <div className="flex justify-between items-start mb-2">
-                                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><span className="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[11px] px-1.5 rounded">#{idx + 1}</span>{matOf(seg.type).label}<span className="text-gray-500 dark:text-gray-400 font-normal">· {seg.diameter || '?'} mm × {seg.length || 0} m</span></span>
-                                              <div className="flex items-center gap-1">
-                                                  <button onClick={() => duplicateSegment(idx)} aria-label="Duplicate this segment" className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this segment">
-                                                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                                  </button>
-                                                  <button onClick={() => removeSegment(idx)} aria-label="Remove this segment" className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconX size={14} aria-hidden="true"/></button>
+                                      <div key={seg.id} className="border border-gray-200 dark:border-gray-800 rounded-md p-1.5 bg-white dark:bg-gray-850">
+                                          <div className="flex items-end gap-1.5">
+                                              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 w-4 pb-1.5">#{idx + 1}</span>
+                                              <div className="flex-1 min-w-0">
+                                                  <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-none mb-0.5">Type</div>
+                                                  <select value={seg.type} onChange={e => handleTypeChange(idx, e.target.value)} aria-label={`Segment ${idx + 1} type`} title={matOf(seg.type).label} className="w-full bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded px-1 py-1 text-[12px] text-gray-800 dark:text-gray-100 outline-none">
+                                                      {Object.keys(MATERIAL).map(t => <option key={t} value={t}>{SHORT_TYPE[t] || MATERIAL[t].label}</option>)}
+                                                  </select>
+                                              </div>
+                                              <CF className="w-[58px]" label="Ø (mm)" list={`dia-${seg.type}`} value={seg.diameter || ''} title="Nominal diameter - pick a standard size or type any value" onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'diameter', e.target.value); else if (e.target.value === '') updateSegment(idx, 'diameter', ''); }} />
+                                              <CF className="w-[66px]" label="Length (m)" value={seg.length} error={isLenInvalid} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'length', e.target.value); else if (e.target.value === '') updateSegment(idx, 'length', ''); }} />
+                                              <div className="flex flex-col pb-0.5">
+                                                  <button onClick={() => duplicateSegment(idx)} aria-label="Duplicate this segment" title="Duplicate this segment" className="text-gray-400 hover:text-accent-500 p-0.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                                                  <button onClick={() => removeSegment(idx)} aria-label="Remove this segment" title="Remove this segment" disabled={segments.length <= 1} className="text-gray-400 hover:text-red-500 p-0.5 disabled:opacity-30"><IconX size={12} aria-hidden="true"/></button>
                                               </div>
                                           </div>
-                                          <div className="grid grid-cols-2 gap-3">
-                                              <div className="col-span-2">
-                                                  <SelectField label="Type" value={seg.type} onChange={e => handleTypeChange(idx, e.target.value)}>
-                                                      {Object.keys(MATERIAL).map(t => <option key={t} value={t}>{MATERIAL[t].label}</option>)}
-                                                  </SelectField>
+                                          <button onClick={() => setPropOpen(o => ({ ...o, [seg.id]: !o[seg.id] }))} aria-expanded={open} aria-label={`Segment ${idx + 1} properties`} className="mt-1 w-full flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 font-mono text-left">
+                                              <IconChevronDown size={11} className={`shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
+                                              <span className="truncate" title={`Dry ${seg.w} kg/m · wet ${wetShown.toFixed(2)} kg/m · EA ${seg.EA ? seg.EA + ' kN' : 'rigid'} · MBL ${seg.mbl || '-'} t · friction µ ${seg.frictionCoeff} - click to edit`}>{seg.w || '?'} kg/m · EA {seg.EA ? (seg.EA / 1000).toFixed(0) + ' MN' : 'rigid'} · MBL {seg.mbl || '-'} t</span>
+                                              {nManual > 0 && <span className="ml-auto shrink-0 font-sans text-[10px] font-bold text-warn-600 dark:text-warn-400 bg-warn-600/10 rounded px-1">{nManual} manual</span>}
+                                              {propErr && <span className="shrink-0 font-sans text-[10px] font-bold text-bad-600 dark:text-bad-400">!</span>}
+                                          </button>
+                                          {open && (
+                                              <div className="grid grid-cols-6 gap-x-2 gap-y-1.5 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800">
+                                                  <CF className="col-span-2" label="Dry wt" unit="kg/m" value={seg.w} error={isWeightInvalid} manual={seg.isWeightManual} onReset={() => updateSegment(idx, 'w', '')} placeholder={`${autoW(seg.type, parseFloat(seg.diameter) || 0)}`} onChange={e => updateSegment(idx, 'w', e.target.value)} />
+                                                  <CF className="col-span-2" label="Wet wt" unit="kg/m" value={seg.w_wet || ''} manual={hasManualWet} onReset={() => updateSegment(idx, 'w_wet', '')} placeholder={`auto ${autoWet.toFixed(2)}`} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} />
+                                                  <CF className="col-span-2" label="Friction µ" value={seg.frictionCoeff} error={isFrictionInvalid} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'frictionCoeff', e.target.value); else if (e.target.value === '') updateSegment(idx, 'frictionCoeff', ''); }} />
+                                                  <CF className="col-span-3" label={seg.type === SegmentType.FIBER ? 'EA (linear)' : 'EA'} unit="kN" value={seg.EA} error={isEAInvalid} manual={seg.isEAManual} onReset={() => updateSegment(idx, 'EA', '')} placeholder={(() => { const a = autoEA(seg.type, parseFloat(seg.diameter) || 0); return a ? `${a}` : 'blank = rigid'; })()} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if (e.target.value === '') updateSegment(idx, 'EA', ''); }} />
+                                                  <CF className="col-span-3" label={seg.isMBLManual ? 'MBL' : 'MBL (est.)'} unit="t" title={isChainType(seg.type) ? 'Generic R3 grade estimate - verify against certificate' : 'Generic catalogue estimate - verify against certificate'} value={seg.mbl || ''} manual={seg.isMBLManual} onReset={() => updateSegment(idx, 'mbl', '')} placeholder="est. from Ø" onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'mbl', e.target.value); else if (e.target.value === '') updateSegment(idx, 'mbl', ''); }} />
                                               </div>
-                                              {SIZE_STANDARDS[seg.type] && SIZE_STANDARDS[seg.type].length > 0 && (
-                                                  <div className="col-span-2">
-                                                      <SelectField label="Standard Size (generic auto-fill)" value={SIZE_STANDARDS[seg.type].some(([d]) => d === parseFloat(seg.diameter)) ? String(parseFloat(seg.diameter)) : ''} onChange={e => handleSizeChange(idx, e.target.value)}>
-                                                          <option value="">-- Custom diameter --</option>
-                                                          {SIZE_STANDARDS[seg.type].map(([d, note]) => (<option key={d} value={String(d)}>{sizeLabel(seg.type, d, note)}</option>))}
-                                                      </SelectField>
-                                                  </div>
-                                              )}
-                                                                                            <InputField label="Diameter" value={seg.diameter || ''} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'diameter', e.target.value); else if (e.target.value === '') updateSegment(idx, 'diameter', ''); }} unit="mm" placeholder="e.g. 76" />
-                                              <InputField label="Length" value={seg.length} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) { updateSegment(idx, 'length', e.target.value) } else if (e.target.value === '') { updateSegment(idx, 'length', '') } }} min="0" unit="m" error={isLenInvalid ? "Len > 0" : undefined} />
-                                              <div className="col-span-2 border-t border-gray-200 dark:border-gray-700/50 my-1"></div>
-                                              <InputField label="Weight (Dry)" value={seg.w} onChange={e => { updateSegment(idx, 'w', e.target.value); }} unit="kg/m" error={isWeightInvalid ? "W > 0" : undefined} highlight={seg.isWeightManual} placeholder={`Auto: ${autoW(seg.type, parseFloat(seg.diameter) || 0)}`}>
-                                                  {seg.isWeightManual && (
-                                                      <button onClick={() => updateSegment(idx, 'w', '')} className="absolute right-9 top-1.5 text-[11px] text-warn-600 dark:text-warn-400 hover:text-bad-600 font-bold px-1 rounded" title="Restore auto value">↺</button>
-                                                  )}
-                                              </InputField>
-                                              <InputField label="Weight (Wet)" value={seg.w_wet || ''} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} unit="kg/m" placeholder={`Auto: ${autoWet.toFixed(2)}`} highlight={hasManualWet}>
-                                                  {hasManualWet && (
-                                                      <button onClick={() => updateSegment(idx, 'w_wet', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
-                                                  )}
-                                              </InputField>
-                                              <InputField label="Stiffness (EA)" value={seg.EA} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if(e.target.value==='') updateSegment(idx, 'EA', ''); }} unit="kN" placeholder={(() => { const a = autoEA(seg.type, parseFloat(seg.diameter) || 0); return a ? `Auto: ${a}` : 'Blank = rigid'; })()} error={isEAInvalid ? "EA > 0" : undefined} highlight={seg.isEAManual}>
-                    {seg.isEAManual && (
-                      <button onClick={() => updateSegment(idx, 'EA', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded hover:bg-white/50" title="Clear Manual Override">✕</button>
-                    )}
-                    {!seg.isEAManual && parseFloat(seg.diameter) > 0 && (
-                      <span className="absolute right-9 top-1.5 text-[11px] text-accent-600 dark:text-accent-400 font-bold pointer-events-none" title={seg.type === SegmentType.FIBER ? 'Linear EA (slow-varying). Fiber is non-linear in reality.' : 'Generic EA from diameter'}>{seg.type === SegmentType.FIBER ? 'Lin.' : 'Auto'}</span>
-                    )}
-                    </InputField>
-                                              <InputField label="Friction Coeff" value={seg.frictionCoeff} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'frictionCoeff', e.target.value); else if(e.target.value==='') updateSegment(idx, 'frictionCoeff', ''); }} unit="" error={isFrictionInvalid ? "µ ≥ 0" : undefined} />
-                                              {/* v11: MBL drives the utilisation column and the Exceeds-SWL flag. */}
-                                              <InputField label="MBL" value={seg.mbl || ''} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateSegment(idx, 'mbl', e.target.value); else if(e.target.value==='') updateSegment(idx, 'mbl', ''); }} unit="t" placeholder="Est. from dia." highlight={seg.isMBLManual}>
-                                                  {seg.isMBLManual && (
-                                                      <button onClick={() => updateSegment(idx, 'mbl', '')} className="absolute right-9 top-1.5 text-[11px] text-amber-600 dark:text-amber-500 hover:text-red-500 font-bold px-1 rounded" title="Clear manual override">✕</button>
-                                                  )}
-                                                  {!seg.isMBLManual && seg.mbl && (
-                                                      <span className="absolute right-9 top-1.5 text-[11px] text-warn-600 dark:text-warn-400 font-bold pointer-events-none" title={isChainType(seg.type) ? 'Generic R3 grade estimate - verify against certificate' : 'Generic catalogue estimate - verify against certificate'}>Est.</span>
-                                                  )}
-                                              </InputField>
+                                          )}
+                                      </div>
+                                  );
+                              })}
+                              {Object.keys(SIZE_STANDARDS).map(t => (
+                                  <datalist key={t} id={`dia-${t}`}>{SIZE_STANDARDS[t].map(([d, note]) => <option key={d} value={d}>{sizeLabel(t, d, note)}</option>)}</datalist>
+                              ))}
+                          </div>
+                      </Acc>
+
+                      <Acc id="buoys" title="Buoys (MLB)" open={secOpen.buoys} onToggle={toggleSec} errors={secErrors.buoys}
+                           summary={buoys.length ? buoys.map((b, i) => `B${i + 1} ${b.netBuoyancy} t @ ${b.distanceFromAnchor} m`).join(' · ') : 'none'}
+                           action={<button onClick={addBuoy} aria-label="Add new buoy" className="flex items-center gap-0.5 text-[11px] font-semibold text-accent-700 dark:text-accent-300 hover:bg-accent-600/10 px-1.5 py-0.5 rounded"><IconPlus size={12} /> Add</button>}>
+                          <div className="space-y-1.5">
+                              {buoys.length === 0 && <div className="text-[11px] text-gray-500 dark:text-gray-400 px-1">No buoys - press Add.</div>}
+                              {buoys.map((b, idx) => {
+                                  const isOutOfBounds = parseFloat(b.distanceFromAnchor) > lineTotal;
+                                  const distFromFL = lineTotal - (parseFloat(b.distanceFromAnchor) || 0);
+                                  const num = (field) => (e) => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateBuoy(idx, field, e.target.value); else if (e.target.value === '') updateBuoy(idx, field, ''); };
+                                  const bErr = isOutOfBounds || !validatePositive(b.distanceFromAnchor, true) || !validatePositive(b.netBuoyancy, true) || !(parseFloat(b.height) > 0) || !validatePositive(b.pennantLength, true) || !validatePositive(b.pennantWeight, true);
+                                  const bOpen = !!propOpen[b.id] || bErr;
+                                  return (
+                                      <div key={b.id} className="border border-gray-200 dark:border-gray-800 border-l-2 border-l-yellow-500/70 rounded-md p-1.5 bg-white dark:bg-gray-850">
+                                          <div className="flex items-center justify-between">
+                                              <button onClick={() => setPropOpen(o => ({ ...o, [b.id]: !o[b.id] }))} aria-expanded={bOpen} aria-label={`Buoy ${idx + 1} details`} className="flex-1 min-w-0 flex items-center gap-1 text-left">
+                                                  <IconChevronDown size={11} className={`shrink-0 text-gray-500 transition-transform ${bOpen ? '' : '-rotate-90'}`} />
+                                                  <span className="text-[11px] font-bold text-yellow-700 dark:text-yellow-500 shrink-0">B{idx + 1}</span>
+                                                  <span className="text-[11px] font-mono text-gray-600 dark:text-gray-400 truncate" title={`≈ ${isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from the fairlead along the line`}>{b.distanceFromAnchor} m · {b.netBuoyancy} t · pennant {b.pennantLength} m · ≈{isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from FL</span>
+                                                  {bErr && <span className="shrink-0 text-[10px] font-bold text-bad-600 dark:text-bad-400">!</span>}
+                                              </button>
+                                              <span className="flex">
+                                                  <button onClick={() => duplicateBuoy(idx)} aria-label="Duplicate this buoy" title="Duplicate this buoy" className="text-gray-400 hover:text-accent-500 p-0.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                                                  <button onClick={() => removeBuoy(idx)} aria-label="Remove this buoy" title="Remove this buoy" className="text-gray-400 hover:text-red-500 p-0.5"><IconTrash2 size={12} aria-hidden="true"/></button>
+                                              </span>
                                           </div>
+                                          {bOpen && <div className="grid grid-cols-4 gap-x-1.5 gap-y-1.5 mt-1.5">
+                                              <CF label="From anchor" unit="m" value={b.distanceFromAnchor} error={!validatePositive(b.distanceFromAnchor, true) || isOutOfBounds} title={isOutOfBounds ? `Beyond the line end (${lineTotal.toFixed(1)} m)` : 'Measured along the line from the anchor'} onChange={num('distanceFromAnchor')} />
+                                              <CF label="Buoyancy" unit="t" title="Gross buoyancy minus buoy self-weight. Pennant weight and misc load are deducted separately." value={b.netBuoyancy} error={!validatePositive(b.netBuoyancy, true)} onChange={num('netBuoyancy')} />
+                                              <CF label="Height" unit="m" value={b.height} error={!(parseFloat(b.height) > 0)} onChange={num('height')} />
+                                              <CF label="Misc load" unit="t" title="Extra load hung on the pennant (shackles, chain etc.)" value={b.pennantLoad ?? 0} error={!validatePositive(b.pennantLoad || 0, true)} onChange={num('pennantLoad')} />
+                                              <CF label="Pennant L" unit="m" value={b.pennantLength} error={!validatePositive(b.pennantLength, true)} onChange={num('pennantLength')} />
+                                              <CF label="Pennant Ø" unit="mm" title="Pennant wire diameter - drives the auto pennant weight" value={b.pennantDiameter ?? DEFAULT_PENNANT_DIA} onChange={num('pennantDiameter')} />
+                                              <CF label="Pennant wt" unit="t" title="Submerged weight = generic wire kg/m(Ø) × length × wet factor" value={b.pennantWeight} error={!validatePositive(b.pennantWeight, true)} manual={b.isPennantWeightManual} onReset={() => updateBuoy(idx, 'pennantWeight', '')} placeholder={`${pennantWeightT(b.pennantLength, b.pennantDiameter ?? DEFAULT_PENNANT_DIA)}`} onChange={num('pennantWeight')} />
+                                          </div>}
                                       </div>
                                   );
                               })}
                           </div>
-                      </section>
-
-                      <section>
-                          <div className="flex justify-between items-center mb-2">
-                              <SectionHeader title="Buoys" icon={IconLifeBuoy} />
-                              <button onClick={addBuoy} aria-label="Add new buoy" className="flex items-center gap-1 text-[11px] font-medium bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-300 dark:border-gray-700 transition-colors">
-                                  <IconPlus size={12} /> Add
-                              </button>
-                          </div>
-                          {buoys.map((b, idx) => {
-                              const totalLength = segments.reduce((acc, s) => acc + (typeof s.length === 'string' ? parseFloat(s.length) : s.length), 0);
-                              const isOutOfBounds = b.distanceFromAnchor > totalLength;
-                              const isDistInvalid = !validatePositive(b.distanceFromAnchor, true);
-                              const isBuoyancyInvalid = !validatePositive(b.netBuoyancy, true);
-                              const isPennantWInvalid = !validatePositive(b.pennantWeight, true);
-                              const isPennantLoadInvalid = !validatePositive(b.pennantLoad || 0, true);
-                              const isPennantLInvalid = !validatePositive(b.pennantLength, true);
-                              const isHeightInvalid = !(parseFloat(b.height) > 0);
-                              const distFromFL = totalLength - (parseFloat(b.distanceFromAnchor) || 0);
-
-                              return (
-                                  <div key={b.id} className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 p-3 rounded-lg relative mb-2 border-l-2 border-l-yellow-500/50">
-                                      <div className="flex justify-between items-start mb-2">
-                                          <span className="text-xs font-bold text-yellow-600 dark:text-yellow-500">Buoy #{idx + 1}</span>
-                                          <div className="flex items-center gap-1">
-                                              <button onClick={() => duplicateBuoy(idx)} aria-label="Duplicate this buoy" className="text-gray-400 hover:text-accent-500 transition-colors p-1" title="Duplicate this buoy">
-                                                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                              </button>
-                                              <button onClick={() => removeBuoy(idx)} aria-label="Remove this buoy" className="text-gray-400 hover:text-red-500 transition-colors p-1"><IconTrash2 size={12} aria-hidden="true"/></button>
-                                          </div>
-                                      </div>
-                                      <div className="space-y-3">
-                                          <InputField label={`Dist from Anchor (≈ ${isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from FL along line)`} value={b.distanceFromAnchor} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'distanceFromAnchor', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'distanceFromAnchor', ''); }} unit="m" error={isDistInvalid ? "Dist ≥ 0" : undefined} />
-                                          {isOutOfBounds && <div className="text-[11px] text-red-500 font-bold mt-1 -mb-1">⚠ Warning: Buoy beyond line length ({totalLength.toFixed(1)}m)</div>}
-                                          <div className="grid grid-cols-2 gap-3">
-                                              <InputField label="Buoyancy (excl. pennant)" title="Gross buoyancy minus buoy self-weight. Pennant weight and misc load are deducted separately." value={b.netBuoyancy} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'netBuoyancy', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'netBuoyancy', ''); }} unit="ton" error={isBuoyancyInvalid ? "Buoyancy ≥ 0" : undefined} />
-                                              <InputField label="Pennant Length" value={b.pennantLength} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLength', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLength', ''); }} unit="m" error={isPennantLInvalid ? "Len ≥ 0" : undefined} />
-                                              <InputField label="Pennant Ø" title="Pennant wire diameter - drives the auto pennant weight" value={b.pennantDiameter ?? DEFAULT_PENNANT_DIA} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantDiameter', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantDiameter', ''); }} unit="mm" />
-                                              <InputField label="Pennant Wt (sub.)" title="Submerged weight = generic wire kg/m(Ø) × length × wet factor" value={b.pennantWeight} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantWeight', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantWeight', ''); }} unit="ton" error={isPennantWInvalid ? "Wt ≥ 0" : undefined} highlight={b.isPennantWeightManual} placeholder={`Auto: ${pennantWeightT(b.pennantLength, b.pennantDiameter ?? DEFAULT_PENNANT_DIA)}`}>
-                    {b.isPennantWeightManual && (
-                      <button onClick={() => updateBuoy(idx, 'pennantWeight', '')} className="absolute right-9 top-1.5 text-[11px] text-warn-600 dark:text-warn-400 hover:text-bad-600 font-bold px-1 rounded" title="Restore auto value">↺</button>
-                    )}
-                    </InputField>
-                                              <InputField label="Misc Load (t)" value={b.pennantLoad ?? 0} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'pennantLoad', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'pennantLoad', ''); }} unit="ton" error={isPennantLoadInvalid ? "Load ≥ 0" : undefined} />
-                                              <InputField label="Buoy Height" value={b.height} onChange={e => { const val = parseFloat(e.target.value); if(!isNaN(val) && val >= 0) updateBuoy(idx, 'height', e.target.value); else if(e.target.value === '') updateBuoy(idx, 'height', ''); }} unit="m" error={isHeightInvalid ? "H > 0" : undefined} />
-                                          </div>
-                                      </div>
-                                  </div>
-                              );
-                          })}
-                      </section>
+                      </Acc>
                   </div>
 
-                  {/* STICKY BOTTOM ACTION PANEL - OPTION 2 */}
-                  <div className="pt-4 px-1 pb-1 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] z-20 transition-colors duration-300">
-                      {calcMode === 'offset' && (
-                          <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded flex gap-2 items-start">
-                              <IconWarning size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                              <p className="text-[11px] text-amber-700 dark:text-amber-200 leading-tight">
-                                  <strong>Check Payout:</strong> Ensure 'Segment Length' matches the actual paid-out length. Reachable offset ≈ <b>{offsetRange.min.toFixed(0)}–{offsetRange.max.toFixed(0)} m</b> (rigid-line estimate); targets outside are flagged.
-                              </p>
+                  {/* Action bar (always visible) */}
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0 z-20 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md p-0.5">
+                              <button onClick={() => setCalcMode('tension')} aria-pressed={calcMode === 'tension'} className={`text-[11px] px-2.5 py-1 rounded font-bold ${calcMode === 'tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION</button>
+                              <button onClick={() => setCalcMode('offset')} aria-pressed={calcMode === 'offset'} className={`text-[11px] px-2.5 py-1 rounded font-bold ${calcMode === 'offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET</button>
                           </div>
-                      )}
-                      <div className="flex justify-between items-center mb-2 px-1">
-                          <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded p-0.5">
-                              <button onClick={() => setCalcMode('tension')} className={`text-[11px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'tension' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>TENSION</button>
-                              <button onClick={() => setCalcMode('offset')} className={`text-[11px] px-2 py-1 rounded font-bold transition-all ${calcMode === 'offset' ? 'bg-white dark:bg-gray-700 text-accent-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>OFFSET</button>
-                          </div>
-                          <label className="flex items-center gap-2 cursor-pointer group">
-                              <input type="checkbox" checked={showMaxTension} onChange={e => setShowMaxTension(e.target.checked)} disabled={loading} className="rounded bg-white dark:bg-gray-800 border-gray-400 dark:border-gray-600 text-accent-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer disabled:opacity-50" />
-                              <span className="text-[11px] text-maxc-600 dark:text-maxc-400 font-medium transition-colors">Find Max (0m Grd)</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer" title="Add the lift-off tension (grounded length = 0, no anchor uplift)">
+                              <input type="checkbox" checked={showMaxTension} onChange={e => setShowMaxTension(e.target.checked)} disabled={loading} className="w-3.5 h-3.5 cursor-pointer disabled:opacity-50" />
+                              <span className="text-[11px] text-maxc-600 dark:text-maxc-400 font-semibold">Find Max (0 m grounded)</span>
                           </label>
                       </div>
-
-                      <div className="relative">
-                          <label className="absolute -top-2 left-2 px-1 bg-white dark:bg-gray-900 text-[11px] font-bold text-accent-600 dark:text-accent-500 uppercase tracking-wider z-10">
-                              {calcMode === 'tension' ? 'Target Tensions (t)' : 'Target Offsets (m)'}
-                          </label>
+                      <div className="flex gap-1.5 items-stretch">
+                          <div className="relative flex-1">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-accent-600 dark:text-accent-400 uppercase pointer-events-none">{calcMode === 'tension' ? 'H (t)' : 'X (m)'}</span>
+                              <input type="text" value={tensBuf} onChange={e => setTensBuf(e.target.value)} disabled={loading}
+                                  aria-label={calcMode === 'tension' ? 'Target tensions (tonnes, comma-separated)' : 'Target offsets (meters, comma-separated)'}
+                                  className={`w-full bg-white dark:bg-gray-950 border rounded-md pl-11 pr-2 py-1.5 text-sm font-mono outline-none text-gray-800 dark:text-gray-200 disabled:opacity-50 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-300 dark:border-emerald-800 focus:border-emerald-500'}`}
+                                  placeholder={calcMode === 'tension' ? 'e.g. 5, 10, 20, 40' : `reachable ≈ ${offsetRange.min.toFixed(0)}-${offsetRange.max.toFixed(0)}`} />
+                          </div>
                           {calcMode === 'tension' && (
-                              <button onClick={suggestTension} aria-label="Auto-suggest tension based on wire diameter" className="absolute -top-2 right-2 z-10 px-1.5 py-0.5 bg-white dark:bg-gray-900 text-[11px] font-bold text-maxc-600 dark:text-maxc-400 uppercase tracking-wider border border-maxc-600/40 dark:border-maxc-400/40 rounded hover:bg-maxc-600/10 transition-colors" title="Auto-suggest tension: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35">
-                                  Auto
-                              </button>
+                              <button onClick={suggestTension} aria-label="Auto-suggest tension based on wire diameter" title="Auto-suggest: JU=5,10,15 | Tender(>=60mm)=5,10,20,40 | AWB(<60mm)=3,5,20,35" className="px-2 text-[10px] font-bold text-maxc-600 dark:text-maxc-400 uppercase border border-maxc-600/40 dark:border-maxc-400/40 rounded-md hover:bg-maxc-600/10">Auto</button>
                           )}
-                          <input
-                              type="text"
-                              value={tensBuf}
-                              onChange={e => setTensBuf(e.target.value)}
-                              disabled={loading}
-                              aria-label={calcMode === 'tension' ? 'Target tensions (tonnes, comma-separated)' : 'Target offsets (meters, comma-separated)'}
-                              className={`w-full bg-white dark:bg-gray-900 border-2 rounded px-3 py-2 text-sm font-mono mb-3 focus:outline-none transition-colors placeholder-gray-500 dark:placeholder-gray-500 text-gray-800 dark:text-gray-200 disabled:opacity-50 ${calcMode === 'tension' ? 'border-gray-300 dark:border-gray-700 focus:border-accent-500' : 'border-emerald-200 dark:border-emerald-900/50 focus:border-emerald-500'}`}
-                              placeholder={calcMode === 'tension' ? "e.g. 10, 50, 100" : `reachable ≈ ${offsetRange.min.toFixed(0)} - ${offsetRange.max.toFixed(0)} m`}
-                          />
                       </div>
-
+                      {calcMode === 'offset' && (
+                          <div className="text-[11px] text-amber-700 dark:text-amber-300 leading-tight">Reachable offset ≈ <b>{offsetRange.min.toFixed(0)}–{offsetRange.max.toFixed(0)} m</b> (rigid-line estimate). Check that segment lengths = actual payout.</div>
+                      )}
                       {configErrors.length > 0 && (
-                          <div className="mb-2.5 px-3 py-2 bg-bad-600/8 dark:bg-bad-400/10 border border-bad-600/30 dark:border-bad-400/30 rounded-md text-[11px] text-bad-600 dark:text-bad-400 leading-relaxed" role="alert">
-                              {configErrors.slice(0, 3).map((msg, i) => <div key={i}>{msg}</div>)}
-                              {configErrors.length > 3 && <div className="opacity-70">and {configErrors.length - 3} more</div>}
+                          <div className="px-2 py-1.5 bg-bad-600/10 dark:bg-bad-400/10 border border-bad-600/30 dark:border-bad-400/30 rounded-md text-[11px] text-bad-600 dark:text-bad-400 leading-snug" role="alert">
+                              {configErrors.slice(0, 2).map((msg, i) => <div key={i}>{msg}</div>)}
+                              {configErrors.length > 2 && <div className="opacity-70">and {configErrors.length - 2} more</div>}
                           </div>
                       )}
-                      <button onClick={(e) => calculate(e, pendingOverrides())} aria-label="Run calculation" className={`w-full bg-accent-600 hover:bg-accent-700 dark:bg-accent-500 dark:hover:bg-accent-400 text-white dark:text-gray-950 font-semibold text-sm py-3 rounded-lg shadow-card active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${(loading || configErrors.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={loading || configErrors.length > 0} title={configErrors.length > 0 ? configErrors[0] : undefined}>
+                      <button onClick={(e) => calculate(e, pendingOverrides())} aria-label="Run calculation" className={`w-full bg-accent-600 hover:bg-accent-700 dark:bg-accent-500 dark:hover:bg-accent-400 text-white dark:text-gray-950 font-semibold text-sm py-2.5 rounded-lg shadow-card active:scale-[0.99] transition-all flex justify-center items-center gap-2 ${(loading || configErrors.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={loading || configErrors.length > 0} title={configErrors.length > 0 ? configErrors[0] : 'Ctrl+Enter'}>
                           {loading ? <span>Processing Engine...</span> : isUpToDate ? <span title="Inputs unchanged since last calculation. Shift+Click or Ctrl+Shift+Enter to force.">✓ Up to date</span> : <>{calcMode === 'tension' ? <IconPlay size={16} fill="currentColor" /> : <IconRefresh size={16} />} {calcMode === 'tension' ? 'Calculate Profile' : 'Find Tensions'}</>}
                       </button>
                   </div>
@@ -1383,11 +1389,21 @@
 
       const cfgWD = (c) => parseFloat(c.calcWaterDepth ?? c.waterDepth) || 0;   // A11/A12: WD used for THAT tab's calc
 
-      const ChartPanel = ({ configs, activeConfigId, theme, structures, statusCtx }) => {
+      const ChartPanel = ({ configs, activeConfigId, theme, structures, statusCtx, selIdx, hoverIdx }) => {
           const [hoverCaseId, setHoverCaseId] = useState(null);
-          // v13.10: full buoy markers + pennants + labels only for ONE case (hovered, else the selected one; default = Max).
-          // Other cases show a small dot at the buoy position, so the surface is no longer a pile of 6 overlapping buoys.
-          const [buoyFocus, setBuoyFocus] = useState('auto');
+          // v13.13: ONE selected case (shared with the table / top view) gets the full buoy markers, pennants and labels.
+          // Hovering a table row or a line previews another case. Other cases: small faint buoy, no pennant.
+          const [buoyAll, setBuoyAll] = useState(false);
+          const [fullX, setFullX] = useState(false);
+          const plotRef = useRef(null);
+          const [plotSize, setPlotSize] = useState({ w: 0, h: 0 });
+          useEffect(() => {
+              const el = plotRef.current; if (!el || typeof ResizeObserver === 'undefined') return;
+              const ro = new ResizeObserver(es => { const r = es[0].contentRect; setPlotSize({ w: Math.round(r.width), h: Math.round(r.height) }); });
+              ro.observe(el); return () => ro.disconnect();
+          }, []);
+          const selectedId = `${activeConfigId}-${selIdx}`;
+          const extHoverId = (hoverIdx !== null && hoverIdx !== undefined) ? `${activeConfigId}-${hoverIdx}` : null;
 
           const chartData = useMemo(() => {
               let allData = [];
@@ -1395,7 +1411,7 @@
               configs.forEach((config) => {
                   const isConfigActive = config.id === activeConfigId;
                   const configData = config.results.map((res, resIdx) => {
-                      const baseColor = res.isMaxTensionCase ? maxCaseColor(theme === 'dark') : seriesColor(resIdx, theme === 'dark'); 
+                      const baseColor = caseColorOf(res, resIdx, theme === 'dark');
                       const color = isConfigActive ? baseColor : (theme === 'dark' ? '#3C4C60' : '#BCC8D8');
                       const xOffset = res.fairleadX;
 
@@ -1442,10 +1458,11 @@
                           horizontalTension: res.horizontalTension,
                           segments: Object.values(segments),
                           buoys,
-                          buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })),
+                          buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, caseColor: color, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })),
                           anchor: transformedAnchor,
                           color,
-                          isMax: res.isMaxTensionCase
+                          isMax: res.isMaxTensionCase,
+                          isSwl: !!res.isSwlCase
                       };
                   });
                   allData.push(...configData);
@@ -1480,19 +1497,28 @@
           const allX = chartData.flatMap(d => d.segments.flat().map(p => p.x));
           const anchorsX = chartData.map(d => d.anchor?.x || 0);
           const maxXRaw = allX.length > 0 ? Math.max(100, ...allX, ...anchorsX, ...structures) : 100;
-          let xInterval = 100;
-          if (maxXRaw / xInterval > 20) xInterval = 200;
-          if (maxXRaw / xInterval > 20) xInterval = 500;
-          const maxX = Math.ceil(maxXRaw / xInterval) * xInterval;
+          const pickInterval = (range) => [50, 100, 200, 250, 500, 1000].find(v => range / v <= 12) || 1000;
+          // v13.13: default view stops just beyond the farthest point where any active case is still off the seabed
+          // (the long flat grounded stretch carried ~1/3 of the width and nothing else). "Full extent" restores it.
+          const suspX = Math.max(0, ...chartData.filter(d => d.isActiveTab).map(d => Math.max(0, ...d.segments.flat().filter(p => !p.isGrounded && !p.isAnchor).map(p => p.x))));
+          const cropWanted = Math.max(suspX * 1.06 + 30, ...structures.map(v => v * 1.15), 200);
+          const canCrop = suspX > 0 && cropWanted < maxXRaw * 0.85;
+          const cropped = canCrop && !fullX;
+          const xDomainRaw = cropped ? cropWanted : maxXRaw;
+          const xInterval = pickInterval(xDomainRaw);
+          const maxX = Math.ceil(xDomainRaw / xInterval) * xInterval;
           const xTicks = []; for (let x = 0; x <= maxX + 0.1; x += xInterval) xTicks.push(Number(x.toFixed(1)));
+          const verticalExag = (plotSize.w > 200 && plotSize.h > 120) ? (((plotSize.h - 60) / Math.max(1, maxDepth - minDepth)) / ((plotSize.w - 100) / Math.max(1, maxX))) : null;
 
           const isDark = theme === 'dark';
           const buoyStroke = isDark ? '#EAEFF4' : '#26344A';
           const activeCases = chartData.filter(d => d.isActiveTab);
-          const autoFocusId = (activeCases.find(d => d.isMax) || activeCases[activeCases.length - 1] || {}).id;
-          const focusId = buoyFocus === 'auto' || !activeCases.some(d => d.id === buoyFocus) ? autoFocusId : buoyFocus;
-          const isFull = (caseId) => hoverCaseId ? caseId === hoverCaseId : (buoyFocus === 'all' || caseId === focusId);
-          const isLabelled = (caseId) => hoverCaseId ? caseId === hoverCaseId : (buoyFocus !== 'all' && caseId === focusId);
+          const hv = hoverCaseId || extHoverId;
+          const focusId = selectedId;
+          const emphOf = (caseId) => hv ? caseId === hv : caseId === focusId;
+          const isFull = (caseId) => hv ? caseId === hv : (buoyAll || caseId === focusId);
+          const isLabelled = (caseId) => hv ? caseId === hv : (!buoyAll && caseId === focusId);
+          const selCase = activeCases.find(d => d.id === focusId);
           const topText = (p) => (p.buoyTopRaw ?? 0) < 0 ? `top ${(-p.buoyTopRaw).toFixed(1)} m above surface` : `top ${(p.buoyTopZ ?? 0).toFixed(1)} m`;
 
           const renderBuoyShape = (props) => {
@@ -1500,7 +1526,7 @@
               const isSlack = payload.isSlack;
               const lvl = buoyLevel(payload.utilization || 0, isSlack);
               const fillColor = BUOY_FILL[isDark ? 'dark' : 'light'][lvl];
-              if (!isFull(payload.caseId)) return <circle cx={cx} cy={cy} r={2.5} fill={fillColor} fillOpacity={0.6} stroke="none" />;
+              if (!isFull(payload.caseId)) return <path d="M0,5 L-4,-2 L4,-2 Z" transform={`translate(${cx},${cy})`} fill={fillColor} fillOpacity={0.5} stroke={payload.caseColor} strokeOpacity={0.7} strokeWidth={1} />;
               const showLabel = isLabelled(payload.caseId);
               return (
                   <g transform={`translate(${cx},${cy})`}>
@@ -1533,11 +1559,11 @@
           };
 
           return (
-              <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-1 relative min-h-[400px] flex flex-col shadow-card">
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-2 pb-1">
+              <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-1 relative min-h-0 flex flex-col shadow-card overflow-hidden">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-2 pb-1 shrink-0">
                       <h3 className="text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-2">
                           <IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
-                          <span className="font-normal text-gray-500 dark:text-gray-400">· {activeCfg?.projectName} · WD {activeWD} m</span>
+                          <span className="font-normal text-gray-500 dark:text-gray-400">· {activeCfg?.projectName} · WD {activeWD} m{selCase ? <> · selected <b className="font-mono" style={{ color: selCase.color }}>{selCase.horizontalTension?.toFixed(1)} t{selCase.isMax ? ' (Max)' : selCase.isSwl ? ' (SWL)' : ''}</b></> : null}</span>
                       </h3>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600 dark:text-gray-400 select-none">
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="2"/></svg>Wire / Fiber</span>
@@ -1548,20 +1574,25 @@
                               <span key={l} className="flex items-center gap-1"><svg width="11" height="11"><path d="M5.5,10 L0.8,1 L10.2,1 Z" fill={BUOY_FILL[isDark ? 'dark' : 'light'][l]} stroke={l === 'sub' || l === 'slack' ? (isDark ? '#EAEFF4' : '#26344A') : 'none'} strokeWidth={l === 'sub' ? 1.4 : 1} strokeDasharray={l === 'slack' ? '2 1.5' : undefined}/></svg>{{ ok: 'Buoy sub. <50%', warn: '50-85%', bad: '85-99%', sub: 'SUB (100%)', slack: 'SLACK (no lift)' }[l]}</span>
                           ))}
                           {activeCases.some(d => d.buoysData.length) && (
-                              <select value={buoyFocus} onChange={e => setBuoyFocus(e.target.value)} aria-label="Buoys shown for case" title="Full buoy markers and labels are drawn for one case (hover a line to preview another)"
+                              <select value={buoyAll ? 'all' : 'sel'} onChange={e => setBuoyAll(e.target.value === 'all')} aria-label="Buoys shown for case" title="Full buoy markers, pennants and labels: selected case only (hover a table row or a line to preview another)"
                                       className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0 text-gray-700 dark:text-gray-300 cursor-pointer">
-                                  <option value="auto">Buoys: {activeCases.some(d => d.isMax) ? 'Max case' : 'last case'}</option>
-                                  {activeCases.map(d => <option key={d.id} value={d.id}>Buoys: {d.isMax ? `Max ${d.horizontalTension?.toFixed(1)} t` : `${d.horizontalTension?.toFixed(1)} t`}</option>)}
+                                  <option value="sel">Buoys: selected case</option>
                                   <option value="all">Buoys: all cases (no labels)</option>
                               </select>
                           )}
+                          {canCrop && (
+                              <button onClick={() => setFullX(v => !v)} title={cropped ? `View stops at ${maxX} m (end of the suspended part). Anchors are further out.` : 'Showing the full line length'} className="text-[11px] font-semibold px-1.5 py-0 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500">
+                                  {cropped ? 'Show full length ▸' : '◂ Crop to suspended part'}
+                              </button>
+                          )}
+                          {verticalExag && <span className="font-mono text-gray-500 dark:text-gray-400" title="Vertical exaggeration: depth is drawn this many times larger than horizontal distance">V.E. ≈ {verticalExag.toFixed(1)}×</span>}
                       </div>
                   </div>
-                  <div className="flex-1 w-full h-full">
+                  <div ref={plotRef} className="flex-1 min-h-0 w-full h-full">
                       <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 10, right: 30, bottom: 30, left: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#26344A" : "#E6EBF1"} strokeOpacity={0.9} />
-                              <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} stroke={isDark ? "#94A4B8" : "#55687F"} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
+                              <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} allowDataOverflow={true} stroke={isDark ? "#94A4B8" : "#55687F"} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
                               <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#94A4B8" : "#55687F"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
                               <Tooltip cursor={{ strokeDasharray: '3 3', stroke: isDark ? '#94A4B8' : '#55687F', strokeWidth: 1 }} content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
@@ -1584,7 +1615,7 @@
                                                       if (!data) return null;
                                                       const nearBuoys = res.buoys.filter(b => Math.abs(b.x - currentX) <= 10);
                                                       const nearbyBuoy = nearBuoys[0];
-                                                      let baseLabel = res.isMax ? `Max (${res.horizontalTension?.toFixed(1)}t)` : `Case ${res.horizontalTension?.toFixed(1)}t`;
+                                                      let baseLabel = res.isMax ? `Max (${res.horizontalTension?.toFixed(1)}t)` : res.isSwl ? `SWL (${res.horizontalTension?.toFixed(1)}t)` : `Case ${res.horizontalTension?.toFixed(1)}t`;
                                                       const label = res.isActiveTab ? baseLabel : `[${res.tabName}] ${baseLabel}`;
                                                       let buoyInfo = null;
                                                       if(nearbyBuoy) {
@@ -1610,20 +1641,24 @@
                                   return null;
                               }} />
                               
-                              {chartData.map((res) => (
+                              {[...chartData].sort((a, b) => (emphOf(a.id) ? 1 : 0) - (emphOf(b.id) ? 1 : 0)).map((res) => (
                                   <React.Fragment key={res.id}>
                                       {isFull(res.id) && res.buoys.map((b, bIdx) => {
+                                          // v13.13: pennants only for the emphasised (selected / hovered) case - 5 overlapping pennant
+                                          // sets at the surface were unreadable. Other cases keep a small faint buoy marker.
                                           const pennantStroke = theme === 'dark' ? '#F5A524' : '#A85D00';
+                                          const stroke = b.isSlack ? '#7286A0' : pennantStroke;
                                           return (
-                                              <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke: b.isSlack ? '#7286A0' : pennantStroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                              <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
                                           );
                                       })}
                                       {res.segments.map((segPoints, sIdx) => {
                                           const segType = segPoints[0].segmentType;
                                           const isChain = isChainType(segType);
                                           // U16: invalid cases drawn dashed + faded. E3: no per-point hit circles, no animation.
+                                          const emph = emphOf(res.id), dim = !!hv && !emph;
                                           return (
-                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: isChain ? 3.5 : 2, strokeDasharray: res.invalid ? '2 4' : (isChain ? '7 3' : '0'), strokeOpacity: res.invalid ? 0.55 : 1 }} shape={() => null} legendType="none" isAnimationActive={false} onMouseEnter={() => setHoverCaseId(res.id)} onMouseLeave={() => setHoverCaseId(null)} />
+                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: (isChain ? 3.5 : 2) + (emph ? 1.2 : 0), strokeDasharray: res.invalid ? '2 4' : (isChain ? '7 3' : '0'), strokeOpacity: res.invalid ? 0.55 : dim ? 0.3 : 1 }} shape={() => null} legendType="none" isAnimationActive={false} onMouseEnter={() => setHoverCaseId(res.id)} onMouseLeave={() => setHoverCaseId(null)} />
                                           );
                                       })}
                                       {res.buoysData.length > 0 && (
@@ -1661,7 +1696,7 @@
       //   B5: Case focus dropdown + no auto-dim
       //   B6: Nice 1/2/5 x 10^n range rings
       //   B7: Tension legend uses actual COLORS palette
-      const TopViewPanel = ({ configs, activeConfigId, theme, patternType, anchorBearings, setAnchorBearings, setPattern, statusCtx }) => {
+      const TopViewPanel = ({ configs, activeConfigId, theme, patternType, anchorBearings, setAnchorBearings, setPattern, statusCtx, selIdx, setSelIdx }) => {
           const activeCfg = configs.find(c => c.id === activeConfigId) || configs[0];
           const results = activeCfg?.results || [];
           const isDark = theme === 'dark';
@@ -1691,9 +1726,9 @@
               ? anchorBearings : template.map(t => ({...t}));
 
           // v13 U20: default focus = Max case (or the heaviest case); 'all' still available.
-          const [caseFocusRaw, setCaseFocus] = useState('auto');
-          const caseFocus = caseFocusRaw !== 'auto' ? caseFocusRaw
-              : (results.some(r => r.isMaxTensionCase) ? 'max' : String(Math.max(0, results.length - 1)));
+          // v13.13: the case shown / labelled is the SELECTED case (click a table row, a case chip or a Tension-Offset point).
+          const [showAll, setShowAll] = useState(false);
+          const caseFocus = showAll ? 'all' : String(selIdx);
           const [zoomNear, setZoomNear] = useState(false);   // U22
 
           // Safe field extractors (worker verified: fairleadX, groundedLength, totalLength, horizontalTension)
@@ -1743,14 +1778,13 @@
           });
 
           // Label case (only most extreme gets anchor names, avoid overlap)
-          const labelCase = results.find(r => r.isMaxTensionCase)
-              || results[results.length - 1] || null;
+          const labelCase = results[selIdx] || results[results.length - 1] || null;
 
           // B3: GMI 7.1.5 = 150m minimum anchor-to-pipeline horizontal
           const GMI_MIN_HORIZONTAL = statusCtx?.gmi ?? DEFAULT_GMI_MIN;   // v13.10: editable (Environment panel)
 
           return (
-              <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 relative min-h-[400px] flex flex-col shadow-card overflow-y-auto">
+              <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 relative min-h-0 flex flex-col shadow-card overflow-hidden">
                   <div className="flex flex-wrap items-center gap-3 pb-1">
                       <h3 className="text-gray-700 dark:text-gray-300 text-xs font-semibold flex items-center gap-2">
                           <IconAnchor size={14} className="text-accent-600 dark:text-accent-500"/>
@@ -1762,23 +1796,19 @@
                           <option value="jackup_4pt">4-point Jackup</option>
                       </select>
                       {results.length > 0 && (
-                          <select value={caseFocus} onChange={e => setCaseFocus(e.target.value)}
-                                  className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 cursor-pointer">
-                              <option value="all">Show all {results.length}</option>
-                              {results.some(r => r.isMaxTensionCase) && <option value="max">Max case only</option>}
-                              {results.map((r, i) => (
-                                  <option key={i} value={String(i)}>
-                                      {r.isMaxTensionCase ? `Max (${getHT(r).toFixed(1)}t)` : `${getHT(r).toFixed(1)}t`}
-                                  </option>
-                              ))}
-                          </select>
+                          <div className="flex items-center rounded border border-gray-300 dark:border-gray-700 overflow-hidden text-[11px] font-semibold" role="group" aria-label="Cases drawn">
+                              <button onClick={() => setShowAll(false)} aria-pressed={!showAll} className={`px-2 py-0.5 ${!showAll ? 'bg-accent-600 text-white' : 'text-gray-600 dark:text-gray-300'}`} title="Draw only the selected case (click a table row to change)">Selected: {results[selIdx] ? `${getHT(results[selIdx]).toFixed(1)} t${caseTag(results[selIdx])}` : '-'}</button>
+                              <button onClick={() => setShowAll(true)} aria-pressed={showAll} className={`px-2 py-0.5 ${showAll ? 'bg-accent-600 text-white' : 'text-gray-600 dark:text-gray-300'}`}>All {results.length}</button>
+                          </div>
                       )}
                       <button onClick={() => setZoomNear(z => !z)} className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${zoomNear ? 'bg-accent-600 text-white border-accent-600' : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300'}`} title="Zoom to the near field (structures / rig area)">
                           {zoomNear ? 'Near field' : 'Full extent'}
                       </button>
                   </div>
 
-                  <div className="flex-1 min-h-[320px] flex items-center justify-center overflow-hidden">
+                  <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(380px,470px)] overflow-y-auto lg:overflow-hidden">
+                      <div className="min-h-[260px] lg:min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-[200px] flex items-center justify-center overflow-hidden">
                       <svg viewBox={`0 0 ${chartSize} ${chartSize}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ overflow: 'hidden' }}>
                           {rings.map((r, i) => (
                               <g key={i}>
@@ -1786,8 +1816,8 @@
                                           stroke={isDark ? "#26344A" : "#E6EBF1"} strokeWidth={1}
                                           strokeDasharray="3 4" strokeOpacity={0.6}/>
                                   {(() => { const lp = toXY(22.5, r); return (
-                                  <text x={lp.x + 3} y={lp.y - 3} fontSize={10}
-                                        fill={isDark ? "#94A4B8" : "#55687F"}>{r}m</text>); })()}
+                                  <text x={lp.x + 3} y={lp.y - 3} fontSize={11}
+                                        fill={isDark ? "#94A4B8" : "#55687F"} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{r}m</text>); })()}
                               </g>
                           ))}
                           <line x1={cx} y1={padding/2} x2={cx} y2={chartSize - padding/2}
@@ -1810,8 +1840,8 @@
                                       <g key={`str-${i}`}>
                                           <circle cx={cx} cy={cy} r={st.dist * scale} fill="none" stroke={col}
                                                   strokeWidth={2} strokeDasharray="6 6" strokeOpacity={0.55}/>
-                                          {(() => { const lp = toXY(202.5, st.dist); return (
-                                          <text x={lp.x - 4} y={lp.y + 12} textAnchor="end" fontSize={10} fill={col} fontWeight="bold">
+                                          {(() => { const lp = toXY(0, st.dist); return (
+                                          <text x={lp.x} y={lp.y - 5} textAnchor="middle" fontSize={11} fill={col} fontWeight="bold" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
                                               Struct {st.dist} m (all bearings)
                                           </text>); })()}
                                       </g>
@@ -1834,7 +1864,7 @@
                           })}
 
                           {casesToRender.map(({r: res, i: resIdx}) => {
-                              const color = res.isMaxTensionCase ? maxCaseColor(isDark) : seriesColor(resIdx, isDark);
+                              const color = caseColorOf(res, resIdx, isDark);
                               const isLabelCase = res === labelCase;
                               const fairleadX = getFX(res);
                               const groundedLen = getGL(res);
@@ -1843,8 +1873,10 @@
                               const touchdownDist = Math.max(0, fairleadX - groundedLen);
 
                               return bearings.map((b, li) => {
-                                  const anchor = toXY(b.bearing, fairleadX);
-                                  const touch = toXY(b.bearing, touchdownDist);
+                                  const capD = (d) => Math.min(d, maxFairleadX);   // v13.13: near-field view keeps the line end visible at the edge
+                                  const anchorClipped = fairleadX > maxFairleadX + 1e-6;
+                                  const anchor = toXY(b.bearing, capD(fairleadX));
+                                  const touch = toXY(b.bearing, capD(touchdownDist));
                                   // v11: TWO distinct checks. The old test only asked whether the ANCHOR was within
                                   // 150 m of the pipeline radius, so a line whose anchor sits at 900 m with a pipeline
                                   // at 400 m physically CROSSES it and was never flagged at all.
@@ -1885,18 +1917,21 @@
                                               const buoyHoriz = bp ? Math.max(0, fairleadX - safeFloat(bp.x, 0))
                                                                    : fairleadX * ((totLen - distAnchor) / totLen);
                                               if (!isFinite(buoyHoriz)) return null;
-                                              const bxy = toXY(b.bearing, buoyHoriz);
+                                              const bxy = toXY(b.bearing, capD(buoyHoriz));
                                               return (
                                                   <circle key={`by-${bIdx}`} cx={bxy.x} cy={bxy.y}
                                                           r={5} fill={bp ? BUOY_FILL[isDark ? 'dark' : 'light'][buoyLevel(bp.buoyUtilization || 0, bp.isSlack)] : '#F5A524'} stroke={isDark ? '#EAEFF4' : '#26344A'}
                                                           strokeWidth={1.2} opacity={0.9}/>
                                               );
                                           })}
-                                          <rect x={anchor.x - 6} y={anchor.y - 6} width={12} height={12}
-                                                fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>
+                                          {anchorClipped
+                                              ? <g><path d="M-7,-6 L7,0 L-7,6 Z" transform={`translate(${anchor.x},${anchor.y}) rotate(${b.bearing - 90})`} fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>
+                                                  {isLabelCase && <text x={anchor.x} y={anchor.y + 18} textAnchor="middle" fontSize={10} fill={color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{fairleadX.toFixed(0)} m ▸</text>}</g>
+                                              : <rect x={anchor.x - 6} y={anchor.y - 6} width={12} height={12}
+                                                fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>}
                                           {isLabelCase && (
                                               <text x={anchor.x} y={anchor.y - 10} textAnchor="middle"
-                                                    fontSize={11} fill={color} fontWeight="bold">
+                                                    fontSize={11} fill={color} fontWeight="bold" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
                                                   {b.name}
                                               </text>
                                           )}
@@ -1925,23 +1960,74 @@
                       </svg>
                   </div>
 
+                  <div className="flex gap-3 text-[11px] flex-wrap border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500 border border-amber-900"></div><span className="text-gray-600 dark:text-gray-400">Rig</span></div>
+                      <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Suspended</span></div>
+                      <div className="flex items-center gap-1"><div className="w-6 h-1 border-b-2 border-dashed border-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Grounded (near anchor)</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-ok-600 dark:bg-ok-400"></div><span className="text-gray-600 dark:text-gray-400">MLB (colour = util)</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">Anchor &lt; {GMI_MIN_HORIZONTAL} m from struct</span></div>
+                  </div>
+                      </div>
+                      <div className="min-h-0 lg:overflow-y-auto pr-1">
+                  {results.length > 0 && structures.length > 0 && (() => {
+                      // v13.9 M3: check EVERY case and report the worst per line/structure. Minimum clearance usually
+                      // occurs at LOW tension (sagging line / mid-line seabed contact), not in the Max case.
+                      const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE;
+                      const caseName = (r) => `${getHT(r).toFixed(1)} t${caseTag(r)}`;
+                      const rows = [];
+                      bearings.forEach(b => structures.filter(st => bearingInSector(b.bearing, st)).forEach(st => {
+                          let worst = null;
+                          results.forEach(res => {
+                              const fx = getFX(res);
+                              const crosses = st.dist < fx;
+                              const clr = crosses ? clearanceAt(res, st.dist, statusCtx?.waterDepth ?? 0) : null;
+                              const tooClose = Math.abs(fx - st.dist) < GMI_MIN_HORIZONTAL;
+                              const grounded = crosses && clr !== null && clr <= 0.05;
+                              const low = crosses && clr !== null && clr < minC;
+                              const sev = grounded ? 4 : low ? 3 : tooClose ? 2 : crosses ? 1 : 0;
+                              const cand = { line: b.name, dist: st.dist, crosses, clr, tooClose, sev, anchorGap: Math.abs(fx - st.dist), caseLabel: caseName(res),
+                                             level: sev >= 2 ? 'bad' : sev === 1 ? 'warn' : 'ok',
+                                             label: grounded ? 'ON STRUCTURE' : low ? 'LOW CLEARANCE' : tooClose ? 'ANCHOR < MIN' : crosses ? 'CROSSING' : 'OK',
+                                             tip: grounded ? 'Line lies on the seabed at the structure distance - direct contact' : low ? 'Line is above the seabed by less than the minimum clearance' : tooClose ? 'Anchor closer to the structure than the minimum anchor-structure distance' : crosses ? 'Line passes over the structure with enough clearance' : 'Anchor and line stay clear of the structure' };
+                              if (!worst || cand.sev > worst.sev || (cand.sev === worst.sev && (cand.clr ?? Infinity) < (worst.clr ?? Infinity))) worst = cand;
+                          });
+                          if (worst) rows.push(worst);
+                      }));
+                      if (!rows.length) return null;
+                      return (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                              <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">
+                                  Structure check · worst of {results.length} cases · min clr {minC} m · GMI {GMI_MIN_HORIZONTAL} m
+                              </div>
+                              <div className="overflow-x-auto"><table className="w-full text-[11px] tabular-nums whitespace-nowrap">
+                                  <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold py-0.5 pr-3">Line</th><th className="text-left font-semibold pr-3">Structure @</th><th className="text-left font-semibold pr-3">Worst case</th><th className="text-left font-semibold pr-3">Clearance</th><th className="text-left font-semibold pr-3" title="Horizontal distance between the anchor and the structure">Anchor gap</th><th className="text-left font-semibold pr-3">Status</th></tr></thead>
+                                  <tbody>{rows.map((r, i) => (
+                                      <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
+                                          <td className="py-0.5 pr-3 font-bold">{r.line}</td><td className="pr-3">{r.dist} m</td><td className="pr-3 font-mono">{r.caseLabel}</td>
+                                          <td className="pr-3">{r.clr === null ? '-' : `${Math.max(0, r.clr).toFixed(1)} m`}</td>
+                                          <td className="pr-3">{r.anchorGap.toFixed(0)} m</td>
+                                          <td><span title={r.tip} className={`px-1.5 rounded-full font-bold ${PILL_CLS[r.level]}`}>{r.label}</span></td>
+                                      </tr>))}</tbody>
+                              </table></div>
+                          </div>
+                      );
+                  })()}
+
                   {/* B7: Tension legend with actual COLORS palette */}
                   {results.length > 0 && (
                       <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                           <div className="flex items-center gap-3 flex-wrap">
                               <span className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider">Cases:</span>
                               {results.map((r, i) => {
-                                  const color = r.isMaxTensionCase ? maxCaseColor(isDark) : seriesColor(i, isDark);
-                                  const active = caseFocus === 'all'
-                                      || (caseFocus === 'max' && r.isMaxTensionCase)
-                                      || caseFocus === String(i);
+                                  const color = caseColorOf(r, i, isDark);
+                                  const active = caseFocus === 'all' || caseFocus === String(i);
                                   return (
-                                      <div key={i} className={`flex items-center gap-1.5 text-[11px] ${active ? '' : 'opacity-40'}`}>
+                                      <button key={i} onClick={() => { setSelIdx(i); setShowAll(false); }} className={`flex items-center gap-1.5 text-[11px] rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800 ${active ? '' : 'opacity-40'} ${i === selIdx ? 'ring-1 ring-accent-500' : ''}`} title="Select this case">
                                           <div className="w-6 h-0.5" style={{backgroundColor: color}}></div>
                                           <span className="font-mono" style={{color}}>
-                                              {r.isMaxTensionCase ? `Max ${getHT(r).toFixed(1)}t` : `${getHT(r).toFixed(1)}t`}
+                                              {getHT(r).toFixed(1)}t{caseTag(r)}
                                           </span>
-                                      </div>
+                                      </button>
                                   );
                               })}
                           </div>
@@ -1972,158 +2058,198 @@
                       </div>
                   </div>
 
-                  {results.length > 0 && structures.length > 0 && (() => {
-                      // v13.9 M3: check EVERY case and report the worst per line/structure. Minimum clearance usually
-                      // occurs at LOW tension (sagging line / mid-line seabed contact), not in the Max case.
-                      const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE;
-                      const caseName = (r) => r.isMaxTensionCase ? `Max ${getHT(r).toFixed(1)} t` : `${getHT(r).toFixed(1)} t`;
-                      const rows = [];
-                      bearings.forEach(b => structures.filter(st => bearingInSector(b.bearing, st)).forEach(st => {
-                          let worst = null;
-                          results.forEach(res => {
-                              const fx = getFX(res);
-                              const crosses = st.dist < fx;
-                              const clr = crosses ? clearanceAt(res, st.dist, statusCtx?.waterDepth ?? 0) : null;
-                              const tooClose = Math.abs(fx - st.dist) < GMI_MIN_HORIZONTAL;
-                              const grounded = crosses && clr !== null && clr <= 0.05;
-                              const low = crosses && clr !== null && clr < minC;
-                              const sev = grounded ? 4 : low ? 3 : tooClose ? 2 : crosses ? 1 : 0;
-                              const cand = { line: b.name, dist: st.dist, crosses, clr, tooClose, sev, anchorGap: Math.abs(fx - st.dist), caseLabel: caseName(res),
-                                             level: sev >= 2 ? 'bad' : sev === 1 ? 'warn' : 'ok',
-                                             label: grounded ? 'GROUNDED ON STRUCT' : low ? 'LOW CLEARANCE' : tooClose ? 'ANCHOR < GMI' : crosses ? 'SUSPENDED CROSSING' : 'OK' };
-                              if (!worst || cand.sev > worst.sev || (cand.sev === worst.sev && (cand.clr ?? Infinity) < (worst.clr ?? Infinity))) worst = cand;
-                          });
-                          if (worst) rows.push(worst);
-                      }));
-                      if (!rows.length) return null;
-                      return (
-                          <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                              <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">
-                                  Structure check · worst of {results.length} cases · min clr {minC} m · GMI {GMI_MIN_HORIZONTAL} m
-                              </div>
-                              <table className="w-full text-[11px] tabular-nums">
-                                  <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold py-0.5">Line</th><th className="text-left font-semibold">Structure @</th><th className="text-left font-semibold">Worst case</th><th className="text-left font-semibold">Crosses</th><th className="text-left font-semibold">Clearance</th><th className="text-left font-semibold">Anchor ↔ struct</th><th className="text-left font-semibold">Status</th></tr></thead>
-                                  <tbody>{rows.map((r, i) => (
-                                      <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
-                                          <td className="py-0.5 font-bold">{r.line}</td><td>{r.dist} m</td><td className="font-mono">{r.caseLabel}</td><td>{r.crosses ? 'Yes' : 'No'}</td>
-                                          <td>{r.clr === null ? '-' : `${Math.max(0, r.clr).toFixed(1)} m`}</td>
-                                          <td>{r.anchorGap.toFixed(0)} m</td>
-                                          <td><span className={`px-1.5 rounded-full font-bold ${PILL_CLS[r.level]}`}>{r.label}</span></td>
-                                      </tr>))}</tbody>
-                              </table>
-                          </div>
-                      );
-                  })()}
-
-                  <div className="flex gap-3 text-[11px] flex-wrap border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500 border border-amber-900"></div><span className="text-gray-600 dark:text-gray-400">Rig</span></div>
-                      <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Suspended</span></div>
-                      <div className="flex items-center gap-1"><div className="w-6 h-1 border-b-2 border-dashed border-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Grounded (near anchor)</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-ok-600 dark:bg-ok-400"></div><span className="text-gray-600 dark:text-gray-400">MLB (colour = util)</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">Anchor &lt; {GMI_MIN_HORIZONTAL} m from struct</span></div>
+                      </div>
                   </div>
               </div>
           );
       };
 
-      // v13 ResultsTable: SWL util (A7), real Anch V (A5), multi-pill status (A8), buoy pills by configured
-      // number with shared thresholds (A1/A9), touchdown column, auto height, stale dimming (A10).
-      const ResultsTable = ({ results, buoys, segments, theme, statusCtx, isStale }) => {
+      // v13.13 ResultsTable: compact one-line rows, click = select case (shared with chart / top view),
+      // hover = highlight on the chart, chevron = expand the full list of warnings with explanations.
+      const ResultsTable = ({ results, buoys, segments, theme, statusCtx, isStale, selIdx, setSelIdx, setHoverIdx, collapsed, setCollapsed }) => {
           const isDarkTbl = theme === 'dark';
           const { minMBL, minIdx, hasMBL, missing, df } = statusCtx;
           const swl = hasMBL ? minMBL / df : NaN;
           const totalLen = results[0]?.totalLength;
           const cols = 11;
+          const [open, setOpen] = useState({});
+          const flagsAll = useMemo(() => results.map(r => getStatusFlags(r, statusCtx)), [results, statusCtx]);
+          const worstUtil = hasMBL && results.length ? Math.max(...results.map(r => (r.fairleadTension / swl) * 100)) : null;
+          const nWarn = flagsAll.filter(f => f.some(x => x.level !== 'info')).length;
+          const TH = "px-2 py-2 whitespace-nowrap";
+          const TONE = { ok: 'text-ok-600 dark:text-ok-400', warn: 'text-warn-600 dark:text-warn-400', bad: 'text-bad-600 dark:text-bad-400', sub: 'text-bad-600 dark:text-bad-400 font-extrabold', slack: 'text-gray-500 dark:text-gray-400' };
           return (
-              <div className={`max-h-[46vh] min-h-[160px] bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card shrink-0 transition-opacity ${isStale ? 'opacity-60' : ''}`}>
-                  <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 flex flex-wrap gap-x-4 gap-y-1 justify-between items-center">
-                      <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2"><IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results</h3>
+              <div className={`h-full min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card transition-opacity ${isStale ? 'opacity-60' : ''}`}>
+                  <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 flex flex-wrap gap-x-4 gap-y-0.5 justify-between items-center shrink-0">
+                      <button onClick={() => setCollapsed(c => !c)} aria-expanded={!collapsed} aria-label="Toggle results table" className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-1.5 hover:text-accent-600">
+                          <IconChevronDown size={14} className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} /> Calculation Results
+                          {collapsed && results.length > 0 && <span className="font-normal text-[11px] text-gray-500 dark:text-gray-400 font-mono">· {results.length} cases{worstUtil !== null ? ` · worst SWL util ${worstUtil.toFixed(0)}%` : ''}{nWarn ? ` · ${nWarn} with warnings` : ''}</span>}
+                      </button>
                       <div className="text-[11px] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3">
                           {totalLen !== undefined && <span>Payout <b className="font-mono">{totalLen.toFixed(1)} m</b></span>}
                           {hasMBL && <span>SWL <b className="font-mono">{swl.toFixed(1)} t</b> (seg #{minIdx + 1} MBL {minMBL} t / DF {df})</span>}
                           {missing.length > 0 && <span className="text-warn-600 dark:text-warn-400 font-semibold">No MBL on seg #{missing.join(', #')} - not checked</span>}
                           {isStale && <span className="text-warn-600 dark:text-warn-400 font-semibold">Inputs changed - results outdated</span>}
+                          {!collapsed && results.length > 0 && <span className="text-gray-400">click a row = select · chevron = details</span>}
                       </div>
                   </div>
-                  <div className="overflow-auto flex-1">
-                      <table className="w-full min-w-[1120px] text-left text-sm text-gray-700 dark:text-gray-300 tabular-nums">
-                          <thead className="bg-gray-100 dark:bg-gray-900 text-[11px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.06em] sticky top-0 z-10">
+                  {!collapsed && (
+                  <div className="overflow-auto flex-1 min-h-0">
+                      <table className="w-full min-w-[960px] text-left text-[13px] text-gray-700 dark:text-gray-300 tabular-nums">
+                          <thead className="bg-gray-100 dark:bg-gray-900 text-[11px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.05em] sticky top-0 z-10">
                               <tr>
-                                  <th className="px-3 py-2.5">Case (t)</th>
-                                  <th className="px-3 py-2.5" title="Horizontal distance fairlead → anchor">Offset (m)</th>
-                                  <th className="px-3 py-2.5" title="Anchor-side grounded length (+ intermediate contact length when the line touches down twice)">Grounded (m)</th>
-                                  <th className="px-3 py-2.5" title="Horizontal distance from the fairlead to the nearest seabed touchdown (2nd contact when the line touches down twice)">Touchdown (m)</th>
-                                  <th className="px-3 py-2.5">Anch H (t)</th>
-                                  <th className="px-3 py-2.5">Anch V (t)</th>
-                                  <th className="px-3 py-2.5" title="Resultant anchor tension sqrt(H^2+V^2)">Anch Res (t)</th>
-                                  <th className="px-3 py-2.5">FL Ten (t)</th>
-                                  <th className="px-3 py-2.5" title="FL tension / SWL. 100% = at SWL">SWL Util</th>
-                                  <th className="px-3 py-2.5" title="Submerged fraction of each buoy (Worker v4.1). <50% ok · 50-85% warn · ≥85% high · 100% fully submerged">Buoys (sub.)</th>
-                                  <th className="px-3 py-2.5">Status</th>
+                                  <th className={TH + " pl-3"} title="Horizontal tension at the fairlead (t)">Case t</th>
+                                  <th className={TH} title="Horizontal distance fairlead → anchor (m)">Offset m</th>
+                                  <th className={TH} title="Anchor-side grounded length (+ intermediate contact length when the line touches down twice)">Grounded m</th>
+                                  <th className={TH} title="Horizontal distance from the fairlead to the nearest seabed touchdown (2nd contact when the line touches down twice)">Touch-down m</th>
+                                  <th className={TH} title="Anchor horizontal load (t)">Anch H</th>
+                                  <th className={TH} title="Anchor uplift (t)">Anch V</th>
+                                  <th className={TH} title="Resultant anchor tension sqrt(H^2+V^2) (t)">Anch Res</th>
+                                  <th className={TH} title="Fairlead tension sqrt(H^2+V^2) (t)">FL Ten</th>
+                                  <th className={TH} title="FL tension / SWL. 100% = at SWL">SWL %</th>
+                                  <th className={TH} title="Submerged fraction of each buoy. <50% ok · 50-85% warn · ≥85% high · SUB = fully submerged · SLACK = no lift">Buoys sub.</th>
+                                  <th className={TH}>Status</th>
                               </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                               {results.map((res, idx) => {
-                                  const flags = getStatusFlags(res, statusCtx);
+                                  const flags = flagsAll[idx] || [];
                                   const invalid = isInvalidCase(flags);
+                                  const sorted = [...flags].sort((a, b) => ({ bad: 0, warn: 1, info: 2 }[a.level] - { bad: 0, warn: 1, info: 2 }[b.level]));
                                   const util = hasMBL ? (res.fairleadTension / swl) * 100 : null;
                                   const utilCls = util === null ? '' : util >= 100 ? 'text-bad-600 dark:text-bad-400 font-bold' : util >= 80 ? 'text-warn-600 dark:text-warn-400 font-bold' : '';
                                   const td = res.touchdownX !== undefined ? res.fairleadX - res.touchdownX : res.fairleadX - res.groundedLength;
-                                  const caseColor = res.isMaxTensionCase ? maxCaseColor(isDarkTbl) : seriesColor(idx, isDarkTbl);
+                                  const caseColor = caseColorOf(res, idx, isDarkTbl);
+                                  const sel = idx === selIdx;
+                                  const isOpen = !!open[idx];
+                                  const TD = "px-2 py-1.5 font-mono whitespace-nowrap";
                                   return (
-                                      <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 ${res.isMaxTensionCase ? 'sticky bottom-0 z-[5] bg-violet-50 dark:bg-[#21203a] shadow-[0_-1px_0_rgba(124,58,237,0.25)]' : ''} ${invalid ? 'opacity-60' : ''}`}>
-                                          <td className="px-3 py-2 font-mono font-semibold whitespace-nowrap" style={{ color: caseColor }}>
+                                      <React.Fragment key={idx}>
+                                      <tr onClick={() => setSelIdx(idx)} onMouseEnter={() => setHoverIdx(idx)} onMouseLeave={() => setHoverIdx(null)} aria-selected={sel}
+                                          className={`cursor-pointer ${sel ? 'bg-accent-600/10 dark:bg-accent-400/10 shadow-[inset_3px_0_0_#2E9BF0]' : res.isMaxTensionCase ? 'bg-violet-50 dark:bg-[#21203a] hover:bg-violet-100 dark:hover:bg-[#262445]' : 'hover:bg-gray-50 dark:hover:bg-white/5'} ${invalid ? 'opacity-60' : ''}`}>
+                                          <td className="pl-2 pr-2 py-1.5 font-mono font-semibold whitespace-nowrap" style={{ color: caseColor }}>
+                                              <button onClick={(e) => { e.stopPropagation(); setOpen(o => ({ ...o, [idx]: !o[idx] })); }} aria-expanded={isOpen} aria-label={`Details of case ${res.horizontalTension?.toFixed(1)} t`} className="mr-0.5 text-gray-400 hover:text-accent-500 align-middle"><IconChevronDown size={12} className={isOpen ? '' : '-rotate-90'} /></button>
                                               <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ backgroundColor: caseColor }}></span>
-                                              {res.horizontalTension?.toFixed(1)}{res.isMaxTensionCase ? ' (Max)' : ''}
+                                              {res.horizontalTension?.toFixed(1)}{caseTag(res)}
                                           </td>
-                                          <td className="px-3 py-2 font-mono" title={res.fairleadX > (res.totalLength || Infinity) ? 'Larger than the payout because the line stretches elastically (EA)' : undefined}>{res.fairleadX?.toFixed(1)}</td>
-                                          <td className="px-3 py-2 font-mono">{res.groundedLength?.toFixed(1)}{res.multiTouchdown && <span className="text-[11px] text-accent-700 dark:text-accent-400" title="Second (intermediate) seabed contact length"> +{res.contact2Length.toFixed(1)}</span>}</td>
-                                          <td className="px-3 py-2 font-mono">
-                                              {/* v13.4 MT-4: with a 2nd contact, the touchdown nearest the vessel is the FL end of that stretch */}
+                                          <td className={TD} title={res.fairleadX > (res.totalLength || Infinity) ? 'Larger than the payout because the line stretches elastically (EA)' : undefined}>{res.fairleadX?.toFixed(1)}</td>
+                                          <td className={TD}>{res.groundedLength?.toFixed(1)}{res.multiTouchdown && <span className="text-[11px] text-accent-700 dark:text-accent-400" title="Second (intermediate) seabed contact length"> +{res.contact2Length.toFixed(1)}</span>}</td>
+                                          <td className={TD}>
                                               {res.multiTouchdown
                                                   ? <span title={`Nearest to FL (mid-line contact). Anchor-side touchdown: ${isFinite(td) && res.groundedLength > 0.05 ? td.toFixed(1) + ' m' : 'none (anchor lifted)'}`}>{contactsOf(res)[0].near.toFixed(1)}<span className="text-[11px] text-accent-700 dark:text-accent-400"> (mid)</span></span>
                                                   : (isFinite(td) && res.groundedLength > 0.05 ? td.toFixed(1) : '-')}
                                           </td>
-                                          <td className="px-3 py-2 font-mono">{res.anchorTension?.toFixed(2)}</td>
-                                          <td className={`px-3 py-2 font-mono ${res.isAnchorUplift ? 'text-bad-600 dark:text-bad-400 font-bold' : (res.anchorUpliftForce || 0) > 0.005 ? 'text-warn-600 dark:text-warn-400' : ''}`}>
-                                              {(res.anchorUpliftForce || 0).toFixed(2)}
-                                          </td>
-                                          <td className="px-3 py-2 font-mono">{(res.anchorResultantTension ?? Math.sqrt((res.anchorTension || 0) ** 2 + (res.anchorUpliftForce || 0) ** 2)).toFixed(2)}</td>
-                                          <td className="px-3 py-2 font-mono font-medium">{res.fairleadTension?.toFixed(1)}</td>
-                                          <td className={`px-3 py-2 font-mono ${utilCls}`}>{util === null ? '-' : `${util.toFixed(0)}%`}</td>
-                                          <td className="px-3 py-2 text-xs">
+                                          <td className={TD}>{res.anchorTension?.toFixed(2)}</td>
+                                          <td className={`${TD} ${res.isAnchorUplift ? 'text-bad-600 dark:text-bad-400 font-bold' : (res.anchorUpliftForce || 0) > 0.005 ? 'text-warn-600 dark:text-warn-400' : ''}`}>{(res.anchorUpliftForce || 0).toFixed(2)}</td>
+                                          <td className={TD}>{(res.anchorResultantTension ?? Math.sqrt((res.anchorTension || 0) ** 2 + (res.anchorUpliftForce || 0) ** 2)).toFixed(2)}</td>
+                                          <td className={`${TD} font-medium`}>{res.fairleadTension?.toFixed(1)}</td>
+                                          <td className={`${TD} ${utilCls}`}>{util === null ? '-' : `${util.toFixed(0)}%`}</td>
+                                          <td className="px-2 py-1.5 whitespace-nowrap">
                                               {buoyPoints(res).length > 0 ? (
-                                                  <div className="flex flex-wrap gap-1">
+                                                  <span className="inline-flex gap-2 font-mono text-[12px] font-semibold">
                                                       {buoyPoints(res)
                                                           .map((b, i) => ({ b, no: getBuoyDisplayNumber(b, buoys || [], i) }))
                                                           .sort((x, y) => x.no - y.no)
                                                           .map(({ b, no }) => {
                                                               const u = (b.buoyUtilization || 0) * 100;
                                                               const lvl = buoyLevel(b.buoyUtilization || 0, b.isSlack);
-                                                              const cls = lvl === 'slack' ? 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                                                        : lvl === 'ok' ? PILL_CLS.ok : lvl === 'warn' ? PILL_CLS.warn : PILL_CLS.bad;
-                                                              return <span key={no} className={`px-1.5 py-0.5 rounded font-mono font-semibold whitespace-nowrap ${cls}`} title={b.inGroundedZone ? 'On grounded zone' : undefined}>
+                                                              return <span key={no} className={TONE[lvl]} title={b.inGroundedZone ? 'On grounded zone' : `Buoy ${no}: ${lvl === 'slack' ? 'slack - no lift' : lvl === 'sub' ? 'fully submerged' : u.toFixed(0) + '% submerged'}`}>
                                                                   B{no} {lvl === 'slack' ? 'SLACK' : lvl === 'sub' ? 'SUB' : `${u.toFixed(0)}%`}{b.inGroundedZone ? ' ⚠' : ''}
                                                               </span>;
                                                           })}
-                                                  </div>
+                                                  </span>
                                               ) : <span className="text-gray-400">-</span>}
                                           </td>
-                                          <td className="px-3 py-2 text-xs">
-                                              <div className="flex flex-wrap gap-1">
-                                                  {flags.length === 0
-                                                      ? <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS.ok}`}>OK</span>
-                                                      : [...flags].sort((a, b) => ({ bad: 0, warn: 1, info: 2 }[a.level] - { bad: 0, warn: 1, info: 2 }[b.level])).map((f, i, arr) => i < 2
-                                                          ? <span key={i} title={f.tip} className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ${PILL_CLS[f.level]}`}>{f.text}</span>
-                                                          : i === 2 ? <span key={i} title={arr.slice(2).map(x => x.text + ': ' + x.tip).join('\n')} className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 cursor-help">+{arr.length - 2}</span> : null)}
-                                              </div>
+                                          <td className="px-2 py-1.5 text-xs whitespace-nowrap">
+                                              {sorted.length === 0
+                                                  ? <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS.ok}`}>OK</span>
+                                                  : <span className="inline-flex items-center gap-1">
+                                                      <span title={sorted[0].tip} className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS[sorted[0].level]}`}>{sorted[0].text}</span>
+                                                      {sorted.length > 1 && <button onClick={(e) => { e.stopPropagation(); setOpen(o => ({ ...o, [idx]: true })); }} title={sorted.slice(1).map(x => x.text).join('\n') + '\n(click to expand)'} className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">+{sorted.length - 1}</button>}
+                                                    </span>}
                                           </td>
                                       </tr>
+                                      {isOpen && (
+                                          <tr className="bg-gray-50/80 dark:bg-white/[0.03]">
+                                              <td colSpan={cols} className="pl-9 pr-4 py-2">
+                                                  {sorted.length === 0
+                                                      ? <span className="text-[12px] text-gray-500 dark:text-gray-400">No warnings. All checks passed for this case.</span>
+                                                      : <ul className="space-y-1">{sorted.map((f, k) => (
+                                                          <li key={k} className="flex gap-2 items-start text-[12px]">
+                                                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS[f.level]}`}>{f.text}</span>
+                                                              <span className="text-gray-600 dark:text-gray-300 leading-snug">{f.tip}</span>
+                                                          </li>))}</ul>}
+                                              </td>
+                                          </tr>
+                                      )}
+                                      </React.Fragment>
                                   );
                               })}
-                              {results.length === 0 && (<tr><td colSpan={cols} className="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No results yet - set targets and press Calculate (Ctrl+Enter).</td></tr>)}
+                              {results.length === 0 && (<tr><td colSpan={cols} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No results yet - set targets and press Calculate (Ctrl+Enter).</td></tr>)}
                           </tbody>
                       </table>
+                  </div>
+                  )}
+              </div>
+          );
+      };
+
+      // v13.13 Tension-Offset view: how far the fairlead offset moves per tonne - shows where offset stops being a usable
+      // proxy for tension, and where the SWL limit lies.
+      const CurvePanel = ({ configs, activeConfigId, theme, statusCtx, selIdx, setSelIdx }) => {
+          const cfg = configs.find(c => c.id === activeConfigId) || configs[0];
+          const results = cfg?.results || [];
+          const isDark = theme === 'dark';
+          const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
+          const pts = results.map((r, i) => ({ i, x: r.fairleadX, y: r.fairleadTension, h: r.horizontalTension, tag: caseTag(r), color: caseColorOf(r, i, isDark), invalid: isInvalidCase(getStatusFlags(r, statusCtx)) }))
+              .filter(p => isFinite(p.x) && isFinite(p.y));
+          const byH = [...pts].filter(p => !p.invalid).sort((a, b) => a.h - b.h);
+          const steps = byH.slice(1).map((p, k) => { const q = byH[k]; const dT = p.h - q.h, dX = p.x - q.x; return { from: q, to: p, dT, dX, rate: dT > 0 ? dX / dT : 0 }; });
+          const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+          const xMin = xs.length ? Math.floor((Math.min(...xs) - 10) / 10) * 10 : 0, xMax = xs.length ? Math.ceil((Math.max(...xs) + 10) / 10) * 10 : 100;
+          const yMax = Math.ceil(Math.max(1, ...ys, isFinite(swl) ? swl : 0) * 1.1 / 10) * 10;
+          const grid = isDark ? '#26344A' : '#E6EBF1', ax = isDark ? '#94A4B8' : '#55687F';
+          const dot = (props) => {
+              const { cx, cy, payload } = props; const sel = payload.i === selIdx;
+              return (
+                  <g onClick={() => setSelIdx(payload.i)} style={{ cursor: 'pointer' }}>
+                      <circle cx={cx} cy={cy} r={sel ? 8 : 6} fill={payload.color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={sel ? 2.5 : 1.2} fillOpacity={payload.invalid ? 0.4 : 1} />
+                      <text x={cx + 10} y={cy - 8} fontSize={11} fontWeight="600" fill={isDark ? '#BCC8D8' : '#3C4C60'} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{payload.h.toFixed(payload.h >= 100 ? 0 : 1)} t{payload.tag}</text>
+                  </g>
+              );
+          };
+          return (
+              <div className="flex-1 min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex flex-col shadow-card overflow-hidden">
+                  <div className="flex flex-wrap items-center gap-3 pb-1">
+                      <h3 className="text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-2"><IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Tension – Offset <span className="font-normal text-gray-500 dark:text-gray-400">· fairlead tension vs horizontal offset · click a point to select the case</span></h3>
+                  </div>
+                  <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+                      <div className="min-h-[200px] min-w-0">
+                          {pts.length === 0 ? <div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">No results yet.</div> : (
+                          <ResponsiveContainer width="100%" height="100%">
+                              <ScatterChart margin={{ top: 16, right: 40, bottom: 34, left: 20 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke={grid} />
+                                  <XAxis dataKey="x" type="number" unit="m" domain={[xMin, xMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: 'Offset: fairlead → anchor (m)', position: 'insideBottomRight', offset: -8, fill: ax, fontSize: 12 }} />
+                                  <YAxis dataKey="y" type="number" unit="t" domain={[0, yMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: 'Fairlead tension (t)', angle: -90, position: 'insideLeft', fill: ax, fontSize: 12 }} />
+                                  <Tooltip content={({ active, payload }) => {
+                                      if (!(active && payload && payload.length)) return null; const p = payload[0].payload; if (p.h === undefined) return null;
+                                      return <div className={`p-2 rounded shadow-lg text-xs border ${isDark ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}><div className="font-bold">H {p.h.toFixed(1)} t{p.tag}</div><div>Offset {p.x.toFixed(1)} m</div><div>FL tension {p.y.toFixed(1)} t</div></div>;
+                                  }} />
+                                  {isFinite(swl) && <ReferenceLine y={swl} stroke={isDark ? '#FF5C5C' : '#C42B2B'} strokeDasharray="6 4" strokeWidth={1.5} ifOverflow="extendDomain" label={{ value: `SWL ${swl.toFixed(0)} t`, position: 'insideTopLeft', fill: isDark ? '#FF5C5C' : '#C42B2B', fontSize: 11, fontWeight: 'bold' }} />}
+                                  <Scatter data={[...pts].sort((a, b) => a.x - b.x)} line={{ stroke: isDark ? '#5CBDFF' : '#1A79C8', strokeWidth: 1.5, strokeOpacity: 0.7 }} shape={dot} legendType="none" isAnimationActive={false} />
+                              </ScatterChart>
+                          </ResponsiveContainer>)}
+                      </div>
+                      <div className="min-h-0 overflow-y-auto text-[12px]">
+                          <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">Offset sensitivity</div>
+                          {steps.length === 0 ? <div className="text-gray-500 dark:text-gray-400">Need at least two valid cases.</div> : (
+                              <table className="w-full tabular-nums"><thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold">Step (t)</th><th className="text-right font-semibold">ΔX (m)</th><th className="text-right font-semibold">m per t</th></tr></thead>
+                                  <tbody>{steps.map((s, k) => (
+                                      <tr key={k} className="border-t border-gray-100 dark:border-gray-800"><td className="py-0.5 font-mono">{s.from.h.toFixed(s.from.h >= 100 ? 0 : 1)} → {s.to.h.toFixed(s.to.h >= 100 ? 0 : 1)}</td><td className="text-right font-mono">{s.dX >= 0 ? '+' : ''}{s.dX.toFixed(1)}</td><td className={`text-right font-mono ${s.rate < 0.1 ? 'text-warn-600 dark:text-warn-400 font-bold' : ''}`}>{s.rate.toFixed(2)}</td></tr>))}
+                                  </tbody></table>)}
+                          {steps.some(s => s.rate < 0.1) && <p className="mt-2 text-warn-600 dark:text-warn-400 leading-snug">Below 0.1 m per tonne the offset barely changes with tension (line is almost straight). Use the winch tension, not the offset, to judge load in that range. Offset there is dominated by the EA value - enter certificate EA.</p>}
+                          <p className="mt-2 text-gray-500 dark:text-gray-400 leading-snug">Dimmed points are invalid cases. The SWL line is the fairlead tension limit (MBL / DF).</p>
+                      </div>
                   </div>
               </div>
           );
@@ -2156,6 +2282,14 @@
           resultsSig: null,
           calcWaterDepth: null
       });
+
+      // v13.12: open the connection to the engine while the user is still filling in inputs (cheap 400 reply, no solve),
+      // so the first Calculate does not pay DNS + TLS + proxy set-up.
+      let engineWarmed = false;
+      const warmEngine = () => {
+          if (engineWarmed) return; engineWarmed = true;
+          try { fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: '{}' }).catch(() => { engineWarmed = false; }); } catch (e) { engineWarmed = false; }
+      };
 
       const App = () => {
           const [theme, setTheme] = useState(() => {
@@ -2234,6 +2368,34 @@
           const anchorBearings = activeConfig.anchorBearings || PATTERN_TEMPLATES.tender_8pt.map(a => ({...a}));
           const setAnchorBearings = (val) => updateConfig({ anchorBearings: val });
           const [activeView, setActiveView] = useState('profile');
+          // v13.13: one SELECTED case shared by chart, top view, tension-offset view and table (click a row / chip / point).
+          const [selIdxRaw, setSelIdxRaw] = useState(null);
+          const [hoverIdx, setHoverIdx] = useState(null);
+          const autoIdx = (() => { let best = -1; results.forEach((r, i) => { if (!r.isMaxTensionCase && !r.isSwlCase && (best < 0 || r.horizontalTension > results[best].horizontalTension)) best = i; }); return best >= 0 ? best : Math.max(0, results.length - 1); })();
+          const selIdx = (selIdxRaw !== null && selIdxRaw < results.length) ? selIdxRaw : autoIdx;
+          useEffect(() => { setSelIdxRaw(null); setHoverIdx(null); }, [activeTabId, results]);
+          // resizable results table (height remembered); the chart takes the rest and never overlaps it
+          const [tableH, setTableH] = useState(() => { try { return parseInt(localStorage.getItem('slack_tableH')) || 280; } catch (e) { return 280; } });
+          const [tableManual, setTableManual] = useState(() => { try { return localStorage.getItem('slack_tableManual') === '1'; } catch (e) { return false; } });
+          const [tableCollapsed, setTableCollapsed] = useState(() => { try { return localStorage.getItem('slack_tableCollapsed') === '1'; } catch (e) { return false; } });
+          const splitRef = useRef(null);
+          const [splitH, setSplitH] = useState(0);
+          useEffect(() => {
+              const el = splitRef.current; if (!el || typeof ResizeObserver === 'undefined') return;
+              const ro = new ResizeObserver(es => setSplitH(Math.round(es[0].contentRect.height)));
+              ro.observe(el); return () => ro.disconnect();
+          }, []);
+          useEffect(() => { try { localStorage.setItem('slack_tableH', String(tableH)); localStorage.setItem('slack_tableCollapsed', tableCollapsed ? '1' : '0'); localStorage.setItem('slack_tableManual', tableManual ? '1' : '0'); } catch (e) {} }, [tableH, tableCollapsed, tableManual]);
+          const clampH = (h) => Math.max(120, Math.min(h, splitH > 0 ? splitH - 260 - 12 : 600));
+          // automatic height = every row visible (capped at ~half of the space); once the user drags the bar the chosen height is kept
+          const wantH = 38 + 34 + results.length * 33 + 6;
+          const tblH = tableCollapsed ? 40 : tableManual ? clampH(tableH) : clampH(Math.min(wantH, splitH > 0 ? Math.round(splitH * 0.52) : wantH));
+          const startDrag = (e) => {
+              e.preventDefault(); const y0 = e.clientY, h0 = tblH; setTableManual(true); setTableCollapsed(false);
+              const mv = (ev) => setTableH(clampH(h0 + (y0 - ev.clientY)));
+              const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+              window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+          };
           const setResults = (val) => updateConfig({ results: val });
 
           const fileInputRef = useRef(null);
@@ -2243,6 +2405,7 @@
               else document.documentElement.classList.remove('dark');
           }, [theme]);
 
+          useEffect(() => { warmEngine(); }, []);
           const toggleTheme = () => setTheme(prev => { const t = prev === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('slack_theme', t); } catch(e) {} return t; });
 
           // v10 M4: export includes anchor pattern + bearings + results (optional)
@@ -2295,16 +2458,16 @@
                   const g = c.getContext('2d'); g.scale(scale, scale);
                   g.fillStyle = theme === 'dark' ? '#141E2C' : '#FFFFFF'; g.fillRect(0, 0, W, Hh + HEAD);
                   g.fillStyle = fg; g.font = '600 14px Inter, Arial, sans-serif';
-                  g.fillText(`${projectName} - ${activeView === 'profile' ? 'Catenary profile' : 'Top view (plan)'}`, 12, 20);
+                  g.fillText(`${projectName} - ${activeView === 'profile' ? 'Catenary profile' : activeView === 'topview' ? 'Top view (plan)' : 'Tension - offset'}`, 12, 20);
                   g.font = '11px Inter, Arial, sans-serif';
-                  g.fillText(`WD ${activeConfig.calcWaterDepth ?? waterDepth} m · FL +${fairleadElev} m · ${new Date().toLocaleString()} · SLACK v13.10`, 12, 36);
+                  g.fillText(`WD ${activeConfig.calcWaterDepth ?? waterDepth} m · FL +${fairleadElev} m · ${new Date().toLocaleString()} · SLACK ${APP_VERSION}`, 12, 36);
                   g.drawImage(img, 0, HEAD, W, Hh);
                   resolve(c);
               };
               img.onerror = () => reject(new Error('Chart image could not be rendered'));
               img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
           });
-          const fileStem = () => `${projectName.replace(/[^\w.-]+/g, '_')}_${activeView === 'profile' ? 'profile' : 'topview'}_${new Date().toISOString().split('T')[0]}`;
+          const fileStem = () => `${projectName.replace(/[^\w.-]+/g, '_')}_${activeView === 'profile' ? 'profile' : activeView === 'topview' ? 'topview' : 'tension-offset'}_${new Date().toISOString().split('T')[0]}`;
           const exportPng = async () => {
               try {
                   const c = await viewToPng();
@@ -2325,7 +2488,7 @@
                   const flags = getStatusFlags(r, statusCtx);
                   const td = r.multiTouchdown ? n(contactsOf(r)[0].near) + ' (mid)' : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? n(r.fairleadX - r.touchdownX) : '-');
                   const bz = buoyPoints(r).map((b, i) => `B${getBuoyDisplayNumber(b, buoys, i)} ${buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'slack' ? 'SLACK' : buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'sub' ? 'SUB' : ((b.buoyUtilization || 0) * 100).toFixed(0) + '%'}`).join(', ');
-                  return `<tr${isInvalidCase(flags) ? ' class="inv"' : ''}><td>${n(r.horizontalTension)}${r.isMaxTensionCase ? ' (Max)' : ''}</td><td>${n(r.fairleadX)}</td><td>${n(r.groundedLength)}${r.multiTouchdown ? ' +' + n(r.contact2Length) : ''}</td><td>${td}</td><td>${n(r.anchorTension, 2)}</td><td>${n(r.anchorUpliftForce || 0, 2)}</td><td>${n(r.fairleadTension)}</td><td>${isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) + '%' : '-'}</td><td>${esc(bz || '-')}</td><td>${esc(flags.length ? flags.map(f => f.text).join('; ') : 'OK')}</td></tr>`;
+                  return `<tr${isInvalidCase(flags) ? ' class="inv"' : ''}><td>${n(r.horizontalTension)}${caseTag(r)}</td><td>${n(r.fairleadX)}</td><td>${n(r.groundedLength)}${r.multiTouchdown ? ' +' + n(r.contact2Length) : ''}</td><td>${td}</td><td>${n(r.anchorTension, 2)}</td><td>${n(r.anchorUpliftForce || 0, 2)}</td><td>${n(r.fairleadTension)}</td><td>${isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) + '%' : '-'}</td><td>${esc(bz || '-')}</td><td>${esc(flags.length ? flags.map(f => f.text).join('; ') : 'OK')}</td></tr>`;
               }).join('');
               const totalLen = segments.reduce((a, sg) => a + (parseFloat(sg.length) || 0), 0);
               const segTxt = segments.map((sg, i) => `#${i + 1} ${matOf(sg.type).label} ${sg.diameter} mm × ${sg.length} m (w ${sg.w} kg/m, EA ${sg.EA} kN, MBL ${sg.mbl || '-'} t, µ ${sg.frictionCoeff})`).join('<br>');
@@ -2342,7 +2505,7 @@
                   <table><thead><tr><th>Case (t)</th><th>Offset (m)</th><th>Grounded (m)</th><th>Touchdown (m)</th><th>Anch H (t)</th><th>Anch V (t)</th><th>FL Ten (t)</th><th>SWL util</th><th>Buoys</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
                   <div class="small"><b>Line:</b><br>${segTxt}<br><b>Buoys:</b><br>${buoyTxt}<br>
                   Static catenary, flat seabed, generic material properties unless entered manually. Accuracy basis ±0.5 m vertical / ±1 m horizontal. Italic rows = invalid case.
-                  SLACK frontend v13.10 · engine ${esc(activeConfig.engineVersion || '-')}</div>
+                  SLACK frontend ${APP_VERSION} · engine ${esc(activeConfig.engineVersion || '-')}</div>
                   <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
               </body></html>`);
               w.document.close();
@@ -2359,7 +2522,7 @@
               const rows = res.map(r => {
                   const flags = getStatusFlags(r, statusCtx);
                   return [
-                      r.isMaxTensionCase ? `${num(r.horizontalTension,1)} (Max)` : num(r.horizontalTension,1),
+                      `${num(r.horizontalTension,1)}${caseTag(r)}`,
                       num(r.totalLength,1), num(r.fairleadX,1), num(r.groundedLength,1),
                       r.multiTouchdown ? num(contactsOf(r)[0].near,1) : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? num(r.fairleadX - r.touchdownX,1) : ''),
                       num(r.anchorTension), num(r.anchorUpliftForce),
@@ -2502,15 +2665,21 @@
               // 21-32 ms CPU on the dashboard; per-target requests are 1-10x smaller. Results are identical (tension mode:
               // every target is solved independently - verified 6,300/6,300 identical vs the batched v4.8 response).
               // No automatic retry: a CPU-killed request comes back as "Failed to fetch" and retrying re-burns the CPU.
-              const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
+              // v13.12: a timeout is NOT a CPU kill (that returns at once as "Failed to fetch"). Dashboard showed 0 errors
+              // and ~20 ms wall time while the first click timed out at 20 s -> the delay is on the network path
+              // (proxy / first TLS connection). So: 12 s per attempt and ONE automatic retry for timeouts only.
               const EXPECTED_ENGINE = 'v4.10';
-              const TIMEOUT_MS = 20000;
+              const TIMEOUT_MS = [12000, 15000];
               const jobs = dedupInputs.map(t => ({ ...payload, targets: [t], calculateMax: false }));
               if (showMaxTension) jobs.push({ ...payload, targets: [], calculateMax: true });
               let engineSeen = null;
               const runJob = async (body) => {
+                  try { return await runOnce(body, TIMEOUT_MS[0]); }
+                  catch (e) { if (e && e.name === 'AbortError') return await runOnce(body, TIMEOUT_MS[1]); throw e; }
+              };
+              const runOnce = async (body, ms) => {
                   const controller = new AbortController();
-                  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+                  const timer = setTimeout(() => controller.abort(), ms);
                   try {
                       const response = await fetch(WORKER_URL, {
                           method: "POST",
@@ -2542,6 +2711,35 @@
                   setCalcError(classifyError(failed[0].err || new Error('Unknown error')));
                   setLoading(false);
                   return;
+              }
+              // v13.13: extra case AT SWL (tension solved so that the fairlead tension equals SWL = MBL/DF) - the real operating
+              // limit, which Max (lift-off) usually overshoots. Secant on the bracket formed by the calculated cases:
+              // 1-5 small extra requests; silently skipped if anything fails or SWL is outside the calculated range.
+              if (calcMode === 'tension' && merged.length) {
+                  try {
+                      const mb = mblSummary(segments), dfv = parseFloat(cfg.designFactor) > 0 ? parseFloat(cfg.designFactor) : DEFAULT_DF;
+                      const mx = merged.find(r => r.isMaxTensionCase && !r.maxNA && !r.maxIncomplete);
+                      const reg = merged.filter(r => !r.isMaxTensionCase && r.converged !== false && !(r.seabedContactSuspended && !r.multiTouchdown && !String(r.solver || '').startsWith('collocation')));
+                      if (mb.hasMBL) {
+                          const swl = mb.minMBL / dfv, goal = swl * 0.9975;
+                          let lo = null, hi = null;
+                          [...reg, ...(mx ? [mx] : [])].sort((a, b) => a.horizontalTension - b.horizontalTension).forEach(r => { if (r.fairleadTension <= goal) lo = r; else if (!hi) hi = r; });
+                          const already = merged.some(r => !r.isMaxTensionCase && Math.abs(r.fairleadTension - swl) < 0.01 * swl);
+                          if (lo && hi && !already) {
+                              let found = null;
+                              for (let it = 0; it < 5 && !found; it++) {
+                                  const hG = Math.round((lo.horizontalTension + (goal - lo.fairleadTension) * (hi.horizontalTension - lo.horizontalTension) / (hi.fairleadTension - lo.fairleadTension)) * 1000) / 1000;
+                                  if (!(hG > lo.horizontalTension + 1e-3 && hG < hi.horizontalTension - 1e-3)) break;
+                                  const r = (await runJob({ ...payload, targets: [hG], calculateMax: false }))[0];
+                                  if (!r) break;
+                                  if (r.fairleadTension > 0.99 * swl && r.fairleadTension <= swl) found = r;
+                                  else if (r.fairleadTension <= goal) lo = r; else hi = r;
+                              }
+                              if (found) { found.isSwlCase = true; merged.push(found); }
+                          }
+                      }
+                  } catch (e) { /* SWL case is optional */ }
+                  merged.sort((a, b) => (a.isMaxTensionCase ? 1 : 0) - (b.isMaxTensionCase ? 1 : 0) || a.horizontalTension - b.horizontalTension);
               }
               // complete result -> cached signature; partial -> no signature (shows "outdated", Recalculate re-runs)
               updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || '' });
@@ -2592,33 +2790,34 @@
                   <PromptDialog {...promptState} onCancel={() => { if (promptState.onCancel) promptState.onCancel(); closePrompt(); }} onConfirm={(v) => { if (promptState.onConfirm) promptState.onConfirm(v); closePrompt(); }} />
                   
                   {sidebarOpen && (<div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true"/>)}
-                  <div className={`fixed lg:relative inset-y-0 left-0 w-[340px] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-transform duration-300 z-30 lg:z-20 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                      <div className={`p-4 border-b ${sidebarBorder}`}>
-                          <div className="flex justify-between items-center mb-1">
-                              <h1 className="text-xl font-bold tracking-tight flex items-center gap-2.5 min-w-0">
-                                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-soft">
-                                      <IconAnchor size={19} className="text-white dark:text-gray-950" strokeWidth={2.4}/>
-                                  </div>
-                                  <div className="flex flex-col">
-                                      <span className="leading-none tracking-[0.14em] text-gray-800 dark:text-gray-100">SLACK</span>
-                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">Catenary Analysis · v13.10</span>
-                                  </div>
-                              </h1>
-                              <div className="flex gap-0.5">
-                                  <button onClick={() => fileInputRef.current.click()} aria-label="Import JSON configuration" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Import JSON"><IconImport size={16} aria-hidden="true"/></button>
-                                  <button onClick={exportToJson} aria-label="Export current configuration as JSON" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors relative" title="Export JSON">
-                                      <IconExport size={16} aria-hidden="true"/>
-                                  </button>
-                                  <button onClick={exportToCsv} aria-label="Export results as CSV" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Export results CSV">CSV</button>
-                                  <button onClick={exportPng} aria-label="Export current view as PNG" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Export the current view (profile or top view) as PNG">PNG</button>
-                                  <button onClick={exportPdf} aria-label="Create PDF report" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Report (chart + results + inputs) - opens the print dialog, choose Save as PDF">PDF</button>
-                                  <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" aria-label="JSON file input"/>
-                                  <button onClick={() => setShowGuide(true)} aria-label="Open user guide" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Guide"><IconHelp size={16} aria-hidden="true"/></button>
-                                  <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Theme">{theme === 'dark' ? <IconSun size={16} aria-hidden="true"/> : <IconMoon size={16} aria-hidden="true"/>}</button>
+                  <div className={`fixed lg:relative inset-y-0 left-0 w-[360px] max-w-[100vw] flex-shrink-0 border-r ${sidebarBorder} h-full ${sidebarBg} flex flex-col transition-transform duration-300 z-30 lg:z-20 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                      <div className={`px-3 pt-3 pb-2 border-b ${sidebarBorder}`}>
+                          {/* v13.11: brand row + separate labelled toolbar (the old single row overlapped the title) */}
+                          <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-soft shrink-0">
+                                  <IconAnchor size={17} className="text-white dark:text-gray-950" strokeWidth={2.4}/>
                               </div>
+                              <h1 className="flex-1 min-w-0 leading-tight">
+                                  <span className="block text-lg font-bold tracking-[0.14em] text-gray-800 dark:text-gray-100">SLACK</span>
+                                  <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">Catenary Analysis · {APP_VERSION}</span>
+                              </h1>
+                              <button onClick={() => setShowGuide(true)} aria-label="Open user guide" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" title="Guide"><IconHelp size={16} aria-hidden="true"/></button>
+                              <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500" title="Theme">{theme === 'dark' ? <IconSun size={16} aria-hidden="true"/> : <IconMoon size={16} aria-hidden="true"/>}</button>
+                          </div>
+                          <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold">
+                              {(() => { const tb = "flex items-center gap-1 px-1.5 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-accent-600"; return (<>
+                                  <button onClick={() => fileInputRef.current.click()} aria-label="Import JSON configuration" className={tb} title="Open a saved .json setup"><IconImport size={12} aria-hidden="true"/>Open</button>
+                                  <button onClick={exportToJson} aria-label="Export current configuration as JSON" className={tb} title="Save setup + results as .json"><IconExport size={12} aria-hidden="true"/>JSON</button>
+                                  <span className="mx-0.5 h-4 border-l border-gray-200 dark:border-gray-700" aria-hidden="true"></span>
+                                  <span className="text-[10px] uppercase text-gray-400 tracking-wider">Export</span>
+                                  <button onClick={exportToCsv} aria-label="Export results as CSV" className={tb} title="Results table as CSV">CSV</button>
+                                  <button onClick={exportPng} aria-label="Export current view as PNG" className={tb} title="Current view (profile or top view) as PNG">PNG</button>
+                                  <button onClick={exportPdf} aria-label="Create PDF report" className={tb} title="Report (chart + results + inputs) - print dialog, choose Save as PDF">PDF</button>
+                              </>); })()}
+                              <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" aria-label="JSON file input"/>
                           </div>
                       </div>
-                      <div className="flex-1 overflow-hidden p-4">
+                      <div className="flex-1 overflow-hidden px-3 pt-2 pb-3">
                           <InputPanel
                               key={activeTabId}
                               flushRef={flushRef}
@@ -2654,7 +2853,7 @@
                               minClearance={minClearance} setMinClearance={setMinClearance}
                               gmiMin={gmiMin} setGmiMin={setGmiMin}
                               anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings}
-                              activePresetKey={activePresetKey}
+                              activePresetKey={activePresetKey} presetSig={activeConfig.presetSig}
                               bulkUpdateConfig={bulkUpdateConfig}
                               pushToast={pushToast}
                               openConfirm={openConfirm}
@@ -2663,9 +2862,9 @@
                       </div>
                   </div>
 
-                  <div className={`flex-1 min-w-0 flex flex-col p-5 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-gray-950' : 'bg-gray-50'}`}>
+                  <div className={`flex-1 min-w-0 flex flex-col p-4 h-full overflow-hidden relative ${theme === 'dark' ? 'bg-gray-950' : 'bg-gray-50'}`}>
                       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: 'linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
-                      <div className="relative z-10 h-full flex flex-col gap-3 min-h-0">
+                      <div className="relative z-10 h-full flex flex-col gap-2 min-h-0">
                           <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800 pb-0 items-end">
                               <button onClick={() => setSidebarOpen(true)} aria-label="Open configuration panel" title="Configuration" className="lg:hidden px-3 py-2 mb-1 text-gray-500 hover:text-accent-500 transition-colors">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
@@ -2690,22 +2889,30 @@
                                   <button onClick={() => handleCalculate(false, true)} disabled={loading} className="px-2 py-1 rounded bg-warn-600 dark:bg-warn-400 text-white dark:text-gray-950 font-bold disabled:opacity-50">Recalculate</button>
                               </div>
                           )}
-                          {/* NEW v6: View switcher (Profile <-> Top View) */}
-                          <div className="flex gap-1 mb-1">
-                              <button onClick={() => setActiveView('profile')} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'profile' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
-                                  Catenary Profile
-                              </button>
-                              <button onClick={() => setActiveView('topview')} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === 'topview' ? (theme === 'dark' ? 'bg-accent-600 text-white' : 'bg-accent-600 text-white') : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>
-                                  Top View (Plan)
-                              </button>
+                          {/* v13.13: three views; chart area and results table share the height without overlapping */}
+                          <div className="flex gap-1 mb-0.5" role="tablist" aria-label="View">
+                              {[['profile', 'Catenary Profile'], ['topview', 'Top View (Plan)'], ['curve', 'Tension – Offset']].map(([k, l]) => (
+                                  <button key={k} role="tab" aria-selected={activeView === k} onClick={() => setActiveView(k)} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === k ? 'bg-accent-600 text-white' : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>{l}</button>
+                              ))}
                           </div>
-                          <div ref={viewRef} className="flex-1 min-h-0 flex flex-col">
-                          {activeView === 'profile'
-                              ? <ChartPanel configs={configs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} />
-                              : <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} setPattern={(t) => updateConfig({ patternType: t, anchorBearings: (PATTERN_TEMPLATES[t] || []).map(a => ({ ...a })) })} statusCtx={statusCtx} />
-                          }
+                          <div ref={splitRef} className="flex-1 min-h-0 flex flex-col">
+                              <div ref={viewRef} className="flex-1 min-h-[240px] flex flex-col">
+                              {activeView === 'profile'
+                                  ? <ChartPanel configs={configs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} selIdx={selIdx} hoverIdx={hoverIdx} />
+                                  : activeView === 'topview'
+                                  ? <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} setPattern={(t) => updateConfig({ patternType: t, anchorBearings: (PATTERN_TEMPLATES[t] || []).map(a => ({ ...a })) })} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />
+                                  : <CurvePanel configs={configs} activeConfigId={activeTabId} theme={theme} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />}
+                              </div>
+                              <div role="separator" aria-orientation="horizontal" aria-label="Resize results table (drag, arrow keys, double-click to collapse)" tabIndex={0}
+                                   onPointerDown={startDrag} onDoubleClick={() => setTableCollapsed(c => !c)}
+                                   onKeyDown={(e) => { if (e.key === 'ArrowUp') { e.preventDefault(); setTableManual(true); setTableCollapsed(false); setTableH(clampH(tblH + 24)); } if (e.key === 'ArrowDown') { e.preventDefault(); setTableManual(true); setTableH(clampH(tblH - 24)); } }}
+                                   className="h-3 shrink-0 cursor-row-resize group flex items-center justify-center touch-none">
+                                  <span className="w-14 h-1 rounded bg-gray-300 dark:bg-gray-700 group-hover:bg-accent-500 group-focus-visible:bg-accent-500"></span>
+                              </div>
+                              <div style={{ height: tblH }} className="shrink-0 min-h-0">
+                                  <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} selIdx={selIdx} setSelIdx={setSelIdxRaw} setHoverIdx={setHoverIdx} collapsed={tableCollapsed} setCollapsed={setTableCollapsed} />
+                              </div>
                           </div>
-                          <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} />
                       </div>
                   </div>
               </div>
