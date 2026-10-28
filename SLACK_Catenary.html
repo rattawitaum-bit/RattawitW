@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SLACK - Catenary Calculation</title>
     
     <script src="https://cdn.tailwindcss.com/3.4.1"></script>
@@ -212,7 +212,8 @@
 
       // Defaults: API RP 2SK intact quasi-static safety factor = 2.0 (editable per tab).
       const DEFAULT_DF = 2.0;
-      const DEFAULT_MIN_CLEARANCE = 20;   // m, minimum line height above a subsea structure (editable)
+      const DEFAULT_MIN_CLEARANCE = 20;
+      const DEFAULT_GMI_MIN = 150;   // v13.10: anchor-to-structure minimum horizontal distance (GMI 7.1.5 default, editable per tab)   // m, minimum line height above a subsea structure (editable)
 
       // Smart tension suggestions per fleet class
       const TENSION_PROFILES = {
@@ -353,8 +354,8 @@
       // Buoy level: same thresholds everywhere (A9).
       const buoyLevel = (u, isSlack) => isSlack ? 'slack' : u >= 0.999 ? 'sub' : u >= 0.85 ? 'bad' : u >= 0.5 ? 'warn' : 'ok';
       const BUOY_FILL = {
-          dark:  { ok: '#3DD68C', warn: '#F5A524', bad: '#FF5C5C', sub: '#FF5C5C', slack: '#7286A0' },
-          light: { ok: '#0D884F', warn: '#A85D00', bad: '#C42B2B', sub: '#C42B2B', slack: '#7286A0' }
+          dark:  { ok: '#3DD68C', warn: '#F5A524', bad: '#FF5C5C', sub: '#B91C1C', slack: '#7286A0' },
+          light: { ok: '#0D884F', warn: '#A85D00', bad: '#C42B2B', sub: '#7F1D1D', slack: '#7286A0' }
       };
       const buoyPoints = (res) => (res?.points || []).filter(p => p.isBuoy);
 
@@ -402,7 +403,7 @@
           });
           if ((res.anchorUpliftForce || 0) > 0.005) f.push({ level: res.isAnchorUplift ? 'bad' : 'warn', code: 'ANCHOR_UPLIFT', text: `Anchor uplift ${res.anchorUpliftForce.toFixed(2)} t`, tip: 'Vertical load at the anchor' });
           if (buoyPoints(res).some(p => !p.isSlack && (p.buoyUtilization || 0) >= 0.999)) f.push({ level: 'warn', code: 'BUOY_SUBMERGED', text: 'Buoy submerged', tip: 'At least one buoy is fully submerged' });
-          if (res.frictionCapped) f.push({ level: 'info', code: 'FRICTION_HELD', text: 'Friction-held (Anch H = 0)', tip: 'Seabed friction absorbs all horizontal tension; grounded length is indeterminate' });
+          if (res.frictionCapped) f.push({ level: 'info', code: 'FRICTION_HELD', text: 'Friction-held (Anch H = 0)', tip: 'Seabed friction on the grounded length absorbs all horizontal tension, so the anchor carries no load (Anch H = 0). Grounded length and touchdown are still valid.' });
           return f;
       };
       // v13.5: intermediate seabed contacts (Worker v4.5 contacts[]; falls back to the single v4.3/4.4 fields).
@@ -565,8 +566,8 @@
           if (err?.name === 'AbortError' || msg.includes('aborted')) {
               return { title: 'Request Timed Out', hint: 'The worker took too long to respond. Try fewer targets or turn off Find Max.', canRetry: true, category: 'timeout' };
           }
-          if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('CORS')) {
-              return { title: 'Network / CORS Error', hint: 'Possible causes:\n• You opened the file via file:// — please serve via http:// (e.g. python -m http.server)\n• Recent Cloudflare CPU errors triggered a temporary rate-limit — wait 30s\n• Browser CORS cache poisoned — try Ctrl+Shift+R', canRetry: true, category: 'network' };
+          if (msg === 'Failed to fetch' || msg.includes('NetworkError') || msg.includes('CORS') || msg.includes('Load failed')) {
+              return { title: 'Engine did not respond', hint: 'Most likely the Cloudflare CPU limit stopped this case (the platform then returns no CORS header, so the browser reports a network error).\nOther causes: no internet / VPN, or the page opened from an unapproved origin.\nTry: fewer low-tension targets, or untick Find Max, then Recalculate.', canRetry: true, category: 'network' };
           }
           if (msg.includes('exceeded CPU') || msg.includes('CPU')) {
               return { title: 'Worker CPU Limit Exceeded', hint: 'Reduce the number of tension targets, or disable Find Max. Free tier = 10ms CPU per request.', canRetry: true, category: 'cpu' };
@@ -716,7 +717,7 @@
                                   <li><strong>Anch H / V / Res</strong>: anchor horizontal, uplift and resultant load. <strong>FL Ten</strong>: fairlead tension √(H²+V²). <strong>SWL Util</strong>: FL Ten / SWL.</li>
                                   <li><strong>Buoys (sub.)</strong>: submerged fraction of each buoy (&lt;50% ok, 50-85% warn, ≥85% high, SUB = fully submerged, SLACK = no lift).</li>
                                   <li><strong>Status</strong> pills: hover for details. Rows with Invalid, Not converged, Offset not reached, Find Max N/A or Find Max incomplete are dimmed and drawn dashed - do not use their offset or grounded length.</li>
-                                  <li><strong>CSV</strong> exports every column plus the solver used.</li>
+                                  <li><strong>CSV</strong> exports every column plus the solver used. <strong>PNG</strong> saves the current view (profile or top view). <strong>PDF</strong> opens a one-page report (chart, results, line and buoy inputs) in the print dialog - choose "Save as PDF".</li>
                               </ul>
                           </div>
                           <div>
@@ -738,7 +739,8 @@
                               <H>7. Top View (Plan)</H>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li>Rig at the centre; lines at the configured bearings (8-point Tender/AWB or 4-point Jackup, editable). Solid = suspended, thick dashed = on the seabed. Buoys coloured by submerged fraction.</li>
-                                  <li>Structures: red ring (all bearings) or arc (sector). The <strong>Structure check</strong> table lists crossings, clearance vs Min Clearance and anchor distance vs 150 m (GMI).</li>
+                                  <li>In the profile, full buoy markers, pennants and labels are drawn for one case only (default Max; pick another in the "Buoys:" list or hover a line). Other cases show a small dot. "top X m above surface" = part of the buoy is out of the water.</li>
+                                  <li>Structures: red ring (all bearings) or arc (sector). The <strong>Structure check</strong> table checks every calculated case and shows the worst one per line (lowest clearance usually occurs at low tension), with clearance vs Min Clearance and anchor distance vs the <strong>Anchor ↔ Struct min</strong> setting (default 150 m, GMI).</li>
                               </ul>
                           </div>
                           <div>
@@ -746,7 +748,8 @@
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>+</strong> adds a tab; other tabs are drawn dimmed for comparison. Switching tabs never recalculates.</li>
                                   <li><strong>Save Setup</strong> stores the tab in this browser; <strong>Export/Import JSON</strong> moves it between machines (results included).</li>
-                                  <li>Limits per calculation: 12 targets, 20 segments, 10 buoys, 10 km line, 3000 m water depth. The engine runs on a CPU-limited free tier: if you see a CPU/budget message, use fewer targets or untick Find Max.</li>
+                                  <li>Limits per calculation: 12 targets, 20 segments, 10 buoys, 10 km line, 3000 m water depth. Tension targets must be &gt; 0 t (max 5000 t), offset targets &gt;= 0 m; invalid entries are ignored with a warning.</li>
+                                  <li>Each target (and Find Max) is sent as its own request, in parallel, to stay inside the free-tier CPU limit. If some cases fail, the others are still shown and a warning lists the failed ones - press <strong>Recalculate</strong>.</li>
                               </ul>
                           </div>
                           <div>
@@ -760,8 +763,8 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261103-v13.8</span>
-                              <span>Worker: v4.8-261103</span>
+                              <span>Frontend: v261105-v13.10</span>
+                              <span>Worker: v4.10-261105</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
@@ -788,6 +791,7 @@
           anchorBearings, setAnchorBearings,
           designFactor, setDesignFactor,
           minClearance, setMinClearance,
+          gmiMin, setGmiMin,
           // v10 NEW: injected from App
           activePresetKey, setActivePresetKey,   // M2: remember selection
           bulkUpdateConfig,                       // M6: batch state updates
@@ -936,7 +940,7 @@
               const setup = { projectName, waterDepth, fairleadElev,
                   subseaStructuresStr: subseaStructures, segments, buoys,
                   tensionsStr: tensions, calcMode, showMaxTension,
-                  patternType, anchorBearings, designFactor, minClearance,
+                  patternType, anchorBearings, designFactor, minClearance, gmiMin,
                   savedAt: new Date().toISOString() };
               try {
                   const all = JSON.parse(localStorage.getItem('slack_my_setups') || '{}');
@@ -1002,6 +1006,7 @@
                       anchorBearings: p.anchorBearings || (PATTERN_TEMPLATES[pType] || []).map(a => ({...a})),
                       designFactor: p.designFactor ?? DEFAULT_DF,
                       minClearance: p.minClearance ?? DEFAULT_MIN_CLEARANCE,
+                      gmiMin: p.gmiMin ?? DEFAULT_GMI_MIN,
                       presetKey: ''
                   };
                   if (bulkUpdateConfig) bulkUpdateConfig(updates);
@@ -1065,6 +1070,7 @@
               if (buoys.length > 10) e.push('Max 10 buoys');
               if (!(parseFloat(designFactor) > 0) || isNaN(Number(designFactor))) e.push('Design factor must be greater than 0');
               if (minClearance === '' || isNaN(Number(minClearance)) || Number(minClearance) < 0) e.push('Min clearance must be 0 or greater');
+              if (gmiMin === '' || isNaN(Number(gmiMin)) || Number(gmiMin) < 0) e.push('Anchor-to-structure minimum must be 0 or greater');
               (subseaBuf || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => {
                   const d = parseFloat(x.split('@')[0]);
                   if (isNaN(d) || d <= 0) e.push(`Structure "${x}": distance must be greater than 0`);
@@ -1088,7 +1094,7 @@
                   if (!(parseFloat(b.height) > 0)) e.push(`Buoy ${i + 1}: height must be greater than 0`);
               });
               return e;
-          }, [waterDepth, fairleadElev, segments, buoys, isFairleadInvalid, wdBuf, designFactor, minClearance, subseaBuf, tensBuf]);
+          }, [waterDepth, fairleadElev, segments, buoys, isFairleadInvalid, wdBuf, designFactor, minClearance, gmiMin, subseaBuf, tensBuf]);
           // A16: reachable offset range shown to the user (rigid-line estimate)
           const offsetRange = (() => {
               const L = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
@@ -1178,7 +1184,10 @@
                               <InputField label="Design Factor (SWL = MBL / DF)" title="Default 2.0 = API RP 2SK intact, quasi-static" value={designFactor} onChange={e => setDesignFactor(e.target.value)} error={!(parseFloat(designFactor) > 0) ? 'DF > 0' : undefined} unit="x" placeholder={`Default ${DEFAULT_DF}`} />
                               <div className="border-t border-gray-200 dark:border-gray-700/50 mt-1 pt-2">
                                   <InputField label="Subsea Structures (Dist from FL)" title="Comma list. 400 = all bearings, 400@270 = ±45°, 400@270:30 = ±30°" value={subseaBuf} onChange={e => setSubseaBuf(e.target.value)} type="text" placeholder="e.g. 150, 400@270" />
-                                  <InputField className="mt-3" label="Min Clearance over Structure" title="Minimum line height above the seabed at each structure distance" value={minClearance} onChange={e => setMinClearance(e.target.value)} error={minClearance === '' || Number(minClearance) < 0 ? '≥ 0' : undefined} unit="m" placeholder={`Default ${DEFAULT_MIN_CLEARANCE}`} />
+                                  <div className="grid grid-cols-2 gap-3 mt-3">
+                                      <InputField label="Min Clearance" title="Minimum line height above the seabed at each structure distance" value={minClearance} onChange={e => setMinClearance(e.target.value)} error={minClearance === '' || Number(minClearance) < 0 ? '≥ 0' : undefined} unit="m" placeholder={`Default ${DEFAULT_MIN_CLEARANCE}`} />
+                                      <InputField label="Anchor ↔ Struct min" title="Minimum horizontal distance anchor to structure (default 150 m, GMI 7.1.5). Used by the Top View check." value={gmiMin} onChange={e => setGmiMin(e.target.value)} error={gmiMin === '' || isNaN(Number(gmiMin)) || Number(gmiMin) < 0 ? '≥ 0' : undefined} unit="m" placeholder={`Default ${DEFAULT_GMI_MIN}`} />
+                                  </div>
                               </div>
                           </div>
                       </section>
@@ -1376,6 +1385,9 @@
 
       const ChartPanel = ({ configs, activeConfigId, theme, structures, statusCtx }) => {
           const [hoverCaseId, setHoverCaseId] = useState(null);
+          // v13.10: full buoy markers + pennants + labels only for ONE case (hovered, else the selected one; default = Max).
+          // Other cases show a small dot at the buoy position, so the surface is no longer a pile of 6 overlapping buoys.
+          const [buoyFocus, setBuoyFocus] = useState('auto');
 
           const chartData = useMemo(() => {
               let allData = [];
@@ -1410,8 +1422,9 @@
                               const pennantLen = p.pennantLength || 0;
                               const bottomZ = Math.max(0, p.z - pennantLen);
                               const bh = p.buoyHeight || (config.buoys || [])[p.buoyIndex]?.height || 2;
-                              const topZ = Math.max(0, bottomZ - bh);
-                              let visualZ = bottomZ; p = { ...p, buoyTopZ: topZ, buoyBottomZ: bottomZ };
+                              const topRaw = bottomZ - bh;                 // v13.10: negative = top above the sea surface
+                              const topZ = Math.max(0, topRaw);
+                              let visualZ = bottomZ; p = { ...p, buoyTopZ: topZ, buoyTopRaw: topRaw, buoyBottomZ: bottomZ };
                               const sag = p.pennantSag || 0;
                               buoys.push({ ...p, pennantBaseZ: p.z, pennantTopZ: visualZ, pennantSag: sag });
                           }
@@ -1429,7 +1442,7 @@
                           horizontalTension: res.horizontalTension,
                           segments: Object.values(segments),
                           buoys,
-                          buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })),
+                          buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })),
                           anchor: transformedAnchor,
                           color,
                           isMax: res.isMaxTensionCase
@@ -1475,19 +1488,26 @@
 
           const isDark = theme === 'dark';
           const buoyStroke = isDark ? '#EAEFF4' : '#26344A';
+          const activeCases = chartData.filter(d => d.isActiveTab);
+          const autoFocusId = (activeCases.find(d => d.isMax) || activeCases[activeCases.length - 1] || {}).id;
+          const focusId = buoyFocus === 'auto' || !activeCases.some(d => d.id === buoyFocus) ? autoFocusId : buoyFocus;
+          const isFull = (caseId) => hoverCaseId ? caseId === hoverCaseId : (buoyFocus === 'all' || caseId === focusId);
+          const isLabelled = (caseId) => hoverCaseId ? caseId === hoverCaseId : (buoyFocus !== 'all' && caseId === focusId);
+          const topText = (p) => (p.buoyTopRaw ?? 0) < 0 ? `top ${(-p.buoyTopRaw).toFixed(1)} m above surface` : `top ${(p.buoyTopZ ?? 0).toFixed(1)} m`;
 
           const renderBuoyShape = (props) => {
               const { cx, cy, payload } = props;
               const isSlack = payload.isSlack;
               const lvl = buoyLevel(payload.utilization || 0, isSlack);
               const fillColor = BUOY_FILL[isDark ? 'dark' : 'light'][lvl];
-              const showLabel = payload.showLabel || payload.caseId === hoverCaseId;
+              if (!isFull(payload.caseId)) return <circle cx={cx} cy={cy} r={2.5} fill={fillColor} fillOpacity={0.6} stroke="none" />;
+              const showLabel = isLabelled(payload.caseId);
               return (
                   <g transform={`translate(${cx},${cy})`}>
-                      <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={1.5} strokeDasharray={isSlack ? '2 2' : undefined} />
+                      <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={lvl === 'sub' ? 2.2 : 1.5} strokeDasharray={isSlack ? '2 2' : undefined} />
                       {showLabel && (
                           <text x={11} y={-5} fontSize={10} fill={isDark ? "#BCC8D8" : "#3C4C60"} fontWeight="600" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
-                              B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${((payload.utilization || 0) * 100).toFixed(0)}% sub. · top ${(payload.buoyTopZ ?? 0).toFixed(1)} / bot ${(payload.buoyBottomZ ?? payload.pennantTopZ).toFixed(1)} m`}
+                              B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${lvl === 'sub' ? 'SUB 100%' : ((payload.utilization || 0) * 100).toFixed(0) + '% sub.'} · ${topText(payload)} / bot ${(payload.buoyBottomZ ?? payload.pennantTopZ).toFixed(1)} m`}
                           </text>
                       )}
                   </g>
@@ -1524,9 +1544,17 @@
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="3.5" strokeDasharray="7 3"/></svg>Chain</span>
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke={isDark ? '#F5A524' : '#A85D00'} strokeWidth="2" strokeDasharray="2 2"/></svg>Pennant</span>
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="2" strokeDasharray="2 4" strokeOpacity="0.55"/></svg>Invalid case</span>
-                          {['ok', 'warn', 'bad'].map(l => (
-                              <span key={l} className="flex items-center gap-1"><svg width="10" height="10"><path d="M5,10 L0,1 L10,1 Z" fill={BUOY_FILL[isDark ? 'dark' : 'light'][l]}/></svg>{l === 'ok' ? 'Buoy sub. <50%' : l === 'warn' ? '50-85%' : '≥85% / fully sub.'}</span>
+                          {['ok', 'warn', 'bad', 'sub', 'slack'].map(l => (
+                              <span key={l} className="flex items-center gap-1"><svg width="11" height="11"><path d="M5.5,10 L0.8,1 L10.2,1 Z" fill={BUOY_FILL[isDark ? 'dark' : 'light'][l]} stroke={l === 'sub' || l === 'slack' ? (isDark ? '#EAEFF4' : '#26344A') : 'none'} strokeWidth={l === 'sub' ? 1.4 : 1} strokeDasharray={l === 'slack' ? '2 1.5' : undefined}/></svg>{{ ok: 'Buoy sub. <50%', warn: '50-85%', bad: '85-99%', sub: 'SUB (100%)', slack: 'SLACK (no lift)' }[l]}</span>
                           ))}
+                          {activeCases.some(d => d.buoysData.length) && (
+                              <select value={buoyFocus} onChange={e => setBuoyFocus(e.target.value)} aria-label="Buoys shown for case" title="Full buoy markers and labels are drawn for one case (hover a line to preview another)"
+                                      className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0 text-gray-700 dark:text-gray-300 cursor-pointer">
+                                  <option value="auto">Buoys: {activeCases.some(d => d.isMax) ? 'Max case' : 'last case'}</option>
+                                  {activeCases.map(d => <option key={d.id} value={d.id}>Buoys: {d.isMax ? `Max ${d.horizontalTension?.toFixed(1)} t` : `${d.horizontalTension?.toFixed(1)} t`}</option>)}
+                                  <option value="all">Buoys: all cases (no labels)</option>
+                              </select>
+                          )}
                       </div>
                   </div>
                   <div className="flex-1 w-full h-full">
@@ -1584,7 +1612,7 @@
                               
                               {chartData.map((res) => (
                                   <React.Fragment key={res.id}>
-                                      {res.buoys.map((b, bIdx) => {
+                                      {isFull(res.id) && res.buoys.map((b, bIdx) => {
                                           const pennantStroke = theme === 'dark' ? '#F5A524' : '#A85D00';
                                           return (
                                               <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke: b.isSlack ? '#7286A0' : pennantStroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
@@ -1719,7 +1747,7 @@
               || results[results.length - 1] || null;
 
           // B3: GMI 7.1.5 = 150m minimum anchor-to-pipeline horizontal
-          const GMI_MIN_HORIZONTAL = 150;
+          const GMI_MIN_HORIZONTAL = statusCtx?.gmi ?? DEFAULT_GMI_MIN;   // v13.10: editable (Environment panel)
 
           return (
               <div className="flex-1 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 relative min-h-[400px] flex flex-col shadow-card overflow-y-auto">
@@ -1944,32 +1972,42 @@
                       </div>
                   </div>
 
-                  {labelCase && structures.length > 0 && (() => {
-                      const fx = getFX(labelCase);
+                  {results.length > 0 && structures.length > 0 && (() => {
+                      // v13.9 M3: check EVERY case and report the worst per line/structure. Minimum clearance usually
+                      // occurs at LOW tension (sagging line / mid-line seabed contact), not in the Max case.
+                      const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE;
+                      const caseName = (r) => r.isMaxTensionCase ? `Max ${getHT(r).toFixed(1)} t` : `${getHT(r).toFixed(1)} t`;
                       const rows = [];
                       bearings.forEach(b => structures.filter(st => bearingInSector(b.bearing, st)).forEach(st => {
-                          const crosses = st.dist < fx;
-                          const clr = crosses ? clearanceAt(labelCase, st.dist, statusCtx?.waterDepth ?? 0) : null;
-                          const tooClose = Math.abs(fx - st.dist) < GMI_MIN_HORIZONTAL;
-                          const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE;
-                          const grounded = crosses && clr !== null && clr <= 0.05;
-                          const level = grounded || (crosses && clr !== null && clr < minC) || tooClose ? 'bad' : crosses ? 'warn' : 'ok';
-                          const label = grounded ? 'GROUNDED ON STRUCT' : (crosses && clr < minC) ? 'LOW CLEARANCE' : tooClose ? 'ANCHOR < GMI' : crosses ? 'SUSPENDED CROSSING' : 'OK';
-                          rows.push({ line: b.name, dist: st.dist, crosses, clr, tooClose, level, label });
+                          let worst = null;
+                          results.forEach(res => {
+                              const fx = getFX(res);
+                              const crosses = st.dist < fx;
+                              const clr = crosses ? clearanceAt(res, st.dist, statusCtx?.waterDepth ?? 0) : null;
+                              const tooClose = Math.abs(fx - st.dist) < GMI_MIN_HORIZONTAL;
+                              const grounded = crosses && clr !== null && clr <= 0.05;
+                              const low = crosses && clr !== null && clr < minC;
+                              const sev = grounded ? 4 : low ? 3 : tooClose ? 2 : crosses ? 1 : 0;
+                              const cand = { line: b.name, dist: st.dist, crosses, clr, tooClose, sev, anchorGap: Math.abs(fx - st.dist), caseLabel: caseName(res),
+                                             level: sev >= 2 ? 'bad' : sev === 1 ? 'warn' : 'ok',
+                                             label: grounded ? 'GROUNDED ON STRUCT' : low ? 'LOW CLEARANCE' : tooClose ? 'ANCHOR < GMI' : crosses ? 'SUSPENDED CROSSING' : 'OK' };
+                              if (!worst || cand.sev > worst.sev || (cand.sev === worst.sev && (cand.clr ?? Infinity) < (worst.clr ?? Infinity))) worst = cand;
+                          });
+                          if (worst) rows.push(worst);
                       }));
                       if (!rows.length) return null;
                       return (
                           <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                               <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">
-                                  Structure check · {labelCase.isMaxTensionCase ? 'Max' : getHT(labelCase).toFixed(1) + ' t'} case · min clr {statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE} m · GMI {GMI_MIN_HORIZONTAL} m
+                                  Structure check · worst of {results.length} cases · min clr {minC} m · GMI {GMI_MIN_HORIZONTAL} m
                               </div>
                               <table className="w-full text-[11px] tabular-nums">
-                                  <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold py-0.5">Line</th><th className="text-left font-semibold">Structure @</th><th className="text-left font-semibold">Crosses</th><th className="text-left font-semibold">Clearance</th><th className="text-left font-semibold">Anchor ↔ struct</th><th className="text-left font-semibold">Status</th></tr></thead>
+                                  <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold py-0.5">Line</th><th className="text-left font-semibold">Structure @</th><th className="text-left font-semibold">Worst case</th><th className="text-left font-semibold">Crosses</th><th className="text-left font-semibold">Clearance</th><th className="text-left font-semibold">Anchor ↔ struct</th><th className="text-left font-semibold">Status</th></tr></thead>
                                   <tbody>{rows.map((r, i) => (
                                       <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
-                                          <td className="py-0.5 font-bold">{r.line}</td><td>{r.dist} m</td><td>{r.crosses ? 'Yes' : 'No'}</td>
+                                          <td className="py-0.5 font-bold">{r.line}</td><td>{r.dist} m</td><td className="font-mono">{r.caseLabel}</td><td>{r.crosses ? 'Yes' : 'No'}</td>
                                           <td>{r.clr === null ? '-' : `${Math.max(0, r.clr).toFixed(1)} m`}</td>
-                                          <td>{Math.abs(fx - r.dist).toFixed(0)} m</td>
+                                          <td>{r.anchorGap.toFixed(0)} m</td>
                                           <td><span className={`px-1.5 rounded-full font-bold ${PILL_CLS[r.level]}`}>{r.label}</span></td>
                                       </tr>))}</tbody>
                               </table>
@@ -1982,7 +2020,7 @@
                       <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Suspended</span></div>
                       <div className="flex items-center gap-1"><div className="w-6 h-1 border-b-2 border-dashed border-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Grounded (near anchor)</span></div>
                       <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-ok-600 dark:bg-ok-400"></div><span className="text-gray-600 dark:text-gray-400">MLB (colour = util)</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">GMI &lt;150m</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">Anchor &lt; {GMI_MIN_HORIZONTAL} m from struct</span></div>
                   </div>
               </div>
           );
@@ -1997,7 +2035,7 @@
           const totalLen = results[0]?.totalLength;
           const cols = 11;
           return (
-              <div className={`max-h-[36vh] min-h-[160px] bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card shrink-0 transition-opacity ${isStale ? 'opacity-60' : ''}`}>
+              <div className={`max-h-[46vh] min-h-[160px] bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card shrink-0 transition-opacity ${isStale ? 'opacity-60' : ''}`}>
                   <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 flex flex-wrap gap-x-4 gap-y-1 justify-between items-center">
                       <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-2"><IconInfo size={16} className="text-accent-600 dark:text-accent-500"/> Calculation Results</h3>
                       <div className="text-[11px] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3">
@@ -2033,12 +2071,12 @@
                                   const td = res.touchdownX !== undefined ? res.fairleadX - res.touchdownX : res.fairleadX - res.groundedLength;
                                   const caseColor = res.isMaxTensionCase ? maxCaseColor(isDarkTbl) : seriesColor(idx, isDarkTbl);
                                   return (
-                                      <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 ${res.isMaxTensionCase ? 'bg-maxc-600/5 dark:bg-maxc-400/5' : ''} ${invalid ? 'opacity-60' : ''}`}>
+                                      <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-white/5 ${res.isMaxTensionCase ? 'sticky bottom-0 z-[5] bg-violet-50 dark:bg-[#21203a] shadow-[0_-1px_0_rgba(124,58,237,0.25)]' : ''} ${invalid ? 'opacity-60' : ''}`}>
                                           <td className="px-3 py-2 font-mono font-semibold whitespace-nowrap" style={{ color: caseColor }}>
                                               <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ backgroundColor: caseColor }}></span>
                                               {res.horizontalTension?.toFixed(1)}{res.isMaxTensionCase ? ' (Max)' : ''}
                                           </td>
-                                          <td className="px-3 py-2 font-mono">{res.fairleadX?.toFixed(1)}</td>
+                                          <td className="px-3 py-2 font-mono" title={res.fairleadX > (res.totalLength || Infinity) ? 'Larger than the payout because the line stretches elastically (EA)' : undefined}>{res.fairleadX?.toFixed(1)}</td>
                                           <td className="px-3 py-2 font-mono">{res.groundedLength?.toFixed(1)}{res.multiTouchdown && <span className="text-[11px] text-accent-700 dark:text-accent-400" title="Second (intermediate) seabed contact length"> +{res.contact2Length.toFixed(1)}</span>}</td>
                                           <td className="px-3 py-2 font-mono">
                                               {/* v13.4 MT-4: with a 2nd contact, the touchdown nearest the vessel is the FL end of that stretch */}
@@ -2075,7 +2113,9 @@
                                               <div className="flex flex-wrap gap-1">
                                                   {flags.length === 0
                                                       ? <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS.ok}`}>OK</span>
-                                                      : flags.map((f, i) => <span key={i} title={f.tip} className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ${PILL_CLS[f.level]}`}>{f.text}</span>)}
+                                                      : [...flags].sort((a, b) => ({ bad: 0, warn: 1, info: 2 }[a.level] - { bad: 0, warn: 1, info: 2 }[b.level])).map((f, i, arr) => i < 2
+                                                          ? <span key={i} title={f.tip} className={`px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ${PILL_CLS[f.level]}`}>{f.text}</span>
+                                                          : i === 2 ? <span key={i} title={arr.slice(2).map(x => x.text + ': ' + x.tip).join('\n')} className="px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 cursor-help">+{arr.length - 2}</span> : null)}
                                               </div>
                                           </td>
                                       </tr>
@@ -2110,6 +2150,7 @@
           anchorBearings: PATTERN_TEMPLATES.tender_8pt.map(a => ({...a})),
           designFactor: DEFAULT_DF,
           minClearance: DEFAULT_MIN_CLEARANCE,
+          gmiMin: DEFAULT_GMI_MIN,
           presetKey: '',
           results: [],
           resultsSig: null,
@@ -2185,6 +2226,8 @@
           const setPatternType = (val) => updateConfig({ patternType: val });
           const designFactor = activeConfig.designFactor ?? DEFAULT_DF;
           const minClearance = activeConfig.minClearance ?? DEFAULT_MIN_CLEARANCE;
+          const gmiMin = activeConfig.gmiMin ?? DEFAULT_GMI_MIN;
+          const setGmiMin = (val) => updateConfig({ gmiMin: val });
           const setMinClearance = (val) => updateConfig({ minClearance: val });
           const activePresetKey = activeConfig.presetKey || '';
           const setDesignFactor = (val) => updateConfig({ designFactor: val });
@@ -2211,7 +2254,7 @@
                   patternType: activeConfig.patternType || 'tender_8pt',
                   anchorBearings: activeConfig.anchorBearings || [],
                   results: activeConfig.results || [],
-                  designFactor, minClearance,
+                  designFactor, minClearance, gmiMin,
                   presetKey: activePresetKey || null,
                   resultsSig: activeConfig.resultsSig || null,
                   calcWaterDepth: activeConfig.calcWaterDepth ?? null,
@@ -2226,6 +2269,83 @@
               link.click();
               URL.revokeObjectURL(url);
               pushToast('success', `Exported ${projectName}.json`);
+          };
+
+          // ---- v13.10: Export PNG (current view) and PDF report (browser print -> Save as PDF; no extra library) ----
+          const viewRef = useRef(null);
+          const getViewSvg = () => {
+              const host = viewRef.current; if (!host) return null;
+              const svgs = [...host.querySelectorAll('svg')].filter(x => x.getBoundingClientRect().width > 200);
+              return svgs.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; })[0] || null;
+          };
+          const viewToPng = (scale = 2) => new Promise((resolve, reject) => {
+              const svg = getViewSvg(); if (!svg) { reject(new Error('No chart on screen - run Calculate first')); return; }
+              const r = svg.getBoundingClientRect(), W = Math.ceil(r.width), Hh = Math.ceil(r.height), HEAD = 44;
+              const clone = svg.cloneNode(true);
+              clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+              clone.setAttribute('width', W); clone.setAttribute('height', Hh);
+              if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+              clone.style.fontFamily = 'Inter, Arial, sans-serif';
+              const fg = theme === 'dark' ? '#EAEFF4' : '#26344A';
+              clone.querySelectorAll('[stroke="currentColor"]').forEach(n => n.setAttribute('stroke', fg));
+              clone.querySelectorAll('[fill="currentColor"]').forEach(n => n.setAttribute('fill', fg));
+              const img = new Image();
+              img.onload = () => {
+                  const c = document.createElement('canvas'); c.width = W * scale; c.height = (Hh + HEAD) * scale;
+                  const g = c.getContext('2d'); g.scale(scale, scale);
+                  g.fillStyle = theme === 'dark' ? '#141E2C' : '#FFFFFF'; g.fillRect(0, 0, W, Hh + HEAD);
+                  g.fillStyle = fg; g.font = '600 14px Inter, Arial, sans-serif';
+                  g.fillText(`${projectName} - ${activeView === 'profile' ? 'Catenary profile' : 'Top view (plan)'}`, 12, 20);
+                  g.font = '11px Inter, Arial, sans-serif';
+                  g.fillText(`WD ${activeConfig.calcWaterDepth ?? waterDepth} m · FL +${fairleadElev} m · ${new Date().toLocaleString()} · SLACK v13.10`, 12, 36);
+                  g.drawImage(img, 0, HEAD, W, Hh);
+                  resolve(c);
+              };
+              img.onerror = () => reject(new Error('Chart image could not be rendered'));
+              img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+          });
+          const fileStem = () => `${projectName.replace(/[^\w.-]+/g, '_')}_${activeView === 'profile' ? 'profile' : 'topview'}_${new Date().toISOString().split('T')[0]}`;
+          const exportPng = async () => {
+              try {
+                  const c = await viewToPng();
+                  c.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = fileStem() + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); pushToast('success', 'Exported ' + a.download); }, 'image/png');
+              } catch (e) { pushToast('error', 'PNG export failed: ' + e.message, 5000); }
+          };
+          const exportPdf = async () => {
+              const res = activeConfig.results || [];
+              if (!res.length) { pushToast('warning', 'No results to report - run Calculate first.'); return; }
+              const w = window.open('', '_blank');   // opened synchronously in the click handler (popup blockers)
+              if (!w) { pushToast('error', 'Popup blocked - allow popups for this page to create the PDF report.', 6000); return; }
+              let imgUrl = '';
+              try { imgUrl = (await viewToPng(2)).toDataURL('image/png'); } catch (e) { /* report without chart */ }
+              const esc = (v) => String(v ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+              const n = (v, d = 1) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '-';
+              const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
+              const rows = res.map(r => {
+                  const flags = getStatusFlags(r, statusCtx);
+                  const td = r.multiTouchdown ? n(contactsOf(r)[0].near) + ' (mid)' : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? n(r.fairleadX - r.touchdownX) : '-');
+                  const bz = buoyPoints(r).map((b, i) => `B${getBuoyDisplayNumber(b, buoys, i)} ${buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'slack' ? 'SLACK' : buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'sub' ? 'SUB' : ((b.buoyUtilization || 0) * 100).toFixed(0) + '%'}`).join(', ');
+                  return `<tr${isInvalidCase(flags) ? ' class="inv"' : ''}><td>${n(r.horizontalTension)}${r.isMaxTensionCase ? ' (Max)' : ''}</td><td>${n(r.fairleadX)}</td><td>${n(r.groundedLength)}${r.multiTouchdown ? ' +' + n(r.contact2Length) : ''}</td><td>${td}</td><td>${n(r.anchorTension, 2)}</td><td>${n(r.anchorUpliftForce || 0, 2)}</td><td>${n(r.fairleadTension)}</td><td>${isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) + '%' : '-'}</td><td>${esc(bz || '-')}</td><td>${esc(flags.length ? flags.map(f => f.text).join('; ') : 'OK')}</td></tr>`;
+              }).join('');
+              const totalLen = segments.reduce((a, sg) => a + (parseFloat(sg.length) || 0), 0);
+              const segTxt = segments.map((sg, i) => `#${i + 1} ${matOf(sg.type).label} ${sg.diameter} mm × ${sg.length} m (w ${sg.w} kg/m, EA ${sg.EA} kN, MBL ${sg.mbl || '-'} t, µ ${sg.frictionCoeff})`).join('<br>');
+              const buoyTxt = buoys.length ? buoys.map((b, i) => `B${i + 1}: ${b.distanceFromAnchor} m from anchor, ${b.netBuoyancy} t, pennant ${b.pennantLength} m / ${b.pennantWeight} t, misc ${b.pennantLoad ?? 0} t, height ${b.height} m`).join('<br>') : 'none';
+              w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(fileStem())}</title><style>
+                  @page { size: A4 landscape; margin: 12mm; } body { font: 11px Arial, sans-serif; color: #111; margin: 0; }
+                  h1 { font-size: 16px; margin: 0 0 2px; } .meta { color: #444; margin-bottom: 6px; } img { width: 100%; border: 1px solid #ccc; margin: 6px 0; }
+                  table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #bbb; padding: 3px 5px; text-align: left; } th { background: #eef2f6; }
+                  tr.inv td { color: #888; font-style: italic; } .small { font-size: 10px; color: #333; margin-top: 6px; line-height: 1.4; }
+              </style></head><body>
+                  <h1>SLACK catenary report - ${esc(projectName)}</h1>
+                  <div class="meta">WD ${esc(activeConfig.calcWaterDepth ?? waterDepth)} m · Fairlead +${esc(fairleadElev)} m · Payout ${totalLen.toFixed(1)} m · SWL ${isFinite(swl) ? swl.toFixed(1) + ' t (MBL ' + statusCtx.minMBL + ' t / DF ' + statusCtx.df + ')' : 'n/a'} · Min clearance ${esc(minClearance)} m · Anchor-struct min ${esc(gmiMin)} m · Structures ${esc(subseaStructuresStr || 'none')} · ${new Date().toLocaleString()}</div>
+                  ${imgUrl ? `<img src="${imgUrl}">` : ''}
+                  <table><thead><tr><th>Case (t)</th><th>Offset (m)</th><th>Grounded (m)</th><th>Touchdown (m)</th><th>Anch H (t)</th><th>Anch V (t)</th><th>FL Ten (t)</th><th>SWL util</th><th>Buoys</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+                  <div class="small"><b>Line:</b><br>${segTxt}<br><b>Buoys:</b><br>${buoyTxt}<br>
+                  Static catenary, flat seabed, generic material properties unless entered manually. Accuracy basis ±0.5 m vertical / ±1 m horizontal. Italic rows = invalid case.
+                  SLACK frontend v13.10 · engine ${esc(activeConfig.engineVersion || '-')}</div>
+                  <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
+              </body></html>`);
+              w.document.close();
           };
 
           // v11: CSV export of the active tab's results, for rig-move reporting.
@@ -2256,7 +2376,7 @@
               const meta = [['# Project', projectName], ['# WaterDepth(m)', activeConfig.calcWaterDepth ?? waterDepth],
                   ['# FairleadElev(m)', fairleadElev], ['# Payout(m)', totalLen.toFixed(1)],
                   ['# DesignFactor', designFactor], ['# SWL(t)', isFinite(swl) ? swl.toFixed(1) : 'n/a'],
-                  ['# MinClearance(m)', minClearance], ['# Material model', 'Generic (OrcaFlex wizard fits) unless manual'],
+                  ['# MinClearance(m)', minClearance], ['# AnchorToStructMin(m)', gmiMin], ['# Material model', 'Generic (OrcaFlex wizard fits) unless manual'],
                   ['# Exported', new Date().toISOString()]];
               const csv = [...meta, header, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
               const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -2313,6 +2433,7 @@
                       updates.presetKey = data.presetKey || data.activePresetKey || '';
                       if (data.designFactor !== undefined) updates.designFactor = data.designFactor;
                       if (data.minClearance !== undefined) updates.minClearance = data.minClearance;
+                      if (data.gmiMin !== undefined) updates.gmiMin = data.gmiMin;
                       updates.results = hasResults ? data.results : [];
                       updates.resultsSig = hasResults ? (data.resultsSig || '__imported__') : null;
                       updates.calcWaterDepth = hasResults ? (data.calcWaterDepth ?? data.waterDepth) : null;
@@ -2342,7 +2463,10 @@
                   pushToast('info', 'Inputs unchanged - showing cached results (no engine call). Shift+Click to force.');
                   return;
               }
-              const inputs = tensionsStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
+              const rawTargets = tensionsStr.split(',').map(s => s.trim()).filter(Boolean);
+              const ignored = rawTargets.filter(s => !(parseFloat(s) > 0 || (calcMode === 'offset' && parseFloat(s) === 0)));
+              if (ignored.length) pushToast('warning', `Ignored target(s): ${ignored.join(', ')} - ${calcMode === 'offset' ? 'offsets must be >= 0' : 'tensions must be > 0'}.`, 6000);
+              const inputs = rawTargets.map(s => parseFloat(s)).filter(n => !isNaN(n) && (n > 0 || (calcMode === 'offset' && n === 0))).sort((a, b) => a - b);
               // v10: de-duplicate targets (B3 fix from deep review)
               const dedupInputs = inputs.filter((v, i, arr) => arr.indexOf(v) === i);
               if (dedupInputs.length === 0 && !showMaxTension) return;
@@ -2373,58 +2497,59 @@
                   calculateMax: showMaxTension,
                   pointFormat: 'c1'   // v13.8: Worker v4.8 columnar points (4x smaller payload)
               };
+              // ---- v13.9 C1: ONE target per request (+ Find Max on its own), sent in parallel ----
+              // Cloudflare Workers Free = 10 ms CPU per request. A batched request (4-6 targets + Find Max) measured
+              // 21-32 ms CPU on the dashboard; per-target requests are 1-10x smaller. Results are identical (tension mode:
+              // every target is solved independently - verified 6,300/6,300 identical vs the batched v4.8 response).
+              // No automatic retry: a CPU-killed request comes back as "Failed to fetch" and retrying re-burns the CPU.
               const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
-              const MAX_RETRIES = 1;   // v13: network/timeout only, never 5xx
+              const EXPECTED_ENGINE = 'v4.10';
               const TIMEOUT_MS = 20000;
-              let lastErr = null;
-              for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+              const jobs = dedupInputs.map(t => ({ ...payload, targets: [t], calculateMax: false }));
+              if (showMaxTension) jobs.push({ ...payload, targets: [], calculateMax: true });
+              let engineSeen = null;
+              const runJob = async (body) => {
+                  const controller = new AbortController();
+                  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
                   try {
-                      const controller = new AbortController();
-                      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
                       const response = await fetch(WORKER_URL, {
                           method: "POST",
                           headers: { "Content-Type": "text/plain;charset=UTF-8" },   // simple request: no CORS preflight
-                          body: JSON.stringify(payload),
+                          body: JSON.stringify(body),
                           signal: controller.signal
                       });
-                      clearTimeout(timer);
+                      engineSeen = engineSeen || response.headers.get('X-Engine');
                       if (!response.ok) {
                           const errData = await response.json().catch(() => ({}));
-                          const errMsg = errData.error || `HTTP ${response.status}`;
-                          // v11: never retry a CPU/budget 503 - retrying re-burns the CPU that caused it.
-                          if (response.status === 503 && /CPU|budget/i.test(errMsg)) {
-                              if (Array.isArray(errData.partialResults) && errData.partialResults.length) {
-                                  updateConfigById(tabId, { results: expandResults(errData.partialResults), resultsSig: null, calcWaterDepth: parseFloat(waterDepth) });
-                                  pushToast('warning', `Budget limit reached — showing ${errData.partialResults.length} of ${dedupInputs.length} cases. Reduce targets or turn off Find Max.`, 6000);
-                                  setLoading(false);
-                                  return;
-                              }
-                              throw new Error(errMsg);
-                          }
-                          throw new Error(errMsg);
+                          const e = new Error(errData.error || `HTTP ${response.status}`);
+                          e.partial = Array.isArray(errData.partialResults) ? errData.partialResults : null;
+                          throw e;
                       }
-                      const data = expandResults(await response.json());
-                      updateConfigById(tabId, { results: data, resultsSig: sig, calcWaterDepth: parseFloat(waterDepth) });
-                      setLoading(false);
-                      if (isRetry) pushToast('success', 'Calculation succeeded on retry');
-                      return;
-                  } catch (err) {
-                      lastErr = err;
-                      // retry AbortError and TypeErrors (network) once
-                      if (attempt <= MAX_RETRIES && (err.name === 'AbortError' || err.message === 'Failed to fetch' || err.message.includes('NetworkError'))) {
-                          await new Promise(r => setTimeout(r, attempt * 500));
-                          continue;
-                      }
-                      console.error('[SLACK v10] calc error:', err);
-                      setCalcError(classifyError(err));
-                      setLoading(false);
-                      return;
-                  }
+                      return expandResults(await response.json());
+                  } finally { clearTimeout(timer); }
+              };
+              const settled = await Promise.allSettled(jobs.map(runJob));
+              const merged = [], failed = [];
+              settled.forEach((r, k) => {
+                  const label = jobs[k].calculateMax ? 'Find Max' : `${jobs[k].targets[0]}${calcMode === 'offset' ? ' m' : ' t'}`;
+                  if (r.status === 'fulfilled') merged.push(...r.value);
+                  else { failed.push({ label, err: r.reason }); if (r.reason && r.reason.partial) merged.push(...expandResults(r.reason.partial)); }
+              });
+              if (engineSeen && !String(engineSeen).startsWith(EXPECTED_ENGINE))
+                  pushToast('warning', `Engine ${engineSeen} - this page expects ${EXPECTED_ENGINE}. Reload the page or redeploy the Worker.`, 8000);
+              if (failed.length === jobs.length) {
+                  console.error('[SLACK v13.9] all requests failed:', failed);
+                  setCalcError(classifyError(failed[0].err || new Error('Unknown error')));
+                  setLoading(false);
+                  return;
               }
-              // Fallback: exhausted retries
-              console.error('[SLACK v10] exhausted retries:', lastErr);
-              setCalcError(classifyError(lastErr || new Error('Unknown error')));
+              // complete result -> cached signature; partial -> no signature (shows "outdated", Recalculate re-runs)
+              updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || '' });
               setLoading(false);
+              if (failed.length) {
+                  const cls = classifyError(failed[0].err);
+                  pushToast('warning', `${failed.length} of ${jobs.length} cases failed (${failed.map(f => f.label).join(', ')}): ${cls.title}. Press Recalculate to retry.`, 9000);
+              } else if (isRetry) pushToast('success', 'Calculation succeeded on retry');
           };
 
           // v13 C7: no auto-calc on load / new tab - the engine is only called on explicit Calculate.
@@ -2449,8 +2574,9 @@
               const dfv = parseFloat(designFactor) > 0 ? parseFloat(designFactor) : DEFAULT_DF;
               const mc = parseFloat(minClearance);
               return { ...mblSummary(segments), df: dfv, structures, minClearance: isNaN(mc) ? DEFAULT_MIN_CLEARANCE : mc,
+                       gmi: (gmiMin !== '' && Number(gmiMin) >= 0) ? Number(gmiMin) : DEFAULT_GMI_MIN,
                        waterDepth: parseFloat(activeConfig.calcWaterDepth ?? waterDepth) || 0 };
-          }, [segments, designFactor, minClearance, structures, activeConfig.calcWaterDepth, waterDepth]);
+          }, [segments, designFactor, minClearance, gmiMin, structures, activeConfig.calcWaterDepth, waterDepth]);
 
           const bgClass = theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800';
           const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
@@ -2475,7 +2601,7 @@
                                   </div>
                                   <div className="flex flex-col">
                                       <span className="leading-none tracking-[0.14em] text-gray-800 dark:text-gray-100">SLACK</span>
-                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">Catenary Analysis · v13.8</span>
+                                      <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">Catenary Analysis · v13.10</span>
                                   </div>
                               </h1>
                               <div className="flex gap-0.5">
@@ -2484,6 +2610,8 @@
                                       <IconExport size={16} aria-hidden="true"/>
                                   </button>
                                   <button onClick={exportToCsv} aria-label="Export results as CSV" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Export results CSV">CSV</button>
+                                  <button onClick={exportPng} aria-label="Export current view as PNG" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Export the current view (profile or top view) as PNG">PNG</button>
+                                  <button onClick={exportPdf} aria-label="Create PDF report" className="px-1 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors text-[10px] font-bold" title="Report (chart + results + inputs) - opens the print dialog, choose Save as PDF">PDF</button>
                                   <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" aria-label="JSON file input"/>
                                   <button onClick={() => setShowGuide(true)} aria-label="Open user guide" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Guide"><IconHelp size={16} aria-hidden="true"/></button>
                                   <button onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors" title="Theme">{theme === 'dark' ? <IconSun size={16} aria-hidden="true"/> : <IconMoon size={16} aria-hidden="true"/>}</button>
@@ -2524,6 +2652,7 @@
                               patternType={patternType} setPatternType={setPatternType}
                               designFactor={designFactor} setDesignFactor={setDesignFactor}
                               minClearance={minClearance} setMinClearance={setMinClearance}
+                              gmiMin={gmiMin} setGmiMin={setGmiMin}
                               anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings}
                               activePresetKey={activePresetKey}
                               bulkUpdateConfig={bulkUpdateConfig}
@@ -2570,10 +2699,12 @@
                                   Top View (Plan)
                               </button>
                           </div>
+                          <div ref={viewRef} className="flex-1 min-h-0 flex flex-col">
                           {activeView === 'profile'
                               ? <ChartPanel configs={configs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} />
                               : <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} setPattern={(t) => updateConfig({ patternType: t, anchorBearings: (PATTERN_TEMPLATES[t] || []).map(a => ({ ...a })) })} statusCtx={statusCtx} />
                           }
+                          </div>
                           <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} />
                       </div>
                   </div>
