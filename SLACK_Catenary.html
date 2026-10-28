@@ -453,7 +453,8 @@
       // Solver-input signature: identical inputs -> cached results, changed inputs -> stale banner (A10, C8).
       const solverSig = (c) => JSON.stringify([
           parseFloat(c.waterDepth), parseFloat(c.fairleadElev), c.tensionsStr, c.calcMode, !!c.showMaxTension,
-          (c.segments || []).map(s => [s.type, +s.length, +s.w, s.w_wet, s.EA, +s.frictionCoeff]),
+          parseFloat(c.designFactor) > 0 ? parseFloat(c.designFactor) : DEFAULT_DF,   // v13.18: DF / MBL move the (SWL) case
+          (c.segments || []).map(s => [s.type, +s.length, +s.w, s.w_wet, s.EA, +s.frictionCoeff, +s.mbl]),
           (c.buoys || []).map(b => [+b.distanceFromAnchor, +b.netBuoyancy, +b.pennantLength, +b.pennantWeight, +b.pennantLoad, +b.height])
       ]);
 
@@ -571,7 +572,7 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
-      const APP_VERSION = 'v13.17';
+      const APP_VERSION = 'v13.18';
       const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
@@ -752,7 +753,7 @@
                           <div>
                               <H>3. Inputs</H>
                               <ul className="list-disc pl-4 space-y-1">
-                                  <li><strong>Segments</strong> are listed fairlead → anchor. Weight, EA and MBL are generic estimates from type + diameter (OrcaFlex line-type wizard fits). Typing a value marks it MANUAL; ↺ / ✕ restores the auto value. Use certificate values when available.</li>
+                                  <li><strong>Segments</strong> are listed fairlead → anchor. Weight, EA and MBL are generic estimates from type + diameter (OrcaFlex line-type wizard fits). Typing a value marks it MANUAL; ↺ / ✕ restores the auto value. EA = 0 means rigid (inextensible). Use certificate values when available.</li>
                                   <li><strong>Friction</strong> defaults: wire 0.6, chain 1.0 (static, soft clay).</li>
                                   <li><strong>Buoys</strong>: distance is measured from the anchor along the line. Buoyancy excludes the pennant; pennant weight (submerged) is auto from pennant Ø × length. A buoy is <em>SLACK</em> when the wire is shallower than the pennant length (no lift).</li>
                                   <li><strong>Design Factor</strong>: SWL = weakest-segment MBL / DF (default 2.0, API RP 2SK intact quasi-static).</li>
@@ -791,6 +792,7 @@
                               <ul className="list-disc pl-4 space-y-1">
                                   <li>Rig at the centre; lines at the configured bearings (8-point Tender/AWB or 4-point Jackup, editable). Solid = suspended, thick dashed = on the seabed. Buoys coloured by submerged fraction.</li>
                                   <li>Profile: the selected case gets full buoy markers, pennants and labels; other cases show a small faint buoy. The view stops just beyond the end of the suspended part (button "Show full length" restores the flat grounded stretch and the anchors). <em>V.E.</em> tells how much larger depth is drawn than distance. "top X m above surface" = part of the buoy is out of the water.</li>
+                                  <li><strong>Touchdown and clearance</strong>: the selected case is marked with a triangle just below the seabed line at its touchdown (TD n m from the fairlead; "(mid)" = mid-line contact). At every structure a short bar shows the minimum clearance level (green = met, red = not met) with the actual clearance of the selected case.</li>
                                   <li><strong>Hover the profile</strong>: a cross-hair follows the mouse and lists, for every case, the line depth and height above the seabed at that distance from the fairlead (plus buoy state and structures nearby). The nearest line is highlighted.</li>
                                   <li><strong>Tension – Offset</strong> view: fairlead tension against offset with the SWL line, plus metres of offset per tonne for each step. Below ~0.1 m per tonne offset is not a usable proxy for tension.</li>
                                   <li>Case colours are blue / cyan / magenta / slate only; red, green and amber always mean status, violet = Max, white = SWL.</li>
@@ -819,8 +821,8 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261113-{APP_VERSION}</span>
-                              <span>Worker: v4.13-261112</span>
+                              <span>Frontend: v261114-{APP_VERSION}</span>
+                              <span>Worker: v4.14-261114</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
@@ -888,7 +890,8 @@
               const flag = MANUAL_FLAG[field];
               if (flag) {
                   const v = parseFloat(value);
-                  seg[flag] = value !== '' && !isNaN(v) && v > 0;
+                  seg[flag] = field === 'EA' ? (value !== '' && !isNaN(v) && v >= 0)   // v13.18: EA 0 = rigid (manual); blank = auto
+                                             : (value !== '' && !isNaN(v) && v > 0);
               }
               if (flag || field === 'diameter') seg = deriveSegment(seg);
               newSegs[index] = seg;
@@ -1147,7 +1150,7 @@
               segments.forEach((s, i) => {
                   if (!validatePositive(s.length, false)) e.push(`Segment ${i + 1}: length must be greater than 0`);
                   if (!validatePositive(s.w, false)) e.push(`Segment ${i + 1}: weight must be greater than 0`);
-                  if (s.EA !== '' && s.EA !== undefined && !validatePositive(parseFloat(s.EA), false)) e.push(`Segment ${i + 1}: EA must be greater than 0 (leave blank for rigid)`);
+                  if (s.EA !== '' && s.EA !== undefined && !validatePositive(parseFloat(s.EA), true)) e.push(`Segment ${i + 1}: EA must be 0 or greater (0 = rigid, blank = auto)`);
                   if (!validatePositive(s.frictionCoeff, true)) e.push(`Segment ${i + 1}: friction must be 0 or greater`);
               });
               if (!isNaN(wd) && totalLen > 0 && totalLen <= wd + (parseFloat(fairleadElev) || 0)) {
@@ -1260,7 +1263,8 @@
                                   const hasManualWet = seg.w_wet !== undefined && seg.w_wet !== null && seg.w_wet !== '' && !isNaN(parseFloat(seg.w_wet)) && parseFloat(seg.w_wet) !== 0;
                                   const isLenInvalid = !validatePositive(seg.length, false);
                                   const isWeightInvalid = !validatePositive(seg.w, false);
-                                  const isEAInvalid = seg.EA !== '' && seg.EA !== undefined && !validatePositive(parseFloat(seg.EA), false);
+                                  const isEAInvalid = seg.EA !== '' && seg.EA !== undefined && !validatePositive(parseFloat(seg.EA), true);
+                                  const eaRigid = !(parseFloat(seg.EA) > 0);
                                   const isFrictionInvalid = !validatePositive(seg.frictionCoeff, true);
                                   const propErr = isWeightInvalid || isEAInvalid || isFrictionInvalid;
                                   const nManual = [seg.isWeightManual, hasManualWet, seg.isEAManual, seg.isMBLManual].filter(Boolean).length;
@@ -1285,7 +1289,7 @@
                                           </div>
                                           <button onClick={() => setPropOpen(o => ({ ...o, [seg.id]: !o[seg.id] }))} aria-expanded={open} aria-label={`Segment ${idx + 1} properties`} className="mt-1 w-full flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 font-mono text-left">
                                               <IconChevronDown size={11} className={`shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
-                                              <span className="truncate" title={`Dry ${seg.w} kg/m · wet ${wetShown.toFixed(2)} kg/m · EA ${seg.EA ? seg.EA + ' kN' : 'rigid'} · MBL ${seg.mbl || '-'} t · friction µ ${seg.frictionCoeff} - click to edit`}>{seg.w || '?'} kg/m · EA {seg.EA ? (seg.EA / 1000).toFixed(0) + ' MN' : 'rigid'} · MBL {seg.mbl || '-'} t</span>
+                                              <span className="truncate" title={`Dry ${seg.w} kg/m · wet ${wetShown.toFixed(2)} kg/m · EA ${eaRigid ? 'rigid' : seg.EA + ' kN'} · MBL ${seg.mbl || '-'} t · friction µ ${seg.frictionCoeff} - click to edit`}>{seg.w || '?'} kg/m · EA {eaRigid ? 'rigid' : (seg.EA / 1000).toFixed(0) + ' MN'} · MBL {seg.mbl || '-'} t</span>
                                               {nManual > 0 && <span className="ml-auto shrink-0 font-sans text-[10px] font-bold text-warn-600 dark:text-warn-400 bg-warn-600/10 rounded px-1">{nManual} manual</span>}
                                               {propErr && <span className="shrink-0 font-sans text-[10px] font-bold text-bad-600 dark:text-bad-400">!</span>}
                                           </button>
@@ -1294,7 +1298,7 @@
                                                   <CF className="col-span-2" label="Dry wt" unit="kg/m" value={seg.w} error={isWeightInvalid} manual={seg.isWeightManual} onReset={() => updateSegment(idx, 'w', '')} placeholder={`${autoW(seg.type, parseFloat(seg.diameter) || 0)}`} onChange={e => updateSegment(idx, 'w', e.target.value)} />
                                                   <CF className="col-span-2" label="Wet wt" unit="kg/m" value={seg.w_wet || ''} manual={hasManualWet} onReset={() => updateSegment(idx, 'w_wet', '')} placeholder={`auto ${autoWet.toFixed(2)}`} onChange={e => updateSegment(idx, 'w_wet', e.target.value)} />
                                                   <CF className="col-span-2" label="Friction µ" value={seg.frictionCoeff} error={isFrictionInvalid} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'frictionCoeff', e.target.value); else if (e.target.value === '') updateSegment(idx, 'frictionCoeff', ''); }} />
-                                                  <CF className="col-span-3" label={seg.type === SegmentType.FIBER ? 'EA (linear)' : 'EA'} unit="kN" value={seg.EA} error={isEAInvalid} manual={seg.isEAManual} onReset={() => updateSegment(idx, 'EA', '')} placeholder={(() => { const a = autoEA(seg.type, parseFloat(seg.diameter) || 0); return a ? `${a}` : 'blank = rigid'; })()} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if (e.target.value === '') updateSegment(idx, 'EA', ''); }} />
+                                                  <CF className="col-span-3" label={seg.type === SegmentType.FIBER ? 'EA (linear)' : 'EA'} unit="kN" value={seg.EA} error={isEAInvalid} manual={seg.isEAManual} onReset={() => updateSegment(idx, 'EA', '')} placeholder={(() => { const a = autoEA(seg.type, parseFloat(seg.diameter) || 0); return a ? `${a}` : '0 = rigid'; })()} title="Axial stiffness. Blank = auto from type + Ø · 0 = rigid (inextensible)" onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'EA', e.target.value); else if (e.target.value === '') updateSegment(idx, 'EA', ''); }} />
                                                   <CF className="col-span-3" label={seg.isMBLManual ? 'MBL' : 'MBL (est.)'} unit="t" title={isChainType(seg.type) ? 'Generic R3 grade estimate - verify against certificate' : 'Generic catalogue estimate - verify against certificate'} value={seg.mbl || ''} manual={seg.isMBLManual} onReset={() => updateSegment(idx, 'mbl', '')} placeholder="est. from Ø" onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'mbl', e.target.value); else if (e.target.value === '') updateSegment(idx, 'mbl', ''); }} />
                                               </div>
                                           )}
@@ -1564,8 +1568,20 @@
 
           const activeCfg = configs.find(c => c.id === activeConfigId) || configs[0];
           const activeWD = activeCfg ? cfgWD(activeCfg) : 73;
+          const selCaseColor = (activeCfg?.results || [])[selIdx] ? caseColorOf(activeCfg.results[selIdx], selIdx, theme === 'dark') : (theme === 'dark' ? '#EAEFF4' : '#26344A');
           const maxWaterDepth = configs.length > 0 ? Math.max(...configs.map(cfgWD)) : 73;   // y-domain only
           const structurePoints = useMemo(() => structures.map((x, idx) => ({ x: x, z: activeWD, id: `struct-${idx}` })), [structures, activeWD]);
+          // v13.18: touchdown marker (selected case) and the minimum-clearance level at every structure.
+          const selRes = (activeCfg?.results || [])[selIdx];
+          const minClrM = statusCtx?.minClearance;
+          const tdDist = (() => { if (!selRes) return null;
+              if (selRes.multiTouchdown) { const cl = contactsOf(selRes); return cl.length ? cl[0].near : null; }
+              return (selRes.groundedLength > 0.05 && selRes.touchdownX !== undefined) ? selRes.fairleadX - selRes.touchdownX : null; })();
+          const tdPoints = (tdDist !== null && isFinite(tdDist) && tdDist >= 0) ? [{ x: tdDist, z: activeWD, mid: !!selRes.multiTouchdown, color: selCaseColor }] : [];
+          const clrPoints = useMemo(() => (selRes && isFinite(minClrM) && minClrM > 0 ? structures : []).map((x, idx) => {
+              const c = clearanceAt(selRes, x, activeWD);
+              return { x, z: activeWD - minClrM, clr: c, ok: c === null ? null : c >= minClrM, id: `clr-${idx}` };
+          }), [structures, selRes, minClrM, activeWD]);
 
           const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
           const maxDepthRaw = allZ.length > 0 ? Math.max(maxWaterDepth + 10, ...allZ) : maxWaterDepth + 10;
@@ -1630,6 +1646,26 @@
               return <rect x={cx-5} y={cy-5} width={10} height={10} fill={fill} stroke={buoyStroke} strokeWidth={1} />;
           };
 
+          const renderTdShape = (props) => {
+              const { cx, cy, payload } = props;
+              return (
+                  <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: 'none' }}>
+                      <path d="M0,2 L-6,13 L6,13 Z" fill={isDark ? '#141E2C' : '#FFFFFF'} stroke={payload.color} strokeWidth={1.8} />
+                      <text x={0} y={25} textAnchor="middle" fontSize={10} fontWeight="700" fill={payload.color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>TD {payload.x.toFixed(0)} m{payload.mid ? ' (mid)' : ''}</text>
+                  </g>
+              );
+          };
+          const renderClrShape = (props) => {
+              const { cx, cy, payload } = props;
+              const col = payload.ok === false ? (isDark ? '#FF5C5C' : '#C42B2B') : payload.ok ? (isDark ? '#3DD68C' : '#0D884F') : (isDark ? '#94A4B8' : '#55687F');
+              return (
+                  <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: 'none' }}>
+                      <path d="M-14 0 L14 0" stroke={col} strokeWidth={1.8} />
+                      <path d="M-14 -3 L-14 3 M14 -3 L14 3" stroke={col} strokeWidth={1.2} />
+                      <text x={18} y={3} fontSize={10} fontWeight="700" fill={col} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>min clr {minClrM} m{payload.clr !== null ? ` · ${Math.max(0, payload.clr).toFixed(1)} m ${payload.ok ? '✓' : '✕'}` : ''}</text>
+                  </g>
+              );
+          };
           const renderStructureShape = (props) => {
               const { cx, cy, payload } = props;
               return (
@@ -1715,6 +1751,8 @@
                               {structurePoints.length > 0 && (
                                   <Scatter key="subsea-structures" data={structurePoints} shape={renderStructureShape} legendType="none" isAnimationActive={false} />
                               )}
+                              {clrPoints.filter(p => p.z >= minDepth).length > 0 && <Scatter key="min-clearance" data={clrPoints.filter(p => p.z >= minDepth)} shape={renderClrShape} legendType="none" isAnimationActive={false} />}
+                              {tdPoints.length > 0 && <Scatter key="touchdown" data={tdPoints} shape={renderTdShape} legendType="none" isAnimationActive={false} />}
 
                               <ReferenceLine y={0} stroke="#2E9BF0" strokeDasharray="4 2" strokeOpacity={1} strokeWidth={1.5} ifOverflow="extendDomain" label={{ position: 'insideTopRight', value: 'Sea Surface', fill: '#2E9BF0', fontSize: 10, fontWeight: 'bold' }} />
                               <ReferenceLine y={activeWD} stroke={isDark ? "#94A4B8" : "#55687F"} strokeWidth={2} strokeOpacity={0.8} ifOverflow="extendDomain" label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 10, fontWeight: 'bold' }} />
@@ -2624,7 +2662,7 @@
                               ? data.segments.map(s => deriveSegment({ ...s, id: makeClientId('seg'),
                                     // v12 files have no manual flags for w: treat a provided value as manual so cert data survives
                                     isWeightManual: s.isWeightManual ?? (parseFloat(s.w) > 0),
-                                    isEAManual: s.isEAManual ?? (parseFloat(s.EA) > 0),
+                                    isEAManual: s.isEAManual ?? (s.EA !== '' && s.EA !== undefined && parseFloat(s.EA) >= 0 && parseFloat(s.EA) < 1e9),
                                     isMBLManual: s.isMBLManual ?? (parseFloat(s.mbl) > 0) }))
                               : [];
                       }
@@ -2720,11 +2758,16 @@
               // v13.12: a timeout is NOT a CPU kill (that returns at once as "Failed to fetch"). Dashboard showed 0 errors
               // and ~20 ms wall time while the first click timed out at 20 s -> the delay is on the network path
               // (proxy / first TLS connection). So: 12 s per attempt and ONE automatic retry for timeouts only.
-              const EXPECTED_ENGINE = 'v4.13';
+              const EXPECTED_ENGINE = 'v4.14';
               const TIMEOUT_MS = [12000, 15000];
               const jobs = dedupInputs.map(t => ({ ...payload, targets: [t], calculateMax: false }));
               if (showMaxTension) jobs.push({ ...payload, targets: [], calculateMax: true });
-              const physKey = JSON.stringify([payload.waterDepth, payload.targetZ, payload.segments, payload.buoys]);
+              // v13.18: key on the fields the engine actually uses (id / MBL / diameter / manual flags do not change the solution),
+              // so editing MBL or the Design factor re-solves only the (SWL) case.
+              const nz = (v) => (v === '' || v === undefined || v === null) ? '' : Number(v);
+              const physKey = JSON.stringify([payload.waterDepth, payload.targetZ,
+                  payload.segments.map(sg => [sg.type, nz(sg.length), nz(sg.w), nz(sg.w_wet), nz(sg.EA), nz(sg.frictionCoeff)]),
+                  payload.buoys.map(b => [b.distanceFromAnchor, b.netBuoyancy, b.pennantLength, b.pennantWeight, b.pennantLoad, b.height])]);
               const jobKey = (b) => physKey + '|' + b.calcMode + '|' + (b.calculateMax ? 'MAX' : b.targets.join(','));
               let engineSeen = null, nCached = 0, nSent = 0;
               const runJob = async (body) => {
