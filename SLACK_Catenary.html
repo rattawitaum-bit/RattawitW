@@ -400,24 +400,24 @@
       const getStatusFlags = (res, ctx) => {
           const f = [];
           const { minMBL, hasMBL, df, structures, minClearance, waterDepth } = ctx;
-          if (res.offsetReached === false) f.push({ level: 'bad', code: 'OFFSET_NOT_REACHED', text: `Offset not reached (${res.offsetError > 0 ? '+' : ''}${res.offsetError?.toFixed(1)} m)`, tip: `Target ${res.targetOffset} m is outside the reachable range for this payout. Solved X = ${res.fairleadX?.toFixed(1)} m.` });
-          if (res.converged === false) f.push({ level: 'bad', code: 'NOT_CONVERGED', text: 'Not converged', tip: res.solverNote || `residual ${res.residual?.toFixed(3)} m` });
+          if (res.offsetReached === false) f.push({ level: 'bad', code: 'OFFSET_NOT_REACHED', text: `Offset not reached (${res.offsetError > 0 ? '+' : ''}${fL(res.offsetError, 1)} ${uL()})`, tip: `Target ${fT(res.targetOffset, 1)} ${uL()} is outside the reachable range for this payout. Solved X = ${fL(res.fairleadX, 1)} ${uL()}.` });
+          if (res.converged === false) f.push({ level: 'bad', code: 'NOT_CONVERGED', text: 'Not converged', tip: res.solverNote || `residual ${fL(res.residual, 3)} ${uL()}` });
           if (res.fairleadSubmerged) f.push({ level: 'bad', code: 'FL_BELOW_SURFACE', text: 'FL below surface', tip: 'Solved fairlead lies below the sea surface' });
           if (res.maxNA) f.push({ level: 'warn', code: 'MAX_NA', text: 'Find Max N/A', tip: 'The anchor is lifted at every tension (e.g. large buoy near the anchor), so a 0 m-grounded lift-off point does not exist. This row is the 0.1 t probe, not a maximum.' });
           if (res.maxIncomplete) f.push({ level: 'bad', code: 'MAX_INCOMPLETE', text: 'Find Max incomplete', tip: 'The Worker CPU budget ran out before the lift-off tension was bracketed. This row is NOT a maximum - use fewer targets or run Find Max on its own.' });
           if (String(res.solver || '').startsWith('collocation')) f.push({ level: 'info', code: 'MULTI_BUOY_SOLVER', text: res.solver === 'collocation-retry' ? 'Multi-buoy solver (retry)' : 'Multi-buoy solver', tip: 'Solved by the span-decoupled nodal collocation solver (Worker v4.6): used only when the standard shooting solver cannot handle several buoys floating partially submerged. Result passed internal checks (force residual < 1 N, no seabed penetration, span/node depth gap <= 0.01 m, force continuity at every buoy, fairlead within 0.01 m). "Retry" = robust second pass (Worker v4.7) used only when the first pass is rejected.' });
-          if (res.multiTouchdown) { const cl = contactsOf(res); f.push({ level: 'info', code: 'MULTI_TOUCHDOWN_SOLVED', text: cl.length > 1 ? `${cl.length} mid-line seabed contacts (${res.contact2Length?.toFixed(1)} m)` : `2nd seabed contact ${res.contact2Length?.toFixed(1)} m`, tip: `Solved: line touches the seabed tangentially between buoy(s) - ${cl.map(c => `${c.length.toFixed(1)} m at ${c.near.toFixed(0)}-${c.far.toFixed(0)} m from the fairlead`).join('; ')}${res.anchorUpliftForce > 0 ? `; anchor uplifted ${res.anchorUpliftForce.toFixed(2)} t` : ''}. Contact stretches modelled frictionless; buoys may float partially submerged.` }); }
+          if (res.multiTouchdown) { const cl = contactsOf(res); f.push({ level: 'info', code: 'MULTI_TOUCHDOWN_SOLVED', text: cl.length > 1 ? `${cl.length} mid-line seabed contacts (${fL(res.contact2Length, 1)} ${uL()})` : `2nd seabed contact ${fL(res.contact2Length, 1)} ${uL()}`, tip: `Solved: line touches the seabed tangentially between buoy(s) - ${cl.map(c => `${fL(c.length, 1)} ${uL()} at ${fL(c.near, 0)}-${fL(c.far, 0)} ${uL()} from the fairlead`).join('; ')}${res.anchorUpliftForce > 0 ? `; anchor uplifted ${fF(res.anchorUpliftForce, 2)} ${uF()}` : ''}. Contact stretches modelled frictionless; buoys may float partially submerged.` }); }
           else if (res.seabedContactSuspended) f.push({ level: 'bad', code: 'MULTI_TOUCHDOWN', text: 'Invalid: multi-touchdown', tip: (res.multiTouchdownNote ? res.multiTouchdownNote + '. ' : '') + 'Suspended line re-contacts the seabed and no validated solution was found (e.g. several buoys at the surface). Tensions/offset for this case are not valid.' });
           if (buoyPoints(res).some(p => p.inGroundedZone && !p.isSlack)) f.push({ level: 'bad', code: 'BUOY_ON_GROUNDED', text: 'Buoy on grounded zone', tip: 'A buoy sits on the grounded part of the line - the engine does not model this correctly.' });
-          if (hasMBL && res.fairleadTension > minMBL / df) f.push({ level: 'bad', code: 'EXCEEDS_SWL', text: 'Exceeds SWL', tip: `FL ${res.fairleadTension?.toFixed(1)} t > SWL ${(minMBL / df).toFixed(1)} t (MBL ${minMBL} t / DF ${df})` });
+          if (hasMBL && res.fairleadTension > minMBL / df) f.push({ level: 'bad', code: 'EXCEEDS_SWL', text: 'Exceeds SWL', tip: `FL ${fF(res.fairleadTension, 1)} ${uF()} > SWL ${fF(minMBL / df, 1)} ${uF()} (MBL ${fFT(minMBL, 1)} ${uF()} / DF ${df})` });
           (structures || []).forEach(st => {
               const c = clearanceAt(res, st, waterDepth);
-              if (c !== null && c <= 0.05) f.push({ level: 'bad', code: 'GROUNDED_ON_STRUCTURE', text: `Grounded on struct @ ${st} m`, tip: `Line lies ON the seabed at the structure distance (${st} m from FL) - direct contact` });
-              else if (c !== null && c < minClearance) f.push({ level: 'bad', code: 'LOW_CLEARANCE', text: `Clr ${Math.max(0, c).toFixed(1)} m @ ${st} m`, tip: `Line is ${c.toFixed(1)} m above seabed at the structure (${st} m from FL); minimum ${minClearance} m` });
+              if (c !== null && c <= 0.05) f.push({ level: 'bad', code: 'GROUNDED_ON_STRUCTURE', text: `Grounded on struct @ ${fT(st, 1)} ${uL()}`, tip: `Line lies ON the seabed at the structure distance (${fT(st, 1)} ${uL()} from FL) - direct contact` });
+              else if (c !== null && c < minClearance) f.push({ level: 'bad', code: 'LOW_CLEARANCE', text: `Clr ${fL(Math.max(0, c), 1)} ${uL()} @ ${fT(st, 1)} ${uL()}`, tip: `Line is ${fL(c, 1)} ${uL()} above seabed at the structure (${fT(st, 1)} ${uL()} from FL); minimum ${fT(minClearance, 1)} ${uL()}` });
           });
-          if ((res.anchorUpliftForce || 0) > 0.005) f.push({ level: res.isAnchorUplift ? 'bad' : 'warn', code: 'ANCHOR_UPLIFT', text: `Anchor uplift ${res.anchorUpliftForce.toFixed(2)} t`, tip: 'Vertical load at the anchor' });
+          if ((res.anchorUpliftForce || 0) > 0.005) f.push({ level: res.isAnchorUplift ? 'bad' : 'warn', code: 'ANCHOR_UPLIFT', text: `Anchor uplift ${fF(res.anchorUpliftForce, 2)} ${uF()}`, tip: 'Vertical load at the anchor' });
           if (buoyPoints(res).some(p => !p.isSlack && (p.buoyUtilization || 0) >= 0.999)) f.push({ level: 'warn', code: 'BUOY_SUBMERGED', text: 'Buoy submerged', tip: 'At least one buoy is fully submerged' });
-          if (res.isSwlCase) f.push({ level: 'info', code: 'SWL_CASE', text: 'At SWL', tip: `Tension solved so that the fairlead tension equals the SWL (${(minMBL / df).toFixed(1)} t = MBL ${minMBL} t / DF ${df}) - the operating limit of this line.` });
+          if (res.isSwlCase) f.push({ level: 'info', code: 'SWL_CASE', text: 'At SWL', tip: `Tension solved so that the fairlead tension equals the SWL (${fF(minMBL / df, 1)} ${uF()} = MBL ${fFT(minMBL, 1)} ${uF()} / DF ${df}) - the operating limit of this line.` });
           if (res.frictionCapped) f.push({ level: 'info', code: 'FRICTION_HELD', text: 'Friction-held (Anch H = 0)', tip: 'Seabed friction on the grounded length absorbs all horizontal tension, so the anchor carries no load (Anch H = 0). Grounded length and touchdown are still valid.' });
           return f;
       };
@@ -468,6 +468,237 @@
           let t = v === undefined || v === null ? '' : String(v);
           if (/^[=+\-@\t\r]/.test(t) && isNaN(Number(t))) t = "'" + t;
           return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+      };
+
+      // ============================================================
+      // v13.21 - display units + per-node line model (Nodes / Along-line / report).
+      // Inputs stay in m and t. Units are applied ONLY at the display layer (one place) - never in the engine payload.
+      // 1 ft = 0.3048 m (exact) · 1 t = 9.80665 kN (tonne-force) · 1 kip = 4.4482216 kN. The engine itself uses g = 9.81;
+      // the 0.03 % difference is far inside the +-0.5 m / +-1 m accuracy basis.
+      // ============================================================
+      const LEN_UNITS = { m: { f: 1, label: 'm' }, ft: { f: 1 / 0.3048, label: 'ft' } };
+      const KIP_PER_T = 9.80665 / 4.4482216152605;
+      const FORCE_UNITS = { t: { f: 1, label: 't' }, kN: { f: 9.80665, label: 'kN' }, kip: { f: KIP_PER_T, label: 'kip' } };
+      let UNITS = (() => {
+          try { const u = JSON.parse(localStorage.getItem('slack_units') || '{}'); return { len: LEN_UNITS[u.len] ? u.len : 'm', force: FORCE_UNITS[u.force] ? u.force : 't' }; }
+          catch (e) { return { len: 'm', force: 't' }; }
+      })();
+      const setUnits = (u) => { UNITS = { ...UNITS, ...u }; try { localStorage.setItem('slack_units', JSON.stringify(UNITS)); } catch (e) {} };
+      const uL = () => LEN_UNITS[UNITS.len].label;
+      const uF = () => FORCE_UNITS[UNITS.force].label;
+      const cL = (m) => m * LEN_UNITS[UNITS.len].f;          // metres -> display length
+      const cF = (t) => t * FORCE_UNITS[UNITS.force].f;      // tonnes-force -> display force
+      const okNum = (v) => typeof v === 'number' && isFinite(v);
+      const fL = (m, d = 1) => okNum(m) ? cL(m).toFixed(d) : '-';
+      const fF = (t, d = 1) => okNum(t) ? cF(t).toFixed(d) : '-';
+      const fT = (m, d = 1) => okNum(m) ? String(+cL(m).toFixed(d)) : '-';       // trimmed (73 -> '73', 77.8 -> '77.8')
+      const fFT = (t, d = 1) => okNum(t) ? String(+cF(t).toFixed(d)) : '-';
+      const hdrF = (label) => UNITS.force === 't' ? label : `${label} ${uF()}`;     // force column headers carry the unit only when it is not t
+      const unitsKey = () => UNITS.len + '|' + UNITS.force;
+      // nice axis step (1/2/5 x 10^n) in DISPLAY units
+      const niceStepD = (span, n = 5) => {
+          if (!span || span <= 0) return 1;
+          const raw = span / n, pow = Math.pow(10, Math.floor(Math.log10(raw))), norm = raw / pow;
+          return (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * pow;
+      };
+
+      // ============================================================
+      // Node model. Rebuilds the force state along the solved line from the profile points (x, z, s, flags) and the
+      // segment/buoy inputs the case was calculated with (config.calcSnap). Units here: m, tonnes-force.
+      //   suspended : H constant (= case H), V += w_wet * ds, T = sqrt(H^2 + V^2); at a buoy V -= lift (pennantTension)
+      //   on seabed : V = 0, T(s) = max(0, H - (F_total - F(s)))  (friction F = sum mu * w_wet * ds from the anchor)
+      //   mid-line contact: frictionless, T = H, V = 0
+      // Elongation of a part = integral T/EA ds (suspended) or, on flat stretches, the measured (dx - ds) of the solved profile,
+      // so it shows exactly what the engine modelled (anchor-side grounded part is NOT stretched by the engine).
+      // The model is checked against the engine's own fairlead / anchor tension (closure).
+      // ============================================================
+      const G_ENGINE = 9.81;
+      const segWetPerM = (sg) => {
+          const mw = parseFloat(sg.w_wet);
+          if (!isNaN(mw) && mw !== 0) return mw / 1000;
+          const dry = parseFloat(sg.w) || 0, rho = MATERIAL_DENSITIES[sg.type] || 7850;
+          return dry * (rho - SEAWATER_DENSITY) / rho / 1000;
+      };
+      const normSnap = (snapSegs) => (snapSegs || []).map((sg, i) => {
+          const ea = parseFloat(sg.EA), mbl = parseFloat(sg.mbl);
+          return { idx: i, id: String(sg.id), type: sg.type, d: parseFloat(sg.diameter) || 0, L: parseFloat(sg.length) || 0,
+                   wet: segWetPerM(sg), mu: parseFloat(sg.frictionCoeff) || 0, EA: (ea > 0 && ea < 1e8) ? ea : 0,
+                   mbl: mbl > 0 ? mbl : 0, mblManual: !!sg.isMBLManual };
+      });
+      const NODE_STATE = { susp: 'suspended', flat: 'on seabed', contact: 'mid-line contact' };
+      const buildNodes = (res, snapSegs, snapBuoys, WD) => {
+          const P = (res && res.points) || [];
+          if (P.length < 2 || !snapSegs || !snapSegs.length) return null;
+          const S = normSnap(snapSegs), byId = new Map(S.map(s => [s.id, s]));
+          const n = P.length, H = res.horizontalTension, Ltot = res.totalLength;
+          // results imported from a file saved before v13.21 carry segment ids that no longer exist in the inputs: map them by order
+          // (the points run anchor -> fairlead, i.e. the LAST input segment first)
+          const idsSeen = []; P.forEach(p => { const k = String(p.segmentId); if (!idsSeen.includes(k)) idsSeen.push(k); });
+          if (idsSeen.some(k => !byId.has(k)) && idsSeen.length === S.length) idsSeen.forEach((k, j) => byId.set(k, S[S.length - 1 - j]));
+          // the step that ENDS at a joint copy still belongs to the previous segment (the joint copy carries the next segment's id)
+          const stepSeg = (i) => byId.get(String(((P[i].isJoint && i > 0) ? P[i - 1] : P[i]).segmentId));
+          const flat = P.map(p => !!p.isGrounded), contact = P.map(p => !!p.isContact2);
+          // friction on the anchor-side grounded stretch
+          const F = new Array(n).fill(0); let Ft = 0;
+          for (let i = 1; i < n; i++) {
+              if (flat[i] && !contact[i] && flat[i - 1] && !contact[i - 1]) {
+                  const sg = stepSeg(i);
+                  Ft += (sg ? sg.mu * sg.wet : 0) * (P[i].s - P[i - 1].s);
+              }
+              F[i] = Ft;
+          }
+          const liftOf = (p) => {
+              if (typeof p.pennantTension === 'number') return p.pennantTension;
+              const b = snapBuoys && snapBuoys[p.buoyIndex];
+              if (!b) return 0;
+              const avail = Math.max(0, (parseFloat(b.netBuoyancy) || 0) - (parseFloat(b.pennantWeight) || 0) - (parseFloat(b.pennantLoad) || 0));
+              return avail * (p.buoyUtilization || 0);
+          };
+          const T = new Array(n), V = new Array(n), Vout = new Array(n), Hl = new Array(n), lift = new Array(n).fill(0);
+          let v = flat[0] ? 0 : (res.anchorUpliftForce || 0);
+          for (let i = 0; i < n; i++) {
+              const p = P[i];
+              if (i > 0) {
+                  const ds = p.s - P[i - 1].s;
+                  if (flat[i]) v = 0;
+                  else { if (flat[i - 1]) v = 0; const sg = stepSeg(i); v += (sg ? sg.wet : 0) * ds; }
+              }
+              if (flat[i] && !contact[i]) { T[i] = Math.max(0, H - (Ft - F[i])); V[i] = 0; Hl[i] = T[i]; }
+              else if (contact[i]) { T[i] = H; V[i] = 0; Hl[i] = H; }
+              else { V[i] = v; Hl[i] = H; T[i] = Math.hypot(H, v); }
+              Vout[i] = V[i];
+              if (p.isBuoy) { lift[i] = liftOf(p); if (!flat[i]) { v -= lift[i]; Vout[i] = v; } }
+          }
+          // elongation per segment (m) and lengths by state
+          const el = S.map(() => ({ susp: 0, anchorFlat: 0, contact: 0, lenSusp: 0, lenFlat: 0, lenContact: 0 }));
+          for (let i = 1; i < n; i++) {
+              const ds = P[i].s - P[i - 1].s; if (!(ds > 0)) continue;
+              const sg = stepSeg(i); if (!sg) continue; const e = el[sg.idx];
+              if (flat[i] && flat[i - 1]) {
+                  const d = (P[i].x - P[i - 1].x) - ds;
+                  if (contact[i]) { e.contact += d; e.lenContact += ds; } else { e.anchorFlat += d; e.lenFlat += ds; }
+              } else if (flat[i]) {   // first contact step after a suspended point: engine strain H/EA
+                  if (sg.EA > 0) e.contact += H * G_ENGINE / sg.EA * ds; e.lenContact += ds;
+              } else {
+                  if (sg.EA > 0) e.susp += 0.5 * (T[i - 1] + T[i]) * G_ENGINE / sg.EA * ds;
+                  e.lenSusp += ds;
+              }
+          }
+          // flat runs: FL-side end = touchdown (seen from the fairlead), anchor-side end = lift-off
+          const runEnd = new Array(n).fill(false), runStart = new Array(n).fill(false);
+          for (let i = 0; i < n; i++) {
+              if (flat[i] && !(i + 1 < n && flat[i + 1])) runEnd[i] = true;
+              if (flat[i] && i > 0 && !flat[i - 1]) runStart[i] = true;
+          }
+          const rows = [];
+          for (let i = 0; i < n; i++) {
+              const p = P[i];
+              const isJ = !!(p.isJoint && i > 0);
+              if (isJ && Math.abs(p.s - P[i - 1].s) < 1e-6) continue;   // duplicate of the previous node (merged into it below)
+              const tags = [];
+              if (i === 0) tags.push('anchor');
+              if (i === n - 1) tags.push('fairlead');
+              if (p.isBuoy) tags.push('buoy');
+              const nextJoint = i + 1 < n && P[i + 1].isJoint && Math.abs(P[i + 1].s - p.s) < 1e-6;
+              if (nextJoint || isJ) tags.push('joint');
+              if (runEnd[i] && i > 0) tags.push('td');
+              if (runStart[i]) tags.push('lo');
+              const sg = isJ ? stepSeg(i) : byId.get(String(p.segmentId)), sg2 = nextJoint ? byId.get(String(P[i + 1].segmentId)) : (isJ ? byId.get(String(p.segmentId)) : null);
+              const state = contact[i] ? 'contact' : flat[i] ? 'flat' : 'susp';
+              rows.push({
+                  i, tags, state, s: p.s, x: p.x, z: p.z, T: T[i], V: V[i], Vout: Vout[i], H: Hl[i], lift: lift[i],
+                  ang: Math.atan2(V[i], Hl[i] || 1e-9) * 180 / Math.PI, angOut: Math.atan2(Vout[i], Hl[i] || 1e-9) * 180 / Math.PI,
+                  seg: sg || null, seg2: sg2, buoy: p.isBuoy ? p : null, interp: false
+              });
+          }
+          // fairlead side distances and derived columns
+          const decorate = (r) => {
+              r.sFL = Ltot - r.s; r.xFL = res.fairleadX - r.x; r.h = Math.max(0, WD - r.z);
+              const m1 = r.seg ? r.seg.mbl : 0, m2 = r.seg2 ? r.seg2.mbl : m1;
+              const m = (m1 && m2) ? Math.min(m1, m2) : (m1 || m2);
+              r.mbl = m; r.SF = (m && r.T > 1e-6) ? m / r.T : null;
+              return r;
+          };
+          rows.forEach(decorate);
+          const dFL = T[n - 1] - res.fairleadTension;
+          const anchorRef = flat[0] ? res.anchorTension : (res.anchorResultantTension ?? Math.hypot(res.anchorTension || 0, res.anchorUpliftForce || 0));
+          const dAn = T[0] - anchorRef;
+          const tolFL = Math.max(0.02, 0.003 * (res.fairleadTension || 0)), tolAn = Math.max(0.02, 0.01 * Math.max(anchorRef || 0, 1));
+          return { rows, S, el, H, Ltot, WD, decorate, closure: { dFL, dAn, ok: Math.abs(dFL) <= tolFL && Math.abs(dAn) <= tolAn, tolFL, tolAn }, n };
+      };
+      // interpolate a node at arc length s (from the anchor) between ascending rows
+      const interpNode = (model, rows, s) => {
+          if (!rows.length) return null;
+          if (s <= rows[0].s) return { ...rows[0] };
+          if (s >= rows[rows.length - 1].s) return { ...rows[rows.length - 1] };
+          let lo = 0, hi = rows.length - 1;
+          while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rows[m].s <= s) lo = m; else hi = m; }
+          const a = rows[lo], b = rows[hi], t = (b.s - a.s) > 1e-9 ? (s - a.s) / (b.s - a.s) : 0;
+          const both = (st) => a.state === st && b.state === st;
+          const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+          let T, V, H;
+          if (both('flat')) { T = a.T + (b.T - a.T) * t; V = 0; H = T; }
+          else if (both('contact')) { T = model.H; V = 0; H = model.H; }
+          else { V = a.Vout + (b.V - a.Vout) * t; H = model.H; T = Math.hypot(H, V); }
+          const r = { i: -1, tags: [], state: both('flat') ? 'flat' : both('contact') ? 'contact' : (b.state === 'susp' || a.state === 'susp') ? 'susp' : b.state,
+                      s, x, z, T, V, Vout: V, H, lift: 0, ang: Math.atan2(V, H || 1e-9) * 180 / Math.PI, seg: b.seg, seg2: null, buoy: null, interp: true };
+          r.angOut = r.ang;
+          return model.decorate(r);
+      };
+      const KEY_TAGS = ['anchor', 'fairlead', 'buoy', 'joint', 'td', 'lo', 'struct'];
+      // add structure nodes (horizontal distance from the fairlead) - interpolated, tagged 'struct'
+      const withStructures = (model, res, structures) => {
+          const rows = model.rows.map(r => ({ ...r, tags: [...r.tags] }));
+          (structures || []).forEach(d => {
+              if (!(d > 0) || d > res.fairleadX) return;
+              const xa = res.fairleadX - d;
+              let k = rows.findIndex(r => Math.abs(r.x - xa) < 0.05);
+              if (k >= 0) { rows[k].tags.push('struct'); rows[k].structD = d; return; }
+              let lo = 0, hi = rows.length - 1;
+              if (xa < rows[0].x || xa > rows[hi].x) return;
+              while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rows[m].x <= xa) lo = m; else hi = m; }
+              const a = rows[lo], b = rows[hi], t = (b.x - a.x) > 1e-9 ? (xa - a.x) / (b.x - a.x) : 0;
+              const r = interpNode(model, rows, a.s + (b.s - a.s) * t); r.tags = ['struct']; r.structD = d;
+              rows.splice(hi, 0, r);
+          });
+          return rows;
+      };
+      // resolution: 'native' | 'key' | numeric display step (converted to metres by the caller)
+      const resampleNodes = (model, rowsAsc, mode, stepM) => {
+          if (mode === 'native') return rowsAsc;
+          const keep = rowsAsc.filter(r => r.tags.some(t => KEY_TAGS.includes(t)));
+          if (mode === 'key' || !(stepM > 0)) return keep;
+          const out = [...keep];
+          for (let sFL = stepM; sFL < model.Ltot - 1e-6; sFL += stepM) {
+              const s = model.Ltot - sFL;
+              if (keep.some(r => Math.abs(r.s - s) < 0.05)) continue;
+              const r = interpNode(model, rowsAsc, s); if (r) out.push(r);
+          }
+          return out.sort((a, b) => a.s - b.s);
+      };
+      const nodeKindLabel = (r) => {
+          const t = r.tags, parts = [];
+          if (t.includes('anchor')) parts.push('Anchor');
+          if (t.includes('fairlead')) parts.push('Fairlead');
+          if (t.includes('buoy')) parts.push('B' + (Number.isInteger(+r.buoy?.buoyIndex) ? (+r.buoy.buoyIndex + 1) : '?'));
+          if (t.includes('struct')) parts.push(`Struct ${r.structD != null ? fL(r.structD, 0) + ' ' + uL() : ''}`.trim());
+          if (t.includes('td')) parts.push('Touchdown');
+          if (t.includes('lo')) parts.push('Lift-off');
+          if (t.includes('joint')) parts.push('Joint');
+          return parts.length ? parts.join(' · ') : NODE_STATE[r.state];
+      };
+      const SEG_SHORT = { WIRE: 'Wire', CHAIN: 'Chain', CHAIN_STUDLESS: 'Chain SL', FIBER: 'Fiber' };
+      const nodeSegLabel = (r) => r.seg ? (r.seg2 && r.seg2.idx !== r.seg.idx ? `#${r.seg.idx + 1}→#${r.seg2.idx + 1}` : `#${r.seg.idx + 1} ${SEG_SHORT[r.seg.type] || r.seg.type} ${r.seg.d}`) : '-';
+      // table model shared by the screen, the clipboard, the CSV and the PDF report
+      const nodeTable = (rowsAsc, ctx, reverse = true) => {
+          const rows = reverse ? [...rowsAsc].reverse() : rowsAsc, swl = ctx && ctx.hasMBL ? ctx.minMBL / ctx.df : NaN;
+          const head = ['No.', 'Node', 'Segment', `s from FL (${uL()})`, `X from FL (${uL()})`, `X from anchor (${uL()})`, `Depth (${uL()})`, `Height above seabed (${uL()})`,
+                        `T (${uF()})`, `H (${uF()})`, `V (${uF()})`, 'Angle (deg)', 'Lift (' + uF() + ')', 'SF (MBL/T)', 'SWL %', 'Type'];
+          const body = rows.map((r, k) => [k + 1, nodeKindLabel(r), nodeSegLabel(r), fL(r.sFL, 1), fL(r.xFL, 1), fL(r.x, 1), fL(r.z, 2), fL(r.h, 2),
+              fF(r.T, 2), fF(r.H, 2), fF(r.V, 2), r.ang.toFixed(1), r.lift > 0 ? fF(r.lift, 2) : '', r.SF == null ? '' : r.SF.toFixed(2), isFinite(swl) ? (r.T / swl * 100).toFixed(0) : '',
+              r.interp ? 'interpolated' : 'engine point']);
+          const headShort = ['No.', 'Node', 'Segment', `s FL (${uL()})`, `X FL (${uL()})`, `X anchor (${uL()})`, `Depth (${uL()})`, `Height (${uL()})`, `T (${uF()})`, `H (${uF()})`, `V (${uF()})`, 'Angle °', `Lift (${uF()})`, 'SF', 'SWL %', 'Type'];
+          return { head, headShort, body, rows };
       };
 
       // --- ICONS ---
@@ -577,7 +808,7 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
-      const APP_VERSION = 'v13.20';
+      const APP_VERSION = 'v13.21';
       const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
@@ -806,7 +1037,20 @@
                               </ul>
                           </div>
                           <div>
-                              <H>8. Tabs, files and limits</H>
+                              <H>8. Advanced mode, units and the report</H>
+                              <ul className="list-disc pl-4 space-y-1">
+                                  <li><strong>Advanced</strong> (button at the right of the view tabs, remembered) adds two views and more result columns. Everything else stays as it is.</li>
+                                  <li><strong>Nodes</strong>: a table of every node of the selected case, fairlead → anchor: s and X from the fairlead, X from the anchor, depth, height above the seabed, T, H, V, line angle, buoy lift, SF = segment MBL / T and SWL %. <em>Native</em> shows only the points the engine returned (about every 6 m, always including anchor, joints, buoys, touchdown / lift-off and the fairlead). <em>Key points</em> keeps only the special nodes; <em>Every 5 / 10 / 25 / 50</em> adds rows interpolated linearly between engine points (marked <em>interpolated</em>; error ≤ 0.1 m at 1 t). Subsea structures get their own row with the clearance. <strong>Copy</strong> pastes the table into Excel, <strong>CSV</strong> saves every row.</li>
+                                  <li>T, V and the angle at a buoy row are on the anchor side of the buoy; <em>Lift</em> is the buoy force. Touchdown / Lift-off are seen from the fairlead. The check mark above the table means the forces rebuilt from the profile match the engine's fairlead and anchor tension.</li>
+                                  <li><strong>Segments · elongation</strong> (right of the Nodes table): stretched minus unstretched length of each segment. The engine does not stretch the anchor-side grounded part, so it contributes 0.</li>
+                                  <li><strong>Along Line</strong>: tension (with SWL), line angle and height above the seabed along the line, with buoys, joints, structures and the minimum clearance. Hover for the values; choose the axis (horizontal distance or distance along the line); tick "Tension of all cases" to overlay the other cases.</li>
+                                  <li><strong>Columns ▾</strong> (results table, Advanced only): Basic = the standard table, Standard adds FL angle and Min SF, Full adds FL V, contacts, elongation, solver and residual.</li>
+                                  <li><strong>Units</strong> (m / ft, t / kN / kip, top right): results, charts, exports and the report change; the <em>input</em> fields always stay in m and t (a badge reminds you). 1 ft = 0.3048 m, 1 t = 9.80665 kN, 1 kip = 4.4482 kN. The engine uses g = 9.81, a 0.03 % difference.</li>
+                                  <li><strong>PDF</strong> now builds a multi-page report: profile, results and inputs, plan view with the structure check, along-line graphs, tension – offset and a node table of the selected case. The view you are working in is not switched.</li>
+                              </ul>
+                          </div>
+                          <div>
+                              <H>9. Tabs, files and limits</H>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>+</strong> adds a tab; other tabs are drawn dimmed for comparison. Switching tabs never recalculates.</li>
                                   <li><strong>Save Setup</strong> stores the tab in this browser; <strong>Export/Import JSON</strong> moves it between machines (results included).</li>
@@ -817,7 +1061,7 @@
                               </ul>
                           </div>
                           <div>
-                              <H>9. Model assumptions</H>
+                              <H>10. Model assumptions</H>
                               <ul className="list-disc pl-4 space-y-1">
                                   <li>Static (no current, wave or dynamic loads); flat, horizontal seabed; pennants vertical; linear EA (fiber is non-linear in reality); generic material properties unless entered manually.</li>
                               </ul>
@@ -827,7 +1071,7 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261116-{APP_VERSION}</span>
+                              <span>Frontend: v261117-{APP_VERSION}</span>
                               <span>Worker: v4.14.1-261115</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
@@ -1464,20 +1708,20 @@
                   {(
                       <div className={`absolute w-[290px] rounded-md border shadow-float px-2.5 py-2 text-[11px] ${panel}`} style={{ left, top }}>
                           <div className="flex justify-between font-semibold border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 font-mono">
-                              <span>{cur.x.toFixed(1)} m from FL</span><span className="text-gray-500 dark:text-gray-400">depth {cur.z.toFixed(1)} m</span>
+                              <span>{fL(cur.x, 1)} {uL()} from FL</span><span className="text-gray-500 dark:text-gray-400">depth {fL(cur.z, 1)} {uL()}</span>
                           </div>
                           {rows.length === 0 && <div className="text-gray-500 dark:text-gray-400">No line at this distance (beyond the anchors)</div>}
-                          {st !== undefined && <div className="mb-1 font-bold text-bad-600 dark:text-bad-400">Structure @ {st} m</div>}
+                          {st !== undefined && <div className="mb-1 font-bold text-bad-600 dark:text-bad-400">Structure @ {fT(st, 1)} {uL()}</div>}
                           {order.map(r => (
                               <div key={r.c.id} className={`flex items-center justify-between gap-2 leading-5 ${near === r ? 'font-bold' : ''}`} style={{ opacity: r.c.isActiveTab ? 1 : 0.6 }}>
                                   <span className="flex items-center gap-1.5 min-w-0 truncate">
                                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: r.c.color }}></span>
-                                      <span className="font-mono truncate">{r.c.isActiveTab ? '' : `[${r.c.tabName}] `}{r.c.horizontalTension?.toFixed(1)} t{r.c.isMax ? ' Max' : r.c.isSwl ? ' SWL' : ''}{r.c.invalid ? ' ⚠' : ''}</span>
+                                      <span className="font-mono truncate">{r.c.isActiveTab ? '' : `[${r.c.tabName}] `}{fF(r.c.horizontalTension, 1)} {uF()}{r.c.isMax ? ' Max' : r.c.isSwl ? ' SWL' : ''}{r.c.invalid ? ' ⚠' : ''}</span>
                                       {r.nb.map((b, k) => <span key={k} className="text-gray-500 dark:text-gray-400 font-normal">B{getBuoyDisplayNumber(b, [], k)} {b.isSlack ? 'SLACK' : `${((b.buoyUtilization || 0) * 100).toFixed(0)}%`}</span>)}
                                   </span>
                                   <span className="font-mono shrink-0 tabular-nums">
-                                      <span className="text-gray-500 dark:text-gray-400">z {r.z.toFixed(1)}</span>{' '}
-                                      <span className={r.onSeabed ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}>{r.onSeabed ? 'seabed' : `↑${r.h.toFixed(1)} m`}</span>
+                                      <span className="text-gray-500 dark:text-gray-400">z {fL(r.z, 1)}</span>{' '}
+                                      <span className={r.onSeabed ? 'text-gray-400' : 'text-accent-600 dark:text-accent-400'}>{r.onSeabed ? 'seabed' : `↑${fL(r.h, 1)} ${uL()}`}</span>
                                   </span>
                               </div>
                           ))}
@@ -1505,7 +1749,7 @@
       const cfgWD = (c) => parseFloat(c.calcWaterDepth ?? c.waterDepth) || 0;   // A11/A12: WD used for THAT tab's calc
 
       // v13.20 P2: React.memo - typing in the input panel no longer re-renders the chart (props are kept stable in App).
-      const ChartPanel = React.memo(({ configs, activeConfigId, theme, structures, statusCtx, selIdx, hoverIdx, perf, setPerf }) => {
+      const ChartPanel = React.memo(({ configs, activeConfigId, theme, structures, statusCtx, selIdx, hoverIdx, perf, setPerf, uk }) => {
           const [hoverCaseId, setHoverCaseId] = useState(null);
           // v13.20 P3: line highlight follows the mouse only after it rests 90 ms on a line (each change re-draws the whole chart).
           // Smooth mode: no highlight at all - the read-out panel still works.
@@ -1624,18 +1868,21 @@
           const maxDepthRaw = allZ.length > 0 ? Math.max(maxWaterDepth + 10, ...allZ) : maxWaterDepth + 10;
           // v11: was hard-coded -15, clipping any fairlead above 15 m out of the Y domain.
           const minDepthRaw = Math.min(-5, (allZ.length > 0 ? Math.min(...allZ) : 0) - 5);   // U12
-          let yInterval = 10;
-          const depthRange = maxDepthRaw - minDepthRaw;
-          if (depthRange > 750) yInterval = 50;
-          else if (depthRange > 250) yInterval = 25;
+          // v13.21: tick steps are chosen in the DISPLAY unit (100 ft, not 30.48 m) and converted back to metres for the chart.
+          const fkL = LEN_UNITS[UNITS.len].f, isFt = UNITS.len === 'ft';
+          let yIntD = isFt ? 50 : 10;
+          const depthRangeD = (maxDepthRaw - minDepthRaw) * fkL;
+          if (depthRangeD > (isFt ? 2400 : 750)) yIntD = isFt ? 250 : 50;
+          else if (depthRangeD > (isFt ? 820 : 250)) yIntD = isFt ? 100 : 25;
+          const yInterval = yIntD / fkL;
           const minDepth = Math.floor(minDepthRaw / yInterval) * yInterval;
           const maxDepth = Math.ceil(maxDepthRaw / yInterval) * yInterval;
-          const yTicks = []; for (let z = minDepth; z <= maxDepth + 0.1; z += yInterval) yTicks.push(Number(z.toFixed(1)));
+          const yTicks = []; for (let z = minDepth; z <= maxDepth + 0.1 / fkL; z += yInterval) yTicks.push(Number(z.toFixed(4)));
 
           const allX = chartData.flatMap(d => d.segments.flat().map(p => p.x));
           const anchorsX = chartData.map(d => d.anchor?.x || 0);
           const maxXRaw = allX.length > 0 ? Math.max(100, ...allX, ...anchorsX, ...structures) : 100;
-          const pickInterval = (range) => [50, 100, 200, 250, 500, 1000].find(v => range / v <= 12) || 1000;
+          const pickInterval = (range) => ((isFt ? [100, 250, 500, 1000, 2000, 5000] : [50, 100, 200, 250, 500, 1000]).find(v => range * fkL / v <= 12) || (isFt ? 5000 : 1000)) / fkL;
           // v13.13: default view stops just beyond the farthest point where any active case is still off the seabed
           // (the long flat grounded stretch carried ~1/3 of the width and nothing else). "Full extent" restores it.
           const suspX = Math.max(0, ...chartData.filter(d => d.isActiveTab).map(d => Math.max(0, ...d.segments.flat().filter(p => !p.isGrounded && !p.isAnchor).map(p => p.x))));
@@ -1645,9 +1892,9 @@
           const xDomainRaw = cropped ? cropWanted : maxXRaw;
           const xInterval = pickInterval(xDomainRaw);
           const maxX = Math.ceil(xDomainRaw / xInterval) * xInterval;
-          const xTicks = []; for (let x = 0; x <= maxX + 0.1; x += xInterval) xTicks.push(Number(x.toFixed(1)));
+          const xTicks = []; for (let x = 0; x <= maxX + 0.1 / fkL; x += xInterval) xTicks.push(Number(x.toFixed(4)));
               return { minDepth, maxDepth, yTicks, maxX, xTicks, canCrop, cropped };
-          }, [chartData, maxWaterDepth, structures, fullX]);
+          }, [chartData, maxWaterDepth, structures, fullX, uk]);
           const { minDepth, maxDepth, yTicks, maxX, xTicks, canCrop, cropped } = dom;
           const verticalExag = (plotSize.w > 200 && plotSize.h > 120) ? (((plotSize.h - 60) / Math.max(1, maxDepth - minDepth)) / ((plotSize.w - 100) / Math.max(1, maxX))) : null;
 
@@ -1660,7 +1907,7 @@
           const isFull = (caseId) => hv ? caseId === hv : (buoyAll || caseId === focusId);
           const isLabelled = (caseId) => hv ? caseId === hv : (!buoyAll && caseId === focusId);
           const selCase = activeCases.find(d => d.id === focusId);
-          const topText = (p) => (p.buoyTopRaw ?? 0) < 0 ? `top ${(-p.buoyTopRaw).toFixed(1)} m above surface` : `top ${(p.buoyTopZ ?? 0).toFixed(1)} m`;
+          const topText = (p) => (p.buoyTopRaw ?? 0) < 0 ? `top ${fL(-p.buoyTopRaw, 1)} ${uL()} above surface` : `top ${fL(p.buoyTopZ ?? 0, 1)} ${uL()}`;
 
           const renderBuoyShape = (props) => {
               const { cx, cy, payload } = props;
@@ -1674,7 +1921,7 @@
                       <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={lvl === 'sub' ? 2.2 : 1.5} strokeDasharray={isSlack ? '2 2' : undefined} />
                       {showLabel && (
                           <text x={11} y={-5 - 13 * (payload.lblRow || 0)} fontSize={10} fill={isDark ? "#BCC8D8" : "#3C4C60"} fontWeight="600" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
-                              B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${lvl === 'sub' ? 'SUB 100%' : ((payload.utilization || 0) * 100).toFixed(0) + '% sub.'} · ${topText(payload)} / bot ${(payload.buoyBottomZ ?? payload.pennantTopZ).toFixed(1)} m`}
+                              B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${lvl === 'sub' ? 'SUB 100%' : ((payload.utilization || 0) * 100).toFixed(0) + '% sub.'} · ${topText(payload)} / bot ${fL(payload.buoyBottomZ ?? payload.pennantTopZ, 1)} ${uL()}`}
                           </text>
                       )}
                   </g>
@@ -1691,7 +1938,7 @@
               return (
                   <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: 'none' }}>
                       <path d="M0,2 L-6,13 L6,13 Z" fill={isDark ? '#141E2C' : '#FFFFFF'} stroke={payload.color} strokeWidth={1.8} />
-                      <text x={0} y={25} textAnchor="middle" fontSize={10} fontWeight="700" fill={payload.color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>TD {payload.x.toFixed(0)} m{payload.mid ? ' (mid)' : ''}</text>
+                      <text x={0} y={25} textAnchor="middle" fontSize={10} fontWeight="700" fill={payload.color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>TD {fL(payload.x, 0)} {uL()}{payload.mid ? ' (mid)' : ''}</text>
                   </g>
               );
           };
@@ -1702,7 +1949,7 @@
                   <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: 'none' }}>
                       <path d="M-14 0 L14 0" stroke={col} strokeWidth={1.8} />
                       <path d="M-14 -3 L-14 3 M14 -3 L14 3" stroke={col} strokeWidth={1.2} />
-                      <text x={18} y={3} fontSize={10} fontWeight="700" fill={col} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>min clr {minClrM} m{payload.clr !== null ? ` · ${Math.max(0, payload.clr).toFixed(1)} m ${payload.ok ? '✓' : '✕'}` : ''}</text>
+                      <text x={18} y={3} fontSize={10} fontWeight="700" fill={col} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>min clr {fT(minClrM, 1)} {uL()}{payload.clr !== null ? ` · ${fL(Math.max(0, payload.clr), 1)} ${uL()} ${payload.ok ? '✓' : '✕'}` : ''}</text>
                   </g>
               );
           };
@@ -1714,7 +1961,7 @@
                       <rect x={-8} y={-10} width={16} height={10} fill={isDark ? "#FF5C5C" : "#C42B2B"} rx={1} stroke="none" />
                       <path d="M-14 -20 L-6 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
                       <path d="M6 -20 L14 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
-                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={10} fontWeight="700" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>STRUCT {payload.x} m</text>
+                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={10} fontWeight="700" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>STRUCT {fT(payload.x, 1)} {uL()}</text>
                   </g>
               );
           };
@@ -1724,7 +1971,7 @@
                   <div className="flex flex-wrap items-center justify-between gap-2 px-3 pt-2 pb-1 shrink-0">
                       <h3 className="text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-2">
                           <IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Catenary Profile
-                          <span className="font-normal text-gray-500 dark:text-gray-400">· {activeCfg?.projectName} · WD {activeWD} m{selCase ? <> · selected <b className="font-mono" style={{ color: selCase.color }}>{selCase.horizontalTension?.toFixed(1)} t{selCase.isMax ? ' (Max)' : selCase.isSwl ? ' (SWL)' : ''}</b></> : null}</span>
+                          <span className="font-normal text-gray-500 dark:text-gray-400">· {activeCfg?.projectName} · WD {fT(activeWD, 1)} {uL()}{selCase ? <> · selected <b className="font-mono" style={{ color: selCase.color }}>{fF(selCase.horizontalTension, 1)} {uF()}{selCase.isMax ? ' (Max)' : selCase.isSwl ? ' (SWL)' : ''}</b></> : null}</span>
                       </h3>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600 dark:text-gray-400 select-none">
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="2"/></svg>Wire / Fiber</span>
@@ -1742,7 +1989,7 @@
                               </select>
                           )}
                           {canCrop && (
-                              <button onClick={() => setFullX(v => !v)} title={cropped ? `View stops at ${maxX} m (end of the suspended part). Anchors are further out.` : 'Showing the full line length'} className="text-[11px] font-semibold px-1.5 py-0 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500">
+                              <button onClick={() => setFullX(v => !v)} title={cropped ? `View stops at ${fT(maxX, 0)} ${uL()} (end of the suspended part). Anchors are further out.` : 'Showing the full line length'} className="text-[11px] font-semibold px-1.5 py-0 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500">
                                   {cropped ? 'Show full length ▸' : '◂ Crop to suspended part'}
                               </button>
                           )}
@@ -1759,8 +2006,8 @@
                       <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 10, right: 30, bottom: 30, left: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#26344A" : "#E6EBF1"} strokeOpacity={0.9} />
-                              <XAxis dataKey="x" type="number" unit="m" ticks={xTicks} domain={[0, maxX]} allowDataOverflow={true} stroke={isDark ? "#94A4B8" : "#55687F"} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Distance from Fairlead (m)', position: 'insideBottomRight', offset: -10, fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
-                              <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#94A4B8" : "#55687F"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
+                              <XAxis dataKey="x" type="number" unit={uL()} tickFormatter={(v) => String(+(v * LEN_UNITS[UNITS.len].f).toFixed(1))} ticks={xTicks} domain={[0, maxX]} allowDataOverflow={true} stroke={isDark ? "#94A4B8" : "#55687F"} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: `Distance from Fairlead (${uL()})`, position: 'insideBottomRight', offset: -10, fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
+                              <YAxis dataKey="z" type="number" unit={uL()} tickFormatter={(v) => String(+(v * LEN_UNITS[UNITS.len].f).toFixed(1))} ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#94A4B8" : "#55687F"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: `Depth (${uL()})`, angle: -90, position: 'insideLeft', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
                               {/* v13.17: hover read-out is ProfileCursor (pointer-tracked, works anywhere on the plot) */}
                               
                               {(perf ? chartData.filter(d => d.isActiveTab) : [...chartData]).sort((a, b) => (emphOf(a.id) ? 1 : 0) - (emphOf(b.id) ? 1 : 0)).map((res) => (
@@ -1890,7 +2137,7 @@
               const mult = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
               return mult * pow;
           };
-          const ringStep = niceStep(maxFairleadX);
+          const ringStep = niceStep(maxFairleadX * LEN_UNITS[UNITS.len].f) / LEN_UNITS[UNITS.len].f;   // v13.21: rings at round numbers of the display unit
           const rings = [];
           for (let r = ringStep; r <= maxFairleadX * 1.05; r += ringStep) rings.push(r);
 
@@ -1921,7 +2168,7 @@
                       </select>
                       {results.length > 0 && (
                           <div className="flex items-center rounded border border-gray-300 dark:border-gray-700 overflow-hidden text-[11px] font-semibold" role="group" aria-label="Cases drawn">
-                              <button onClick={() => setShowAll(false)} aria-pressed={!showAll} className={`px-2 py-0.5 ${!showAll ? 'bg-accent-600 text-white' : 'text-gray-600 dark:text-gray-300'}`} title="Draw only the selected case (click a table row to change)">Selected: {results[selIdx] ? `${getHT(results[selIdx]).toFixed(1)} t${caseTag(results[selIdx])}` : '-'}</button>
+                              <button onClick={() => setShowAll(false)} aria-pressed={!showAll} className={`px-2 py-0.5 ${!showAll ? 'bg-accent-600 text-white' : 'text-gray-600 dark:text-gray-300'}`} title="Draw only the selected case (click a table row to change)">Selected: {results[selIdx] ? `${fF(getHT(results[selIdx]), 1)} ${uF()}${caseTag(results[selIdx])}` : '-'}</button>
                               <button onClick={() => setShowAll(true)} aria-pressed={showAll} className={`px-2 py-0.5 ${showAll ? 'bg-accent-600 text-white' : 'text-gray-600 dark:text-gray-300'}`}>All {results.length}</button>
                           </div>
                       )}
@@ -1941,7 +2188,7 @@
                                           strokeDasharray="3 4" strokeOpacity={0.6}/>
                                   {(() => { const lp = toXY(22.5, r); return (
                                   <text x={lp.x + 3} y={lp.y - 3} fontSize={11}
-                                        fill={isDark ? "#94A4B8" : "#55687F"} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{r}m</text>); })()}
+                                        fill={isDark ? "#94A4B8" : "#55687F"} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{fT(r, 0)}{uL()}</text>); })()}
                               </g>
                           ))}
                           <line x1={cx} y1={padding/2} x2={cx} y2={chartSize - padding/2}
@@ -1966,7 +2213,7 @@
                                                   strokeWidth={2} strokeDasharray="6 6" strokeOpacity={0.55}/>
                                           {(() => { const lp = toXY(0, st.dist); return (
                                           <text x={lp.x} y={lp.y - 5} textAnchor="middle" fontSize={11} fill={col} fontWeight="bold" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
-                                              Struct {st.dist} m (all bearings)
+                                              Struct {fT(st.dist, 1)} {uL()} (all bearings)
                                           </text>); })()}
                                       </g>
                                   );
@@ -1981,7 +2228,7 @@
                                       <path d={`M ${p1.x} ${p1.y} A ${rr} ${rr} 0 ${largeArc} 1 ${p2.x} ${p2.y}`}
                                             fill="none" stroke={col} strokeWidth={3} strokeDasharray="6 6" strokeOpacity={0.7}/>
                                       <text x={mid.x} y={mid.y - 6} textAnchor="middle" fontSize={10} fill={col} fontWeight="bold">
-                                          Pipeline @ {st.dist}m ({st.bearing}°±{st.half}°)
+                                          Pipeline @ {fT(st.dist, 1)}{uL()} ({st.bearing}°±{st.half}°)
                                       </text>
                                   </g>
                               );
@@ -2050,7 +2297,7 @@
                                           })}
                                           {anchorClipped
                                               ? <g><path d="M-7,-6 L7,0 L-7,6 Z" transform={`translate(${anchor.x},${anchor.y}) rotate(${b.bearing - 90})`} fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>
-                                                  {isLabelCase && <text x={anchor.x} y={anchor.y + 18} textAnchor="middle" fontSize={10} fill={color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{fairleadX.toFixed(0)} m ▸</text>}</g>
+                                                  {isLabelCase && <text x={anchor.x} y={anchor.y + 18} textAnchor="middle" fontSize={10} fill={color} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{fL(fairleadX, 0)} {uL()} ▸</text>}</g>
                                               : <rect x={anchor.x - 6} y={anchor.y - 6} width={12} height={12}
                                                 fill={color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={1}/>}
                                           {isLabelCase && (
@@ -2089,7 +2336,7 @@
                       <div className="flex items-center gap-1"><div className="w-6 h-0.5 bg-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Suspended</span></div>
                       <div className="flex items-center gap-1"><div className="w-6 h-1 border-b-2 border-dashed border-gray-500"></div><span className="text-gray-600 dark:text-gray-400">Grounded (near anchor)</span></div>
                       <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-ok-600 dark:bg-ok-400"></div><span className="text-gray-600 dark:text-gray-400">MLB (colour = util)</span></div>
-                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">Anchor &lt; {GMI_MIN_HORIZONTAL} m from struct</span></div>
+                      <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border-2 border-dashed border-red-500"></div><span className="text-red-600 dark:text-red-400 font-bold">Anchor &lt; {fT(GMI_MIN_HORIZONTAL, 1)} {uL()} from struct</span></div>
                   </div>
                       </div>
                       <div className="min-h-0 lg:overflow-y-auto pr-1">
@@ -2097,7 +2344,7 @@
                       // v13.9 M3: check EVERY case and report the worst per line/structure. Minimum clearance usually
                       // occurs at LOW tension (sagging line / mid-line seabed contact), not in the Max case.
                       const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE;
-                      const caseName = (r) => `${getHT(r).toFixed(1)} t${caseTag(r)}`;
+                      const caseName = (r) => `${fF(getHT(r), 1)} ${uF()}${caseTag(r)}`;
                       const rows = [];
                       bearings.forEach(b => structures.filter(st => bearingInSector(b.bearing, st)).forEach(st => {
                           let worst = null;
@@ -2121,15 +2368,15 @@
                       return (
                           <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                               <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">
-                                  Structure check · worst of {results.length} cases · min clr {minC} m · GMI {GMI_MIN_HORIZONTAL} m
+                                  Structure check · worst of {results.length} cases · min clr {fT(minC, 1)} {uL()} · GMI {fT(GMI_MIN_HORIZONTAL, 1)} {uL()}
                               </div>
                               <div className="overflow-x-auto"><table className="w-full text-[11px] tabular-nums whitespace-nowrap">
                                   <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold py-0.5 pr-3">Line</th><th className="text-left font-semibold pr-3">Structure @</th><th className="text-left font-semibold pr-3">Worst case</th><th className="text-left font-semibold pr-3">Clearance</th><th className="text-left font-semibold pr-3" title="Horizontal distance between the anchor and the structure">Anchor gap</th><th className="text-left font-semibold pr-3">Status</th></tr></thead>
                                   <tbody>{rows.map((r, i) => (
                                       <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
-                                          <td className="py-0.5 pr-3 font-bold">{r.line}</td><td className="pr-3">{r.dist} m</td><td className="pr-3 font-mono">{r.caseLabel}</td>
-                                          <td className="pr-3">{r.clr === null ? '-' : `${Math.max(0, r.clr).toFixed(1)} m`}</td>
-                                          <td className="pr-3">{r.anchorGap.toFixed(0)} m</td>
+                                          <td className="py-0.5 pr-3 font-bold">{r.line}</td><td className="pr-3">{fT(r.dist, 1)} {uL()}</td><td className="pr-3 font-mono">{r.caseLabel}</td>
+                                          <td className="pr-3">{r.clr === null ? '-' : `${fL(Math.max(0, r.clr), 1)} ${uL()}`}</td>
+                                          <td className="pr-3">{fL(r.anchorGap, 0)} {uL()}</td>
                                           <td><span title={r.tip} className={`px-1.5 rounded-full font-bold ${PILL_CLS[r.level]}`}>{r.label}</span></td>
                                       </tr>))}</tbody>
                               </table></div>
@@ -2149,7 +2396,7 @@
                                       <button key={i} onClick={() => { setSelIdx(i); setShowAll(false); }} className={`flex items-center gap-1.5 text-[11px] rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800 ${active ? '' : 'opacity-40'} ${i === selIdx ? 'ring-1 ring-accent-500' : ''}`} title="Select this case">
                                           <div className="w-6 h-0.5" style={{backgroundColor: color}}></div>
                                           <span className="font-mono" style={{color}}>
-                                              {getHT(r).toFixed(1)}t{caseTag(r)}
+                                              {fF(getHT(r), 1)}{uF()}{caseTag(r)}
                                           </span>
                                       </button>
                                   );
@@ -2190,31 +2437,70 @@
 
       // v13.13 ResultsTable: compact one-line rows, click = select case (shared with chart / top view),
       // hover = highlight on the chart, chevron = expand the full list of warnings with explanations.
-      const ResultsTable = ({ results, buoys, segments, theme, statusCtx, isStale, selIdx, setSelIdx, setHoverIdx, collapsed, setCollapsed }) => {
+      const ResultsTable = ({ results, buoys, segments, theme, statusCtx, isStale, selIdx, setSelIdx, setHoverIdx, collapsed, setCollapsed, advanced, snap, wd, uk }) => {
           const isDarkTbl = theme === 'dark';
           const { minMBL, minIdx, hasMBL, missing, df } = statusCtx;
           const swl = hasMBL ? minMBL / df : NaN;
           const totalLen = results[0]?.totalLength;
-          const cols = 11;
           const [open, setOpen] = useState({});
-          const flagsAll = useMemo(() => results.map(r => getStatusFlags(r, statusCtx)), [results, statusCtx]);
+          // v13.21: column sets. Basic = the v13.20 table; Standard / Full / Custom need Advanced mode.
+          const COLS = {
+              offset:   { h: () => `Offset ${uL()}`, tip: () => `Horizontal distance fairlead → anchor (${uL()})` },
+              grounded: { h: () => `Grounded ${uL()}`, tip: () => 'Anchor-side grounded length (+ intermediate contact length when the line touches down twice)' },
+              td:       { h: () => `Touch-down ${uL()}`, tip: () => 'Horizontal distance from the fairlead to the nearest seabed touchdown (2nd contact when the line touches down twice)' },
+              anchH:    { h: () => hdrF('Anch H'), tip: () => `Anchor horizontal load (${uF()})` },
+              anchV:    { h: () => hdrF('Anch V'), tip: () => `Anchor uplift (${uF()})` },
+              anchRes:  { h: () => hdrF('Anch Res'), tip: () => `Resultant anchor tension sqrt(H^2+V^2) (${uF()})` },
+              flTen:    { h: () => hdrF('FL Ten'), tip: () => `Fairlead tension sqrt(H^2+V^2) (${uF()})` },
+              swl:      { h: () => 'SWL %', tip: () => 'FL tension / SWL. 100% = at SWL' },
+              buoys:    { h: () => 'Buoys sub.', tip: () => 'Submerged fraction of each buoy. <50% ok · 50-85% warn · ≥85% high · SUB = fully submerged · SLACK = no lift' },
+              flAng:    { h: () => 'FL angle °', tip: () => 'Line angle from horizontal at the fairlead, atan(V / H)', adv: true },
+              flV:      { h: () => hdrF('FL V'), tip: () => `Vertical force at the fairlead sqrt(FL² − H²) (${uF()})`, adv: true },
+              contacts: { h: () => `Contacts ${uL()}`, tip: () => `Mid-line seabed contacts: distance from the fairlead (near–far, ${uL()})`, adv: true },
+              minSF:    { h: () => 'Min SF', tip: () => 'Lowest MBL / T over all nodes of the line (segment in brackets). Needs MBL', adv: true },
+              elong:    { h: () => `Elong. ${uL()}`, tip: () => 'Total elastic elongation of the line: stretched minus unstretched length', adv: true },
+              solver:   { h: () => 'Solver', tip: () => 'Solver that produced the case', adv: true },
+              resid:    { h: () => `Residual ${uL()}`, tip: () => 'Fairlead depth error of the solved case', adv: true }
+          };
+          const BASIC = ['offset', 'grounded', 'td', 'anchH', 'anchV', 'anchRes', 'flTen', 'swl', 'buoys'];
+          const PRESETS = { basic: BASIC, standard: [...BASIC, 'flAng', 'minSF'], full: Object.keys(COLS) };
+          const [colSel, setColSel] = useState(() => { try { const j = JSON.parse(localStorage.getItem('slack_cols') || 'null'); if (j && Array.isArray(j.cols)) return { preset: j.preset || 'custom', cols: j.cols.filter(k => COLS[k]) }; } catch (e) {} return { preset: 'standard', cols: PRESETS.standard }; });
+          useEffect(() => { try { localStorage.setItem('slack_cols', JSON.stringify(colSel)); } catch (e) {} }, [colSel]);
+          const [colMenu, setColMenu] = useState(false);
+          const visCols = advanced ? Object.keys(COLS).filter(k => colSel.cols.includes(k)) : BASIC;
+          const cols = 2 + visCols.length;
+          const needNodes = advanced && visCols.some(k => k === 'minSF' || k === 'elong');
+          const nodeModels = useMemo(() => needNodes ? results.map(r => buildNodes(r, (snap && snap.segments) || segments, (snap && snap.buoys) || buoys, wd)) : [], [needNodes, results, snap, snap ? 0 : segments, snap ? 0 : buoys, wd]);
+          const flagsAll = useMemo(() => results.map(r => getStatusFlags(r, statusCtx)), [results, statusCtx, uk]);
           const worstUtil = hasMBL && results.length ? Math.max(...results.map(r => (r.fairleadTension / swl) * 100)) : null;
           const nWarn = flagsAll.filter(f => f.some(x => x.level !== 'info')).length;
           const TH = "px-2 py-2 whitespace-nowrap";
           const TONE = { ok: 'text-ok-600 dark:text-ok-400', warn: 'text-warn-600 dark:text-warn-400', bad: 'text-bad-600 dark:text-bad-400', sub: 'text-bad-600 dark:text-bad-400 font-extrabold', slack: 'text-gray-500 dark:text-gray-400' };
           return (
               <div className={`h-full min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-card transition-opacity ${isStale ? 'opacity-60' : ''}`}>
-                  <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 flex flex-wrap gap-x-4 gap-y-0.5 justify-between items-center shrink-0">
+                  <div className="px-3 py-1.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 flex flex-wrap gap-x-4 gap-y-0.5 justify-between items-center shrink-0 relative">
                       <button onClick={() => setCollapsed(c => !c)} aria-expanded={!collapsed} aria-label="Toggle results table" className="font-semibold text-gray-700 dark:text-gray-200 text-sm flex items-center gap-1.5 hover:text-accent-600">
                           <IconChevronDown size={14} className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} /> Calculation Results
                           {collapsed && results.length > 0 && <span className="font-normal text-[11px] text-gray-500 dark:text-gray-400 font-mono">· {results.length} cases{worstUtil !== null ? ` · worst SWL util ${worstUtil.toFixed(0)}%` : ''}{nWarn ? ` · ${nWarn} with warnings` : ''}</span>}
                       </button>
-                      <div className="text-[11px] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3">
-                          {totalLen !== undefined && <span>Payout <b className="font-mono">{totalLen.toFixed(1)} m</b></span>}
-                          {hasMBL && <span>SWL <b className="font-mono">{swl.toFixed(1)} t</b> (seg #{minIdx + 1} MBL {minMBL} t / DF {df})</span>}
+                      <div className="text-[11px] text-gray-600 dark:text-gray-400 flex flex-wrap gap-x-3 items-center">
+                          {totalLen !== undefined && <span>Payout <b className="font-mono">{fL(totalLen, 1)} {uL()}</b></span>}
+                          {hasMBL && <span>SWL <b className="font-mono">{fF(swl, 1)} {uF()}</b> (seg #{minIdx + 1} MBL {fF(minMBL, UNITS.force === 't' ? 0 : 0)} {uF()} / DF {df})</span>}
                           {missing.length > 0 && <span className="text-warn-600 dark:text-warn-400 font-semibold">No MBL on seg #{missing.join(', #')} - not checked</span>}
                           {isStale && <span className="text-warn-600 dark:text-warn-400 font-semibold">Inputs changed - results outdated</span>}
                           {!collapsed && results.length > 0 && <span className="text-gray-400">click a row = select · chevron = details</span>}
+                          {advanced && !collapsed && (
+                              <span className="relative">
+                                  <button onClick={() => setColMenu(m => !m)} aria-expanded={colMenu} aria-label="Choose table columns" className="font-semibold px-1.5 py-0 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500">Columns ▾</button>
+                                  {colMenu && (
+                                      <div className="absolute right-0 top-6 z-30 w-56 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-float p-2 text-[11px] text-gray-700 dark:text-gray-200" role="menu">
+                                          <div className="flex gap-1 mb-1.5">{[['basic', 'Basic'], ['standard', 'Standard'], ['full', 'Full']].map(([k, l]) => (
+                                              <button key={k} onClick={() => setColSel({ preset: k, cols: PRESETS[k] })} className={`flex-1 rounded border px-1 py-0.5 font-semibold ${colSel.preset === k ? 'bg-accent-600 border-accent-600 text-white' : 'border-gray-300 dark:border-gray-700'}`}>{l}</button>))}</div>
+                                          <div className="max-h-36 overflow-y-auto space-y-0.5">{Object.keys(COLS).map(k => (
+                                              <label key={k} className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={colSel.cols.includes(k)} onChange={e => setColSel({ preset: 'custom', cols: e.target.checked ? [...colSel.cols, k] : colSel.cols.filter(x => x !== k) })} />{COLS[k].h()}{COLS[k].adv ? <span className="text-gray-400"> · adv.</span> : null}</label>))}</div>
+                                          <button onClick={() => setColMenu(false)} className="mt-1.5 w-full rounded border border-gray-300 dark:border-gray-700 py-0.5 font-semibold">Close</button>
+                                      </div>)}
+                              </span>)}
                       </div>
                   </div>
                   {!collapsed && (
@@ -2222,16 +2508,8 @@
                       <table className="w-full min-w-[960px] text-left text-[13px] text-gray-700 dark:text-gray-300 tabular-nums">
                           <thead className="bg-gray-100 dark:bg-gray-900 text-[11px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.05em] sticky top-0 z-10">
                               <tr>
-                                  <th className={TH + " pl-3"} title="Horizontal tension at the fairlead (t)">Case t</th>
-                                  <th className={TH} title="Horizontal distance fairlead → anchor (m)">Offset m</th>
-                                  <th className={TH} title="Anchor-side grounded length (+ intermediate contact length when the line touches down twice)">Grounded m</th>
-                                  <th className={TH} title="Horizontal distance from the fairlead to the nearest seabed touchdown (2nd contact when the line touches down twice)">Touch-down m</th>
-                                  <th className={TH} title="Anchor horizontal load (t)">Anch H</th>
-                                  <th className={TH} title="Anchor uplift (t)">Anch V</th>
-                                  <th className={TH} title="Resultant anchor tension sqrt(H^2+V^2) (t)">Anch Res</th>
-                                  <th className={TH} title="Fairlead tension sqrt(H^2+V^2) (t)">FL Ten</th>
-                                  <th className={TH} title="FL tension / SWL. 100% = at SWL">SWL %</th>
-                                  <th className={TH} title="Submerged fraction of each buoy. <50% ok · 50-85% warn · ≥85% high · SUB = fully submerged · SLACK = no lift">Buoys sub.</th>
+                                  <th className={TH + " pl-3"} title={`Horizontal tension at the fairlead (${uF()})`}>{`Case ${uF()}`}</th>
+                                  {visCols.map(k => <th key={k} className={TH} title={COLS[k].tip()}>{COLS[k].h()}</th>)}
                                   <th className={TH}>Status</th>
                               </tr>
                           </thead>
@@ -2247,28 +2525,22 @@
                                   const sel = idx === selIdx;
                                   const isOpen = !!open[idx];
                                   const TD = "px-2 py-1.5 font-mono whitespace-nowrap";
-                                  return (
-                                      <React.Fragment key={idx}>
-                                      <tr onClick={() => setSelIdx(idx)} onMouseEnter={() => setHoverIdx(idx)} onMouseLeave={() => setHoverIdx(null)} aria-selected={sel}
-                                          className={`cursor-pointer ${sel ? 'bg-accent-600/10 dark:bg-accent-400/10 shadow-[inset_3px_0_0_#2E9BF0]' : res.isMaxTensionCase ? 'bg-violet-50 dark:bg-[#21203a] hover:bg-violet-100 dark:hover:bg-[#262445]' : 'hover:bg-gray-50 dark:hover:bg-white/5'} ${invalid ? 'opacity-60' : ''}`}>
-                                          <td className="pl-2 pr-2 py-1.5 font-mono font-semibold whitespace-nowrap" style={{ color: caseColor }}>
-                                              <button onClick={(e) => { e.stopPropagation(); setOpen(o => ({ ...o, [idx]: !o[idx] })); }} aria-expanded={isOpen} aria-label={`Details of case ${res.horizontalTension?.toFixed(1)} t`} className="mr-0.5 text-gray-400 hover:text-accent-500 align-middle"><IconChevronDown size={12} className={isOpen ? '' : '-rotate-90'} /></button>
-                                              <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ backgroundColor: caseColor }}></span>
-                                              {res.horizontalTension?.toFixed(1)}{caseTag(res)}
-                                          </td>
-                                          <td className={TD} title={res.fairleadX > (res.totalLength || Infinity) ? 'Larger than the payout because the line stretches elastically (EA)' : undefined}>{res.fairleadX?.toFixed(1)}</td>
-                                          <td className={TD}>{res.groundedLength?.toFixed(1)}{res.multiTouchdown && <span className="text-[11px] text-accent-700 dark:text-accent-400" title="Second (intermediate) seabed contact length"> +{res.contact2Length.toFixed(1)}</span>}</td>
-                                          <td className={TD}>
+                                  const nm = nodeModels[idx];
+                                  const cellOf = (k) => {
+                                      switch (k) {
+                                          case 'offset': return <td className={TD} title={res.fairleadX > (res.totalLength || Infinity) ? 'Larger than the payout because the line stretches elastically (EA)' : undefined}>{fL(res.fairleadX, 1)}</td>;
+                                          case 'grounded': return <td className={TD}>{fL(res.groundedLength, 1)}{res.multiTouchdown && <span className="text-[11px] text-accent-700 dark:text-accent-400" title="Second (intermediate) seabed contact length"> +{fL(res.contact2Length, 1)}</span>}</td>;
+                                          case 'td': return (<td className={TD}>
                                               {res.multiTouchdown
-                                                  ? <span title={`Nearest to FL (mid-line contact). Anchor-side touchdown: ${isFinite(td) && res.groundedLength > 0.05 ? td.toFixed(1) + ' m' : 'none (anchor lifted)'}`}>{contactsOf(res)[0].near.toFixed(1)}<span className="text-[11px] text-accent-700 dark:text-accent-400"> (mid)</span></span>
-                                                  : (isFinite(td) && res.groundedLength > 0.05 ? td.toFixed(1) : '-')}
-                                          </td>
-                                          <td className={TD}>{res.anchorTension?.toFixed(2)}</td>
-                                          <td className={`${TD} ${res.isAnchorUplift ? 'text-bad-600 dark:text-bad-400 font-bold' : (res.anchorUpliftForce || 0) > 0.005 ? 'text-warn-600 dark:text-warn-400' : ''}`}>{(res.anchorUpliftForce || 0).toFixed(2)}</td>
-                                          <td className={TD}>{(res.anchorResultantTension ?? Math.sqrt((res.anchorTension || 0) ** 2 + (res.anchorUpliftForce || 0) ** 2)).toFixed(2)}</td>
-                                          <td className={`${TD} font-medium`}>{res.fairleadTension?.toFixed(1)}</td>
-                                          <td className={`${TD} ${utilCls}`}>{util === null ? '-' : `${util.toFixed(0)}%`}</td>
-                                          <td className="px-2 py-1.5 whitespace-nowrap">
+                                                  ? <span title={`Nearest to FL (mid-line contact). Anchor-side touchdown: ${isFinite(td) && res.groundedLength > 0.05 ? fL(td, 1) + ' ' + uL() : 'none (anchor lifted)'}`}>{fL(contactsOf(res)[0].near, 1)}<span className="text-[11px] text-accent-700 dark:text-accent-400"> (mid)</span></span>
+                                                  : (isFinite(td) && res.groundedLength > 0.05 ? fL(td, 1) : '-')}
+                                          </td>);
+                                          case 'anchH': return <td className={TD}>{fF(res.anchorTension, 2)}</td>;
+                                          case 'anchV': return <td className={`${TD} ${res.isAnchorUplift ? 'text-bad-600 dark:text-bad-400 font-bold' : (res.anchorUpliftForce || 0) > 0.005 ? 'text-warn-600 dark:text-warn-400' : ''}`}>{fF(res.anchorUpliftForce || 0, 2)}</td>;
+                                          case 'anchRes': return <td className={TD}>{fF(res.anchorResultantTension ?? Math.sqrt((res.anchorTension || 0) ** 2 + (res.anchorUpliftForce || 0) ** 2), 2)}</td>;
+                                          case 'flTen': return <td className={`${TD} font-medium`}>{fF(res.fairleadTension, 1)}</td>;
+                                          case 'swl': return <td className={`${TD} ${utilCls}`}>{util === null ? '-' : `${util.toFixed(0)}%`}</td>;
+                                          case 'buoys': return (<td className="px-2 py-1.5 whitespace-nowrap">
                                               {buoyPoints(res).length > 0 ? (
                                                   <span className="inline-flex gap-2 font-mono text-[12px] font-semibold">
                                                       {buoyPoints(res)
@@ -2283,7 +2555,27 @@
                                                           })}
                                                   </span>
                                               ) : <span className="text-gray-400">-</span>}
+                                          </td>);
+                                          case 'flAng': { const fl = res.fairleadTension, hh = res.horizontalTension; return <td className={TD}>{okNum(fl) && okNum(hh) ? (Math.atan2(Math.sqrt(Math.max(0, fl * fl - hh * hh)), hh) * 180 / Math.PI).toFixed(1) : '-'}</td>; }
+                                          case 'flV': return <td className={TD}>{fF(Math.sqrt(Math.max(0, (res.fairleadTension || 0) ** 2 - (res.horizontalTension || 0) ** 2)), 2)}</td>;
+                                          case 'contacts': { const cl = contactsOf(res); return <td className={TD}>{cl.length ? cl.map(c => `${fL(c.near, 0)}–${fL(c.far, 0)}`).join(', ') : '-'}</td>; }
+                                          case 'minSF': { let m = null; if (nm) nm.rows.forEach(r => { if (r.SF != null && (m === null || r.SF < m.SF)) m = r; }); return <td className={`${TD} ${m && m.SF < statusCtx.df ? 'text-bad-600 dark:text-bad-400 font-bold' : ''}`} title={m ? nodeKindLabel(m) : 'Needs an MBL on the segments'}>{m ? <>{m.SF.toFixed(2)}<span className="text-[11px] text-gray-400"> {m.seg ? `(#${m.seg.idx + 1})` : ''}</span></> : '-'}</td>; }
+                                          case 'elong': { const e = nm ? nm.el.reduce((a, x) => a + x.susp + x.contact + x.anchorFlat, 0) : null; return <td className={TD}>{e === null ? '-' : fL(e, 2)}</td>; }
+                                          case 'solver': return <td className={`${TD} text-[11px]`}>{res.solver || '-'}{res.maxMethod ? ` / ${res.maxMethod}` : ''}</td>;
+                                          case 'resid': return <td className={TD}>{fL(res.residual, 3)}</td>;
+                                          default: return <td className={TD}>-</td>;
+                                      }
+                                  };
+                                  return (
+                                      <React.Fragment key={idx}>
+                                      <tr onClick={() => setSelIdx(idx)} onMouseEnter={() => setHoverIdx(idx)} onMouseLeave={() => setHoverIdx(null)} aria-selected={sel}
+                                          className={`cursor-pointer ${sel ? 'bg-accent-600/10 dark:bg-accent-400/10 shadow-[inset_3px_0_0_#2E9BF0]' : res.isMaxTensionCase ? 'bg-violet-50 dark:bg-[#21203a] hover:bg-violet-100 dark:hover:bg-[#262445]' : 'hover:bg-gray-50 dark:hover:bg-white/5'} ${invalid ? 'opacity-60' : ''}`}>
+                                          <td className="pl-2 pr-2 py-1.5 font-mono font-semibold whitespace-nowrap" style={{ color: caseColor }}>
+                                              <button onClick={(e) => { e.stopPropagation(); setOpen(o => ({ ...o, [idx]: !o[idx] })); }} aria-expanded={isOpen} aria-label={`Details of case ${fF(res.horizontalTension, 1)} ${uF()}`} className="mr-0.5 text-gray-400 hover:text-accent-500 align-middle"><IconChevronDown size={12} className={isOpen ? '' : '-rotate-90'} /></button>
+                                              <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ backgroundColor: caseColor }}></span>
+                                              {fF(res.horizontalTension, 1)}{caseTag(res)}
                                           </td>
+                                          {visCols.map(k => <React.Fragment key={k}>{cellOf(k)}</React.Fragment>)}
                                           <td className="px-2 py-1.5 text-xs whitespace-nowrap">
                                               {sorted.length === 0
                                                   ? <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PILL_CLS.ok}`}>OK</span>
@@ -2330,15 +2622,23 @@
           const byH = [...pts].filter(p => !p.invalid).sort((a, b) => a.h - b.h);
           const steps = byH.slice(1).map((p, k) => { const q = byH[k]; const dT = p.h - q.h, dX = p.x - q.x; return { from: q, to: p, dT, dX, rate: dT > 0 ? dX / dT : 0 }; });
           const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
-          const xMin = xs.length ? Math.floor((Math.min(...xs) - 10) / 10) * 10 : 0, xMax = xs.length ? Math.ceil((Math.max(...xs) + 10) / 10) * 10 : 100;
-          const yMax = Math.ceil(Math.max(1, ...ys, isFinite(swl) ? swl : 0) * 1.1 / 10) * 10;
+          let xMin = xs.length ? Math.floor((Math.min(...xs) - 10) / 10) * 10 : 0, xMax = xs.length ? Math.ceil((Math.max(...xs) + 10) / 10) * 10 : 100;
+          let yMax = Math.ceil(Math.max(1, ...ys, isFinite(swl) ? swl : 0) * 1.1 / 10) * 10, xTicksC, yTicksC;
+          const fkL = LEN_UNITS[UNITS.len].f, fkF = FORCE_UNITS[UNITS.force].f;
+          if (xs.length && (UNITS.len !== 'm' || UNITS.force !== 't')) {   // v13.21: nice ticks in the display units
+              const xl = Math.min(...xs) * fkL, xh = Math.max(...xs) * fkL, xsD = niceStepD(Math.max(xh - xl, 10), 6);
+              const x0D = Math.floor((xl - 0.2 * xsD) / xsD) * xsD, x1D = Math.ceil((xh + 0.2 * xsD) / xsD) * xsD;
+              xMin = x0D / fkL; xMax = x1D / fkL; xTicksC = []; for (let v = x0D; v <= x1D + 1e-9; v += xsD) xTicksC.push(v / fkL);
+              const ym = Math.max(1, ...ys, isFinite(swl) ? swl : 0) * fkF * 1.1, ysD = niceStepD(ym, 5), y1D = Math.ceil(ym / ysD) * ysD;
+              yMax = y1D / fkF; yTicksC = []; for (let v = 0; v <= y1D + 1e-9; v += ysD) yTicksC.push(v / fkF);
+          }
           const grid = isDark ? '#26344A' : '#E6EBF1', ax = isDark ? '#94A4B8' : '#55687F';
           const dot = (props) => {
               const { cx, cy, payload } = props; const sel = payload.i === selIdx;
               return (
                   <g onClick={() => setSelIdx(payload.i)} style={{ cursor: 'pointer' }}>
                       <circle cx={cx} cy={cy} r={sel ? 8 : 6} fill={payload.color} stroke={isDark ? '#EAEFF4' : '#26344A'} strokeWidth={sel ? 2.5 : 1.2} fillOpacity={payload.invalid ? 0.4 : 1} />
-                      <text x={cx + 10} y={cy - 8} fontSize={11} fontWeight="600" fill={isDark ? '#BCC8D8' : '#3C4C60'} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{payload.h.toFixed(payload.h >= 100 ? 0 : 1)} t{payload.tag}</text>
+                      <text x={cx + 10} y={cy - 8} fontSize={11} fontWeight="600" fill={isDark ? '#BCC8D8' : '#3C4C60'} style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>{fF(payload.h, payload.h >= 100 ? 0 : 1)} {uF()}{payload.tag}</text>
                   </g>
               );
           };
@@ -2353,13 +2653,13 @@
                           <ResponsiveContainer width="100%" height="100%">
                               <ScatterChart margin={{ top: 16, right: 40, bottom: 34, left: 20 }}>
                                   <CartesianGrid strokeDasharray="3 3" stroke={grid} />
-                                  <XAxis dataKey="x" type="number" unit="m" domain={[xMin, xMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: 'Offset: fairlead → anchor (m)', position: 'insideBottomRight', offset: -8, fill: ax, fontSize: 12 }} />
-                                  <YAxis dataKey="y" type="number" unit="t" domain={[0, yMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: 'Fairlead tension (t)', angle: -90, position: 'insideLeft', fill: ax, fontSize: 12 }} />
+                                  <XAxis dataKey="x" type="number" unit={uL()} tickFormatter={(v) => String(+(v * LEN_UNITS[UNITS.len].f).toFixed(1))} ticks={xTicksC} domain={[xMin, xMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: `Offset: fairlead → anchor (${uL()})`, position: 'insideBottomRight', offset: -8, fill: ax, fontSize: 12 }} />
+                                  <YAxis dataKey="y" type="number" unit={uF()} tickFormatter={(v) => String(+(v * FORCE_UNITS[UNITS.force].f).toFixed(1))} ticks={yTicksC} domain={[0, yMax]} allowDataOverflow stroke={ax} tick={{ fontSize: 11, fill: ax }} label={{ value: `Fairlead tension (${uF()})`, angle: -90, position: 'insideLeft', fill: ax, fontSize: 12 }} />
                                   <Tooltip content={({ active, payload }) => {
                                       if (!(active && payload && payload.length)) return null; const p = payload[0].payload; if (p.h === undefined) return null;
-                                      return <div className={`p-2 rounded shadow-lg text-xs border ${isDark ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}><div className="font-bold">H {p.h.toFixed(1)} t{p.tag}</div><div>Offset {p.x.toFixed(1)} m</div><div>FL tension {p.y.toFixed(1)} t</div></div>;
+                                      return <div className={`p-2 rounded shadow-lg text-xs border ${isDark ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-800'}`}><div className="font-bold">H {fF(p.h, 1)} {uF()}{p.tag}</div><div>Offset {fL(p.x, 1)} {uL()}</div><div>FL tension {fF(p.y, 1)} {uF()}</div></div>;
                                   }} />
-                                  {isFinite(swl) && <ReferenceLine y={swl} stroke={isDark ? '#FF5C5C' : '#C42B2B'} strokeDasharray="6 4" strokeWidth={1.5} ifOverflow="extendDomain" label={{ value: `SWL ${swl.toFixed(0)} t`, position: 'insideTopLeft', fill: isDark ? '#FF5C5C' : '#C42B2B', fontSize: 11, fontWeight: 'bold' }} />}
+                                  {isFinite(swl) && <ReferenceLine y={swl} stroke={isDark ? '#FF5C5C' : '#C42B2B'} strokeDasharray="6 4" strokeWidth={1.5} ifOverflow="extendDomain" label={{ value: `SWL ${fF(swl, 0)} ${uF()}`, position: 'insideTopLeft', fill: isDark ? '#FF5C5C' : '#C42B2B', fontSize: 11, fontWeight: 'bold' }} />}
                                   <Scatter data={[...pts].sort((a, b) => a.x - b.x)} line={{ stroke: isDark ? '#5CBDFF' : '#1A79C8', strokeWidth: 1.5, strokeOpacity: 0.7 }} shape={dot} legendType="none" isAnimationActive={false} />
                               </ScatterChart>
                           </ResponsiveContainer>)}
@@ -2367,9 +2667,9 @@
                       <div className="min-h-0 overflow-y-auto text-[12px]">
                           <div className="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 tracking-wider mb-1">Offset sensitivity</div>
                           {steps.length === 0 ? <div className="text-gray-500 dark:text-gray-400">Need at least two valid cases.</div> : (
-                              <table className="w-full tabular-nums"><thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold">Step (t)</th><th className="text-right font-semibold">ΔX (m)</th><th className="text-right font-semibold">m per t</th></tr></thead>
+                              <table className="w-full tabular-nums"><thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold">Step ({uF()})</th><th className="text-right font-semibold">ΔX ({uL()})</th><th className="text-right font-semibold">{uL()} per {uF()}</th></tr></thead>
                                   <tbody>{steps.map((s, k) => (
-                                      <tr key={k} className="border-t border-gray-100 dark:border-gray-800"><td className="py-0.5 font-mono">{s.from.h.toFixed(s.from.h >= 100 ? 0 : 1)} → {s.to.h.toFixed(s.to.h >= 100 ? 0 : 1)}</td><td className="text-right font-mono">{s.dX >= 0 ? '+' : ''}{s.dX.toFixed(1)}</td><td className={`text-right font-mono ${s.rate < 0.1 ? 'text-warn-600 dark:text-warn-400 font-bold' : ''}`}>{s.rate.toFixed(2)}</td></tr>))}
+                                      <tr key={k} className="border-t border-gray-100 dark:border-gray-800"><td className="py-0.5 font-mono">{fF(s.from.h, s.from.h >= 100 ? 0 : 1)} → {fF(s.to.h, s.to.h >= 100 ? 0 : 1)}</td><td className="text-right font-mono">{s.dX >= 0 ? '+' : ''}{fL(s.dX, 1)}</td><td className={`text-right font-mono ${s.rate < 0.1 ? 'text-warn-600 dark:text-warn-400 font-bold' : ''}`}>{(s.rate * LEN_UNITS[UNITS.len].f / FORCE_UNITS[UNITS.force].f).toFixed(2)}</td></tr>))}
                                   </tbody></table>)}
                           {steps.some(s => s.rate < 0.1) && <p className="mt-2 text-warn-600 dark:text-warn-400 leading-snug">Below 0.1 m per tonne the offset barely changes with tension (line is almost straight). Use the winch tension, not the offset, to judge load in that range. Offset there is dominated by the EA value - enter certificate EA.</p>}
                           <p className="mt-2 text-gray-500 dark:text-gray-400 leading-snug">Dimmed points are invalid cases. The SWL line is the fairlead tension limit (MBL / DF).</p>
@@ -2378,6 +2678,329 @@
               </div>
           );
       };
+
+      // ======================= v13.21 helpers: files, clipboard, structure check =======================
+      const downloadText = (name, text, mime = 'text/csv;charset=utf-8;') => {
+          const blob = new Blob([text], { type: mime }), url = URL.createObjectURL(blob), a = document.createElement('a');
+          a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+      };
+      const copyText = async (text) => {
+          try { await navigator.clipboard.writeText(text); return true; }
+          catch (e) {
+              try { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-10000px'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; }
+              catch (e2) { return false; }
+          }
+      };
+      // same worst-case-per-line logic as the Top View "Structure check" table (used by the PDF report)
+      const parseStructSectors = (str) => (str || '').split(',').map(x => x.trim()).filter(Boolean).map(raw => {
+          const [dPart, bPart] = raw.split('@'); const dist = parseFloat(dPart);
+          if (isNaN(dist) || dist <= 0) return null;
+          if (bPart === undefined) return { dist, bearing: null, half: null };
+          const [bStr, wStr] = bPart.split(':'); const bearing = parseFloat(bStr);
+          if (isNaN(bearing)) return { dist, bearing: null, half: null };
+          return { dist, bearing: ((bearing % 360) + 360) % 360, half: (wStr !== undefined && !isNaN(parseFloat(wStr))) ? Math.abs(parseFloat(wStr)) : 45 };
+      }).filter(Boolean);
+      const structureCheckRows = (results, cfg, statusCtx) => {
+          const structs = parseStructSectors(cfg.subseaStructuresStr);
+          const template = PATTERN_TEMPLATES[cfg.patternType] || PATTERN_TEMPLATES.tender_8pt;
+          const bearings = (cfg.anchorBearings && cfg.anchorBearings.length === template.length) ? cfg.anchorBearings : template.map(t => ({ ...t }));
+          const inSector = (lb, st) => st.bearing === null ? true : Math.abs(((lb - st.bearing + 540) % 360) - 180) <= st.half;
+          const minC = statusCtx?.minClearance ?? DEFAULT_MIN_CLEARANCE, gmi = statusCtx?.gmi ?? DEFAULT_GMI_MIN;
+          const rows = [];
+          bearings.forEach(b => structs.filter(st => inSector(b.bearing, st)).forEach(st => {
+              let worst = null;
+              results.forEach(res => {
+                  const fx = safeFloat(res?.fairleadX, 0), crosses = st.dist < fx;
+                  const clr = crosses ? clearanceAt(res, st.dist, statusCtx?.waterDepth ?? 0) : null;
+                  const tooClose = Math.abs(fx - st.dist) < gmi, grounded = crosses && clr !== null && clr <= 0.05, low = crosses && clr !== null && clr < minC;
+                  const sev = grounded ? 4 : low ? 3 : tooClose ? 2 : crosses ? 1 : 0;
+                  const cand = { line: b.name, dist: st.dist, clr, sev, anchorGap: Math.abs(fx - st.dist), caseLabel: `${fF(safeFloat(res?.horizontalTension, 0), 1)} ${uF()}${caseTag(res)}`,
+                                 label: grounded ? 'ON STRUCTURE' : low ? 'LOW CLEARANCE' : tooClose ? 'ANCHOR < MIN' : crosses ? 'CROSSING' : 'OK' };
+                  if (!worst || cand.sev > worst.sev || (cand.sev === worst.sev && (cand.clr ?? Infinity) < (worst.clr ?? Infinity))) worst = cand;
+              });
+              if (worst) rows.push(worst);
+          }));
+          return rows;
+      };
+
+      // ======================= v13.21 NodesPanel (Advanced) =======================
+      const CASE_CHIP = (r, i, isDark) => ({ color: caseColorOf(r, i, isDark), text: `${fF(r.horizontalTension, 1)} ${uF()}${caseTag(r)}` });
+      const useCaseModel = (cfg, res, WD) => {
+          const snapSegs = cfg.calcSnap && cfg.calcSnap.segments, snapBuoys = cfg.calcSnap && cfg.calcSnap.buoys;
+          return useMemo(() => res ? buildNodes(res, snapSegs || cfg.segments, snapBuoys || cfg.buoys, WD) : null, [res, snapSegs, snapBuoys, snapSegs ? 0 : cfg.segments, snapBuoys ? 0 : cfg.buoys, WD]);
+      };
+      const nodeCsvText = (cfg, res, statusCtx, tbl, resLabel, hasInterp, withMeta = true) => {
+          const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
+          const meta = withMeta ? [['# Project', cfg.projectName], ['# Case H (' + uF() + ')', fF(res.horizontalTension, 2) + caseTag(res)], ['# WaterDepth(' + uL() + ')', fL(cfgWD(cfg), 2)],
+              ['# Payout(' + uL() + ')', fL(res.totalLength, 2)], ['# Offset(' + uL() + ')', fL(res.fairleadX, 2)], ['# FairleadTension(' + uF() + ')', fF(res.fairleadTension, 2)],
+              ['# SWL(' + uF() + ')', isFinite(swl) ? fF(swl, 2) : 'n/a'], ['# Units', `${uL()} ; ${uF()} (1 t = 9.80665 kN, 1 ft = 0.3048 m)`], ['# Resolution', resLabel + (hasInterp ? ' (rows marked "interpolated" are linear between engine points)' : '')],
+              ['# Order', 'fairlead to anchor'], ['# Note', 'T, V and angle at buoy rows are on the anchor side of the buoy; Lift = buoy force'], ['# Exported', new Date().toISOString()]] : [];
+          return [...meta, tbl.head, ...tbl.body].map(r => r.map(csvCell).join(',')).join('\n');
+      };
+      const NodesPanel = ({ configs, activeConfigId, theme, statusCtx, selIdx, setSelIdx, pushToast, uk }) => {
+          const cfg = configs.find(c => c.id === activeConfigId) || configs[0];
+          const results = cfg?.results || [], isDark = theme === 'dark', res = results[selIdx], WD = cfgWD(cfg);
+          const model = useCaseModel(cfg, res, WD);
+          const [resMode, setResMode] = useState(() => { try { return localStorage.getItem('slack_nodeRes') || 'native'; } catch (e) { return 'native'; } });
+          useEffect(() => { try { localStorage.setItem('slack_nodeRes', resMode); } catch (e) {} }, [resMode]);
+          const firstUk = useRef(true);
+          useEffect(() => { if (firstUk.current) { firstUk.current = false; return; } if (isFinite(parseFloat(resMode))) setResMode(UNITS.len === 'ft' ? '50' : '25'); }, [uk]);
+          const structs = statusCtx.structures || [];
+          const baseRows = useMemo(() => model ? withStructures(model, res, structs) : [], [model, res, structs.join(',')]);
+          const stepDisp = parseFloat(resMode), isStep = isFinite(stepDisp), stepM = isStep ? stepDisp / LEN_UNITS[UNITS.len].f : 0;
+          const rowsAsc = useMemo(() => model ? resampleNodes(model, baseRows, isStep ? 'step' : resMode, stepM) : [], [model, baseRows, resMode, uk]);
+          const tbl = useMemo(() => nodeTable(rowsAsc, statusCtx), [rowsAsc, statusCtx, uk]);
+          const [showEl, setShowEl] = useState(false);
+          const MAXROWS = 400, shown = tbl.body.slice(0, MAXROWS), hasInterp = rowsAsc.some(r => r.interp);
+          const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
+          const minSF = useMemo(() => { let m = null; (model ? model.rows : []).forEach(r => { if (r.SF != null && (m === null || r.SF < m.SF)) m = r; }); return m; }, [model]);
+          const resLabel = resMode === 'native' ? 'Native (engine points, about 6 m)' : resMode === 'key' ? 'Key points only' : `Every ${stepDisp} ${uL()} along the line + key points`;
+          const resOptions = (UNITS.len === 'ft' ? ['10', '25', '50', '100'] : ['5', '10', '25', '50']);
+          const doCopy = async () => { const ok = await copyText([tbl.head, ...tbl.body].map(r => r.join('\t')).join('\n')); pushToast(ok ? 'success' : 'error', ok ? `Copied ${tbl.body.length} rows (tab-separated) - paste into Excel` : 'Copy failed - use CSV'); };
+          const doCsv = () => { const name = `${(cfg.projectName || 'slack').replace(/[^\w.-]+/g, '_')}_nodes_${fF(res.horizontalTension, 1)}${uF()}_${new Date().toISOString().split('T')[0]}.csv`; downloadText(name, '\ufeff' + nodeCsvText(cfg, res, statusCtx, tbl, resLabel, hasInterp)); pushToast('success', `Exported ${tbl.body.length} node rows`); };
+          if (!res || !model) return (
+              <div className="flex-1 min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-6 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 shadow-card">{!res ? 'No results yet - run Calculate.' : 'This case has no profile points to tabulate.'}</div>
+          );
+          const kindCls = (r) => r.tags.includes('buoy') ? 'bg-yellow-500/10' : (r.tags.includes('td') || r.tags.includes('lo')) ? 'bg-accent-600/10 dark:bg-accent-400/10' : r.tags.includes('struct') ? 'bg-bad-600/10 dark:bg-bad-400/10' : '';
+          const TDc = 'px-1.5 py-1 font-mono whitespace-nowrap text-right', TDl = 'px-1.5 py-1 whitespace-nowrap';
+          const clos = model.closure;
+          const elTot = model.el.reduce((a, e) => a + e.susp + e.contact + e.anchorFlat, 0), payout = res.totalLength;
+          const usingSnap = !!(cfg.calcSnap && cfg.calcSnap.segments);
+          return (
+              <div className="flex-1 min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex flex-col shadow-card overflow-hidden gap-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0">
+                      <h3 className="text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-2"><IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Nodes <span className="font-normal text-gray-500 dark:text-gray-400">· advanced line table, fairlead → anchor</span></h3>
+                      <div className="flex items-center gap-1 flex-wrap" role="group" aria-label="Case">
+                          {results.map((r, i) => { const ch = CASE_CHIP(r, i, isDark); return (
+                              <button key={i} onClick={() => setSelIdx(i)} aria-pressed={i === selIdx} className={`text-[11px] font-mono font-semibold rounded border px-1.5 py-0 ${i === selIdx ? 'border-accent-500 bg-accent-600/10' : 'border-gray-300 dark:border-gray-700 opacity-70 hover:opacity-100'}`} style={{ color: ch.color }}>{ch.text}</button>); })}
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400 ml-auto">Resolution
+                          <select value={resMode} onChange={e => setResMode(e.target.value)} aria-label="Node resolution" className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-gray-700 dark:text-gray-200">
+                              <option value="native">Native (engine points)</option><option value="key">Key points only</option>
+                              {resOptions.map(v => <option key={v} value={v}>Every {v} {uL()}</option>)}
+                          </select></label>
+                      <button onClick={doCopy} className="text-[11px] font-semibold px-2 py-0.5 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500" title="Copy the table (tab-separated) to paste into Excel">Copy</button>
+                      <button onClick={doCsv} className="text-[11px] font-semibold px-2 py-0.5 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500" title="All rows as CSV (units as selected)">CSV</button>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600 dark:text-gray-400 shrink-0 font-mono">
+                      <span>Case <b style={{ color: caseColorOf(res, selIdx, isDark) }}>{fF(res.horizontalTension, 1)} {uF()}{caseTag(res)}</b></span>
+                      <span>Offset <b>{fL(res.fairleadX, 1)} {uL()}</b></span><span>FL <b>{fF(res.fairleadTension, 1)} {uF()}</b></span>
+                      <span>{tbl.body.length} nodes{hasInterp ? ' (incl. interpolated)' : ''}{tbl.body.length > MAXROWS ? ` · first ${MAXROWS} shown - CSV has all` : ''}</span>
+                      {minSF && <span title="Lowest MBL / T over all nodes">Min SF <b className={minSF.SF < statusCtx.df ? 'text-bad-600 dark:text-bad-400' : ''}>{minSF.SF.toFixed(2)}</b> at {nodeKindLabel(minSF)}</span>}
+                      <span title={`Model T vs engine at the fairlead: ${fF(clos.dFL, 3)} ${uF()}; at the anchor: ${fF(clos.dAn, 3)} ${uF()}`} className={clos.ok ? 'text-ok-600 dark:text-ok-400' : 'text-bad-600 dark:text-bad-400 font-bold'}>{clos.ok ? '✓ forces match the engine' : '⚠ forces differ from the engine - check inputs'}</span>
+                      {!usingSnap && <span className="text-warn-600 dark:text-warn-400" title="This case was calculated or exported before v13.21 - weights are taken from the current inputs">weights from current inputs</span>}
+                  </div>
+                  <div className="flex-1 min-h-0 flex flex-col gap-2">
+                      <div className="flex-1 min-h-0 overflow-auto border border-gray-200 dark:border-gray-800 rounded-lg">
+                          <table className="w-full min-w-[1000px] text-[11.5px] text-gray-700 dark:text-gray-300 tabular-nums">
+                              <thead className="bg-gray-100 dark:bg-gray-900 text-[10.5px] uppercase font-semibold text-gray-600 dark:text-gray-400 tracking-[0.04em] sticky top-0 z-10">
+                                  <tr>{tbl.headShort.map((h, k) => <th key={k} className={`px-1.5 py-1.5 whitespace-nowrap ${k < 3 ? 'text-left' : 'text-right'}`} title={tbl.head[k] + (k === 12 ? ' - buoy force applied at the node' : k === 13 ? ' - MBL of the segment / T (weakest of the two segments at a joint)' : k === 8 ? ' - at buoy rows: anchor side of the buoy' : k === 3 ? ' - along the line from the fairlead (unstretched length)' : '')}>{h}</th>)}</tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {shown.map((row, k) => { const r = tbl.rows[k]; const strong = r.tags.length > 0; return (
+                                      <tr key={k} className={kindCls(r)}>
+                                          <td className={`${TDc} text-gray-400`}>{row[0]}</td>
+                                          <td className={`${TDl} ${strong ? 'font-bold text-gray-800 dark:text-gray-100' : 'text-gray-400'}`}>{row[1]}</td>
+                                          <td className={`${TDl} font-mono text-gray-600 dark:text-gray-400`}>{row[2]}</td>
+                                          {row.slice(3, 15).map((c, j) => <td key={j} className={`${TDc} ${j === 5 || j === 6 ? 'font-semibold' : ''} ${j === 10 && r.SF != null && r.SF < statusCtx.df ? 'text-bad-600 dark:text-bad-400 font-bold' : ''}`}>{c}</td>)}
+                                          <td className={`${TDl} ${r.interp ? 'text-gray-400 italic' : 'text-gray-400'} text-[11px]`} title={row[15]}>{r.interp ? 'interp.' : 'engine'}</td>
+                                      </tr>); })}
+                              </tbody>
+                          </table>
+                      </div>
+                      <div className="shrink-0 border border-gray-200 dark:border-gray-800 rounded-lg">
+                          <button onClick={() => setShowEl(v => !v)} aria-expanded={showEl} className="w-full flex items-center gap-2 px-2 py-1 text-[11px] text-left">
+                              <IconChevronDown size={12} className={`shrink-0 text-gray-500 transition-transform ${showEl ? '' : '-rotate-90'}`} />
+                              <span className="font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Segments · elongation</span>
+                              <span className="font-mono text-gray-700 dark:text-gray-200">total {fL(elTot, 2)} {uL()} ({payout > 0 ? (elTot / payout * 100).toFixed(2) : '-'} %)</span>
+                              <span className="text-gray-400 ml-auto">{showEl ? 'hide' : 'details and how to read the table'}</span>
+                          </button>
+                          {showEl && (
+                              <div className="grid gap-x-6 gap-y-3 p-2 pt-1 text-[12px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] border-t border-gray-100 dark:border-gray-800">
+                                  <div>
+                                      <table className="w-full tabular-nums">
+                                          <thead className="text-gray-500 dark:text-gray-400"><tr><th className="text-left font-semibold">Segment</th><th className="text-right font-semibold pl-3">Length ({uL()})</th><th className="text-right font-semibold pl-3" title="Stretched minus unstretched length of the solved profile">Elongation ({uL()})</th><th className="text-right font-semibold pl-3" title="Elongation / length">%</th></tr></thead>
+                                          <tbody>{model.S.map((sg, k) => { const e = model.el[k], tot = e.susp + e.contact + e.anchorFlat, len = e.lenSusp + e.lenContact + e.lenFlat; return (
+                                              <tr key={k} className="border-t border-gray-100 dark:border-gray-800" title={`On seabed (anchor side) ${fL(e.lenFlat, 1)} ${uL()} · mid-line contact ${fL(e.lenContact, 1)} · suspended ${fL(e.lenSusp, 1)}`}>
+                                                  <td className="py-0.5">#{k + 1} {SHORT_TYPE[sg.type] || sg.type} {sg.d}</td><td className="text-right font-mono pl-3">{fL(len, 1)}</td><td className="text-right font-mono font-semibold pl-3">{fL(tot, 2)}</td><td className="text-right font-mono pl-3">{len > 0 ? (tot / len * 100).toFixed(2) : '-'}</td></tr>); })}
+                                              <tr className="border-t border-gray-300 dark:border-gray-600 font-bold"><td>Total</td><td className="text-right font-mono pl-3">{fL(payout, 1)}</td><td className="text-right font-mono pl-3">{fL(elTot, 2)}</td><td className="text-right font-mono pl-3">{payout > 0 ? (elTot / payout * 100).toFixed(2) : '-'}</td></tr></tbody>
+                                      </table>
+                                      <p className="mt-2 text-gray-500 dark:text-gray-400 leading-snug">Elongation = stretched − unstretched length of the solved profile (T / EA on the suspended line, measured on mid-line contacts). The anchor-side grounded stretch is not stretched by the engine, so it adds 0.</p>
+                                  </div>
+                                  <ul className="text-gray-500 dark:text-gray-400 space-y-1 leading-snug list-disc pl-4">
+                                      <li>Touchdown / Lift-off are seen from the fairlead.</li>
+                                      <li>Rows marked <i>interpolated</i> are linear between two engine points (error ≤ 0.1 m at 1 t); Native shows only engine points.</li>
+                                      <li>At a buoy row T, V and angle are on the anchor side; the Lift column is the buoy force.</li>
+                                      <li>Angle is + where the line rises toward the fairlead.</li>
+                                      <li>SF = segment MBL / T (est. MBL if not entered). Red = below the design factor {statusCtx.df}.</li>
+                                  </ul>
+                              </div>)}
+                      </div>
+                  </div>
+              </div>
+          );
+      };
+
+      // ======================= v13.21 AlongPanel: tension / angle / height along the line =======================
+      const AlongPanel = ({ configs, activeConfigId, theme, statusCtx, selIdx, setSelIdx, uk }) => {
+          const cfg = configs.find(c => c.id === activeConfigId) || configs[0];
+          const results = cfg?.results || [], isDark = theme === 'dark', WD = cfgWD(cfg);
+          const hostRef = useRef(null);
+          const [size, setSize] = useState({ w: 0, h: 0 });
+          useEffect(() => { const el = hostRef.current; if (!el || typeof ResizeObserver === 'undefined') return; const ro = new ResizeObserver(es => { const r = es[0].contentRect; setSize({ w: Math.round(r.width), h: Math.round(r.height) }); }); ro.observe(el); return () => ro.disconnect(); }, []);
+          const [xMode, setXMode] = useState('x'), [fullX, setFullX] = useState(false), [allCases, setAllCases] = useState(false);
+          const [cur, setCur] = useState(null), raf = useRef(0);
+          const snapSegs = (cfg.calcSnap && cfg.calcSnap.segments) || cfg.segments, snapBuoys = (cfg.calcSnap && cfg.calcSnap.buoys) || cfg.buoys;
+          const models = useMemo(() => results.map(r => buildNodes(r, snapSegs, snapBuoys, WD)), [results, snapSegs, snapBuoys, WD]);
+          const model = models[selIdx], res = results[selIdx];
+          const structs = statusCtx.structures || [];
+          const baseRows = useMemo(() => model ? withStructures(model, res, structs) : [], [model, res, structs.join(',')]);
+          const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN, minClr = statusCtx.minClearance;
+          const P = useMemo(() => {
+              if (!model || size.w < 200 || size.h < 200) return null;
+              const fx = LEN_UNITS[UNITS.len].f, fk = FORCE_UNITS[UNITS.force].f;
+              const xOf = (r) => (xMode === 'x' ? r.xFL : r.sFL) * fx;
+              const seriesOf = (m, rowsAsc) => {   // FL -> anchor, with a vertical step at buoys
+                  const rows = [...rowsAsc].reverse(), T = [], A = [], Hh = [];
+                  rows.forEach(r => {
+                      const x = xOf(r), Tout = r.state === 'susp' && r.lift > 0 ? Math.hypot(r.H, r.Vout) : r.T;
+                      if (r.lift > 0 && r.state === 'susp') { T.push({ x, y: Tout * fk }); A.push({ x, y: r.angOut }); }
+                      T.push({ x, y: r.T * fk }); A.push({ x, y: r.ang }); Hh.push({ x, y: r.h * fx });
+                  });
+                  return { T, A, Hh, rows };
+              };
+              const sel = seriesOf(model, baseRows);
+              const others = allCases ? results.map((r, i) => i === selIdx || !models[i] ? null : { i, s: seriesOf(models[i], models[i].rows), c: caseColorOf(r, i, isDark) }).filter(Boolean) : [];
+              const allX = sel.T.map(p => p.x); const fullMax = Math.max(...allX, 1);
+              const suspMax = Math.max(0, ...baseRows.filter(r => r.state !== 'flat').map(r => xOf(r)));
+              const cropX = Math.max(suspMax * 1.08, suspMax + 20 * fx), canCrop = suspMax > 0 && cropX < fullMax * 0.9, cropped = canCrop && !fullX;
+              const xMax0 = cropped ? cropX : fullMax, xs = niceStepD(xMax0, Math.max(4, size.w / 110)), x1 = Math.ceil(xMax0 / xs) * xs, x0 = 0;
+              const Lm = 64, Rm = 16, Tm = 6, Bm = 34, gap = 22, PW = size.w - Lm - Rm, ph = (size.h - Tm - Bm - 2 * gap) / 3;
+              const sx = (x) => Lm + (x - x0) / (x1 - x0) * PW;
+              const maxT = Math.max(1e-6, ...sel.T.map(p => p.y), ...others.flatMap(o => o.s.T.map(p => p.y))), swlD = isFinite(swl) ? swl * fk : NaN;
+              const yT1 = niceTop(Math.max(maxT, isFinite(swlD) && swlD < maxT * 2.5 ? swlD : 0) * 1.06);
+              const aMin = Math.min(0, ...sel.A.map(p => p.y)), aMax = Math.max(0, ...sel.A.map(p => p.y));
+              const aStep = niceStepD(Math.max(10, aMax - aMin), 4), a0 = Math.floor((aMin - 2) / aStep) * aStep, a1 = Math.ceil((aMax + 2) / aStep) * aStep;
+              const hMax = Math.max(1e-6, ...sel.Hh.map(p => p.y), isFinite(minClr) ? minClr * fx * 1.1 : 0);
+              const plots = [
+                  { id: 'T', title: `Tension (${uF()})`, y0: 0, y1: yT1, ys: niceStepD(yT1, Math.max(2, ph / 34)), top: Tm },
+                  { id: 'A', title: 'Line angle from horizontal (deg)', y0: a0, y1: a1, ys: niceStepD(a1 - a0, Math.max(2, ph / 34)), top: Tm + ph + gap },
+                  { id: 'H', title: `Height above seabed (${uL()})`, y0: 0, y1: niceTop(hMax * 1.06), ys: niceStepD(niceTop(hMax * 1.06), Math.max(2, ph / 34)), top: Tm + 2 * (ph + gap) }];
+              return { sel, others, x0, x1, xs, sx, Lm, Rm, PW, ph, plots, fx, fk, canCrop, cropped, swlD, minClrD: isFinite(minClr) ? minClr * fx : NaN };
+          }, [model, baseRows, size.w, size.h, xMode, fullX, allCases, selIdx, theme, uk, swl, minClr, models]);
+          const pg = isDark ? { grid: '#26344A', axis: '#94A4B8', txt: '#BCC8D8', halo: '#1C2839', bad: '#FF5C5C', ok: '#3DD68C', amber: '#F5A524' } : { grid: '#E6EBF1', axis: '#55687F', txt: '#3C4C60', halo: '#FFFFFF', bad: '#C42B2B', ok: '#0D884F', amber: '#A85D00' };
+          const selColor = res ? caseColorOf(res, selIdx, isDark) : '#888';
+          const svgNodes = useMemo(() => {
+              if (!P) return null;
+              const { sel, others, x0, x1, xs, sx, Lm, PW, ph, plots, fx, swlD, minClrD } = P;
+              const out = [];
+              out.push(<defs key="d">{plots.map(p => <clipPath key={p.id} id={`al-clip-${p.id}`}><rect x={Lm} y={p.top} width={PW} height={ph} /></clipPath>)}</defs>);
+              plots.forEach((p, pi) => {
+                  const sy = (y) => p.top + ph - (y - p.y0) / (p.y1 - p.y0) * ph;
+                  const g = [];
+                  for (let v = Math.ceil(p.y0 / p.ys) * p.ys; v <= p.y1 + 1e-9; v += p.ys) g.push(<g key={`y${v}`}><line x1={Lm} y1={sy(v)} x2={Lm + PW} y2={sy(v)} stroke={pg.grid} /><text x={Lm - 6} y={sy(v) + 4} textAnchor="end" fontSize={10.5} fill={pg.axis}>{+v.toFixed(2)}</text></g>);
+                  for (let v = x0; v <= x1 + 1e-9; v += xs) g.push(<g key={`x${v}`}><line x1={sx(v)} y1={p.top} x2={sx(v)} y2={p.top + ph} stroke={pg.grid} />{pi === 2 && <text x={sx(v)} y={p.top + ph + 14} textAnchor="middle" fontSize={10.5} fill={pg.axis}>{+v.toFixed(2)}</text>}</g>);
+                  g.push(<text key="t" x={Lm + 6} y={p.top + 13} fontSize={11} fontWeight="700" fill={pg.txt} style={{ paintOrder: 'stroke', stroke: pg.halo, strokeWidth: 3 }}>{p.title}</text>);
+                  const clip = <g key="c" clipPath={`url(#al-clip-${p.id})`}>{(() => {
+                      const els = [];
+                      const poly = (pts, color, w, op = 1, dash) => <path d={pts.map((q, k) => (k ? 'L' : 'M') + sx(q.x).toFixed(1) + ',' + sy(q.y).toFixed(1)).join('')} fill="none" stroke={color} strokeWidth={w} strokeOpacity={op} strokeDasharray={dash} strokeLinejoin="round" />;
+                      if (p.id === 'T') {
+                          others.forEach(o => els.push(<g key={`o${o.i}`}>{poly(o.s.T, o.c, 1.4, 0.45)}</g>));
+                          if (isFinite(swlD)) els.push(<g key="swl"><line x1={Lm} y1={sy(swlD)} x2={Lm + PW} y2={sy(swlD)} stroke={pg.bad} strokeWidth={1.4} strokeDasharray="6 4" /><text x={Lm + PW - 4} y={sy(swlD) - 4} textAnchor="end" fontSize={10.5} fontWeight="700" fill={pg.bad} style={{ paintOrder: 'stroke', stroke: pg.halo, strokeWidth: 3 }}>SWL {fF(swl, 1)} {uF()}</text></g>);
+                          els.push(<g key="s">{poly(sel.T, selColor, 2.2)}</g>);
+                      } else if (p.id === 'A') {
+                          els.push(<line key="z" x1={Lm} y1={sy(0)} x2={Lm + PW} y2={sy(0)} stroke={pg.axis} strokeOpacity={0.5} strokeDasharray="3 3" />, <g key="s">{poly(sel.A, selColor, 2.2)}</g>);
+                      } else {
+                          if (isFinite(minClrD)) els.push(<g key="mc"><line x1={Lm} y1={sy(minClrD)} x2={Lm + PW} y2={sy(minClrD)} stroke={pg.ok} strokeWidth={1.3} strokeDasharray="6 4" /><text x={Lm + PW - 4} y={sy(minClrD) - 4} textAnchor="end" fontSize={10.5} fontWeight="700" fill={pg.ok} style={{ paintOrder: 'stroke', stroke: pg.halo, strokeWidth: 3 }}>min clearance {fL(minClr, 0)} {uL()}</text></g>);
+                          els.push(<g key="s">{poly(sel.Hh, selColor, 2.2)}</g>);
+                          sel.rows.filter(r => r.tags.includes('buoy')).forEach((r, k) => { const x = (xMode === 'x' ? r.xFL : r.sFL) * fx; els.push(<g key={`b${k}`} transform={`translate(${sx(x)},${sy(r.h * fx)})`}><path d="M0,9 L-6,-3 L6,-3 Z" fill={pg.amber} stroke={pg.halo} strokeWidth={1} /><text x={9} y={-5} fontSize={10} fontWeight="700" fill={pg.amber} style={{ paintOrder: 'stroke', stroke: pg.halo, strokeWidth: 3 }}>B{Number.isInteger(+r.buoy?.buoyIndex) ? +r.buoy.buoyIndex + 1 : '?'}</text></g>); });
+                      }
+                      sel.rows.filter(r => r.tags.includes('joint')).forEach((r, k) => { const x = (xMode === 'x' ? r.xFL : r.sFL) * fx; els.push(<line key={`j${k}`} x1={sx(x)} y1={p.top} x2={sx(x)} y2={p.top + ph} stroke={pg.axis} strokeOpacity={0.5} strokeDasharray="2 3" />); });
+                      baseRows.filter(r => r.tags.includes('struct')).forEach((r, k) => { const x = (xMode === 'x' ? r.xFL : r.sFL) * fx; els.push(<g key={`st${k}`}><line x1={sx(x)} y1={p.top} x2={sx(x)} y2={p.top + ph} stroke={pg.bad} strokeOpacity={0.7} strokeDasharray="3 3" />{pi === 0 && <text x={sx(x) + 4} y={p.top + 24} fontSize={10} fontWeight="700" fill={pg.bad} style={{ paintOrder: 'stroke', stroke: pg.halo, strokeWidth: 3 }}>STRUCT {fL(r.structD, 0)} {uL()}</text>}</g>); });
+                      return els;
+                  })()}</g>;
+                  out.push(<g key={p.id}>{g}{clip}<rect x={Lm} y={p.top} width={PW} height={ph} fill="none" stroke={pg.grid} /></g>);
+              });
+              out.push(<text key="xl" x={Lm + PW} y={size.h - 4} textAnchor="end" fontSize={11} fill={pg.axis}>{xMode === 'x' ? `Horizontal distance from fairlead (${uL()})` : `Distance along the line from fairlead (${uL()})`}</text>);
+              return out;
+          }, [P, theme, selColor, xMode]);
+          // hover read-out (own state; the plots above are memoised and not re-rendered)
+          const onMove = (e) => {
+              if (!P) return; const r0 = hostRef.current.getBoundingClientRect(), px = e.clientX - r0.left, py = e.clientY - r0.top; cancelAnimationFrame(raf.current);
+              raf.current = requestAnimationFrame(() => { if (px < P.Lm || px > P.Lm + P.PW || py < 0 || py > size.h) { setCur(null); return; } setCur({ px, py, x: P.x0 + (px - P.Lm) / P.PW * (P.x1 - P.x0) }); });
+          };
+          const readout = (() => {
+              if (!cur || !P) return null;
+              const at = (arr, x) => { if (!arr.length) return 0; if (x <= arr[0].x) return arr[0].y;
+                  for (let i = arr.length - 1; i >= 0; i--) if (arr[i].x <= x) { const a = arr[i], b = arr[i + 1]; if (!b || b.x - a.x < 1e-9) return a.y; return a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x); }
+                  return arr[arr.length - 1].y; };
+              const rows = [...baseRows].reverse(), fx = P.fx, xv = rows.map(r => (xMode === 'x' ? r.xFL : r.sFL) * fx);
+              let i = 0; while (i < rows.length - 2 && xv[i + 1] <= cur.x) i++;
+              const a = rows[i], b = rows[i + 1]; if (!a || !b) return null;
+              const t = (xv[i + 1] - xv[i]) > 1e-9 ? Math.min(1, Math.max(0, (cur.x - xv[i]) / (xv[i + 1] - xv[i]))) : 0;
+              return { sFL: a.sFL + (b.sFL - a.sFL) * t, T: at(P.sel.T, cur.x) / P.fk, ang: at(P.sel.A, cur.x), h: at(P.sel.Hh, cur.x) / fx, seg: b.seg };
+          })();
+          if (!res || !model) return <div className="flex-1 min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-6 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 shadow-card">{!res ? 'No results yet - run Calculate.' : 'This case has no profile points.'}</div>;
+          return (
+              <div className="flex-1 min-h-0 bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-xl p-3 flex flex-col shadow-card overflow-hidden gap-1.5">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 shrink-0">
+                      <h3 className="text-gray-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-2"><IconSettings2 size={14} className="text-accent-600 dark:text-accent-500"/> Along the line <span className="font-normal text-gray-500 dark:text-gray-400">· selected case <b className="font-mono" style={{ color: selColor }}>{fF(res.horizontalTension, 1)} {uF()}{caseTag(res)}</b></span></h3>
+                      <div className="flex items-center gap-1 flex-wrap" role="group" aria-label="Case">
+                          {results.map((r, i) => { const ch = CASE_CHIP(r, i, isDark); return <button key={i} onClick={() => setSelIdx(i)} aria-pressed={i === selIdx} className={`text-[11px] font-mono font-semibold rounded border px-1.5 py-0 ${i === selIdx ? 'border-accent-500 bg-accent-600/10' : 'border-gray-300 dark:border-gray-700 opacity-70 hover:opacity-100'}`} style={{ color: ch.color }}>{ch.text}</button>; })}
+                      </div>
+                      <div className="flex items-center gap-1.5 ml-auto text-[11px]">
+                          <select value={xMode} onChange={e => setXMode(e.target.value)} aria-label="Horizontal axis" className="text-[11px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-gray-700 dark:text-gray-200">
+                              <option value="x">Axis: horizontal distance from FL</option><option value="s">Axis: distance along the line from FL</option></select>
+                          <label className="flex items-center gap-1 text-gray-600 dark:text-gray-400 cursor-pointer"><input type="checkbox" checked={allCases} onChange={e => setAllCases(e.target.checked)} />Tension of all cases</label>
+                          {P && P.canCrop && <button onClick={() => setFullX(v => !v)} className="font-semibold px-1.5 py-0 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500">{P.cropped ? 'Show full length ▸' : '◂ Crop to suspended part'}</button>}
+                      </div>
+                  </div>
+                  <div ref={hostRef} className="relative flex-1 min-h-0" onPointerMove={onMove} onPointerLeave={() => { cancelAnimationFrame(raf.current); setCur(null); }}>
+                      {P && <svg viewBox={`0 0 ${size.w} ${size.h}`} width={size.w} height={size.h} className="absolute inset-0" fontFamily="Inter, Arial, sans-serif">{svgNodes}</svg>}
+                      {cur && P && readout && (
+                          <div className="absolute inset-0 pointer-events-none z-10" aria-hidden="true">
+                              <div className="absolute" style={{ left: cur.px, top: 0, height: size.h - 34, borderLeft: `1px dashed ${isDark ? '#94A4B8' : '#55687F'}` }} />
+                              <div className={`absolute rounded-md border shadow-float px-2.5 py-1.5 text-[11px] font-mono ${isDark ? 'bg-gray-900/95 border-gray-700 text-gray-200' : 'bg-white/95 border-gray-200 text-gray-800'}`} style={{ left: cur.px + 170 > size.w ? Math.max(4, cur.px - 190) : cur.px + 12, top: 4, width: 178 }}>
+                                  <div className="font-semibold border-b border-gray-200 dark:border-gray-700 pb-0.5 mb-0.5">{xMode === 'x' ? 'X from FL' : 's from FL'} {(cur.x).toFixed(1)} {uL()}</div>
+                                  {xMode === 'x' && <div className="flex justify-between"><span className="text-gray-500">s along</span><span>{fL(readout.sFL, 1)} {uL()}</span></div>}
+                                  <div className="flex justify-between"><span className="text-gray-500">T</span><b>{fF(readout.T, 2)} {uF()}</b></div>
+                                  <div className="flex justify-between"><span className="text-gray-500">angle</span><span>{readout.ang.toFixed(1)}°</span></div>
+                                  <div className="flex justify-between"><span className="text-gray-500">height</span><span>{fL(readout.h, 1)} {uL()}</span></div>
+                                  <div className="text-gray-500 truncate">{readout.seg ? `#${readout.seg.idx + 1} ${SHORT_TYPE[readout.seg.type] || readout.seg.type} ${readout.seg.d}` : ''}</div>
+                              </div>
+                          </div>)}
+                  </div>
+              </div>
+          );
+      };
+      const niceTop = (v) => { const s = niceStepD(v, 4); return Math.ceil(v / s) * s; };
+
+      // v13.21: one SVG -> canvas routine for the PNG export and the PDF report (the report renders its views off-screen)
+      const VIEW_TITLES = { profile: 'Catenary profile', topview: 'Top view (plan)', curve: 'Tension - offset', nodes: 'Nodes', along: 'Along the line' };
+      const svgToCanvas = (svg, { theme, title, subtitle, scale = 2 }) => new Promise((resolve, reject) => {
+          if (!svg) { reject(new Error('No chart in this view')); return; }
+          const r = svg.getBoundingClientRect(), W = Math.ceil(r.width), Hh = Math.ceil(r.height), HEAD = 44;
+          const clone = svg.cloneNode(true);
+          clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); clone.setAttribute('width', W); clone.setAttribute('height', Hh);
+          if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+          clone.style.fontFamily = 'Inter, Arial, sans-serif';
+          const fg = theme === 'dark' ? '#EAEFF4' : '#26344A';
+          clone.querySelectorAll('[stroke="currentColor"]').forEach(n => n.setAttribute('stroke', fg));
+          clone.querySelectorAll('[fill="currentColor"]').forEach(n => n.setAttribute('fill', fg));
+          const img = new Image();
+          img.onload = () => {
+              const c = document.createElement('canvas'); c.width = W * scale; c.height = (Hh + HEAD) * scale;
+              const g = c.getContext('2d'); g.scale(scale, scale);
+              g.fillStyle = theme === 'dark' ? '#141E2C' : '#FFFFFF'; g.fillRect(0, 0, W, Hh + HEAD);
+              g.fillStyle = fg; g.font = '600 14px Inter, Arial, sans-serif'; g.fillText(title, 12, 20);
+              g.font = '11px Inter, Arial, sans-serif'; g.fillText(subtitle, 12, 36);
+              g.drawImage(img, 0, HEAD, W, Hh); resolve(c);
+          };
+          img.onerror = () => reject(new Error('Chart image could not be rendered'));
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+      });
+      const largestSvg = (host) => [...host.querySelectorAll('svg')].filter(x => x.getBoundingClientRect().width > 200)
+          .sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; })[0] || null;
 
       const createDefaultConfig = (id) => ({
           id: id,
@@ -2500,13 +3123,20 @@
           const setDesignFactor = (val) => updateConfig({ designFactor: val });
           const anchorBearings = activeConfig.anchorBearings || PATTERN_TEMPLATES.tender_8pt.map(a => ({...a}));
           const setAnchorBearings = (val) => updateConfig({ anchorBearings: val });
-          const [activeView, setActiveView] = useState('profile');
+          const [activeView, setActiveViewRaw] = useState('profile');
+          const setActiveView = setActiveViewRaw;
           // v13.13: one SELECTED case shared by chart, top view, tension-offset view and table (click a row / chip / point).
           const [selIdxRaw, setSelIdxRaw] = useState(null);
           const [hoverIdx, setHoverIdx] = useState(null);
           // v13.20: Smooth mode (remembered). Table-row hover preview after a 120 ms dwell (each preview re-draws the chart).
           const [perf, setPerf] = useState(() => { try { return localStorage.getItem('slack_perf') === '1'; } catch (e) { return false; } });
           useEffect(() => { try { localStorage.setItem('slack_perf', perf ? '1' : '0'); } catch (e) {} }, [perf]);
+          // v13.21: Advanced mode (Nodes / Along-line views, more result columns) and display units - both remembered.
+          const [advanced, setAdvanced] = useState(() => { try { return localStorage.getItem('slack_adv') === '1'; } catch (e) { return false; } });
+          useEffect(() => { try { localStorage.setItem('slack_adv', advanced ? '1' : '0'); } catch (e) {} if (!advanced && (activeView === 'nodes' || activeView === 'along')) setActiveViewRaw('profile'); }, [advanced]);
+          const [units, setUnitsState] = useState({ ...UNITS });
+          const changeUnits = (u) => { setUnits(u); setUnitsState({ ...UNITS }); };
+          const uk = units.len + '|' + units.force;
           const rowHoverT = useRef(0);
           const hoverRow = (i) => { clearTimeout(rowHoverT.current); if (perf) { if (i === null) setHoverIdx(null); return; } rowHoverT.current = setTimeout(() => setHoverIdx(i), i === null ? 0 : 120); };
           // v13.20 P2: the chart gets a configs list whose identity changes only when something it draws changes
@@ -2568,6 +3198,7 @@
                   presetKey: activePresetKey || null,
                   resultsSig: activeConfig.resultsSig || null,
                   calcWaterDepth: activeConfig.calcWaterDepth ?? null,
+                  calcSnap: activeConfig.calcSnap || null,
                   version: "1.3",
                   timestamp: new Date().toISOString()
               };
@@ -2588,114 +3219,126 @@
               const svgs = [...host.querySelectorAll('svg')].filter(x => x.getBoundingClientRect().width > 200);
               return svgs.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; })[0] || null;
           };
-          const viewToPng = (scale = 2) => new Promise((resolve, reject) => {
-              const svg = getViewSvg(); if (!svg) { reject(new Error('No chart on screen - run Calculate first')); return; }
-              const r = svg.getBoundingClientRect(), W = Math.ceil(r.width), Hh = Math.ceil(r.height), HEAD = 44;
-              const clone = svg.cloneNode(true);
-              clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-              clone.setAttribute('width', W); clone.setAttribute('height', Hh);
-              if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
-              clone.style.fontFamily = 'Inter, Arial, sans-serif';
-              const fg = theme === 'dark' ? '#EAEFF4' : '#26344A';
-              clone.querySelectorAll('[stroke="currentColor"]').forEach(n => n.setAttribute('stroke', fg));
-              clone.querySelectorAll('[fill="currentColor"]').forEach(n => n.setAttribute('fill', fg));
-              const img = new Image();
-              img.onload = () => {
-                  const c = document.createElement('canvas'); c.width = W * scale; c.height = (Hh + HEAD) * scale;
-                  const g = c.getContext('2d'); g.scale(scale, scale);
-                  g.fillStyle = theme === 'dark' ? '#141E2C' : '#FFFFFF'; g.fillRect(0, 0, W, Hh + HEAD);
-                  g.fillStyle = fg; g.font = '600 14px Inter, Arial, sans-serif';
-                  g.fillText(`${projectName} - ${activeView === 'profile' ? 'Catenary profile' : activeView === 'topview' ? 'Top view (plan)' : 'Tension - offset'}`, 12, 20);
-                  g.font = '11px Inter, Arial, sans-serif';
-                  g.fillText(`WD ${activeConfig.calcWaterDepth ?? waterDepth} m · FL +${fairleadElev} m · ${new Date().toLocaleString()} · SLACK ${APP_VERSION}`, 12, 36);
-                  g.drawImage(img, 0, HEAD, W, Hh);
-                  resolve(c);
-              };
-              img.onerror = () => reject(new Error('Chart image could not be rendered'));
-              img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
-          });
-          const fileStem = () => `${projectName.replace(/[^\w.-]+/g, '_')}_${activeView === 'profile' ? 'profile' : activeView === 'topview' ? 'topview' : 'tension-offset'}_${new Date().toISOString().split('T')[0]}`;
+          const subtitleOf = () => `WD ${fT(activeConfig.calcWaterDepth ?? waterDepth, 1)} ${uL()} · FL +${fT(parseFloat(fairleadElev), 1)} ${uL()} · ${new Date().toLocaleString()} · SLACK ${APP_VERSION}`;
+          const viewToPng = (scale = 2) => { const svg = getViewSvg(); return svgToCanvas(svg, { theme, title: `${projectName} - ${VIEW_TITLES[activeView] || activeView}`, subtitle: subtitleOf(), scale }); };
+          const fileStem = () => `${projectName.replace(/[^\w.-]+/g, '_')}_${activeView === 'profile' ? 'profile' : activeView === 'topview' ? 'topview' : activeView === 'along' ? 'along-line' : activeView === 'nodes' ? 'nodes' : 'tension-offset'}_${new Date().toISOString().split('T')[0]}`;
           const exportPng = async () => {
               try {
                   const c = await viewToPng();
                   c.toBlob(b => { const url = URL.createObjectURL(b); const a = document.createElement('a'); a.href = url; a.download = fileStem() + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); pushToast('success', 'Exported ' + a.download); }, 'image/png');
               } catch (e) { pushToast('error', 'PNG export failed: ' + e.message, 5000); }
           };
+          // v13.21 PDF report: every view (profile, plan + structure check, along-line, tension-offset) plus the results table and a node table.
+          // The views are rendered OFF-SCREEN, so the view the user is working in is never switched.
+          const renderOffscreen = async (kind, W, Hh) => {
+              const host = document.createElement('div');
+              host.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;height:${Hh}px;pointer-events:none;`;
+              document.body.appendChild(host);
+              const root = ReactDOM.createRoot(host), noop = () => {};
+              const el = kind === 'profile' ? <ChartPanel configs={chartConfigs} activeConfigId={activeTabId} structures={structures} theme="light" statusCtx={statusCtx} selIdx={selIdx} hoverIdx={null} perf={false} setPerf={noop} uk={uk} />
+                  : kind === 'topview' ? <TopViewPanel configs={configs} activeConfigId={activeTabId} theme="light" patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={noop} setPattern={noop} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={noop} />
+                  : kind === 'along' ? <AlongPanel configs={configs} activeConfigId={activeTabId} theme="light" statusCtx={statusCtx} selIdx={selIdx} setSelIdx={noop} uk={uk} />
+                  : <CurvePanel configs={configs} activeConfigId={activeTabId} theme="light" statusCtx={statusCtx} selIdx={selIdx} setSelIdx={noop} />;
+              root.render(<div className="flex flex-col" style={{ width: W, height: Hh }}>{el}</div>);
+              await new Promise(r => setTimeout(r, 900));
+              let url = '';
+              try { url = (await svgToCanvas(largestSvg(host), { theme: 'light', title: `${projectName} - ${VIEW_TITLES[kind]}`, subtitle: subtitleOf(), scale: 2 })).toDataURL('image/png'); } catch (e) { /* view without picture */ }
+              root.unmount(); host.remove(); return url;
+          };
           const exportPdf = async () => {
               const res = activeConfig.results || [];
               if (!res.length) { pushToast('warning', 'No results to report - run Calculate first.'); return; }
               const w = window.open('', '_blank');   // opened synchronously in the click handler (popup blockers)
               if (!w) { pushToast('error', 'Popup blocked - allow popups for this page to create the PDF report.', 6000); return; }
-              let imgUrl = '';
-              try { imgUrl = (await viewToPng(2)).toDataURL('image/png'); } catch (e) { /* report without chart */ }
+              w.document.write('<!DOCTYPE html><html><body style="font:14px Arial;padding:24px;color:#333">Preparing the report (rendering the views)...</body></html>');
+              pushToast('info', 'Building the report - this takes a few seconds...');
+              const imgs = {};
+              for (const [k, W, Hh] of [['profile', 1100, 520], ['topview', 1100, 560], ['along', 1100, 560], ['curve', 1100, 460]]) imgs[k] = await renderOffscreen(k, W, Hh);
               const esc = (v) => String(v ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-              const n = (v, d = 1) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '-';
               const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
               const rows = res.map(r => {
                   const flags = getStatusFlags(r, statusCtx);
-                  const td = r.multiTouchdown ? n(contactsOf(r)[0].near) + ' (mid)' : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? n(r.fairleadX - r.touchdownX) : '-');
+                  const td = r.multiTouchdown ? fL(contactsOf(r)[0].near, 1) + ' (mid)' : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? fL(r.fairleadX - r.touchdownX, 1) : '-');
                   const bz = buoyPoints(r).map((b, i) => `B${getBuoyDisplayNumber(b, buoys, i)} ${buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'slack' ? 'SLACK' : buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'sub' ? 'SUB' : ((b.buoyUtilization || 0) * 100).toFixed(0) + '%'}`).join(', ');
-                  return `<tr${isInvalidCase(flags) ? ' class="inv"' : ''}><td>${n(r.horizontalTension)}${caseTag(r)}</td><td>${n(r.fairleadX)}</td><td>${n(r.groundedLength)}${r.multiTouchdown ? ' +' + n(r.contact2Length) : ''}</td><td>${td}</td><td>${n(r.anchorTension, 2)}</td><td>${n(r.anchorUpliftForce || 0, 2)}</td><td>${n(r.fairleadTension)}</td><td>${isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) + '%' : '-'}</td><td>${esc(bz || '-')}</td><td>${esc(flags.length ? flags.map(f => f.text).join('; ') : 'OK')}</td></tr>`;
+                  return `<tr${isInvalidCase(flags) ? ' class="inv"' : ''}><td>${fF(r.horizontalTension, 1)}${caseTag(r)}</td><td>${fL(r.fairleadX, 1)}</td><td>${fL(r.groundedLength, 1)}${r.multiTouchdown ? ' +' + fL(r.contact2Length, 1) : ''}</td><td>${td}</td><td>${fF(r.anchorTension, 2)}</td><td>${fF(r.anchorUpliftForce || 0, 2)}</td><td>${fF(r.fairleadTension, 1)}</td><td>${isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) + '%' : '-'}</td><td>${esc(bz || '-')}</td><td>${esc(flags.length ? flags.map(f => f.text).join('; ') : 'OK')}</td></tr>`;
               }).join('');
               const totalLen = segments.reduce((a, sg) => a + (parseFloat(sg.length) || 0), 0);
               const segTxt = segments.map((sg, i) => `#${i + 1} ${matOf(sg.type).label} ${sg.diameter} mm × ${sg.length} m (w ${sg.w} kg/m, EA ${sg.EA} kN, MBL ${sg.mbl || '-'} t, µ ${sg.frictionCoeff})`).join('<br>');
               const buoyTxt = buoys.length ? buoys.map((b, i) => `B${i + 1}: ${b.distanceFromAnchor} m from anchor, ${b.netBuoyancy} t, pennant ${b.pennantLength} m / ${b.pennantWeight} t, misc ${b.pennantLoad ?? 0} t, height ${b.height} m`).join('<br>') : 'none';
+              const sc = structureCheckRows(res, activeConfig, statusCtx);
+              const scHtml = sc.length ? `<table class="sm"><thead><tr><th>Line</th><th>Structure @</th><th>Worst case</th><th>Clearance</th><th>Anchor gap</th><th>Status</th></tr></thead><tbody>${sc.map(r => `<tr><td>${esc(r.line)}</td><td>${fT(r.dist, 1)} ${uL()}</td><td>${esc(r.caseLabel)}</td><td>${r.clr === null ? '-' : fL(Math.max(0, r.clr), 1) + ' ' + uL()}</td><td>${fL(r.anchorGap, 0)} ${uL()}</td><td>${esc(r.label)}</td></tr>`).join('')}</tbody></table>` : '<p>No subsea structures on any line bearing.</p>';
+              // node table of the selected case
+              let nodeHtml = '<p>No profile points for the selected case.</p>', nodeNote = '';
+              try {
+                  const rs = res[selIdx], WD = cfgWD(activeConfig), model = buildNodes(rs, (activeConfig.calcSnap && activeConfig.calcSnap.segments) || segments, (activeConfig.calcSnap && activeConfig.calcSnap.buoys) || buoys, WD);
+                  if (model) {
+                      let mode = 'native'; try { mode = localStorage.getItem('slack_nodeRes') || 'native'; } catch (e) {}
+                      const stepD = isFinite(parseFloat(mode)) ? parseFloat(mode) : (mode === 'native' ? (UNITS.len === 'ft' ? 100 : 25) : 0);
+                      const base = withStructures(model, rs, structures), rowsAsc = resampleNodes(model, base, mode === 'key' ? 'key' : 'step', stepD / LEN_UNITS[UNITS.len].f);
+                      const tb = nodeTable(rowsAsc, statusCtx);
+                      nodeNote = `Case ${fF(rs.horizontalTension, 1)} ${uF()}${caseTag(rs)} · ${mode === 'key' ? 'key points only' : `every ${stepD} ${uL()} along the line + key points (interpolated rows are linear between engine points)`} · ${tb.body.length} nodes · fairlead → anchor`;
+                      nodeHtml = `<table class="sm"><thead><tr>${tb.head.slice(0, 15).map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${tb.body.map((r, k) => `<tr class="${tb.rows[k].tags.includes('buoy') ? 'nb' : tb.rows[k].tags.length ? 'nk' : ''}">${r.slice(0, 15).map((c, j) => `<td${j > 2 ? ' class="r"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+                  }
+              } catch (e) { /* no node table */ }
+              const img = (k) => imgs[k] ? `<img src="${imgs[k]}">` : '<p>(view could not be rendered)</p>';
+              w.document.open();
               w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(fileStem())}</title><style>
-                  @page { size: A4 landscape; margin: 12mm; } body { font: 11px Arial, sans-serif; color: #111; margin: 0; }
-                  h1 { font-size: 16px; margin: 0 0 2px; } .meta { color: #444; margin-bottom: 6px; } img { width: 100%; border: 1px solid #ccc; margin: 6px 0; }
+                  @page { size: A4 landscape; margin: 11mm; } body { font: 10.5px Arial, sans-serif; color: #111; margin: 0; }
+                  h1 { font-size: 16px; margin: 0 0 2px; } h2 { font-size: 13px; margin: 0 0 4px; } .meta { color: #444; margin-bottom: 6px; } img { width: 100%; max-height: 165mm; object-fit: contain; border: 1px solid #ccc; margin: 4px 0; }
                   table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #bbb; padding: 3px 5px; text-align: left; } th { background: #eef2f6; }
-                  tr.inv td { color: #888; font-style: italic; } .small { font-size: 10px; color: #333; margin-top: 6px; line-height: 1.4; }
+                  table.sm { font-size: 8.5px; } table.sm td, table.sm th { padding: 1.5px 4px; } td.r { text-align: right; } tr.nb td { background: #fff6dc; } tr.nk td { background: #eaf3fb; font-weight: 600; }
+                  thead { display: table-header-group; } tr { page-break-inside: avoid; } tr.inv td { color: #888; font-style: italic; } .small { font-size: 10px; color: #333; margin-top: 6px; line-height: 1.45; }
+                  .pg { page-break-after: always; } .pg:last-child { page-break-after: auto; }
               </style></head><body>
-                  <h1>SLACK catenary report - ${esc(projectName)}</h1>
-                  <div class="meta">WD ${esc(activeConfig.calcWaterDepth ?? waterDepth)} m · Fairlead +${esc(fairleadElev)} m · Payout ${totalLen.toFixed(1)} m · SWL ${isFinite(swl) ? swl.toFixed(1) + ' t (MBL ' + statusCtx.minMBL + ' t / DF ' + statusCtx.df + ')' : 'n/a'} · Min clearance ${esc(minClearance)} m · Anchor-struct min ${esc(gmiMin)} m · Structures ${esc(subseaStructuresStr || 'none')} · ${new Date().toLocaleString()}</div>
-                  ${imgUrl ? `<img src="${imgUrl}">` : ''}
-                  <table><thead><tr><th>Case (t)</th><th>Offset (m)</th><th>Grounded (m)</th><th>Touchdown (m)</th><th>Anch H (t)</th><th>Anch V (t)</th><th>FL Ten (t)</th><th>SWL util</th><th>Buoys</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
-                  <div class="small"><b>Line:</b><br>${segTxt}<br><b>Buoys:</b><br>${buoyTxt}<br>
+                  <div class="pg"><h1>SLACK catenary report - ${esc(projectName)}</h1>
+                  <div class="meta">WD ${fT(parseFloat(activeConfig.calcWaterDepth ?? waterDepth), 1)} ${uL()} · Fairlead +${fT(parseFloat(fairleadElev), 1)} ${uL()} · Payout ${fL(totalLen, 1)} ${uL()} · SWL ${isFinite(swl) ? fF(swl, 1) + ' ' + uF() + ' (MBL ' + fFT(statusCtx.minMBL, 0) + ' ' + uF() + ' / DF ' + statusCtx.df + ')' : 'n/a'} · Min clearance ${fT(parseFloat(minClearance), 1)} ${uL()} · Anchor-struct min ${fT(parseFloat(gmiMin), 1)} ${uL()} · Structures ${esc(subseaStructuresStr || 'none')} · Units ${uL()} / ${uF()} · ${new Date().toLocaleString()}</div>
+                  <h2>Catenary profile</h2>${img('profile')}</div>
+                  <div class="pg"><h2>Results</h2>
+                  <table><thead><tr><th>Case (${uF()})</th><th>Offset (${uL()})</th><th>Grounded (${uL()})</th><th>Touchdown (${uL()})</th><th>Anch H (${uF()})</th><th>Anch V (${uF()})</th><th>FL Ten (${uF()})</th><th>SWL util</th><th>Buoys</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>
+                  <div class="small"><b>Line (fairlead → anchor, inputs in m and t):</b><br>${segTxt}<br><b>Buoys:</b><br>${buoyTxt}<br>
                   Static catenary, flat seabed, generic material properties unless entered manually. Accuracy basis ±0.5 m vertical / ±1 m horizontal. Italic rows = invalid case.
-                  SLACK frontend ${APP_VERSION} · engine ${esc(activeConfig.engineVersion || '-')}</div>
-                  <script>window.onload = () => setTimeout(() => window.print(), 300);<\/script>
+                  SLACK frontend ${APP_VERSION} · engine ${esc(activeConfig.engineVersion || '-')}</div></div>
+                  <div class="pg"><h2>Top view (plan) and structure check</h2>${img('topview')}${scHtml}</div>
+                  <div class="pg"><h2>Along the line - selected case</h2>${img('along')}</div>
+                  <div class="pg"><h2>Tension - offset</h2>${img('curve')}</div>
+                  <div class="pg"><h2>Nodes</h2><div class="meta">${esc(nodeNote)}</div>${nodeHtml}</div>
+                  <script>window.onload = () => setTimeout(() => window.print(), 400);<\/script>
               </body></html>`);
               w.document.close();
           };
-
           // v11: CSV export of the active tab's results, for rig-move reporting.
           const exportToCsv = () => {
               const res = activeConfig.results || [];
               if (res.length === 0) { pushToast('warning', 'No results to export - run Calculate first.'); return; }
-              const num = (v, d = 2) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '';
-              const header = ['Case(t)','TotalLen(m)','Offset(m)','Grounded(m)','TouchdownFromFL(m)','AnchH(t)','AnchV(t)',
-                  'AnchResultant(t)','FLTen(t)','SWLUtil(%)','Buoys(sub%/state)','Contact2Len(m)','Contact2FromFL(m)','Converged','Residual(m)','Solver','Status'];
+              const nL = (v, d = 2) => okNum(v) ? cL(v).toFixed(d) : '', nF = (v, d = 2) => okNum(v) ? cF(v).toFixed(d) : '';
+              const header = [`Case(${uF()})`, `TotalLen(${uL()})`, `Offset(${uL()})`, `Grounded(${uL()})`, `TouchdownFromFL(${uL()})`, `AnchH(${uF()})`, `AnchV(${uF()})`,
+                  `AnchResultant(${uF()})`, `FLTen(${uF()})`, 'SWLUtil(%)', 'Buoys(sub%/state)', `Contact2Len(${uL()})`, `Contact2FromFL(${uL()})`, 'Converged', `Residual(${uL()})`, 'Solver', 'Status'];
               const swl = statusCtx.hasMBL ? statusCtx.minMBL / statusCtx.df : NaN;
               const rows = res.map(r => {
                   const flags = getStatusFlags(r, statusCtx);
                   return [
-                      `${num(r.horizontalTension,1)}${caseTag(r)}`,
-                      num(r.totalLength,1), num(r.fairleadX,1), num(r.groundedLength,1),
-                      r.multiTouchdown ? num(contactsOf(r)[0].near,1) : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? num(r.fairleadX - r.touchdownX,1) : ''),
-                      num(r.anchorTension), num(r.anchorUpliftForce),
-                      num(r.anchorResultantTension ?? Math.sqrt((r.anchorTension||0)**2 + (r.anchorUpliftForce||0)**2)),
-                      num(r.fairleadTension,1), isFinite(swl) ? num(r.fairleadTension / swl * 100, 0) : '',
-                      buoyPoints(r).map((b, i) => `B${getBuoyDisplayNumber(b, buoys, i)}:${buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'slack' ? 'SLACK' : ((b.buoyUtilization || 0) * 100).toFixed(0) + '%'}${b.pennantTension !== undefined ? '/' + b.pennantTension.toFixed(2) + 't' : ''}`).join(' '),
-                      r.multiTouchdown ? num(r.contact2Length,1) : '',
-                      r.multiTouchdown ? contactsOf(r).map(c => `${num(c.near,0)}-${num(c.far,0)}`).join(' ') : '',
-                      r.converged === undefined ? '' : r.converged, num(r.residual,3), r.solver || '',
+                      `${nF(r.horizontalTension, 1)}${caseTag(r)}`,
+                      nL(r.totalLength, 1), nL(r.fairleadX, 1), nL(r.groundedLength, 1),
+                      r.multiTouchdown ? nL(contactsOf(r)[0].near, 1) : (r.touchdownX !== undefined && r.groundedLength > 0.05 ? nL(r.fairleadX - r.touchdownX, 1) : ''),
+                      nF(r.anchorTension), nF(r.anchorUpliftForce),
+                      nF(r.anchorResultantTension ?? Math.sqrt((r.anchorTension || 0) ** 2 + (r.anchorUpliftForce || 0) ** 2)),
+                      nF(r.fairleadTension, 1), isFinite(swl) ? (r.fairleadTension / swl * 100).toFixed(0) : '',
+                      buoyPoints(r).map((b, i) => `B${getBuoyDisplayNumber(b, buoys, i)}:${buoyLevel(b.buoyUtilization || 0, b.isSlack) === 'slack' ? 'SLACK' : ((b.buoyUtilization || 0) * 100).toFixed(0) + '%'}${b.pennantTension !== undefined ? '/' + nF(b.pennantTension) + uF() : ''}`).join(' '),
+                      r.multiTouchdown ? nL(r.contact2Length, 1) : '',
+                      r.multiTouchdown ? contactsOf(r).map(c => `${nL(c.near, 0)}-${nL(c.far, 0)}`).join(' ') : '',
+                      r.converged === undefined ? '' : r.converged, nL(r.residual, 3), r.solver || '',
                       flags.length ? flags.map(f => f.code).join('|') : 'OK'
                   ];
               });
               const totalLen = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
-              const meta = [['# Project', projectName], ['# WaterDepth(m)', activeConfig.calcWaterDepth ?? waterDepth],
-                  ['# FairleadElev(m)', fairleadElev], ['# Payout(m)', totalLen.toFixed(1)],
-                  ['# DesignFactor', designFactor], ['# SWL(t)', isFinite(swl) ? swl.toFixed(1) : 'n/a'],
-                  ['# MinClearance(m)', minClearance], ['# AnchorToStructMin(m)', gmiMin], ['# Material model', 'Generic (OrcaFlex wizard fits) unless manual'],
+              const meta = [['# Project', projectName], [`# WaterDepth(${uL()})`, fT(parseFloat(activeConfig.calcWaterDepth ?? waterDepth), 3)],
+                  [`# FairleadElev(${uL()})`, fT(parseFloat(fairleadElev), 3)], [`# Payout(${uL()})`, fL(totalLen, 1)],
+                  ['# DesignFactor', designFactor], [`# SWL(${uF()})`, isFinite(swl) ? fF(swl, 1) : 'n/a'],
+                  [`# MinClearance(${uL()})`, fT(parseFloat(minClearance), 3)], [`# AnchorToStructMin(${uL()})`, fT(parseFloat(gmiMin), 3)], ['# Material model', 'Generic (OrcaFlex wizard fits) unless manual'],
+                  ...((UNITS.len !== 'm' || UNITS.force !== 't') ? [['# Units', `${uL()} ; ${uF()} (1 ft = 0.3048 m, 1 t = 9.80665 kN)`]] : []),
                   ['# Exported', new Date().toISOString()]];
               const csv = [...meta, header, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
-              const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `${projectName.replace(/[^\w.-]+/g, '_')}_results_${new Date().toISOString().split('T')[0]}.csv`;
-              link.click();
-              URL.revokeObjectURL(url);
+              downloadText(`${projectName.replace(/[^\w.-]+/g, '_')}_results_${new Date().toISOString().split('T')[0]}.csv`, '\ufeff' + csv);
               pushToast('success', `Exported ${res.length} rows to CSV`);
           };
 
@@ -2747,6 +3390,7 @@
                       updates.results = hasResults ? data.results : [];
                       updates.resultsSig = hasResults ? (data.resultsSig || '__imported__') : null;
                       updates.calcWaterDepth = hasResults ? (data.calcWaterDepth ?? data.waterDepth) : null;
+                      updates.calcSnap = (hasResults && data.calcSnap && Array.isArray(data.calcSnap.segments)) ? data.calcSnap : null;
                       updateConfig(updates);
                       pushToast(hasResults ? 'success' : 'info', hasResults
                           ? `Imported "${data.projectName || 'setup'}" with ${data.results.length} cached results`
@@ -2910,7 +3554,8 @@
                   merged.sort((a, b) => (a.isMaxTensionCase ? 1 : 0) - (b.isMaxTensionCase ? 1 : 0) || a.horizontalTension - b.horizontalTension);
               }
               // complete result -> cached signature; partial -> no signature (shows "outdated", Recalculate re-runs)
-              updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || cfg.engineVersion || '' });
+              updateConfigById(tabId, { results: merged, resultsSig: failed.length ? null : sig, calcWaterDepth: parseFloat(waterDepth), engineVersion: engineSeen || cfg.engineVersion || '',
+                                        calcSnap: { segments: processedSegments, buoys: payload.buoys } });   // v13.21: inputs the results belong to (Nodes / Along line)
               setLoading(false);
               if (nCached && !failed.length) pushToast('info', `${nSent} case${nSent === 1 ? '' : 's'} sent to the engine, ${nCached} reused (inputs unchanged). Shift+Click to recompute all.`, 6000);
               if (failed.length) {
@@ -3060,17 +3705,29 @@
                               </div>
                           )}
                           {/* v13.13: three views; chart area and results table share the height without overlapping */}
-                          <div className="flex gap-1 mb-0.5" role="tablist" aria-label="View">
-                              {[['profile', 'Catenary Profile'], ['topview', 'Top View (Plan)'], ['curve', 'Tension – Offset']].map(([k, l]) => (
+                          <div className="flex gap-1 mb-0.5 items-center flex-wrap" role="tablist" aria-label="View">
+                              {[['profile', 'Catenary Profile'], ['topview', 'Top View (Plan)'], ['curve', 'Tension – Offset'], ...(advanced ? [['nodes', 'Nodes'], ['along', 'Along Line']] : [])].map(([k, l]) => (
                                   <button key={k} role="tab" aria-selected={activeView === k} onClick={() => setActiveView(k)} className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-colors ${activeView === k ? 'bg-accent-600 text-white' : (theme === 'dark' ? 'bg-gray-800 text-gray-400 hover:bg-gray-700' : 'bg-gray-200 text-gray-500 hover:bg-gray-300')}`}>{l}</button>
                               ))}
+                              <div className="ml-auto flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400">
+                                  <label className="flex items-center gap-1" title="Display units for results, charts and exports. Inputs stay in m and t.">Units
+                                      <select value={units.len} onChange={e => changeUnits({ len: e.target.value })} aria-label="Length unit" className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-gray-700 dark:text-gray-200"><option value="m">m</option><option value="ft">ft</option></select>
+                                      <select value={units.force} onChange={e => changeUnits({ force: e.target.value })} aria-label="Force unit" className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-gray-700 dark:text-gray-200"><option value="t">t</option><option value="kN">kN</option><option value="kip">kip</option></select>
+                                  </label>
+                                  {(units.len !== 'm' || units.force !== 't') && <span className="rounded bg-warn-600/10 dark:bg-warn-400/15 text-warn-600 dark:text-warn-400 font-bold px-1.5 py-0.5" title="Results are shown in the selected units; the input fields are always m and t">Inputs: m · t</span>}
+                                  <button onClick={() => setAdvanced(a => !a)} aria-pressed={advanced} title="Advanced: Nodes table, Along-line graphs and more result columns" className={`font-bold rounded border px-2 py-0.5 ${advanced ? 'bg-accent-600 border-accent-600 text-white' : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500'}`}>{advanced ? 'Advanced ON' : 'Advanced'}</button>
+                              </div>
                           </div>
                           <div ref={splitRef} className="flex-1 min-h-0 flex flex-col">
                               <div ref={viewRef} className="flex-1 min-h-[240px] flex flex-col">
                               {activeView === 'profile'
-                                  ? <ChartPanel configs={chartConfigs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} selIdx={selIdx} hoverIdx={perf ? null : hoverIdx} perf={perf} setPerf={setPerf} />
+                                  ? <ChartPanel configs={chartConfigs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} selIdx={selIdx} hoverIdx={perf ? null : hoverIdx} perf={perf} setPerf={setPerf} uk={uk} />
                                   : activeView === 'topview'
                                   ? <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} setPattern={(t) => updateConfig({ patternType: t, anchorBearings: (PATTERN_TEMPLATES[t] || []).map(a => ({ ...a })) })} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />
+                                  : activeView === 'nodes' && advanced
+                                  ? <NodesPanel configs={configs} activeConfigId={activeTabId} theme={theme} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} pushToast={pushToast} uk={uk} />
+                                  : activeView === 'along' && advanced
+                                  ? <AlongPanel configs={configs} activeConfigId={activeTabId} theme={theme} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} uk={uk} />
                                   : <CurvePanel configs={configs} activeConfigId={activeTabId} theme={theme} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />}
                               </div>
                               <div role="separator" aria-orientation="horizontal" aria-label="Resize results table (drag, arrow keys, double-click to collapse)" tabIndex={0}
@@ -3080,7 +3737,7 @@
                                   <span className="w-14 h-1 rounded bg-gray-300 dark:bg-gray-700 group-hover:bg-accent-500 group-focus-visible:bg-accent-500"></span>
                               </div>
                               <div style={{ height: tblH }} className="shrink-0 min-h-0">
-                                  <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} selIdx={selIdx} setSelIdx={setSelIdxRaw} setHoverIdx={hoverRow} collapsed={tableCollapsed} setCollapsed={setTableCollapsed} />
+                                  <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} selIdx={selIdx} setSelIdx={setSelIdxRaw} setHoverIdx={hoverRow} collapsed={tableCollapsed} setCollapsed={setTableCollapsed} advanced={advanced} snap={activeConfig.calcSnap} wd={cfgWD(activeConfig)} uk={uk} />
                               </div>
                           </div>
                       </div>
