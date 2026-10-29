@@ -26,8 +26,8 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
+              sans: ['Inter', 'Segoe UI', 'system-ui', 'Arial', 'sans-serif'],   // v13.19: fallbacks if Google Fonts is blocked
+              mono: ['JetBrains Mono', 'Consolas', 'Menlo', 'monospace'],
             },
             // v12 "Deep Slate": cool-tinted neutral ramp + instrument azure accent.
             // Every foreground/background pair used in the UI was checked against WCAG 2.1 AA
@@ -82,6 +82,11 @@
         --grid-line:   #BCC8D8;
       }
 
+      /* v13.19: native <select> pop-ups follow the theme (dark mode showed light-blue text on a white list) */
+      :root { color-scheme: light; }
+      .dark { color-scheme: dark; }
+      select option, select optgroup { background-color: #FFFFFF; color: #26344A; }
+      .dark select option, .dark select optgroup { background-color: #141E2C; color: #EAEFF4; }
       body {
         background-color: var(--bg-app); color: var(--fg);
         overflow: hidden;
@@ -572,7 +577,7 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
-      const APP_VERSION = 'v13.18';
+      const APP_VERSION = 'v13.20';
       const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
@@ -793,6 +798,7 @@
                                   <li>Rig at the centre; lines at the configured bearings (8-point Tender/AWB or 4-point Jackup, editable). Solid = suspended, thick dashed = on the seabed. Buoys coloured by submerged fraction.</li>
                                   <li>Profile: the selected case gets full buoy markers, pennants and labels; other cases show a small faint buoy. The view stops just beyond the end of the suspended part (button "Show full length" restores the flat grounded stretch and the anchors). <em>V.E.</em> tells how much larger depth is drawn than distance. "top X m above surface" = part of the buoy is out of the water.</li>
                                   <li><strong>Touchdown and clearance</strong>: the selected case is marked with a triangle just below the seabed line at its touchdown (TD n m from the fairlead; "(mid)" = mid-line contact). At every structure a short bar shows the minimum clearance level (green = met, red = not met) with the actual clearance of the selected case.</li>
+                                  <li><strong>⚡ Smooth</strong> (profile header, remembered): for slower PCs. Lines are drawn simplified (within 0.1 m; 0.02 m normally), no line highlight while hovering, other tabs and the faint buoy markers of non-selected cases are hidden. The hover read-out, table, clearance and all numbers are unchanged.</li>
                                   <li><strong>Hover the profile</strong>: a cross-hair follows the mouse and lists, for every case, the line depth and height above the seabed at that distance from the fairlead (plus buoy state and structures nearby). The nearest line is highlighted.</li>
                                   <li><strong>Tension – Offset</strong> view: fairlead tension against offset with the SWL line, plus metres of offset per tonne for each step. Below ~0.1 m per tonne offset is not a usable proxy for tension.</li>
                                   <li>Case colours are blue / cyan / magenta / slate only; red, green and amber always mean status, violet = Max, white = SWL.</li>
@@ -821,8 +827,8 @@
                       </div>
                       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex flex-col gap-3">
                           <div className="flex justify-between items-center text-[11px] text-gray-400 dark:text-gray-500 font-mono px-1">
-                              <span>Frontend: v261114-{APP_VERSION}</span>
-                              <span>Worker: v4.14-261114</span>
+                              <span>Frontend: v261116-{APP_VERSION}</span>
+                              <span>Worker: v4.14.1-261115</span>
                           </div>
                           <div className="text-center text-[11px] text-gray-500 dark:text-gray-400">
                               💬 Feedback / Bug reports: <a href="mailto:Rattawit.aum@gmail.com" className="text-accent-600 dark:text-accent-400 font-medium hover:underline">Rattawit.aum@gmail.com</a>
@@ -1328,7 +1334,7 @@
                                               <button onClick={() => setPropOpen(o => ({ ...o, [b.id]: !o[b.id] }))} aria-expanded={bOpen} aria-label={`Buoy ${idx + 1} details`} className="flex-1 min-w-0 flex items-center gap-1 text-left">
                                                   <IconChevronDown size={11} className={`shrink-0 text-gray-500 transition-transform ${bOpen ? '' : '-rotate-90'}`} />
                                                   <span className="text-[11px] font-bold text-yellow-700 dark:text-yellow-500 shrink-0">B{idx + 1}</span>
-                                                  <span className="text-[11px] font-mono text-gray-600 dark:text-gray-400 truncate" title={`≈ ${isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from the fairlead along the line`}>{b.distanceFromAnchor} m · {b.netBuoyancy} t · pennant {b.pennantLength} m · ≈{isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from FL</span>
+                                                  <span className="text-[11px] font-mono text-gray-600 dark:text-gray-400 truncate" title={`${b.distanceFromAnchor} m from the anchor · buoyancy ${b.netBuoyancy} t · pennant ${b.pennantLength} m · ≈ ${isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'} m from the fairlead along the line`}>{b.distanceFromAnchor} m · {b.netBuoyancy} t · pen {b.pennantLength} m · FL≈{isFinite(distFromFL) ? distFromFL.toFixed(0) : '-'}</span>
                                                   {bErr && <span className="shrink-0 text-[10px] font-bold text-bad-600 dark:text-bad-400">!</span>}
                                               </button>
                                               <span className="flex">
@@ -1404,26 +1410,30 @@
           const a = pts[lo], b = pts[hi], t = (b.x - a.x) ? (x - a.x) / (b.x - a.x) : 0;
           return { z: a.z + (b.z - a.z) * t, grounded: !!(a.isGrounded && b.isGrounded) };
       };
-      function ProfileCursor({ hostRef, cases, sortedByCase, maxX, minDepth, maxDepth, isDark, structures, onNearest }) {
+      function ProfileCursor({ hostRef, cases, sortedByCase, maxX, minDepth, maxDepth, isDark, structures, onNearest, geoKey }) {
           const [cur, setCur] = useState(null);
-          const raf = useRef(0), nearRef = useRef(null), geo = useRef(null);
+          const raf = useRef(0), nearRef = useRef(null), geo = useRef(null), rects = useRef(null);
+          useEffect(() => { rects.current = null; }, [geoKey]);
           const setNear = (id) => { if (nearRef.current !== id) { nearRef.current = id; onNearest && onNearest(id); } };
           useEffect(() => {
               const host = hostRef.current; if (!host) return;
               const hide = () => { cancelAnimationFrame(raf.current); setCur(null); setNear(null); };
+              const enter = () => { rects.current = null; };   // v13.20 P6: re-measure once per entry, not per frame
               const move = (e) => {
                   const cx = e.clientX, cy = e.clientY;
                   cancelAnimationFrame(raf.current);
                   raf.current = requestAnimationFrame(() => {
-                      const grid = host.querySelector('.recharts-cartesian-grid');
-                      const hr = host.getBoundingClientRect(), gr = grid ? grid.getBoundingClientRect() : null;
+                      if (!rects.current) { const grid = host.querySelector('.recharts-cartesian-grid'); rects.current = { hr: host.getBoundingClientRect(), gr: grid ? grid.getBoundingClientRect() : null }; }
+                      const { hr, gr } = rects.current;
                       if (!gr || gr.width < 20 || gr.height < 20 || cx < gr.left || cx > gr.right || cy < gr.top || cy > gr.bottom) { setCur(null); setNear(null); return; }
                       geo.current = { gl: gr.left - hr.left, gt: gr.top - hr.top, gw: gr.width, gh: gr.height, hw: hr.width, hh: hr.height };
                       setCur({ px: cx - hr.left, py: cy - hr.top, x: (cx - gr.left) / gr.width * maxX, z: minDepth + (cy - gr.top) / gr.height * (maxDepth - minDepth) });
                   });
               };
-              host.addEventListener('pointermove', move); host.addEventListener('pointerleave', hide);
-              return () => { host.removeEventListener('pointermove', move); host.removeEventListener('pointerleave', hide); cancelAnimationFrame(raf.current); };
+              host.addEventListener('pointermove', move); host.addEventListener('pointerleave', hide); host.addEventListener('pointerenter', enter);
+              window.addEventListener('scroll', enter, true); window.addEventListener('resize', enter);
+              return () => { host.removeEventListener('pointermove', move); host.removeEventListener('pointerleave', hide); host.removeEventListener('pointerenter', enter);
+                             window.removeEventListener('scroll', enter, true); window.removeEventListener('resize', enter); cancelAnimationFrame(raf.current); };
           }, [hostRef, maxX, minDepth, maxDepth]);
           const g = geo.current;
           const rows = useMemo(() => {
@@ -1476,10 +1486,33 @@
               </div>
           );
       }
+      // v13.20 P1: drop points that lie on a straight line within eps (m). Display only - the cursor read-out, clearance and
+      // every number still use the full point set. eps 0.02 m (normal) / 0.10 m (Smooth) vs the ±0.5 m vertical accuracy basis.
+      const simplifyLine = (pts, eps) => {
+          const n = pts.length; if (n <= 3 || !(eps > 0)) return pts;
+          const keep = new Uint8Array(n); keep[0] = keep[n - 1] = 1;
+          for (let i = 0; i < n; i++) if (pts[i].isBuoy || pts[i].isJoint || pts[i].isAnchor) keep[i] = 1;
+          const st = [0, n - 1];
+          while (st.length) {
+              const b = st.pop(), a = st.pop(), A = pts[a], B = pts[b];
+              const dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz) || 1e-12;
+              let m = -1, dm = eps;
+              for (let i = a + 1; i < b; i++) { const d = Math.abs((pts[i].x - A.x) * dz - (pts[i].z - A.z) * dx) / L; if (d > dm) { dm = d; m = i; } }
+              if (m > 0) { keep[m] = 1; st.push(a, m, m, b); }
+          }
+          const out = []; for (let i = 0; i < n; i++) if (keep[i]) out.push(pts[i]); return out;
+      };
       const cfgWD = (c) => parseFloat(c.calcWaterDepth ?? c.waterDepth) || 0;   // A11/A12: WD used for THAT tab's calc
 
-      const ChartPanel = ({ configs, activeConfigId, theme, structures, statusCtx, selIdx, hoverIdx }) => {
+      // v13.20 P2: React.memo - typing in the input panel no longer re-renders the chart (props are kept stable in App).
+      const ChartPanel = React.memo(({ configs, activeConfigId, theme, structures, statusCtx, selIdx, hoverIdx, perf, setPerf }) => {
           const [hoverCaseId, setHoverCaseId] = useState(null);
+          // v13.20 P3: line highlight follows the mouse only after it rests 90 ms on a line (each change re-draws the whole chart).
+          // Smooth mode: no highlight at all - the read-out panel still works.
+          const hoverT = useRef(0);
+          useEffect(() => () => clearTimeout(hoverT.current), []);
+          const onNearest = (id) => { clearTimeout(hoverT.current); if (perf) return; hoverT.current = setTimeout(() => setHoverCaseId(id), id ? 90 : 0); };
+          useEffect(() => { if (perf) { clearTimeout(hoverT.current); setHoverCaseId(null); } }, [perf]);
           // v13.13: ONE selected case (shared with the table / top view) gets the full buoy markers, pennants and labels.
           // Hovering a table row or a line previews another case. Other cases: small faint buoy, no pennant.
           const [buoyAll, setBuoyAll] = useState(false);
@@ -1537,15 +1570,17 @@
 
                       const invalid = isConfigActive && statusCtx ? isInvalidCase(getStatusFlags(res, statusCtx)) : false;
                       const labelBuoys = isConfigActive && (res.isMaxTensionCase || (!config.results.some(r => r.isMaxTensionCase) && resIdx === config.results.length - 1));
+                      const segList = Object.values(segments);
                       return {
                           id: `${config.id}-${resIdx}`,
+                          segmentsDraw: segList.map(sp => simplifyLine(sp, perf ? 0.10 : 0.02)),
                           tabName: config.projectName,
                           isActiveTab: isConfigActive,
                           invalid,
                           labelBuoys,
                           waterDepth: cfgWD(config),
                           horizontalTension: res.horizontalTension,
-                          segments: Object.values(segments),
+                          segments: segList,
                           buoys,
                           buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, caseColor: color, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })).sort((p, q) => p.x - q.x).map((p, k) => ({ ...p, lblRow: k % 3 })),
                           anchor: transformedAnchor,
@@ -1557,7 +1592,7 @@
                   allData.push(...configData);
               });
               return allData.sort((a, b) => (a.isActiveTab === b.isActiveTab ? 0 : a.isActiveTab ? 1 : -1));
-          }, [configs, activeConfigId, theme, statusCtx]);
+          }, [configs, activeConfigId, theme, statusCtx, perf]);
 
           // v11: the tooltip used to flatten+sort every case on EVERY mouse-move. Do it once.
           const flatSortedByCase = useMemo(() => {
@@ -1583,6 +1618,8 @@
               return { x, z: activeWD - minClrM, clr: c, ok: c === null ? null : c >= minClrM, id: `clr-${idx}` };
           }), [structures, selRes, minClrM, activeWD]);
 
+          // v13.20 P4: axis domains depend only on the results / crop state - computed once, not on every hover re-render.
+          const dom = useMemo(() => {
           const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
           const maxDepthRaw = allZ.length > 0 ? Math.max(maxWaterDepth + 10, ...allZ) : maxWaterDepth + 10;
           // v11: was hard-coded -15, clipping any fairlead above 15 m out of the Y domain.
@@ -1609,12 +1646,15 @@
           const xInterval = pickInterval(xDomainRaw);
           const maxX = Math.ceil(xDomainRaw / xInterval) * xInterval;
           const xTicks = []; for (let x = 0; x <= maxX + 0.1; x += xInterval) xTicks.push(Number(x.toFixed(1)));
+              return { minDepth, maxDepth, yTicks, maxX, xTicks, canCrop, cropped };
+          }, [chartData, maxWaterDepth, structures, fullX]);
+          const { minDepth, maxDepth, yTicks, maxX, xTicks, canCrop, cropped } = dom;
           const verticalExag = (plotSize.w > 200 && plotSize.h > 120) ? (((plotSize.h - 60) / Math.max(1, maxDepth - minDepth)) / ((plotSize.w - 100) / Math.max(1, maxX))) : null;
 
           const isDark = theme === 'dark';
           const buoyStroke = isDark ? '#EAEFF4' : '#26344A';
           const activeCases = chartData.filter(d => d.isActiveTab);
-          const hv = hoverCaseId || extHoverId;
+          const hv = perf ? null : (hoverCaseId || extHoverId);
           const focusId = selectedId;
           const emphOf = (caseId) => hv ? caseId === hv : caseId === focusId;
           const isFull = (caseId) => hv ? caseId === hv : (buoyAll || caseId === focusId);
@@ -1674,7 +1714,7 @@
                       <rect x={-8} y={-10} width={16} height={10} fill={isDark ? "#FF5C5C" : "#C42B2B"} rx={1} stroke="none" />
                       <path d="M-14 -20 L-6 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
                       <path d="M6 -20 L14 -20" stroke={isDark ? "#FF5C5C" : "#C42B2B"} strokeWidth={1} />
-                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={9} fontWeight="700" style={{textShadow: isDark ? '0 1px 2px rgba(0,0,0,0.8)' : 'none'}}>STRUCT {payload.x} m</text>
+                      <text x={0} y={-24} textAnchor="middle" fill={isDark ? "#FF5C5C" : "#C42B2B"} fontSize={10} fontWeight="700" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>STRUCT {payload.x} m</text>
                   </g>
               );
           };
@@ -1706,12 +1746,16 @@
                                   {cropped ? 'Show full length ▸' : '◂ Crop to suspended part'}
                               </button>
                           )}
+                          <button onClick={() => setPerf(v => !v)} aria-pressed={perf} title={perf ? 'Smooth mode ON: simplified lines, no hover highlight, other tabs and faint buoy markers hidden. Numbers unchanged. Click for full detail.' : 'Switch to Smooth mode for slower PCs: simplified lines (within 0.1 m), no hover highlight, other tabs hidden. Numbers unchanged.'}
+                                  className={`text-[11px] font-semibold px-1.5 py-0 rounded border ${perf ? 'bg-accent-600 border-accent-600 text-white' : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500'}`}>
+                              {perf ? '⚡ Smooth ON' : '⚡ Smooth'}
+                          </button>
                           {verticalExag && <span className="font-mono text-gray-500 dark:text-gray-400" title="Vertical exaggeration: depth is drawn this many times larger than horizontal distance">V.E. ≈ {verticalExag.toFixed(1)}×</span>}
                       </div>
                   </div>
                   <div ref={plotRef} className="relative flex-1 min-h-0 w-full h-full">
                       <ProfileCursor hostRef={plotRef} cases={chartData} sortedByCase={flatSortedByCase} maxX={maxX} minDepth={minDepth} maxDepth={maxDepth}
-                                     isDark={isDark} structures={structures} onNearest={setHoverCaseId} />
+                                     isDark={isDark} structures={structures} onNearest={onNearest} geoKey={`${plotSize.w}x${plotSize.h}|${maxX}|${minDepth}|${maxDepth}`} />
                       <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 10, right: 30, bottom: 30, left: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#26344A" : "#E6EBF1"} strokeOpacity={0.9} />
@@ -1719,7 +1763,7 @@
                               <YAxis dataKey="z" type="number" unit="m" ticks={yTicks} domain={[minDepth, maxDepth]} stroke={isDark ? "#94A4B8" : "#55687F"} reversed={true} tick={{fontSize: 11, fill: isDark ? "#94A4B8" : "#55687F"}} tickLine={{stroke: isDark ? "#3C4C60" : "#BCC8D8"}} label={{ value: 'Depth (m)', angle: -90, position: 'insideLeft', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 12 }} />
                               {/* v13.17: hover read-out is ProfileCursor (pointer-tracked, works anywhere on the plot) */}
                               
-                              {[...chartData].sort((a, b) => (emphOf(a.id) ? 1 : 0) - (emphOf(b.id) ? 1 : 0)).map((res) => (
+                              {(perf ? chartData.filter(d => d.isActiveTab) : [...chartData]).sort((a, b) => (emphOf(a.id) ? 1 : 0) - (emphOf(b.id) ? 1 : 0)).map((res) => (
                                   <React.Fragment key={res.id}>
                                       {isFull(res.id) && res.buoys.map((b, bIdx) => {
                                           // v13.13: pennants only for the emphasised (selected / hovered) case - 5 overlapping pennant
@@ -1730,7 +1774,7 @@
                                               <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
                                           );
                                       })}
-                                      {res.segments.map((segPoints, sIdx) => {
+                                      {res.segmentsDraw.map((segPoints, sIdx) => {
                                           const segType = segPoints[0].segmentType;
                                           const isChain = isChainType(segType);
                                           // U16: invalid cases drawn dashed + faded. E3: no per-point hit circles, no animation.
@@ -1739,7 +1783,7 @@
                                               <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: (isChain ? 3.5 : 2) + (emph ? 1.2 : 0), strokeDasharray: res.invalid ? '2 4' : (isChain ? '7 3' : '0'), strokeOpacity: res.invalid ? 0.55 : dim ? 0.3 : 1 }} shape={() => null} legendType="none" isAnimationActive={false} />
                                           );
                                       })}
-                                      {res.buoysData.length > 0 && (
+                                      {res.buoysData.length > 0 && (!perf || isFull(res.id)) && (
                                           <Scatter key={`buoys-${res.id}`} data={res.buoysData} shape={renderBuoyShape} legendType="none" isAnimationActive={false} />
                                       )}
                                       {res.anchor && (
@@ -1765,7 +1809,7 @@
                   </div>
               </div>
           );
-      };
+      });
 
       // ===== v9: TopViewPanel (all 8 v7 bugs fixed) =====
       // Fixes: B1-B7 documented in deep QC report
@@ -2460,6 +2504,20 @@
           // v13.13: one SELECTED case shared by chart, top view, tension-offset view and table (click a row / chip / point).
           const [selIdxRaw, setSelIdxRaw] = useState(null);
           const [hoverIdx, setHoverIdx] = useState(null);
+          // v13.20: Smooth mode (remembered). Table-row hover preview after a 120 ms dwell (each preview re-draws the chart).
+          const [perf, setPerf] = useState(() => { try { return localStorage.getItem('slack_perf') === '1'; } catch (e) { return false; } });
+          useEffect(() => { try { localStorage.setItem('slack_perf', perf ? '1' : '0'); } catch (e) {} }, [perf]);
+          const rowHoverT = useRef(0);
+          const hoverRow = (i) => { clearTimeout(rowHoverT.current); if (perf) { if (i === null) setHoverIdx(null); return; } rowHoverT.current = setTimeout(() => setHoverIdx(i), i === null ? 0 : 120); };
+          // v13.20 P2: the chart gets a configs list whose identity changes only when something it draws changes
+          // (results / WD / buoys / name) - not on every keystroke in the inputs.
+          const chartCfgRef = useRef(null);
+          const chartConfigs = (() => {
+              const next = configs.map(c => ({ id: c.id, projectName: c.projectName, results: c.results, calcWaterDepth: c.calcWaterDepth, waterDepth: c.waterDepth, buoys: c.buoys }));
+              const prev = chartCfgRef.current;
+              if (prev && prev.length === next.length && prev.every((p, i) => Object.keys(p).every(k => p[k] === next[i][k]))) return prev;
+              chartCfgRef.current = next; return next;
+          })();
           const autoIdx = (() => { let best = -1; results.forEach((r, i) => { if (!r.isMaxTensionCase && !r.isSwlCase && (best < 0 || r.horizontalTension > results[best].horizontalTension)) best = i; }); return best >= 0 ? best : Math.max(0, results.length - 1); })();
           const selIdx = (selIdxRaw !== null && selIdxRaw < results.length) ? selIdxRaw : autoIdx;
           useEffect(() => { setSelIdxRaw(null); setHoverIdx(null); }, [activeTabId, results]);
@@ -2879,13 +2937,14 @@
               return parseStructDists(subseaStructuresStr);
           }, [subseaStructuresStr]);
 
+          const mblKey = segments.map(sg => sg.mbl).join('|');   // v13.20 P2: statusCtx only depends on the MBL values
           const statusCtx = useMemo(() => {
               const dfv = parseFloat(designFactor) > 0 ? parseFloat(designFactor) : DEFAULT_DF;
               const mc = parseFloat(minClearance);
               return { ...mblSummary(segments), df: dfv, structures, minClearance: isNaN(mc) ? DEFAULT_MIN_CLEARANCE : mc,
                        gmi: (gmiMin !== '' && Number(gmiMin) >= 0) ? Number(gmiMin) : DEFAULT_GMI_MIN,
                        waterDepth: parseFloat(activeConfig.calcWaterDepth ?? waterDepth) || 0 };
-          }, [segments, designFactor, minClearance, gmiMin, structures, activeConfig.calcWaterDepth, waterDepth]);
+          }, [mblKey, designFactor, minClearance, gmiMin, structures, activeConfig.calcWaterDepth, waterDepth]);
 
           const bgClass = theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-800';
           const sidebarBorder = theme === 'dark' ? 'border-gray-800' : 'border-gray-200';
@@ -3009,7 +3068,7 @@
                           <div ref={splitRef} className="flex-1 min-h-0 flex flex-col">
                               <div ref={viewRef} className="flex-1 min-h-[240px] flex flex-col">
                               {activeView === 'profile'
-                                  ? <ChartPanel configs={configs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} selIdx={selIdx} hoverIdx={hoverIdx} />
+                                  ? <ChartPanel configs={chartConfigs} activeConfigId={activeTabId} structures={structures} theme={theme} statusCtx={statusCtx} selIdx={selIdx} hoverIdx={perf ? null : hoverIdx} perf={perf} setPerf={setPerf} />
                                   : activeView === 'topview'
                                   ? <TopViewPanel configs={configs} activeConfigId={activeTabId} theme={theme} patternType={patternType} anchorBearings={anchorBearings} setAnchorBearings={setAnchorBearings} setPattern={(t) => updateConfig({ patternType: t, anchorBearings: (PATTERN_TEMPLATES[t] || []).map(a => ({ ...a })) })} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />
                                   : <CurvePanel configs={configs} activeConfigId={activeTabId} theme={theme} statusCtx={statusCtx} selIdx={selIdx} setSelIdx={setSelIdxRaw} />}
@@ -3021,7 +3080,7 @@
                                   <span className="w-14 h-1 rounded bg-gray-300 dark:bg-gray-700 group-hover:bg-accent-500 group-focus-visible:bg-accent-500"></span>
                               </div>
                               <div style={{ height: tblH }} className="shrink-0 min-h-0">
-                                  <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} selIdx={selIdx} setSelIdx={setSelIdxRaw} setHoverIdx={setHoverIdx} collapsed={tableCollapsed} setCollapsed={setTableCollapsed} />
+                                  <ResultsTable results={results} buoys={buoys} segments={segments} theme={theme} statusCtx={statusCtx} isStale={isStale} selIdx={selIdx} setSelIdx={setSelIdxRaw} setHoverIdx={hoverRow} collapsed={tableCollapsed} setCollapsed={setTableCollapsed} />
                               </div>
                           </div>
                       </div>
