@@ -807,7 +807,7 @@
       }
 
       // --- v10 NEW: Error classifier for actionable messages ---
-      const APP_VERSION = 'v13.24';
+      const APP_VERSION = 'v13.27';
       const WORKER_URL = "https://catcal-engine.rattawit-aum.workers.dev/";
       const classifyError = (err) => {
           const msg = err?.message || String(err);
@@ -917,9 +917,9 @@
                   </span>
                   <span className="relative block">
                       <input type={props.type || 'number'} {...props}
-                          className={`w-full bg-white dark:bg-gray-950 border rounded pl-1.5 ${unit ? (unit.length > 1 ? 'pr-7' : 'pr-4') : 'pr-1'} py-1 text-[12px] font-mono text-gray-800 dark:text-gray-100 outline-none
+                          className={`w-full bg-white dark:bg-gray-950 border rounded pl-1.5 ${unit ? (typeof unit !== 'string' ? 'pr-6' : unit.length > 1 ? 'pr-7' : 'pr-4') : 'pr-1'} py-1 text-[12px] font-mono text-gray-800 dark:text-gray-100 outline-none
                               ${error ? 'border-bad-600 dark:border-bad-400 bg-bad-600/5' : manual ? 'border-warn-600/60 dark:border-warn-400/60' : 'border-gray-300 dark:border-gray-700 focus:border-accent-500'}`} />
-                      {unit && <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">{unit}</span>}
+                      {unit && <span className={`absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 ${typeof unit === 'string' ? 'pointer-events-none' : ''}`}>{unit}</span>}
                   </span>
               </label>
           );
@@ -941,7 +941,25 @@
               </section>
           );
       }
-      const SHORT_TYPE = { WIRE: 'Wire 6×IWRC', CHAIN: 'Chain studlink R3', CHAIN_STUDLESS: 'Chain studless R3', FIBER: 'Polyester (lin.)' };
+      // v13.25: diameter field that shows / accepts mm or inch (stored in mm). Text buffer while typing so "2." is not reformatted.
+        const MM_PER_IN = 25.4;
+        // v13.26: 2 decimals in inch; unit toggle lives INSIDE the field (like the other unit tags, nothing clipped);
+        // a typed inch value within 0.02" (0.5 mm) of a standard size (snap list) is stored as that exact standard mm.
+        function DiaField({ mm, onMm, inch, onToggleUnit, snap, label, title, ...rest }) {
+            const [txt, setTxt] = useState(null);
+            const n = parseFloat(mm);
+            const shown = txt !== null ? txt : (isNaN(n) ? '' : inch ? (n / MM_PER_IN).toFixed(2) : String(n));
+            const unitBtn = <button type="button" tabIndex={-1} onClick={(e) => { e.preventDefault(); setTxt(null); onToggleUnit(); }} className="font-semibold text-accent-700 dark:text-accent-300 underline decoration-dotted cursor-pointer" title="Click to switch Ø unit mm / inch (all diameter fields)">{inch ? 'in' : 'mm'}</button>;
+            return <CF {...rest} label={label} unit={unitBtn} type="text" inputMode="decimal" value={shown}
+                       title={`${title || ''}${!isNaN(n) ? ` · ${n} mm = ${(n / MM_PER_IN).toFixed(3)}"` : ''}`}
+                       onBlur={() => setTxt(null)}
+                       onChange={e => { const v = e.target.value; setTxt(v); if (v.trim() === '') { onMm(''); return; }
+                           const x = parseFloat(v.replace(',', '.')); if (isNaN(x) || x < 0) return;
+                           if (!inch) { onMm(String(x)); return; }
+                           const std = (snap || []).find(d => Math.abs(x - d / MM_PER_IN) <= 0.02);
+                           onMm(String(std !== undefined ? std : +(x * MM_PER_IN).toFixed(1))); }} />;
+        }
+const SHORT_TYPE = { WIRE: 'Wire 6×IWRC', CHAIN: 'Chain studlink R3', CHAIN_STUDLESS: 'Chain studless R3', FIBER: 'Polyester (lin.)' };
 
       function SelectField({ label, value, onChange, children }) {
           return (
@@ -990,7 +1008,8 @@
                               <ul className="list-disc pl-4 space-y-1">
                                   <li><strong>Segments</strong> are listed fairlead → anchor. Weight, EA and MBL are generic estimates from type + diameter (OrcaFlex line-type wizard fits). Typing a value marks it MANUAL; ↺ / ✕ restores the auto value. EA = 0 means rigid (inextensible). Use certificate values when available.</li>
                                   <li><strong>Friction</strong> defaults: wire 0.6, chain 1.0 (static, soft clay).</li>
-                                  <li><strong>Buoys</strong>: distance is measured from the anchor along the line. Buoyancy excludes the pennant; pennant weight (submerged) is auto from pennant Ø × length. A buoy is <em>SLACK</em> when the wire is shallower than the pennant length (no lift).</li>
+                                  <li><strong>Ø</strong> fields (segments and pennant) can be shown in mm or inch - click the unit tag inside the field (inch is shown with 2 decimals). Values are stored in mm; a typed inch value within 0.02" (0.5 mm) of a standard size is taken as that exact size (3" = 76 mm, 2.5" = 64 mm, 1.75" = 44 mm); any other value is converted as typed (2.75" = 69.8 mm).</li>
+                                    <li><strong>Buoys</strong>: distance is measured from the anchor along the line. On the profile the selected case draws each buoy to scale (bottom → top, height as entered). Buoyancy excludes the pennant; pennant weight (submerged) is auto from pennant Ø × length. A buoy is <em>SLACK</em> when the wire is shallower than the pennant length (no lift).</li>
                                   <li><strong>Design Factor</strong>: SWL = weakest-segment MBL / DF (default 2.0, API RP 2SK intact quasi-static).</li>
                                   <li><strong>Subsea Structures</strong>: distance from the fairlead. <code>400</code> = all bearings, <code>400@270</code> = ±45°, <code>400@270:30</code> = ±30°. <strong>Min Clearance</strong> (default 20 m) is checked at each structure.</li>
                               </ul>
@@ -1358,6 +1377,8 @@
           const [secOpen, setSecOpen] = useState(() => { try { return { site: true, line: true, buoys: true, ...JSON.parse(localStorage.getItem('slack_sections') || '{}') }; } catch (e) { return { site: true, line: true, buoys: true }; } });
           const toggleSec = (id) => setSecOpen(o => { const n = { ...o, [id]: !o[id] }; try { localStorage.setItem('slack_sections', JSON.stringify(n)); } catch (e) {} return n; });
           const [propOpen, setPropOpen] = useState({});
+            const [diaIn, setDiaIn] = useState(() => { try { return localStorage.getItem('slack_diaUnit') === 'in'; } catch (e) { return false; } });
+            const toggleDia = () => setDiaIn(v => { const nv = !v; try { localStorage.setItem('slack_diaUnit', nv ? 'in' : 'mm'); } catch (e) {} return nv; });
           const lineTotal = segments.reduce((a, s) => a + (parseFloat(s.length) || 0), 0);
           const lineMBL = mblSummary(segments);
           const presetEdited = !!(activePresetKey && presetSig && inputSig({ waterDepth, fairleadElev, segments, buoys }) !== presetSig);
@@ -1529,7 +1550,7 @@
                                                       {Object.keys(MATERIAL).map(t => <option key={t} value={t}>{SHORT_TYPE[t] || MATERIAL[t].label}</option>)}
                                                   </select>
                                               </div>
-                                              <CF className="w-[58px]" label="Ø (mm)" list={`dia-${seg.type}`} value={seg.diameter || ''} title="Nominal diameter - pick a standard size or type any value" onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'diameter', e.target.value); else if (e.target.value === '') updateSegment(idx, 'diameter', ''); }} />
+                                              <DiaField className="w-[62px]" label="Ø" snap={(SIZE_STANDARDS[seg.type] || []).map(r => r[0])} inch={diaIn} onToggleUnit={toggleDia} list={`dia-${diaIn ? 'in-' : ''}${seg.type}`} mm={seg.diameter} title="Nominal diameter - pick a standard size or type any value" onMm={v => updateSegment(idx, 'diameter', v)} />
                                               <CF className="w-[66px]" label="Length (m)" value={seg.length} error={isLenInvalid} onChange={e => { const val = parseFloat(e.target.value); if (!isNaN(val) && val >= 0) updateSegment(idx, 'length', e.target.value); else if (e.target.value === '') updateSegment(idx, 'length', ''); }} />
                                               <div className="flex flex-col pb-0.5">
                                                   <button onClick={() => duplicateSegment(idx)} aria-label="Duplicate this segment" title="Duplicate this segment" className="text-gray-400 hover:text-accent-500 p-0.5"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
@@ -1555,7 +1576,8 @@
                                   );
                               })}
                               {Object.keys(SIZE_STANDARDS).map(t => (
-                                  <datalist key={t} id={`dia-${t}`}>{SIZE_STANDARDS[t].map(([d, note]) => <option key={d} value={d}>{sizeLabel(t, d, note)}</option>)}</datalist>
+                                  <React.Fragment key={t}><datalist id={`dia-${t}`}>{SIZE_STANDARDS[t].map(([d, note]) => <option key={d} value={d}>{sizeLabel(t, d, note)}</option>)}</datalist>
+                                    <datalist id={`dia-in-${t}`}>{SIZE_STANDARDS[t].map(([d, note]) => <option key={d} value={(d / MM_PER_IN).toFixed(2)}>{sizeLabel(t, d, note)}</option>)}</datalist></React.Fragment>
                               ))}
                           </div>
                       </Acc>
@@ -1591,7 +1613,7 @@
                                               <CF label="Height" unit="m" value={b.height} error={!(parseFloat(b.height) > 0)} onChange={num('height')} />
                                               <CF label="Misc load" unit="t" title="Extra load hung on the pennant (shackles, chain etc.)" value={b.pennantLoad ?? 0} error={!validatePositive(b.pennantLoad || 0, true)} onChange={num('pennantLoad')} />
                                               <CF label="Pennant L" unit="m" value={b.pennantLength} error={!validatePositive(b.pennantLength, true)} onChange={num('pennantLength')} />
-                                              <CF label="Pennant Ø" unit="mm" title="Pennant wire diameter - drives the auto pennant weight" value={b.pennantDiameter ?? DEFAULT_PENNANT_DIA} onChange={num('pennantDiameter')} />
+                                              <DiaField label="Pennant Ø" snap={SIZE_STANDARDS[SegmentType.WIRE].map(r => r[0])} inch={diaIn} onToggleUnit={toggleDia} title="Pennant wire diameter - drives the auto pennant weight" mm={b.pennantDiameter ?? DEFAULT_PENNANT_DIA} onMm={v => updateBuoy(idx, 'pennantDiameter', v)} />
                                               <CF label="Pennant wt" unit="t" title="Submerged weight = generic wire kg/m(Ø) × length × wet factor" value={b.pennantWeight} error={!validatePositive(b.pennantWeight, true)} manual={b.isPennantWeightManual} onReset={() => updateBuoy(idx, 'pennantWeight', '')} placeholder={`${pennantWeightT(b.pennantLength, b.pennantDiameter ?? DEFAULT_PENNANT_DIA)}`} onChange={num('pennantWeight')} />
                                           </div>}
                                       </div>
@@ -1816,7 +1838,22 @@
                       const segList = Object.values(segments);
                       return {
                           id: `${config.id}-${resIdx}`,
-                          segmentsDraw: segList.map(sp => simplifyLine(sp, perf ? 0.10 : 0.02)),
+                          // v13.25: each segment split into suspended / on-seabed runs (the joining point belongs to both)
+                          segmentsDraw: segList.flatMap(sp => {
+                              const runs = []; if (!sp.length) return runs;
+                              let g = !!sp[0].isGrounded, cur = [sp[0]];
+                              for (let i = 1; i < sp.length; i++) {
+                                  const gi = !!sp[i].isGrounded;
+                                  if (gi === g) { cur.push(sp[i]); continue; }
+                                  if (gi) { cur.push(sp[i]); runs.push({ g, pts: cur }); cur = [sp[i]]; }
+                                  else { runs.push({ g, pts: cur }); cur = [cur[cur.length - 1], sp[i]]; }
+                                  g = gi;
+                              }
+                              runs.push({ g, pts: cur });
+                              return runs.filter(r => r.pts.length > 1).map(r => ({ g: r.g, type: sp[0].segmentType, pts: r.g ? [r.pts[0], r.pts[r.pts.length - 1]] : simplifyLine(r.pts, perf ? 0.10 : 0.02) }));
+                          }),
+                          groundedLength: res.groundedLength,
+                          groundedRuns: (() => { const out = []; let a = null, last = null; transformedPoints.forEach(p => { if (p.isGrounded) { if (a === null) a = p.x; last = p.x; } else if (a !== null) { out.push([a, last]); a = null; } }); if (a !== null) out.push([a, last]); return out.filter(r => r[1] - r[0] > 0.5); })(),
                           tabName: config.projectName,
                           isActiveTab: isConfigActive,
                           invalid,
@@ -1825,7 +1862,7 @@
                           horizontalTension: res.horizontalTension,
                           segments: segList,
                           buoys,
-                          buoysData: buoys.map(b => ({ x: b.x, z: b.pennantTopZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, caseColor: color, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })).sort((p, q) => p.x - q.x).map((p, k) => ({ ...p, lblRow: k % 3 })),
+                          buoysData: buoys.map(b => ({ x: b.x, z: b.buoyBottomZ, utilization: b.buoyUtilization, isSlack: b.isSlack, pennantTopZ: b.pennantTopZ, buoyTopZ: b.buoyTopZ, buoyTopRaw: b.buoyTopRaw, buoyBottomZ: b.buoyBottomZ, caseId: `${config.id}-${resIdx}`, caseColor: color, showLabel: labelBuoys, buoyNo: getBuoyDisplayNumber(b, config.buoys || [], 0) })).sort((p, q) => p.x - q.x).map((p, k) => ({ ...p, lblRow: k % 3 })),
                           anchor: transformedAnchor,
                           color,
                           isMax: res.isMaxTensionCase,
@@ -1866,7 +1903,8 @@
           const allZ = chartData.flatMap(d => d.segments.flat().map(p => p.z));
           const maxDepthRaw = allZ.length > 0 ? Math.max(maxWaterDepth + 10, ...allZ) : maxWaterDepth + 10;
           // v11: was hard-coded -15, clipping any fairlead above 15 m out of the Y domain.
-          const minDepthRaw = Math.min(-5, (allZ.length > 0 ? Math.min(...allZ) : 0) - 5);   // U12
+          const topZ = chartData.filter(d => d.isActiveTab).flatMap(d => d.buoysData.map(b => b.buoyTopRaw)).filter(v => isFinite(v));   // v13.27: tall buoys stick out of the water
+          const minDepthRaw = Math.min(-5, (allZ.length > 0 ? Math.min(...allZ) : 0) - 5, topZ.length ? Math.min(...topZ) - 2 : 0);   // U12
           // v13.21: tick steps are chosen in the DISPLAY unit (100 ft, not 30.48 m) and converted back to metres for the chart.
           const fkL = LEN_UNITS[UNITS.len].f, isFt = UNITS.len === 'ft';
           let yIntD = isFt ? 50 : 10;
@@ -1920,9 +1958,11 @@
               const fillColor = BUOY_FILL[isDark ? 'dark' : 'light'][lvl];
               if (!isFull(payload.caseId)) return <path d="M0,5 L-4,-2 L4,-2 Z" transform={`translate(${cx},${cy})`} fill={fillColor} fillOpacity={0.5} stroke={payload.caseColor} strokeOpacity={0.7} strokeWidth={1} />;
               const showLabel = isLabelled(payload.caseId);
+              // v13.25: (cx, cy) = buoy TOP. The body (true height, bottom -> top) is drawn as a bar below; this cap keeps
+              // very short buoys visible at any vertical exaggeration.
               return (
                   <g transform={`translate(${cx},${cy})`}>
-                      <path d="M0,10 L-8,-4 L8,-4 Z" fill={fillColor} stroke={buoyStroke} strokeWidth={lvl === 'sub' ? 2.2 : 1.5} strokeDasharray={isSlack ? '2 2' : undefined} />
+                      <rect x={-7} y={-2} width={14} height={4} rx={1} fill={fillColor} stroke={buoyStroke} strokeWidth={lvl === 'sub' ? 1.8 : 1.2} strokeDasharray={isSlack ? '2 2' : undefined} />
                       {showLabel && (
                           <text x={11} y={labelY(payload)} fontSize={10} fill={isDark ? "#BCC8D8" : "#3C4C60"} fontWeight="600" style={{ paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>
                               B{payload.buoyNo} · {isSlack ? 'SLACK (no lift)' : `${lvl === 'sub' ? 'SUB 100%' : ((payload.utilization || 0) * 100).toFixed(0) + '% sub.'} · ${topText(payload)} / bot ${fL(payload.buoyBottomZ ?? payload.pennantTopZ, 1)} ${uL()}`}
@@ -1980,6 +2020,7 @@
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600 dark:text-gray-400 select-none">
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="2"/></svg>Wire / Fiber</span>
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke="currentColor" strokeWidth="3.5" strokeDasharray="7 3"/></svg>Chain</span>
+                          <span className="flex items-center gap-1.5" title="Line lying on the seabed (selected case: soft band)"><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="currentColor" strokeWidth="9" strokeOpacity="0.22"/><line x1="0" y1="5" x2="24" y2="5" stroke="currentColor" strokeWidth="2"/></svg>On seabed</span>
                           <span className="flex items-center gap-1.5"><svg width="24" height="6"><line x1="0" y1="3" x2="24" y2="3" stroke={isDark ? '#F5A524' : '#A85D00'} strokeWidth="2" strokeDasharray="2 2"/></svg>Pennant</span>
                           <details className="relative" onKeyDown={e => { if (e.key === 'Escape') e.currentTarget.open = false; }}>
                               <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer text-[11px] font-semibold px-1.5 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-accent-500 select-none" title="Buoy colours and invalid-case line">Legend ▾</summary>
@@ -2030,17 +2071,39 @@
                                               <Scatter key={`pennant-wire-${res.id}-${bIdx}`} data={[{ x: b.x, z: b.pennantBaseZ }, { x: b.x, z: b.pennantTopZ }]} line={{ stroke, strokeWidth: 2, strokeDasharray: b.isSlack ? '5 5' : '2 2' }} shape={() => null} legendType="none" isAnimationActive={false} />
                                           );
                                       })}
-                                      {res.segmentsDraw.map((segPoints, sIdx) => {
-                                          const segType = segPoints[0].segmentType;
-                                          const isChain = isChainType(segType);
+                                      {res.segmentsDraw.map((run, sIdx) => {
+                                          const isChain = isChainType(run.type);
                                           // U16: invalid cases drawn dashed + faded. E3: no per-point hit circles, no animation.
                                           const emph = emphOf(res.id), dim = !!hv && !emph;
+                                          if (run.g) {
+                                              // v13.25: line ON the seabed - selected case = wide soft band + thin line (reads as "lying on the bottom",
+                                              // not hidden under the seabed line); other cases = thin faint line, so stacked cases no longer form a thick bar.
+                                              return (
+                                                  <React.Fragment key={`seg-${res.id}-${sIdx}`}>
+                                                      {emph && !res.invalid && <Scatter data={run.pts} line={{ stroke: res.color, strokeWidth: 9, strokeOpacity: 0.22, strokeLinecap: 'butt' }} shape={() => null} legendType="none" isAnimationActive={false} />}
+                                                      <Scatter data={run.pts} line={{ stroke: res.color, strokeWidth: emph ? 2 : 1.2, strokeDasharray: isChain ? '6 3' : '0', strokeOpacity: res.invalid ? 0.45 : emph ? 0.95 : dim ? 0.2 : 0.4 }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                                  </React.Fragment>
+                                              );
+                                          }
                                           return (
-                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={segPoints} line={{ stroke: res.color, strokeWidth: (isChain ? 3.5 : 2) + (emph ? 1.2 : 0), strokeDasharray: res.invalid ? '2 4' : (isChain ? '7 3' : '0'), strokeOpacity: res.invalid ? 0.55 : dim ? 0.3 : 1 }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                              <Scatter key={`seg-${res.id}-${sIdx}`} data={run.pts} line={{ stroke: res.color, strokeWidth: (isChain ? 3.5 : 2) + (emph ? 1.2 : 0), strokeDasharray: res.invalid ? '2 4' : (isChain ? '7 3' : '0'), strokeOpacity: res.invalid ? 0.55 : dim ? 0.3 : 1 }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                          );
+                                      })}
+                                      {isFull(res.id) && res.buoysData.map((b, bIdx) => {
+                                          // v13.25: buoy body to scale, bottom -> top (top may be above the sea surface)
+                                          const col = BUOY_FILL[isDark ? 'dark' : 'light'][buoyLevel(b.utilization || 0, b.isSlack)];
+                                          const pts = [{ x: b.x, z: b.buoyBottomZ }, { x: b.x, z: b.buoyTopRaw }];
+                                          return (
+                                              <React.Fragment key={`buoy-body-${res.id}-${bIdx}`}>
+                                                  <Scatter data={pts} line={{ stroke: buoyStroke, strokeWidth: 12, strokeLinecap: 'butt' }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                                  <Scatter data={pts} line={{ stroke: col, strokeWidth: 9, strokeLinecap: 'butt', strokeDasharray: b.isSlack ? '3 2' : undefined }} shape={() => null} legendType="none" isAnimationActive={false} />
+                                              </React.Fragment>
                                           );
                                       })}
                                       {res.buoysData.length > 0 && (!perf || isFull(res.id)) && (
-                                          <Scatter key={`buoys-${res.id}`} data={res.buoysData} shape={renderBuoyShape} legendType="none" isAnimationActive={false} />
+                                          // v13.27: other cases keep the small marker at the buoy BOTTOM (pennant end, never above the sea surface);
+                                          // only the case drawn in full puts its cap at the buoy TOP (above the surface when the buoy sticks out).
+                                          <Scatter key={`buoys-${res.id}`} data={isFull(res.id) ? res.buoysData.map(b => ({ ...b, z: b.buoyTopRaw })) : res.buoysData} shape={renderBuoyShape} legendType="none" isAnimationActive={false} />
                                       )}
                                       {res.anchor && (
                                           <Scatter key={`anchor-${res.id}`} data={[res.anchor]} shape={(props) => renderAnchorShape({...props, fill: res.color})} legendType="none" isAnimationActive={false} />
@@ -2053,6 +2116,14 @@
                               )}
                               {clrPoints.filter(p => p.z >= minDepth).length > 0 && <Scatter key="min-clearance" data={clrPoints.filter(p => p.z >= minDepth)} shape={renderClrShape} legendType="none" isAnimationActive={false} />}
                               {tdPoints.length > 0 && <Scatter key="touchdown" data={tdPoints} shape={renderTdShape} legendType="none" isAnimationActive={false} />}
+                              {(() => {   // v13.25: on-seabed length label for the selected case
+                                  const sc = activeCases.find(d => d.id === (hv || focusId)); if (!sc || !(sc.groundedLength > 0.5)) return null;
+                                  const run = sc.groundedRuns.reduce((a, r) => (!a || r[1] > a[1]) ? r : a, null); if (!run) return null;
+                                  const a = Math.max(run[0], 0), bnd = Math.min(run[1], maxX); if (bnd - a < maxX * 0.08) return null;
+                                  const lx = (a + bnd) / 2;
+                                  return <Scatter key="grounded-lbl" data={[{ x: lx, z: sc.waterDepth }]} legendType="none" isAnimationActive={false}
+                                      shape={({ cx, cy }) => <text x={cx} y={cy - 8} textAnchor="middle" fontSize={10} fontWeight="700" fill={sc.color} style={{ pointerEvents: 'none', paintOrder: 'stroke', stroke: isDark ? '#1C2839' : '#FFFFFF', strokeWidth: 3 }}>on seabed {fL(sc.groundedLength, 1)} {uL()}{run[1] > maxX + 1 ? ' ▸' : ''}</text>} />;
+                              })()}
 
                               <ReferenceLine y={0} stroke="#2E9BF0" strokeDasharray="4 2" strokeOpacity={1} strokeWidth={1.5} ifOverflow="extendDomain" label={{ position: 'insideTopRight', value: 'Sea surface', fill: '#2E9BF0', fontSize: 10, fontWeight: 'bold' }} />
                               <ReferenceLine y={activeWD} stroke={isDark ? "#94A4B8" : "#55687F"} strokeWidth={2} strokeOpacity={0.8} ifOverflow="extendDomain" label={{ position: 'insideBottomRight', value: 'Seabed', fill: isDark ? "#94A4B8" : "#55687F", fontSize: 10, fontWeight: 'bold' }} />
