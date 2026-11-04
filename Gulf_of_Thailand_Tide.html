@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; connect-src 'self' https://got-tide.rattawit-aum.workers.dev https://cloudflareinsights.com; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://server.arcgisonline.com; connect-src 'self' https://got-tide.rattawit-aum.workers.dev https://cloudflareinsights.com; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#0284c7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Gulf of Thailand tide analytics — effective harmonic constants convention, LAT datum, no nodal correction.">
-<title>Gulf of Thailand — Tide Analytics v2.3.2 Production</title>
+<title>Gulf of Thailand — Tide Analytics v2.3.4 Production</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://got-tide.rattawit-aum.workers.dev">
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://server.arcgisonline.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
@@ -33,13 +34,15 @@
   --high: #0ea5e9; --low: #db2777;
   --border: #e2e8f0; --border-strong: #cbd5e1;
   --ring: rgba(2,132,199,.28);
-  --night: rgba(30,41,59,.10); --twi: rgba(99,102,241,.07);
-  --shadow-1: 0 1px 2px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.06);
+  --night: rgba(30,41,59,.06); --twi: rgba(99,102,241,.05);
+  --shadow-1: 0 1px 2px rgba(15,23,42,.04);
   --shadow-2: 0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.05);
   --shadow-3: 0 12px 32px rgba(15,23,42,.12);
   --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-pill: 999px;
   --font-tab: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --dur: 180ms; --ease: cubic-bezier(.4,0,.2,1);
+  --moon-lit: #f8fafc; --moon-dark: #475569; --moon-edge: #94a3b8;
+  --tr: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 [data-theme="dark"] {
   --bg: #0b1220; --surface-1: #111a2b; --surface-2: #0f1826; --surface-3: #1a2438;
@@ -49,9 +52,10 @@
   --high: #38bdf8; --low: #f472b6;
   --border: #1f2a3e; --border-strong: #334155;
   --ring: rgba(56,189,248,.32);
-  --night: rgba(2,6,23,.34); --twi: rgba(129,140,248,.12);
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-2: 0 4px 12px rgba(0,0,0,.45);
+  --night: rgba(2,6,23,.24); --twi: rgba(129,140,248,.08);
+  --moon-lit: #e2e8f0; --moon-dark: #334155; --moon-edge: #64748b;
+  --shadow-1: none;
+  --shadow-2: 0 4px 12px rgba(0,0,0,.35);
   --shadow-3: 0 12px 32px rgba(0,0,0,.55);
 }
 @media (prefers-color-scheme: dark) {
@@ -63,9 +67,10 @@
     --high: #38bdf8; --low: #f472b6;
     --border: #1f2a3e; --border-strong: #334155;
     --ring: rgba(56,189,248,.32);
-    --night: rgba(2,6,23,.34); --twi: rgba(129,140,248,.12);
-    --shadow-1: 0 1px 2px rgba(0,0,0,.4);
-    --shadow-2: 0 4px 12px rgba(0,0,0,.45);
+    --night: rgba(2,6,23,.24); --twi: rgba(129,140,248,.08);
+  --moon-lit: #e2e8f0; --moon-dark: #334155; --moon-edge: #64748b;
+    --shadow-1: none;
+    --shadow-2: 0 4px 12px rgba(0,0,0,.35);
     --shadow-3: 0 12px 32px rgba(0,0,0,.55);
   }
 }
@@ -93,19 +98,18 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 .hbar .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .hbar .logo {
   width: 32px; height: 32px; border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent), #06b6d4);
+  background: var(--accent);
   display: grid; place-items: center; color: white; flex-shrink: 0;
-  box-shadow: var(--shadow-1);
 }
 .hbar .title-block { min-width: 0; }
-.hbar .title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.hbar .title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .hbar .sub { font-size: 11px; color: var(--muted); }
 .hbar .actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 .icon-btn {
   width: 36px; height: 36px; border-radius: var(--radius-md);
   border: 1px solid var(--border); background: var(--surface-1);
   color: var(--txt-2); cursor: pointer; display: grid; place-items: center;
-  transition: all var(--dur) var(--ease); flex-shrink: 0;
+  transition: var(--tr); flex-shrink: 0;
 }
 .icon-btn:hover { background: var(--surface-3); color: var(--txt); }
 .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -115,6 +119,7 @@ body { padding-bottom: env(safe-area-inset-bottom); }
   grid-template-areas: "controls" "chart" "hl" "sm" "meta";
   align-items: start;
 }
+.area-left { display: contents; }
 .area-controls { grid-area: controls; align-self: start; }
 .area-chart    { grid-area: chart;    align-self: start; min-width: 0; }
 .area-hl       { grid-area: hl;       align-self: start; min-width: 0; }
@@ -122,23 +127,18 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 .area-meta     { grid-area: meta;     align-self: start; }
 @media (min-width: 768px) {
   .layout {
-    grid-template-columns: 340px minmax(0, 1fr);
+        grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
-      "controls chart"
-      "controls hl"
-      "meta     sm";
+      "left chart"
+      "left hl"
+      "left sm";
   }
+  .area-left { display: flex; flex-direction: column; gap: 16px; grid-area: left; align-self: start; min-width: 0; }
   #hl { max-height: clamp(300px, 38vh, 440px); overflow-y: auto; }
 }
 @media (min-width: 1200px) {
-  .layout {
-    grid-template-columns: 340px minmax(0, 1fr);
-    grid-template-areas:
-      "controls chart"
-      "controls hl"
-      "meta     sm";
-  }
-  #hl { max-height: clamp(320px, 40vh, 480px); overflow-y: auto; }
+  #hl { max-height: clamp(320px, 40vh, 480px); }
 }
 .card {
   background: var(--surface-1); border: 1px solid var(--border);
@@ -146,34 +146,33 @@ body { padding-bottom: env(safe-area-inset-bottom); }
   overflow: hidden; transition: border-color var(--dur) var(--ease);
 }
 .card > .hd {
-  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
   font-size: 13px; font-weight: 600; letter-spacing: -0.01em;
   background: var(--surface-2);
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-.card > .bd { padding: 14px; }
+.card > .bd { padding: 16px; }
 .hd-tools { display: flex; gap: 6px; align-items: center; }
 .sub-hd {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--muted);
-  margin: 16px 0 8px; padding-top: 12px;
+  font-size: 12px; font-weight: 600; color: var(--txt-2);
+  margin: 16px 0 8px; padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 .sub-hd:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-label { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 5px; }
+label { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 4px; }
 select, input[type="date"], input[type="number"] {
-  width: 100%; padding: 9px 11px;
+  width: 100%; padding: 8px 12px;
   border-radius: var(--radius-md); border: 1px solid var(--border);
   font-size: 13px; font-family: inherit;
   background: var(--surface-1); color: var(--txt);
-  outline: none; transition: all var(--dur) var(--ease);
+  outline: none; transition: var(--tr);
   min-height: 40px;
 }
 select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
 .btn {
-  padding: 9px 14px; border-radius: var(--radius-md);
+  padding: 8px 16px; border-radius: var(--radius-md);
   border: 1px solid var(--border); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all var(--dur) var(--ease);
+  cursor: pointer; transition: var(--tr);
   background: var(--surface-1); color: var(--txt);
   min-height: 40px; touch-action: manipulation;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -183,9 +182,10 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .btn-primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 600; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-secondary:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-strong); }
-.btn-sm { padding: 5px 10px; min-height: 32px; font-size: 12px; border-radius: var(--radius-sm); }
+.btn-sm { padding: 4px 12px; min-height: 32px; font-size: 12px; border-radius: var(--radius-sm); }
 .row { display: flex; gap: 8px; }
-.row > * { flex: 1; }
+.row > * { flex: 1; min-width: 0; }
+input[type="date"] { min-width: 0; padding-right: 8px; }
 .segment {
   display: inline-flex; background: var(--surface-3);
   padding: 3px; border-radius: var(--radius-md);
@@ -195,17 +195,21 @@ select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
   background: transparent; border: none;
   padding: 6px 12px; border-radius: 7px; cursor: pointer;
   font-size: 12px; font-weight: 500; color: var(--muted);
-  transition: all 150ms var(--ease); min-height: 32px; min-width: 40px;
+  transition: var(--tr); min-height: 32px; min-width: 40px;
   font-family: inherit;
 }
 .segment .seg[aria-selected="true"] {
   background: var(--surface-1); color: var(--txt);
-  box-shadow: var(--shadow-1); font-weight: 600;
+  box-shadow: var(--shadow-1), inset 0 0 0 1px var(--border-strong); font-weight: 600;
 }
-.segment .seg.today-seg { color: var(--accent); font-weight: 600; }
 .segment .seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.compute-bar { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.compute-bar { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 .compute-bar #run { flex: 1; }
+.station-coord { font-size: 11.5px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.view-row { margin-top: 12px; }
+.view-row .segment { display: flex; width: 100%; }
+.view-row .segment .seg { flex: 1; min-width: 0; padding: 6px 4px; }
+.area-left > * { min-width: 0; align-self: stretch; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 12.5px; }
 .kv div:nth-child(odd) { color: var(--muted); font-weight: 500; }
 .kv div:nth-child(even) { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; word-break: break-word; }
@@ -237,38 +241,34 @@ canvas { max-width: 100%; }
 .skel.on { display: block; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
-#hl .day-hd {
-  font-size: 12px; font-weight: 700; color: var(--accent);
-  padding: 8px 4px 6px; position: sticky; top: 0;
-  background: var(--surface-1); z-index: 1;
-  border-bottom: 1px solid var(--border);
-}
-#hl table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-#hl th, #hl td { padding: 7px 8px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
-#hl th { color: var(--muted); font-weight: 600; background: var(--surface-2); text-align: left; }
+#hl table { width: 100%; border-collapse: collapse; }
+#hl th, #hl td { padding: 6px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+#hl thead th { color: var(--muted); font-weight: 600; background: var(--surface-2); text-align: left; position: sticky; top: 0; z-index: 2; }
 #hl td { font-variant-numeric: tabular-nums; }
-#hl tr:hover td { background: var(--surface-2); }
-.hl-type { font-weight: 600; }
-.hl-type.High { color: var(--high); }
-.hl-type.Low  { color: var(--low); }
+#hl tbody tr:not(.day-row):hover td { background: var(--surface-2); }
+#hl .day-row td { font-size: 12px; font-weight: 600; color: var(--txt-2); padding-top: 12px; background: var(--surface-1); position: sticky; top: var(--hl-head, 29px); z-index: 1; }
+#hl .num { text-align: right; white-space: nowrap; }
+#hl .c-time { width: 72px; } #hl .c-lvl { width: 72px; }
+.hl-type { font-weight: 500; white-space: nowrap; }
+.hl-type .ar { display: inline-block; width: 12px; color: var(--muted); }
 .hl-station-tag {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   margin-right: 6px; vertical-align: middle;
 }
-.sm-day { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 8px; }
-.sm-day-hd { display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 6px 10px; font-size: 12px; font-weight: 700; }
-.sm-moon-badge { display: flex; align-items: center; gap: 5px; font-weight: 600; color: var(--muted); font-size: 11.5px; }
-.moon-emoji { font-size: 15px; line-height: 1; }
-.sm-rows { display: flex; flex-wrap: wrap; }
-.sm-cell { flex: 1 1 50%; display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 12px; border-top: 1px dashed var(--border); }
-.sm-cell .ic { width: 14px; text-align: center; font-size: 12px; }
-.sm-ico-sun { color: var(--warning); }
-.sm-ico-moon { color: var(--muted); }
-.sm-cell b { font-variant-numeric: tabular-nums; }
-.sm-spring { background: var(--accent-soft); color: var(--accent-soft-txt); font-weight: 700; border-radius: var(--radius-pill); padding: 1px 8px; font-size: 10px; margin-left: 6px; }
+#sm { overflow-x: auto; }
+#sm table { width: 100%; border-collapse: collapse; }
+#sm th, #sm td { padding: 6px 12px; font-size: 12.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+#sm thead th { color: var(--muted); font-weight: 600; background: var(--surface-2); text-align: left; }
+#sm td { font-variant-numeric: tabular-nums; }
+#sm th.num, #sm td.num { text-align: right; }
+#sm tbody tr:hover td { background: var(--surface-2); }
+.moon-ico { display: inline-block; vertical-align: -2px; margin-right: 6px; }
+.moon-dark { fill: var(--moon-dark); stroke: var(--moon-edge); stroke-width: .75; } .moon-lit { fill: var(--moon-lit); }
+.sm-tag { color: var(--accent-soft-txt); background: var(--accent-soft); font-weight: 600; border-radius: var(--radius-pill); padding: 1px 8px; font-size: 10.5px; margin-left: 8px; }
 #map { height: 240px; border-radius: var(--radius-md); border: 1px solid var(--border); z-index: 1; position: relative; }
 @media (min-width: 1024px) { #map { height: 260px; } }
 .leaflet-container { background: var(--surface-2); }
+.map-dark .leaflet-tile-pane { filter: brightness(.62) contrast(1.08) saturate(.75); }
 [data-theme="dark"] .leaflet-control-zoom a,
 [data-theme="dark"] .leaflet-control-attribution {
   background: var(--surface-1) !important; color: var(--txt) !important; border-color: var(--border) !important;
@@ -283,16 +283,15 @@ canvas { max-width: 100%; }
   width: 36px; height: 36px; border-radius: var(--radius-md);
   border: 1px solid var(--border-strong); background: var(--surface-1);
   color: var(--txt-2); cursor: pointer; display: grid; place-items: center;
-  box-shadow: var(--shadow-1);
 }
 .map-locate-btn:hover { background: var(--surface-3); }
 .chips { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 180px; overflow-y: auto; }
 .chip {
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: var(--radius-md);
+  padding: 8px 12px; border-radius: var(--radius-md);
   background: var(--surface-2); border: 1px solid var(--border);
   border-left: 4px solid transparent;
-  font-size: 12px; transition: all var(--dur) var(--ease);
+  font-size: 12px; transition: var(--tr);
 }
 .chip .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .chip .name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -337,9 +336,11 @@ canvas { max-width: 100%; }
     z-index: 100; box-shadow: 0 -4px 12px rgba(0,0,0,.05);
   }
   .mobile-compute .btn { flex: 1; }
-  .compute-bar { display: none; }
+  .compute-bar, .view-row { display: none; }
 }
 .small { font-size: 11.5px; color: var(--muted); }
+@media (min-width: 768px) { #customRange:not(.on) { display: none; } }
+#customRange > .sub-hd:first-child { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -353,7 +354,7 @@ canvas { max-width: 100%; }
       </div>
       <div class="title-block">
         <div class="title">Gulf of Thailand — Tide Analytics</div>
-        <div class="sub">v2.3.2 · Production · Developed by <b>Rattawit W.</b></div>
+        <div class="sub">v2.3.4 · Production · LAT datum · Asia/Bangkok (UTC+7)</div>
       </div>
     </div>
     <div class="actions">
@@ -366,26 +367,29 @@ canvas { max-width: 100%; }
     </div>
   </div>
   <div class="layout">
+   <div class="area-left">
     <div class="area-controls">
       <div class="card">
-        <div class="hd">Stations &amp; Controls</div>
+        <div class="hd">Stations &amp; controls</div>
         <div class="bd">
-          <div class="sub-hd">Preset Station</div>
-          <label for="station">Choose a station (WGS84)</label>
+          <div class="sub-hd">Station</div>
+          <label for="station">Preset station</label>
           <select id="station" aria-label="Preset stations"></select>
+          <div class="station-coord" id="stationCoord">—</div>
           <div class="compute-bar">
-            <button id="run" class="btn btn-primary" aria-label="Compute tide (C)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              Compute
-            </button>
+            <button id="run" class="btn btn-primary" aria-label="Compute tide (C)">Compute tide</button>
+          </div>
+          <div id="msg" class="info" role="status"></div>
+          <div class="view-row">
+            <label>View</label>
             <div class="segment" id="viewSeg" role="tablist" aria-label="View window">
               <button class="seg today-seg" role="tab" data-days="today" aria-selected="false">Today</button>
               <button class="seg" role="tab" data-days="1" aria-selected="true">1d</button>
               <button class="seg" role="tab" data-days="3" aria-selected="false">3d</button>
               <button class="seg" role="tab" data-days="7" aria-selected="false">7d</button>
+              <button class="seg" role="tab" data-days="custom" aria-selected="false" id="customSegBtn">Custom</button>
             </div>
           </div>
-          <div id="msg" class="info" role="status"></div>
           <!-- v2.3.2: Custom-point entry DISABLED — API serves preset stations only.
                Elements kept (hidden) so existing JS references resolve safely. -->
           <div id="customCoordsBlock" class="hidden" aria-hidden="true">
@@ -397,17 +401,19 @@ canvas { max-width: 100%; }
             <button id="addCustomBtn" class="btn btn-secondary btn-sm" style="margin-top:8px; width:100%;">+ Add Custom Point</button>
           </div>
           <div class="sub-hd" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Active Stations (<span id="activeCount">0</span>/5)</span>
+            <span>Active stations (<span id="activeCount">0</span>/5)</span>
             <button id="clearAllBtn" class="btn btn-secondary btn-sm">Clear</button>
           </div>
           <div id="chips" class="chips" aria-live="polite"></div>
-          <div class="limit-hint">Limited to 5 preset stations for performance.</div>
-          <div class="sub-hd">Date Range (client-only)</div>
+          <div class="limit-hint">Max 5 stations (server load).</div>
+                    <div id="customRange">
+          <div class="sub-hd">Custom range</div>
           <div class="row">
             <div><label for="dateStart">Start</label><input type="date" id="dateStart"></div>
             <div><label for="dateEnd">End</label><input type="date" id="dateEnd"></div>
           </div>
-          <div class="small" style="margin-top:6px;">Range clamped to available API window. Segment (Today/1d/3d/7d) overrides date range.</div>
+                    <div class="small" style="margin-top:8px;">Clamped to the API window.</div>
+          </div>
           <div class="sub-hd">Export</div>
           <div class="row">
             <button id="csv" class="btn btn-secondary btn-sm" aria-label="Export CSV (E)">CSV</button>
@@ -418,7 +424,7 @@ canvas { max-width: 100%; }
     </div>
     <div class="area-meta">
       <div class="card">
-        <div class="hd">Result Meta</div>
+        <div class="hd">Model &amp; station info</div>
         <div class="bd">
           <div class="kv" id="metaKV">
             <div>Stations</div><div id="kv-count">—</div>
@@ -430,7 +436,7 @@ canvas { max-width: 100%; }
             <div>Source</div><div id="kv-src">—</div>
             <div>Convention</div><div id="kv-conv">—</div>
           </div>
-          <div class="sub-hd">Mini Map</div>
+          <div class="sub-hd">Map</div>
           <div style="position:relative;">
             <div id="map" role="application" aria-label="Station map"></div>
             <button class="map-locate-btn" id="locateBtn" title="Locate me" aria-label="Locate me">
@@ -438,23 +444,24 @@ canvas { max-width: 100%; }
             </button>
           </div>
           <div class="small" style="margin-top:8px;">
-            API window: <b>−15 d</b> to <b>+30 d</b> (Bangkok, enforced by API). Client cache TTL: 9 min. Click a preset marker to add it.
+            API window ≈ <b>−15 d</b> to <b>+30 d</b> (exact dates: Window above). Client cache TTL: 9 min. Click a preset marker to add it.
           </div>
         </div>
       </div>
     </div>
+   </div>
     <div class="area-chart">
       <div class="card">
         <div class="hd">
-          <span>Tide Curve <span class="small" style="margin-left:6px;">(scroll/pinch to zoom · drag to pan)</span></span>
+          <span>Tide curve <span class="small" style="margin-left:8px; font-weight:400;">Scroll / pinch to zoom · drag to pan</span></span>
           <div class="hd-tools">
             <label class="small" style="display:flex; align-items:center; gap:4px; cursor:pointer; margin:0;">
               <input type="checkbox" id="showHL" checked style="min-height:auto; width:auto;"> H/L
             </label>
             <label class="small" style="display:flex; align-items:center; gap:4px; cursor:pointer; margin:0;">
-              <input type="checkbox" id="showSM" checked style="min-height:auto; width:auto;"> ☀️🌙
+              <input type="checkbox" id="showSM" checked style="min-height:auto; width:auto;"> Sun/Moon
             </label>
-            <button id="resetZoomBtn" class="btn btn-secondary btn-sm">Reset Zoom</button>
+            <button id="resetZoomBtn" class="btn btn-secondary btn-sm">Reset zoom</button>
           </div>
         </div>
         <div class="bd">
@@ -468,8 +475,8 @@ canvas { max-width: 100%; }
     <div class="area-hl">
       <div class="card">
         <div class="hd">
-          <span>Daily Highs / Lows</span>
-          <span class="small">HH:mm · m</span>
+          <span>Daily highs / lows</span>
+          <span class="small">Time UTC+7 · level m above LAT</span>
         </div>
         <div class="bd">
           <div id="hl" aria-live="polite">
@@ -503,7 +510,7 @@ canvas { max-width: 100%; }
   </div>
   <div class="footer">
     Need help? Contact: <a href="mailto:rattawit.aum@gmail.com">rattawit.aum@gmail.com</a>
-    · Data © Rattawit W. Tide Model (GoT) · v2.3.2 Production
+    · Data © Rattawit W. Tide Model (GoT) · Developed by Rattawit W. · v2.3.4 Production
   </div>
 </div>
 <script>
@@ -548,7 +555,8 @@ const STATIONS = {
   "AQP":{"lat":8.260766667,"lon":102.52465},"YAWD":{"lat":9.92305,"lon":101.4586},
   "SKL":{"lat":7.23480,"lon":100.5866},"SALQ":{"lat":9.286267,"lon":101.412167}
 };
-const PALETTE = ['#0284c7','#dc2626','#059669','#d97706','#9333ea','#0891b2','#db2777','#4f46e5','#ea580c','#65a30d'];
+// v2.3.3: station colours avoid semantic red/green/amber
+const PALETTE = ['#0284c7','#8b5cf6','#0d9488','#c026d3','#64748b','#0891b2','#a855f7','#475569']; // ≥3.6:1 on light & dark
 const dt = luxon.DateTime;
 const HAS_SUNCALC = (typeof SunCalc !== 'undefined') && !window.__sunCalcErr;
 // ============================================================
@@ -715,7 +723,34 @@ function moonPhaseInfo(phase) {
   else if (p < 0.72) { name = 'Waning Gibbous'; emoji = '🌖'; }
   else if (p < 0.78) { name = 'Last Quarter'; emoji = '🌗'; }
   else { name = 'Waning Crescent'; emoji = '🌘'; }
-  return { name, emoji, isSpring: (p < 0.06 || p > 0.94 || Math.abs(p - 0.5) < 0.06) };
+  return { name, emoji, p, isSpring: (p < 0.06 || p > 0.94 || Math.abs(p - 0.5) < 0.06) };
+}
+// v2.3.3: moon phase glyph drawn from p (0 new · 0.5 full), same on every OS
+function moonSVG(p, size = 14) {
+  const r = size / 2 - 0.5, c = size / 2, k = Math.cos(2 * Math.PI * p), rx = Math.abs(r * k), wax = p < 0.5;
+  const s1 = wax ? 1 : 0, s2 = wax ? (k > 0 ? 0 : 1) : (k > 0 ? 1 : 0);
+  return `<svg class="moon-ico" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">` +
+    `<circle class="moon-dark" cx="${c}" cy="${c}" r="${r}"/>` +
+    `<path class="moon-lit" d="M${c} ${c - r} A${r} ${r} 0 0 ${s1} ${c} ${c + r} A${rx.toFixed(3)} ${r} 0 0 ${s2} ${c} ${c - r}Z"/></svg>`;
+}
+function drawMoon(ctx, x, y, r, p, lit, dark, edge) {
+  const k = Math.cos(2 * Math.PI * p), wax = p < 0.5;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = dark; ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, r, -Math.PI / 2, Math.PI / 2, !wax);
+  ctx.ellipse(x, y, Math.max(0.01, Math.abs(r * k)), r, 0, Math.PI / 2, -Math.PI / 2, wax ? k > 0 : k < 0);
+  ctx.fillStyle = lit; ctx.fill();
+  if (edge) { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.lineWidth = 0.75; ctx.strokeStyle = edge; ctx.stroke(); }
+}
+function phaseTag(p) { return (p < 0.25 || p > 0.75) ? 'New moon' : 'Full moon'; }
+// v2.3.4: phase event shown on ONE day only (closest local-noon to new/full moon)
+function phaseDist(p) { return Math.min(p, 1 - p, Math.abs(p - 0.5)); }
+function phaseAtNoon(day) { const q = SunCalc.getMoonIllumination(day.set({ hour: 12 }).toJSDate()).phase; return ((q % 1) + 1) % 1; }
+function phaseEventDay(day) {
+  const p = phaseAtNoon(day), d = phaseDist(p);
+  if (d >= 0.06) return null;
+  if (!(d < phaseDist(phaseAtNoon(day.minus({ days: 1 }))) && d <= phaseDist(phaseAtNoon(day.plus({ days: 1 }))))) return null;
+  return { p, tag: phaseTag(p) };
 }
 function smTime(d) { return (d && !isNaN(d.getTime())) ? dt.fromJSDate(d).setZone(USE_TZ).toFormat('HH:mm') : '—'; }
 function sunMoonForDay(dateKey, lat, lon) {
@@ -740,24 +775,24 @@ function renderSunMoon() {
   const { startMs, endMs } = currentViewRange();
   let d = dt.fromMillis(startMs).setZone(USE_TZ).startOf('day');
   const last = dt.fromMillis(endMs).setZone(USE_TZ).startOf('day');
-  const parts = []; let guard = 0;
+  const rows = []; let guard = 0;
   while (d <= last && guard < 70) {
     const key = d.toFormat('yyyy-LL-dd');
     const sm = sunMoonForDay(key, primary.lat, primary.lon);
-    const spring = sm.phase.isSpring ? '<span class="sm-spring">Spring tide</span>' : '';
-    parts.push(
-      `<div class="sm-day"><div class="sm-day-hd"><span>${d.toFormat('EEE, dd MMM')}${spring}</span>` +
-      `<span class="sm-moon-badge"><span class="moon-emoji">${sm.phase.emoji}</span>${sm.illum}% · ${sm.phase.name}</span></div>` +
-      `<div class="sm-rows">` +
-      `<div class="sm-cell"><span class="ic sm-ico-sun">▲</span>Sunrise <b>${smTime(sm.sunrise)}</b></div>` +
-      `<div class="sm-cell"><span class="ic sm-ico-sun">▼</span>Sunset <b>${smTime(sm.sunset)}</b></div>` +
-      `<div class="sm-cell"><span class="ic sm-ico-moon">▲</span>Moonrise <b>${smTime(sm.moonrise)}</b></div>` +
-      `<div class="sm-cell"><span class="ic sm-ico-moon">▼</span>Moonset <b>${smTime(sm.moonset)}</b></div>` +
-      `</div></div>`
+        const ev = phaseEventDay(d);
+    const tagHtml = ev ? `<span class="sm-tag">${ev.tag}</span>` : '';
+    const mr = smTime(sm.moonrise), ms = smTime(sm.moonset);
+    rows.push(
+      `<tr><td>${d.toFormat('EEE dd MMM')}${tagHtml}</td>` +
+      `<td class="num">${smTime(sm.sunrise)}</td><td class="num">${smTime(sm.sunset)}</td>` +
+      `<td class="num"${mr === '—' ? ' title="No moonrise this day"' : ''}>${mr}</td>` +
+      `<td class="num"${ms === '—' ? ' title="No moonset this day"' : ''}>${ms}</td>` +
+      `<td>${moonSVG(sm.phase.p)}${sm.illum}% · ${sm.phase.name}</td></tr>`
     );
     d = d.plus({ days: 1 }); guard++;
   }
-  div.innerHTML = parts.join('');
+  div.innerHTML = '<table><thead><tr><th>Date</th><th class="num">Sunrise</th><th class="num">Sunset</th>' +
+    '<th class="num">Moonrise</th><th class="num">Moonset</th><th>Moon</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
 }
 // ============================================================
 // 6. TOAST
@@ -843,6 +878,14 @@ const sunShade = {
     ctx.restore();
   }
 };
+const legendGap = {
+  id: 'legendGap',
+  beforeInit(chart) {
+    if (!chart.legend) return;
+    const fit = chart.legend.fit;
+    chart.legend.fit = function () { fit.call(this); this.height += 12; };
+  }
+};
 const moonMarker = {
   id: 'moonMarker',
   afterDatasetsDraw(chart) {
@@ -855,16 +898,15 @@ const moonMarker = {
     const { top } = chartArea;
     let day = dt.fromMillis(min).setZone(USE_TZ).startOf('day');
     const lastDay = dt.fromMillis(max).setZone(USE_TZ).startOf('day');
-    ctx.save(); ctx.textAlign = 'center'; ctx.font = '13px ' + getCSS('--font-tab');
+    const LIT = getCSS('--moon-lit'), DARK = getCSS('--moon-dark'), EDGE = getCSS('--moon-edge');
+    ctx.save();
     let guard = 0;
     for (; day <= lastDay && guard < 70; day = day.plus({ days: 1 }), guard++) {
-      const noon = day.set({ hour: 12 });
-      const ill = SunCalc.getMoonIllumination(noon.toJSDate());
-      const ph = moonPhaseInfo(ill.phase);
-      if (!ph.isSpring) continue;
-      const t = noon.toMillis();
+            const ev = phaseEventDay(day);
+      if (!ev) continue;
+      const t = day.set({ hour: 12 }).toMillis();
       if (t < min || t > max) continue;
-      ctx.fillText(ph.emoji, x.getPixelForValue(t), top + 14);
+      drawMoon(ctx, x.getPixelForValue(t), top + 8, 5, ev.p, LIT, DARK, EDGE);
     }
     ctx.restore();
   }
@@ -953,16 +995,16 @@ function initChart() {
           annotations: {
             nowLine: {
               type: 'line', xMin: Date.now(), xMax: Date.now(),
-              borderColor: getCSS('--danger'), borderWidth: 1.5, borderDash: [4, 4],
+              borderColor: getCSS('--txt-2'), borderWidth: 1.5, borderDash: [4, 4],
               label: { display: true, content: 'now', position: 'start',
-                       backgroundColor: getCSS('--danger'), color: '#fff',
+                       backgroundColor: getCSS('--txt-2'), color: getCSS('--surface-1'),
                        font: { size: 9, weight: '600' }, padding: 3, borderRadius: 4 }
             }
           }
         }
       }
     },
-    plugins: [sunShade, daySeparator, moonMarker]
+    plugins: [legendGap, sunShade, daySeparator, moonMarker]
   });
   if (nowLineTimer) clearInterval(nowLineTimer);
   nowLineTimer = setInterval(() => {
@@ -987,8 +1029,9 @@ function refreshChartColors() {
   chart.options.plugins.tooltip.borderColor = getCSS('--border');
   chart.options.plugins.tooltip.titleColor = getCSS('--txt');
   chart.options.plugins.tooltip.bodyColor  = getCSS('--txt-2');
-  chart.options.plugins.annotation.annotations.nowLine.borderColor = getCSS('--danger');
-  chart.options.plugins.annotation.annotations.nowLine.label.backgroundColor = getCSS('--danger');
+  chart.options.plugins.annotation.annotations.nowLine.borderColor = getCSS('--txt-2');
+  chart.options.plugins.annotation.annotations.nowLine.label.backgroundColor = getCSS('--txt-2');
+  chart.options.plugins.annotation.annotations.nowLine.label.color = getCSS('--surface-1');
   chart.update('none');
 }
 // ============================================================
@@ -1127,17 +1170,23 @@ function renderHL() {
     div.innerHTML = '<div class="small" style="text-align:center; padding:20px;">No extrema in range.</div>';
     return;
   }
-  const parts = [];
+  // v2.3.3: one table, one sticky header; Station column only when >1 station
+  const multi = state.stations.size > 1, cols = multi ? 4 : 3;
+  const parts = ['<table><thead><tr><th>Type</th>' + (multi ? '<th>Station</th>' : '') +
+    '<th class="num c-time">Time</th><th class="num c-lvl">Level (m)</th></tr></thead><tbody>'];
   for (const d of days) {
-    parts.push(`<div class="day-hd">${d}</div>`);
-    parts.push('<table><thead><tr><th>Type</th><th>Station</th><th style="text-align:center;">Time</th><th style="text-align:right;">m</th></tr></thead><tbody>');
+    parts.push(`<tr class="day-row"><td colspan="${cols}">${dt.fromISO(d, { zone: USE_TZ }).toFormat('EEE dd MMM yyyy')}</td></tr>`);
     const rows = map.get(d).sort((a,b) => a.t - b.t);
     for (const r of rows) {
-      parts.push(`<tr><td class="hl-type ${r.type}">${r.type}</td><td><span class="hl-station-tag" style="background:${r.color}"></span>${r.code}</td><td style="text-align:center;">${fmtTime(r.t)}</td><td style="text-align:right;">${(+r.y).toFixed(2)}</td></tr>`);
+      parts.push(`<tr><td class="hl-type ${r.type}"><span class="ar">${r.type === 'High' ? '↑' : '↓'}</span>${r.type}</td>` +
+        (multi ? `<td><span class="hl-station-tag" style="background:${r.color}"></span>${r.code}</td>` : '') +
+        `<td class="num">${fmtTime(r.t)}</td><td class="num">${(+r.y).toFixed(2)}</td></tr>`);
     }
-    parts.push('</tbody></table>');
   }
+    parts.push('</tbody></table>');
   div.innerHTML = parts.join('');
+  const th = div.querySelector('thead');
+  if (th) div.style.setProperty('--hl-head', th.getBoundingClientRect().height + 'px');
 }
 function renderMeta() {
   const primary = state.primaryCode ? state.stations.get(state.primaryCode) : null;
@@ -1163,7 +1212,10 @@ function renderMeta() {
   const src = primary.fromCache ? '<span class="pill pill-muted">local cache</span>' : '<span class="pill">edge/api</span>';
   const af = m.af ? `<span class="pill pill-muted" style="margin-left:4px;">AF: ${m.af}</span>` : '';
   document.getElementById('kv-src').innerHTML = src + af;
-  document.getElementById('kv-conv').textContent = m.convention || 'effective constants / no nodal correction';
+  const conv = m.convention || 'effective_harmonic_constants_no_nodal_correction';
+  const convEl = document.getElementById('kv-conv');
+  convEl.textContent = conv === 'effective_harmonic_constants_no_nodal_correction' ? 'Effective constants · no nodal corr.' : conv.replace(/_/g, ' ');
+  convEl.title = conv;
 }
 function renderChips() {
   const wrap = document.getElementById('chips');
@@ -1278,42 +1330,38 @@ function clearAllStations() {
 // ============================================================
 let map = null;
 const presetMarkers = {};
-let lightTiles = null, darkTiles = null;
+let baseTiles = null;
 function isDarkNow() {
   const t = document.documentElement.getAttribute('data-theme') || 'auto';
   return t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
 function applyMapTheme() {
   if (!map) return;
-  const dark = isDarkNow();
-  if (dark) {
-    if (lightTiles && map.hasLayer(lightTiles)) map.removeLayer(lightTiles);
-    if (darkTiles && !map.hasLayer(darkTiles)) darkTiles.addTo(map);
-  } else {
-    if (darkTiles && map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-    if (lightTiles && !map.hasLayer(lightTiles)) lightTiles.addTo(map);
-  }
+  // v2.3.3: single Esri Ocean basemap; dimmed by CSS in dark theme
+  map.getContainer().classList.toggle('map-dark', isDarkNow());
 }
+// v2.3.4: de-clutter close pairs (SBWA/SGWH share latitude); 'auto' flips labels away from map edge
+const LABEL_DIR = { SBWA: 'left', SGWH: 'right' };
 function initMap() {
   map = L.map('map', { zoomControl: true, dragging: true, tap: true }).setView([9.5, 101.5], 6);
-  lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 14, attribution: '&copy; OSM &copy; CARTO'
-  });
-  darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 14, attribution: '&copy; OSM &copy; CARTO'
-  });
+  // v2.3.3: CARTO raster now needs an API key -> keyless Esri Ocean (same as DistanceMap)
+    baseTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 14, maxNativeZoom: 13, attribution: 'Tiles &copy; Esri &mdash; GEBCO, NOAA, Garmin and other contributors'
+  }).addTo(map);
   applyMapTheme();
   L.rectangle(
     [[GRID_BBOX.lat_min, GRID_BBOX.lon_min], [GRID_BBOX.lat_max, GRID_BBOX.lon_max]],
     { color: '#94a3b8', weight: 1, fill: false, dashArray: '4,4', interactive: false }
   ).addTo(map);
-  const normal = { radius: 5, color: '#0ea5e9', fillColor: '#38bdf8', fillOpacity: 0.85, weight: 2 };
-  const selected = { radius: 7, color: '#ef4444', fillColor: '#f87171', fillOpacity: 0.95, weight: 2.5 };
+  const normal = { radius: 4, color: '#475569', fillColor: '#ffffff', fillOpacity: 1, weight: 1.5 }; // v2.3.4: neutral when inactive
+  const selected = { radius: 7, color: '#ffffff', fillColor: '#0284c7', fillOpacity: 1, weight: 2.5 };
   for (const [code, v] of Object.entries(STATIONS)) {
     const m = L.circleMarker([v.lat, v.lon], normal).addTo(map);
-    m.bindTooltip(code, { permanent: true, direction: 'right', offset: [6, 0], className: 'station-label' });
+        const dir = LABEL_DIR[code] || 'auto';
+    m.bindTooltip(code, { permanent: true, direction: dir, offset: [dir === 'left' ? -6 : 6, 0], className: 'station-label' });
     m.on('click', () => {
-      document.getElementById('station').value = code;
+      const sEl = document.getElementById('station');
+      sEl.value = code; sEl.dispatchEvent(new Event('change'));
       addStation(code, v.lat, v.lon);
     });
     presetMarkers[code] = { marker: m, normal, selected };
@@ -1355,7 +1403,8 @@ function highlightMarkers() {
   for (const [c, obj] of Object.entries(presetMarkers)) {
     const isActive = state.stations.has(c);
     const isPrimary = state.primaryCode === c;
-    obj.marker.setStyle(isPrimary ? obj.selected : (isActive ? { ...obj.normal, color: '#059669', fillColor: '#34d399' } : obj.normal));
+    const sc = isActive ? state.stations.get(c).color : null;
+    obj.marker.setStyle(isPrimary ? { ...obj.selected, fillColor: sc } : (isActive ? { ...obj.normal, color: '#ffffff', fillColor: sc, fillOpacity: 1 } : obj.normal));
     if (isPrimary) obj.marker.bringToFront();
   }
   if (state.primaryCode) {
@@ -1402,7 +1451,7 @@ function exportCSV() {
   const meta = primary.payload.meta || {};
   const lines = [];
   lines.push('sep=,');
-  lines.push('# Gulf of Thailand Tide Analytics v2.3.2 export');
+  lines.push('# Gulf of Thailand Tide Analytics v2.3.4 export');
   lines.push('# Convention: effective harmonic constants; NO nodal AF/f/u correction');
   lines.push('# Datum: z0 = LAT');
   lines.push('# Model: y(t)=z0+sum(H*cos(omega*(t-t0)-phi))');
@@ -1483,8 +1532,10 @@ function clearDateInputs() {
   const dsr = document.getElementById('dateStart');
   const der = document.getElementById('dateEnd');
   if (dsr) dsr.value = '';
-  if (der) der.value = '';
+    if (der) der.value = '';
   state.dateStartMs = null; state.dateEndMs = null;
+  const cr = document.getElementById('customRange');
+  if (cr) cr.classList.remove('on');
 }
 function applyViewDays(days) {
   state.viewDays = days;
@@ -1509,8 +1560,14 @@ function bindEvents() {
   sel.innerHTML = Object.entries(STATIONS)
     .map(([code, v]) => ({ code, lat: +v.lat, lon: +v.lon }))
     .sort((a,b) => a.code.localeCompare(b.code))
-    .map(({code,lat,lon}) => `<option value="${code}">${code} (${lat.toFixed(4)}, ${lon.toFixed(4)})</option>`)
+    .map(({code}) => `<option value="${code}">${code}</option>`)
     .join('');
+  const showCoord = () => {
+    const v = STATIONS[sel.value];
+    document.getElementById('stationCoord').textContent = v ? `${(+v.lat).toFixed(4)}° N · ${(+v.lon).toFixed(4)}° E (WGS84)` : '—';
+  };
+  sel.addEventListener('change', showCoord);
+  showCoord();
   const runFn = () => {
     if (state.busy) { toast('Please wait for the current request…', 'warn'); return; }
     const code = sel.value;
@@ -1522,8 +1579,9 @@ function bindEvents() {
   document.getElementById('runMobile').addEventListener('click', runFn);
   ['viewSeg','viewSegMobile'].forEach(id => {
     document.querySelectorAll(`#${id} .seg`).forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.days === 'today') { goToday(); return; }
+              btn.addEventListener('click', () => {
+          if (btn.dataset.days === 'custom') { openCustom(); return; }
+          if (btn.dataset.days === 'today') { goToday(); return; }
         applyViewDays(+btn.dataset.days);
       });
     });
@@ -1535,7 +1593,11 @@ function bindEvents() {
     const rm = e.target.closest('[data-rm]');
     if (rm) { removeStation(rm.getAttribute('data-rm')); return; }
     const chip = e.target.closest('[data-code]');
-    if (chip) { state.primaryCode = chip.getAttribute('data-code'); renderAll(); }
+        if (chip) {
+      state.primaryCode = chip.getAttribute('data-code');
+      if (STATIONS[state.primaryCode]) { sel.value = state.primaryCode; showCoord(); }
+      renderAll();
+    }
   });
   document.getElementById('clearAllBtn').addEventListener('click', clearAllStations);
   const dsr = document.getElementById('dateStart');
@@ -1547,10 +1609,22 @@ function bindEvents() {
     state.useDateRange = true;
     state.userPanned = false;
     state.viewMinMs = null; state.viewMaxMs = null;
-    setActiveSeg(null); // v2.3.2: clear segment highlight when using explicit range
+          setActiveSeg('custom'); // v2.3.4: explicit range = Custom
     renderAll();
   };
-  dsr.addEventListener('change', onDateChange);
+      // v2.3.4: Custom prefills the current view so the selection never lies
+    function openCustom() {
+      document.getElementById('customRange').classList.add('on');
+      const pw = payloadWindow();
+      if (pw) { dsr.min = der.min = fmtDate(pw.min); dsr.max = der.max = fmtDate(pw.max); }
+      if (!dsr.value || !der.value) {
+        const { startMs, endMs } = currentViewRange();
+        dsr.value = fmtDate(startMs); der.value = fmtDate(endMs);
+      }
+      onDateChange();
+      dsr.focus();
+    }
+    dsr.addEventListener('change', onDateChange);
   der.addEventListener('change', onDateChange);
   document.getElementById('csv').addEventListener('click', exportCSV);
   document.getElementById('png').addEventListener('click', exportPNG);
@@ -1614,6 +1688,7 @@ window.addEventListener('DOMContentLoaded', () => {
   CacheKV.sweep();
   if (!HAS_SUNCALC) { document.getElementById('showSM').checked = false; state.showSM = false; document.querySelector('.area-sm').style.display = 'none'; }
   document.getElementById('station').selectedIndex = 0;
+  document.getElementById('station').dispatchEvent(new Event('change'));
   const code = document.getElementById('station').value;
   if (code && STATIONS[code]) addStation(code, STATIONS[code].lat, STATIONS[code].lon);
 });
